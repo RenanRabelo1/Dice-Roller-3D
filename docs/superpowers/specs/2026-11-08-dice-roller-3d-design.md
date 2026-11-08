@@ -146,11 +146,18 @@ Fases no store: `hand` → `charging` → `rolling` → `settled` → (recolher)
 - Um `useFBO` renderiza a cena sem os dados uma vez por quadro; todos os `MeshTransmissionMaterial` usam esse buffer (`buffer={fbo.texture}`). Cada dado tem sua própria refração e aberração cromática, mas a cena é desenhada uma vez só.
 - `PerformanceMonitor` do drei reduz resolução e amostras do material se o FPS cair.
 
-### 4.7 Referências do threejs.org/examples
+### 4.7 Referências Three.js (`references/threejs/`, conforme o `CLAUDE.md` do projeto)
 
-- `physics_rapier_basic` (+ addon `jsm/physics/RapierPhysics.js`): criação do mundo, gravidade, passo limitado a ≤ 1/30, cópia corpo → malha. O @react-three/rapier encapsula isso; o exemplo serve de referência de parâmetros.
-- `webgl_materials_physical_transmission`: parâmetros de transmissão, IOR e espessura para a gema.
-- `webgl_geometry_convex`: casco convexo a partir de pontos (colisor dos dados).
+Fontes oficiais fixadas (MIT). São adaptadas, não executadas.
+
+| Fonte | O que aproveitar | Onde entra |
+| --- | --- | --- |
+| `physics_rapier_basic.html` | gravidade, restituição (`addMesh(mesh, massa, restituição)`), corpo fixo vs. dinâmico, cópia corpo → malha | `physics/world.ts`, `Tray.tsx`, `Die.tsx` (a cópia corpo → malha o @react-three/rapier já faz) |
+| `physics_ammo_break.html` | `initInput()`: Raycaster da câmera + `setLinearVelocity(direção × 24)`; `createConvexHullPhysicsShape(posições)` | `aim.launchVelocity` troca o 24 fixo por direção mão → alvo × força carregada; o casco convexo vira o colisor de cada dado. A fratura é descartada |
+| `misc_controls_drag.html` | `transformGroup = true`: o grupo inteiro acompanha o ponteiro | `Hand.tsx`: os dados da mão se movem juntos seguindo o raycast do ponteiro na mesa. A classe `DragControls` em si não é usada, porque ela arrasta só com o botão pressionado e, neste design, segurar o botão é carregar a força |
+| `webgl_geometries.html` | `TetrahedronGeometry`, `BoxGeometry`, `OctahedronGeometry`, `IcosahedronGeometry` (+ `DodecahedronGeometry` para o d12) | `polyhedra.ts`. O d10/d100 (trapezoedro pentagonal) é montado à mão |
+
+Online, sem cópia local: `webgl_materials_physical_transmission` (threejs.org) como referência de transmissão, IOR e espessura da gema.
 
 ## 5. Tratamento de erros
 
