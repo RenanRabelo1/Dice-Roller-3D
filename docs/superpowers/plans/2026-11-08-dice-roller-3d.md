@@ -62,7 +62,7 @@ e2e/                    *.spec.ts (Playwright) + global.d.ts
 
 ---
 
-### Tarefa 1: Scaffold e mundo físico (`physics/world.ts`)
+### Task 1: Scaffold e mundo físico (`physics/world.ts`)
 
 **Arquivos:**
 - Criar: arquivos do template copiados para a raiz, `tsconfig.test.json`, `playwright.config.ts`, `public/fonts/*`, `src/physics/world.ts`
@@ -187,7 +187,7 @@ git commit -m "chore: scaffold Vite React TS with pinned 3D/test deps; add tray 
 
 ---
 
-### Tarefa 2: Poliedros, numeração e rótulos (`dice/polyhedra.ts`)
+### Task 2: Poliedros, numeração e rótulos (`dice/polyhedra.ts`)
 
 **Arquivos:**
 - Criar: `src/dice/polyhedra.ts`
@@ -286,7 +286,7 @@ describe('labels', () => {
 
 ---
 
-### Tarefa 3: Leitura do resultado (`dice/read.ts`)
+### Task 3: Leitura do resultado (`dice/read.ts`)
 
 **Arquivos:**
 - Criar: `src/dice/read.ts`
@@ -348,7 +348,7 @@ describe('results', () => {
 
 ---
 
-### Tarefa 4: Mira, carga e lançamento (`throw/aim.ts`)
+### Task 4: Mira, carga e lançamento (`throw/aim.ts`)
 
 **Arquivos:**
 - Criar: `src/throw/aim.ts`
@@ -406,7 +406,7 @@ describe('aim', () => {
 
 ---
 
-### Tarefa 5: Máquina de fases da entrada (`throw/gesture.ts`)
+### Task 5: Máquina de fases da entrada (`throw/gesture.ts`)
 
 **Arquivos:**
 - Criar: `src/throw/gesture.ts`
@@ -476,7 +476,7 @@ describe('gesture', () => {
 
 ---
 
-### Tarefa 6: Protocolo de conclusão (`throw/settle.ts`)
+### Task 6: Protocolo de conclusão (`throw/settle.ts`)
 
 **Arquivos:**
 - Criar: `src/throw/settle.ts`
@@ -570,7 +570,7 @@ describe('settle', () => {
 
 ---
 
-### Tarefa 7: Aplicação aos corpos + física em Node (`physics/apply.ts`)
+### Task 7: Aplicação aos corpos + física em Node (`physics/apply.ts`)
 
 **Arquivos:**
 - Criar: `src/physics/apply.ts`, `tests/helpers/sim.ts`
@@ -660,7 +660,7 @@ Para `r.fixed`, use em `sim.ts` o resultado de `bodies.every((b) => b.bodyType()
 
 ---
 
-### Tarefa 8: Estado (`store.ts`)
+### Task 8: Estado (`store.ts`)
 
 **Arquivos:**
 - Criar: `src/store.ts`
@@ -726,7 +726,7 @@ describe('store', () => {
 
 ---
 
-### Tarefa 9: Cena com um dado validado (gema + números)
+### Task 9: Cena com um dado validado (gema + números)
 
 **Arquivos:**
 - Criar: `src/App.tsx`, `src/index.css`, `src/scene/Stage.tsx`, `src/scene/Tray.tsx`, `src/scene/Die.tsx`, `src/testHook.ts`, `e2e/global.d.ts`
@@ -812,7 +812,7 @@ test('a d6 at identity shows 1 on top and 6 below; mesh and body agree', async (
 
 ---
 
-### Tarefa 10: Fluxo completo — mão, mira, arremesso, conclusão, controles
+### Task 10: Fluxo completo — mão, mira, arremesso, conclusão, controles
 
 **Arquivos:**
 - Criar: `src/scene/Hand.tsx`, `src/ui/Controls.tsx`, `e2e/roll.spec.ts`
@@ -933,7 +933,7 @@ Também atualize o terceiro teste de `e2e/smoke.spec.ts` para usar `fixture([{ p
 
 ---
 
-### Tarefa 11: Robustez da entrada e falhas
+### Task 11: Robustez da entrada e falhas
 
 **Arquivos:**
 - Modificar: `src/App.tsx` (boundaries, `?fail=` em modo test), `src/scene/Hand.tsx` (se os testes acharem falhas)
@@ -1072,7 +1072,7 @@ test.describe('without WebGL', () => {
 
 ---
 
-### Tarefa 12: Acabamento visual, revisão e gate do loop
+### Task 12: Acabamento visual, revisão e gate do loop
 
 **Arquivos:**
 - Modificar: `src/index.css`, `src/ui/Controls.tsx`, `e2e/screens.spec.ts` (só o que a revisão apontar)
