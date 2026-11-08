@@ -106,6 +106,40 @@ test('blur cancels charge and reduced motion returns without a flight', async ({
   expect(await page.evaluate(() => window.__dice.launches().count)).toBe(1);
 });
 
+for (const source of ['pointer', 'key'] as const) {
+  test(`secondary touch release preserves an active ${source} charge`, async ({ page }) => {
+    const area = page.locator('.game-area');
+    await area.focus();
+    await area.evaluate((el) => {
+      el.dataset.pointerEvents = '[]';
+      for (const type of ['pointerdown', 'pointerup', 'lostpointercapture']) el.addEventListener(type, (event) => {
+        const events = JSON.parse(el.dataset.pointerEvents!);
+        events.push({ type: event.type, id: (event as PointerEvent).pointerId });
+        el.dataset.pointerEvents = JSON.stringify(events);
+      });
+    });
+    const rect = (await area.boundingBox())!;
+    const primary = { x: rect.x + rect.width * 0.4, y: rect.y + rect.height * 0.5, id: 1 };
+    const secondary = { x: rect.x + rect.width * 0.6, y: rect.y + rect.height * 0.5, id: 2 };
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 2 });
+    if (source === 'pointer') await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [primary] });
+    else await page.keyboard.down('Space');
+    expect(await page.evaluate(() => window.__dice.state().phase)).toBe('charging');
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: source === 'pointer' ? [primary, secondary] : [secondary] });
+    const secondaryId = await area.evaluate((el) => JSON.parse(el.dataset.pointerEvents!).filter((e: { type: string }) => e.type === 'pointerdown').at(-1).id as number);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [secondary] });
+    await expect.poll(() => area.evaluate((el) => JSON.parse(el.dataset.pointerEvents!)), { timeout: 5000 }).toContainEqual({ type: 'lostpointercapture', id: secondaryId });
+    expect(await page.evaluate(() => window.__dice.state().phase)).toBe('charging');
+    expect(await page.evaluate(() => window.__dice.launches().count)).toBe(0);
+    if (source === 'pointer') await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    else await page.keyboard.up('Space');
+    await settled(page);
+    expect(await page.evaluate(() => window.__dice.launches().count)).toBe(1);
+    await cdp.detach();
+  });
+}
+
 for (const width of [1440, 390]) {
   test(`controls leave the complete game area usable at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: width === 1440 ? 900 : 844 });

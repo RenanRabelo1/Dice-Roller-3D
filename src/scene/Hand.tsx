@@ -33,11 +33,18 @@ export function Hand({ gameArea, bodies }: {
     const ray = new Raycaster(), ndc = new Vector2(), hit = new Vector3();
     const floor = new Plane(new Vector3(0, 1, 0), 0);
     const cancel = () => useDice.getState().input({ type: 'cancel' });
+    const cancelPointer = (e: PointerEvent) => {
+      const { phase, source } = useDice.getState().gesture;
+      if (phase === 'charging' && source?.kind === 'pointer' && source.id === e.pointerId) cancel();
+    };
     const down = (e: PointerEvent) => {
       if (e.button !== 0 || !live()) return;
+      const state = useDice.getState();
+      if (state.gesture.phase !== 'hand' && state.gesture.phase !== 'settled') return;
       area.focus({ preventScroll: true });
-      area.setPointerCapture(e.pointerId);
-      useDice.getState().input({ type: 'press', source: { kind: 'pointer', id: e.pointerId }, at: performance.now(), repeat: false });
+      state.input({ type: 'press', source: { kind: 'pointer', id: e.pointerId }, at: performance.now(), repeat: false });
+      const { phase, source } = useDice.getState().gesture;
+      if (phase === 'charging' && source?.kind === 'pointer' && source.id === e.pointerId) area.setPointerCapture(e.pointerId);
     };
     const up = (e: PointerEvent) => {
       useDice.getState().input({ type: 'release', source: { kind: 'pointer', id: e.pointerId }, at: performance.now() }, motion.current);
@@ -73,14 +80,14 @@ export function Hand({ gameArea, bodies }: {
       }
     };
     area.addEventListener('pointerdown', down); area.addEventListener('pointerup', up);
-    area.addEventListener('pointermove', move); area.addEventListener('pointercancel', cancel);
-    area.addEventListener('lostpointercapture', cancel); area.addEventListener('blur', cancel);
+    area.addEventListener('pointermove', move); area.addEventListener('pointercancel', cancelPointer);
+    area.addEventListener('lostpointercapture', cancelPointer); area.addEventListener('blur', cancel);
     area.addEventListener('keydown', keydown); area.addEventListener('keyup', keyup);
     window.addEventListener('blur', cancel);
     return () => {
       area.removeEventListener('pointerdown', down); area.removeEventListener('pointerup', up);
-      area.removeEventListener('pointermove', move); area.removeEventListener('pointercancel', cancel);
-      area.removeEventListener('lostpointercapture', cancel); area.removeEventListener('blur', cancel);
+      area.removeEventListener('pointermove', move); area.removeEventListener('pointercancel', cancelPointer);
+      area.removeEventListener('lostpointercapture', cancelPointer); area.removeEventListener('blur', cancel);
       area.removeEventListener('keydown', keydown); area.removeEventListener('keyup', keyup);
       window.removeEventListener('blur', cancel);
     };
