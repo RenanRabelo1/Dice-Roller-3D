@@ -1,0 +1,21 @@
+import type { DieKind } from './dice/polyhedra';
+import type { Quat, Vec3 } from './physics/world';
+import type { Phase } from './throw/gesture';
+
+export interface DiceHook {
+  state(): {
+    kind: DieKind; count: number; phase: Phase; throwId: number;
+    results: number[] | null; ready: boolean; error: 'graphics' | 'physics' | null; aim: Vec3;
+  };
+  select(kind: DieKind, count: number): void;
+  bodies(): { handle: number; p: Vec3; q: Quat; type: number }[];
+  meshes(): { q: Quat }[];
+  labels(index: number): { text: string; position: Vec3; normal: Vec3 }[];
+  pose(index: number, position: Vec3, quaternion: Quat): void;
+}
+
+export function installTestHook(api: DiceHook): void {
+  if (import.meta.env.MODE === 'test') {
+    (window as unknown as { __dice: DiceHook }).__dice = api;
+  }
+}

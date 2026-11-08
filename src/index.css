@@ -1,0 +1,31 @@
+@font-face {
+  font-family: Bricolage Grotesque;
+  src: url('/fonts/bricolage-grotesque-400.woff') format('woff');
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: Bricolage Grotesque;
+  src: url('/fonts/bricolage-grotesque-800.woff') format('woff');
+  font-weight: 800;
+  font-display: swap;
+}
+
+:root {
+  font-family: Bricolage Grotesque, sans-serif;
+  color: var(--chalk);
+  background: var(--panel);
+  --chalk: #E9E6DE;
+  --ink: #1B1A16;
+  --brass: #D4A93F;
+  --wine: #3A0F1A;
+  --panel: #140E10;
+  font-synthesis: none;
+}
+
+* { box-sizing: border-box; }
+html, body, #root { width: 100%; height: 100%; margin: 0; }
+.game-area { width: 100%; height: 100dvh; touch-action: none; }
+.game-area:focus-visible { outline: 3px solid var(--brass); outline-offset: -3px; }
+canvas { display: block; }
