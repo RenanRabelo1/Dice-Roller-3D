@@ -11,7 +11,9 @@ export interface DiceHook {
   bodies(): { handle: number; p: Vec3; q: Quat; type: number }[];
   meshes(): { q: Quat }[];
   labels(index: number): { text: string; position: Vec3; normal: Vec3 }[];
-  pose(index: number, position: Vec3, quaternion: Quat): void;
+  fixture(poses: { p: Vec3; q: Quat }[]): void;
+  launches(): { count: number; last: { before: { p: Vec3; q: Quat }[]; after: { p: Vec3; q: Quat }[] } | null };
+  previewSurface(index: number, position: Vec3, quaternion: Quat): void;
 }
 
 export function installTestHook(api: DiceHook): void {

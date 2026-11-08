@@ -51,7 +51,7 @@ export function Die({ index, shape, labels, color, buffer, register, samples = 6
   const points = useMemo(() => model.points.flat(), [model]);
   return (
     <RigidBody ref={registerBody} type="kinematicPosition" colliders={false}
-      ccd position={handPositions(bodiesFor(kind, count).length, 0)[index]}>
+      userData={{ selection: `${kind}-${count}` }} ccd position={handPositions(bodiesFor(kind, count).length, 0)[index]}>
       <ConvexHullCollider args={[points]} {...MATERIAL.die} />
       <group name={`die-${index}`}>
         <mesh name={`gem-${index}`} geometry={geometry} castShadow receiveShadow>

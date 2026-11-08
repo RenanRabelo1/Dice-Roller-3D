@@ -17,19 +17,19 @@ for (const width of [1440, 390]) {
       const errors: string[] = [];
       page.on('pageerror', (error) => errors.push(error.message));
       page.on('console', (message) => message.type() === 'error' && errors.push(`${message.text()} ${message.location().url}`));
-      await page.goto('/');
+      await page.goto('/?surface-preview');
       await page.waitForFunction(() => window.__dice?.state().ready === true);
       const kind: DieKind = shape === 'd10-tens' ? 'd100' : shape;
       await page.evaluate((kind) => window.__dice.select(kind, 1), kind);
       const expectedLabels = shape === 'd4' ? 12 : shape === 'd6' ? 6 : shape === 'd20' ? 20 : 10;
       await expect.poll(() => page.evaluate(() => window.__dice.labels(0).length)).toBe(expectedLabels);
       if (shape === 'd10-tens') {
-        await page.evaluate(() => window.__dice.pose(1, [0, -3, 0], [0, 0, 0, 1]));
+        await page.evaluate(() => window.__dice.previewSurface(1, [0, -3, 0], [0, 0, 0, 1]));
         expect(await page.evaluate(() => window.__dice.labels(0).some((label) => label.text === '00'))).toBe(true);
       }
       for (const { name, q } of orientations) {
-        await page.evaluate((q) => window.__dice.pose(0, [0, 2, 0], q), q);
-        await expect.poll(() => page.evaluate((q) => Math.max(...window.__dice.meshes()[0].q.map((v, i) => Math.abs(v - q[i]))), q)).toBeLessThan(1e-5);
+        await page.evaluate((q) => window.__dice.previewSurface(0, [0, 2, 0], q), q);
+        await expect.poll(() => page.evaluate((q) => 1 - Math.abs(window.__dice.meshes()[0].q.reduce((dot, v, i) => dot + v * q[i], 0)), q)).toBeLessThan(1e-5);
         // Wait for the posed scene's render, including asynchronous Text glyph upload.
         await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
         const pixels = await page.evaluate(() => {

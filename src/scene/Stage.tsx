@@ -1,21 +1,62 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Environment, Lightformer, PerformanceMonitor, useFBO } from '@react-three/drei';
-import { Physics, type RapierRigidBody } from '@react-three/rapier';
+import { Physics, useAfterPhysicsStep, useBeforePhysicsStep, type RapierRigidBody } from '@react-three/rapier';
 import { Group, NoToneMapping, Quaternion, Vector3 } from 'three';
-import { bodiesFor } from '../dice/polyhedra';
+import { bodiesFor, polyhedron } from '../dice/polyhedra';
+import { toResults } from '../dice/read';
+import { applyLaunch, applyPoses, applySettle, bodyStates } from '../physics/apply';
+import { initSettle, stepSettle, type SettleState } from '../throw/settle';
+import type { DiceHook } from '../testHook';
 import { GRAVITY, HAND, MAX_RADIUS, STEP, TRAY, handPositions, type Vec3 } from '../physics/world';
 import { useDice } from '../store';
 import { installTestHook } from '../testHook';
 import { Die, GEM } from './Die';
 import { Tray } from './Tray';
+import { Hand } from './Hand';
+
+function ThrowLoop({ bodies, recordLaunch }: {
+  bodies: RefObject<(RapierRigidBody | null)[]>; recordLaunch: (last: NonNullable<ReturnType<DiceHook['launches']>['last']>) => void;
+}) {
+  const applied = useRef(-1);
+  const settle = useRef<SettleState | null>(null);
+  useBeforePhysicsStep(() => {
+    const state = useDice.getState();
+    const current = bodies.current.filter((b): b is RapierRigidBody => b !== null && b.isValid());
+    if (state.gesture.phase !== 'rolling' || state.throwId === applied.current || current.length !== bodiesFor(state.kind, state.count).length) return;
+    const before = bodyStates(current).map(({ p, q }) => ({ p, q }));
+    if (state.fixture) applyPoses(current, state.fixture);
+    else if (state.launch) applyLaunch(current, state.launch);
+    else return;
+    applied.current = state.throwId;
+    recordLaunch({ before, after: bodyStates(current).map(({ p, q }) => ({ p, q })) });
+    settle.current = initSettle(state.throwId, current.length);
+  });
+  useAfterPhysicsStep(() => {
+    const state = useDice.getState();
+    if (state.gesture.phase !== 'rolling' || !settle.current || settle.current.throwId !== state.throwId) return;
+    const current = bodies.current.filter((b): b is RapierRigidBody => b !== null && b.isValid());
+    const next = stepSettle(settle.current, {
+      throwId: state.throwId, phase: state.gesture.phase,
+      polys: bodiesFor(state.kind, state.count).map(({ shape, labels }) => polyhedron(shape, labels)), bodies: bodyStates(current),
+    });
+    settle.current = next.state;
+    applySettle(current, next.action);
+    if (next.action.type === 'publish') state.publish(state.throwId, toResults(state.kind, next.action.raw));
+  });
+  return null;
+}
 
 export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> }) {
   const kind = useDice((state) => state.kind);
   const count = useDice((state) => state.count);
   const { camera, size } = useThree();
   const bodies = useRef<(RapierRigidBody | null)[]>([]);
+  const launches = useRef<ReturnType<DiceHook['launches']>>({ count: 0, last: null });
   const dice = useRef<Group>(null);
+  const recordLaunch = useCallback((last: NonNullable<ReturnType<DiceHook['launches']>['last']>) => {
+    launches.current = { count: launches.current.count + 1, last };
+  }, []);
   const [quality, setQuality] = useState({ resolution: 1024, samples: 6 });
   const fbo = useFBO(quality.resolution, quality.resolution);
   const register = useCallback((index: number, body: RapierRigidBody | null) => {
@@ -60,14 +101,16 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
         const state = useDice.getState();
         return {
           kind: state.kind, count: state.count, phase: state.gesture.phase, throwId: state.throwId,
-          results: state.results, ready: state.ready, error: state.error, aim: state.aim,
+          results: state.results,
+          ready: state.ready && state.kind === kind && state.count === count && bodies.current.filter((b) => b?.isValid()).length === bodiesFor(kind, count).length,
+          error: state.error, aim: state.aim,
         };
       },
       select: (nextKind, nextCount) => {
         useDice.getState().setKind(nextKind);
         useDice.getState().setCount(nextCount);
       },
-      bodies: () => bodies.current.filter((body) => body !== null).map((body) => {
+      bodies: () => bodies.current.filter((body): body is RapierRigidBody => body !== null && body.isValid()).map((body) => {
         const p = body.translation(), q = body.rotation();
         return { handle: body.handle, p: [p.x, p.y, p.z], q: [q.x, q.y, q.z, q.w], type: body.bodyType() };
       }),
@@ -95,7 +138,13 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
         });
         return result;
       },
-      pose: (index, p, q) => {
+      fixture: (poses) => {
+        if (poses.length !== bodiesFor(useDice.getState().kind, useDice.getState().count).length) throw new Error('Fixture must include every body');
+        useDice.getState().startFixture(poses);
+      },
+      launches: () => launches.current,
+      previewSurface: (index, p, q) => {
+        if (import.meta.env.MODE !== 'test' || !new URLSearchParams(location.search).has('surface-preview') || useDice.getState().gesture.phase !== 'hand') throw new Error('Surface preview is only available in the test preview scene');
         const body = bodies.current[index];
         if (!body) throw new Error(`Die ${index} is not registered`);
         body.setTranslation({ x: p[0], y: p[1], z: p[2] }, true);
@@ -105,7 +154,7 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
       },
     });
     useDice.getState().setReady();
-  }, [gameArea]);
+  }, [gameArea, kind, count]);
 
   useFrame(({ gl, scene, camera }) => {
     if (!dice.current) return;
@@ -140,6 +189,8 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
         onIncline={() => setQuality((q) => ({ resolution: Math.min(1024, q.resolution * 2), samples: Math.min(6, q.samples * 2) }))} />
       <Physics gravity={GRAVITY} timeStep={STEP} interpolate={false}>
         <Tray />
+        <Hand gameArea={gameArea} bodies={bodies} />
+        <ThrowLoop bodies={bodies} recordLaunch={recordLaunch} />
         <group ref={dice}>
           {bodiesFor(kind, count).map(({ shape, labels }, i) => (
             <Die key={`${kind}-${count}-${i}`} index={i} shape={shape} labels={labels} color={GEM[kind]}

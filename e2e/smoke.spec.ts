@@ -37,8 +37,9 @@ test('canvas paints a non-uniform image without console errors', async ({ page }
 test('a d6 at identity shows 1 on top and 6 below; mesh and body agree', async ({ page }) => {
   await page.evaluate(() => window.__dice.select('d6', 1));
   await expect.poll(() => page.evaluate(() => window.__dice.labels(0).length)).toBe(6);
-  await page.evaluate(() => window.__dice.pose(0, [0, 2, 0], [0, 0, 0, 1]));
-  await expect.poll(() => page.evaluate(() => window.__dice.bodies()[0].p[1])).toBeCloseTo(2);
+  await page.evaluate(() => window.__dice.fixture([{ p: [0, 0.5, 0], q: [0, 0, 0, 1] }]));
+  await page.waitForFunction(() => window.__dice.state().phase === 'settled');
+  await expect(page.getByTestId('result')).toContainText('1');
   const labels = await page.evaluate(() => window.__dice.labels(0));
   const byText = (text: string) => labels.find((label) => label.text === text)!.normal;
   expect(byText('1')[1]).toBeGreaterThan(0.999);
@@ -71,14 +72,16 @@ test('every supported selection creates the expected bodies and surface numerals
   }
 });
 
-test('rotated Text anchors and gem follow the same physical pose', async ({ page }) => {
+test('surface preview: rotated Text anchors and gem share the physical transform', async ({ page }) => {
+  await page.goto('/?surface-preview');
+  await page.waitForFunction(() => window.__dice?.state().ready === true);
   await page.evaluate(() => window.__dice.select('d6', 1));
   await expect.poll(() => page.evaluate(() => window.__dice.labels(0).length)).toBe(6);
-  await page.evaluate(() => window.__dice.pose(0, [0, 2, 0], [0, 0, 0, 1]));
+  await page.evaluate(() => window.__dice.previewSurface(0, [0, 2, 0], [0, 0, 0, 1]));
   await expect.poll(() => page.evaluate(() => window.__dice.labels(0).reduce((sum, label) => sum + label.position[1], 0) / 6)).toBeCloseTo(2, 5);
   const original = await page.evaluate(() => window.__dice.labels(0));
   const angle = 35 * Math.PI / 180;
-  await page.evaluate((angle) => window.__dice.pose(0, [1, 3, 1], [Math.sin(angle / 2), 0, 0, Math.cos(angle / 2)]), angle);
+  await page.evaluate((angle) => window.__dice.previewSurface(0, [1, 3, 1], [Math.sin(angle / 2), 0, 0, Math.cos(angle / 2)]), angle);
   await expect.poll(() => page.evaluate(() => window.__dice.meshes()[0].q[0])).toBeCloseTo(Math.sin(angle / 2), 5);
   const rotated = await page.evaluate(() => window.__dice.labels(0));
   const rotate = ([x, y, z]: number[]) => [x, y * Math.cos(angle) - z * Math.sin(angle), y * Math.sin(angle) + z * Math.cos(angle)];
