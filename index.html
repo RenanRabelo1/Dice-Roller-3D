@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rolador de dados</title>
+<meta name="theme-color" content="#1F4A3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --felt: #1F4A3E;
+    --tray: #173A30;
+    --raised: #2A5C4E;
+    --bone: #ECE8DF;
+    --ink: #1B1A16;
+    --chalk: #E9E6DE;
+    --brass: #D4A93F;
+    --blood: #B23A2E;
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    color-scheme: dark;
+  }
+  *, *::before { box-sizing: border-box; margin: 0; }
+  body { background: var(--felt); color: var(--chalk); font: 400 1.0625rem/1.5 "Bricolage Grotesque", system-ui, sans-serif; }
+  main { max-width: 44rem; margin: 0 auto; padding: clamp(1.5rem, 5vw, 3.5rem) 1rem 2.5rem; display: grid; gap: 1.5rem; }
+  h1 { font-size: clamp(1.5rem, 4vw, 2rem); font-weight: 800; line-height: 1; letter-spacing: -0.03em; }
+  button, input { font: inherit; color: inherit; }
+  button { cursor: pointer; border: 0; background: none; -webkit-tap-highlight-color: transparent; transition: transform 120ms var(--ease-out); }
+  button:active:not(:disabled) { transform: scale(.96); }
+  button:disabled { cursor: default; opacity: .45; }
+  :focus-visible { outline: 3px solid var(--brass); outline-offset: 3px; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+  /* A die is a button whose face is a clipped ::before, so the focus ring stays visible. */
+  .die { position: relative; isolation: isolate; display: grid; place-items: center; aspect-ratio: 1; color: var(--ink); font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+  .die::before { content: ""; position: absolute; inset: 0; z-index: -1; background: var(--face, var(--bone)); clip-path: var(--shape); transition: background-color 150ms ease; }
+  [data-sides="4"]  { --shape: polygon(50% 8%, 98% 84%, 2% 84%); }
+  [data-sides="6"]  { --shape: inset(8% round 14%); }
+  [data-sides="8"]  { --shape: polygon(50% 2%, 98% 50%, 50% 98%, 2% 50%); }
+  [data-sides="10"] { --shape: polygon(50% 2%, 96% 42%, 50% 98%, 4% 42%); }
+  [data-sides="100"] { --shape: circle(48%); }
+  [data-sides="12"] { --shape: polygon(50% 4%, 95.6% 37.2%, 78.2% 90.8%, 21.8% 90.8%, 4.4% 37.2%); }
+  [data-sides="20"] { --shape: polygon(50% 2%, 91.6% 26%, 91.6% 74%, 50% 98%, 8.4% 74%, 8.4% 26%); }
+  @media (hover: hover) and (pointer: fine) { .die:hover { --face: #fff; } }
+  .die[data-sides="20"][data-value="20"] { --face: var(--brass); }
+  .die[data-sides="20"][data-value="1"] { --face: var(--blood); color: var(--chalk); }
+
+  .picker { display: grid; grid-template-columns: repeat(7, minmax(0, 4.5rem)); justify-content: space-between; gap: .5rem; }
+  .picker .die { font-size: clamp(.8rem, 2.6vw, 1rem); }
+
+  .tray { min-height: max(18rem, 50dvh); padding: clamp(1rem, 3vw, 1.5rem); border-radius: 1.5rem; background: var(--tray); display: grid; grid-template-rows: 1fr auto; gap: 1rem; }
+  .pool { display: flex; flex-wrap: wrap; align-content: flex-start; align-items: flex-start; gap: .75rem; }
+  .pool:has(.die) .empty { display: none; }
+  .pool:not(:has(.die)) { place-content: center; text-align: center; }
+  .empty { max-width: 24rem; }
+  .pool .die { width: clamp(4rem, 15vw, 5.25rem); font-size: clamp(1.5rem, 5vw, 2rem); transition: transform 200ms var(--ease-out), opacity 200ms var(--ease-out); }
+  .pool .die:not([data-value]) { font-size: 1rem; }
+  @starting-style { .pool .die { opacity: 0; } }
+  @media (prefers-reduced-motion: no-preference) { @starting-style { .pool .die { transform: scale(.9); } } }
+  .readout { justify-self: end; text-align: right; }
+  #total { display: block; font-size: clamp(4.5rem, 22vw, 9rem); font-weight: 800; line-height: .85; letter-spacing: -0.05em; font-variant-numeric: tabular-nums; }
+  #sum { margin-top: .5rem; }
+
+  .controls { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; }
+  .mod { display: flex; align-items: center; gap: .5rem; }
+  .mod input { width: 5rem; padding: .75rem 1rem; border: 0; border-radius: 999px; background: var(--tray); text-align: center; font-size: 1.125rem; font-variant-numeric: tabular-nums; }
+  .clear { padding: 1rem 1.25rem; border-radius: 999px; background: var(--raised); }
+  .roll { flex: 1 1 14rem; padding: 1rem 1.5rem; border-radius: 999px; background: var(--brass); color: var(--ink); font-size: 1.25rem; font-weight: 700; }
+  .roll:disabled { background: var(--raised); color: var(--chalk); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Rolador de dados</h1>
+
+  <div class="picker" id="picker" role="group" aria-label="Adicionar dado">
+    <button class="die" data-sides="4" aria-label="Adicionar d4">d4</button>
+    <button class="die" data-sides="6" aria-label="Adicionar d6">d6</button>
+    <button class="die" data-sides="8" aria-label="Adicionar d8">d8</button>
+    <button class="die" data-sides="10" aria-label="Adicionar d10">d10</button>
+    <button class="die" data-sides="12" aria-label="Adicionar d12">d12</button>
+    <button class="die" data-sides="20" aria-label="Adicionar d20">d20</button>
+    <button class="die" data-sides="100" aria-label="Adicionar d100">d100</button>
+  </div>
+
+  <section class="tray" aria-label="Bandeja">
+    <div class="pool" id="pool"><p class="empty">A bandeja está vazia. Toque num dado acima para colocá-lo aqui.</p></div>
+    <div class="readout" id="readout" aria-live="polite" aria-atomic="true">
+      <span class="sr">Total</span> <output id="total"></output>
+      <p id="sum"></p>
+    </div>
+  </section>
+
+  <div class="controls">
+    <label class="mod">Modificador <input id="mod" type="number" value="0" step="1" inputmode="numeric"></label>
+    <button class="clear" id="clear" disabled>Esvaziar</button>
+    <button class="roll" id="roll" disabled>Rolar</button>
+  </div>
+</main>
+
+<script>
+  const $ = id => document.getElementById(id);
+  const pool = $('pool'), total = $('total'), sum = $('sum'), readout = $('readout'), mod = $('mod'), rollBtn = $('roll'), clearBtn = $('clear');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)');
+  const EASE = 'cubic-bezier(0.23, 1, 0.32, 1)';
+  const dice = () => [...pool.querySelectorAll('.die')];
+  const modifier = () => Math.trunc(Number(mod.value)) || 0;
+  const signed = m => m > 0 ? ' + ' + m : m < 0 ? ' − ' + -m : '';
+
+  function notation(sides, m) {
+    const n = {};
+    for (const s of sides) n[s] = (n[s] || 0) + 1;
+    return Object.keys(n).sort((a, b) => a - b).map(s => (n[s] > 1 ? n[s] : '') + 'd' + s).join(' + ') + signed(m);
+  }
+  console.assert(notation([6, 20, 6], 2) === '2d6 + d20 + 2' && notation([100], -1) === 'd100 − 1', 'notation');
+
+  function face(d, v) {
+    if (v) d.dataset.value = v; else delete d.dataset.value;
+    d.textContent = v || 'd' + d.dataset.sides;
+    d.setAttribute('aria-label', `d${d.dataset.sides}${v ? ' mostrando ' + v : ''}, remover da bandeja`);
+  }
+
+  function render() {
+    const ds = dice(), m = modifier(), vals = ds.map(d => +d.dataset.value);
+    const rolled = ds.length > 0 && vals.every(v => v > 0);
+    rollBtn.disabled = clearBtn.disabled = !ds.length;
+    rollBtn.textContent = ds.length ? 'Rolar ' + notation(ds.map(d => d.dataset.sides), m) : 'Rolar';
+    total.textContent = rolled ? vals.reduce((a, b) => a + b, 0) + m : '';
+    sum.textContent = rolled && (ds.length > 1 || m) ? vals.join(' + ') + signed(m) : '';
+  }
+
+  // Any change to the pool invalidates the last roll.
+  const reset = () => { dice().forEach(d => face(d)); render(); };
+
+  $('picker').addEventListener('click', e => {
+    const b = e.target.closest('.die');
+    if (!b) return;
+    const d = document.createElement('button');
+    d.className = 'die';
+    d.dataset.sides = b.dataset.sides;
+    pool.append(d);
+    reset();
+  });
+
+  pool.addEventListener('click', e => {
+    const d = e.target.closest('.die');
+    if (!d) return;
+    const next = [d.nextElementSibling, d.previousElementSibling].find(el => el?.classList.contains('die'));
+    d.remove();
+    reset();
+    (next || $('picker').querySelector('.die')).focus();
+  });
+
+  clearBtn.addEventListener('click', () => { dice().forEach(d => d.remove()); render(); });
+  mod.addEventListener('input', render);
+
+  rollBtn.addEventListener('click', () => {
+    const ds = dice(), still = reduce.matches;
+    ds.forEach((d, i) => {
+      face(d, 1 + Math.floor(Math.random() * d.dataset.sides));
+      // A tumble even when the number repeats, so every roll visibly happened.
+      const spin = (Math.random() < .5 ? -1 : 1) * (180 + Math.random() * 180);
+      d.animate(still
+        ? [{ opacity: .4 }, { opacity: 1 }]
+        : [{ transform: `translate(${-spin / 12}px, -14px) rotate(${spin}deg) scale(.9)`, opacity: .5 }, { transform: 'none', opacity: 1 }],
+        { duration: still ? 150 : 400, delay: Math.min(i, 8) * 40, easing: EASE, fill: 'backwards' });
+    });
+    render();
+    readout.animate(still
+      ? [{ opacity: 0 }, { opacity: 1 }]
+      : [{ opacity: 0, transform: 'translateY(.5rem)' }, { opacity: 1, transform: 'none' }],
+      { duration: 240, delay: 160 + Math.min(ds.length, 8) * 40, easing: EASE, fill: 'backwards' });
+  });
+</script>
+</body>
+</html>
