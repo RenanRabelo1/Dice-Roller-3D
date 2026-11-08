@@ -33,7 +33,7 @@ export function stepSettle(
     action: { type: 'publish', raw: poses.map((pose, i) => readUp(polys[i], pose.q).value), poses, timedOut },
   });
 
-  if (state.steps === SETTLE.timeoutSteps) {
+  if (state.steps >= SETTLE.timeoutSteps) {
     return publish(bodies.map((b, i) => ({ p: outside.includes(i) ? recoveryPoint(i, s.expected) : b.p, q: b.q })), true);
   }
   if (outside.length) {

@@ -56,4 +56,11 @@ describe('settle', () => {
     for (let i = 2; i < 480; i++) s = step(s, [body(false)]).state;
     expect(step(s, [body(false)]).action.type).toBe('publish');
   });
+  it('times out on the first complete step after the deadline passed with an incomplete list', () => {
+    let s = initSettle(1, 2);
+    for (let i = 1; i < 480; i++) s = step(s, [body(false), body(false)]).state;
+    const r480 = step(s, [body(false)]);
+    expect(r480.action.type).toBe('wait');
+    expect(step(r480.state, [body(false, 4), body(false, 2)]).action).toMatchObject({ type: 'publish', raw: [4, 2], timedOut: true });
+  });
 });
