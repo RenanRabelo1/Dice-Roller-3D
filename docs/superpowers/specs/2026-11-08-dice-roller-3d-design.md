@@ -1,6 +1,6 @@
 # DiceRoller 3D — Design
 
-Data: 2026-11-08 · Status: revisado (parecer R1–R10 de `docs/superpowers/reviews/2026-11-08-dice-roller-3d-review.md` incorporado), aguardando revisão do usuário · Caminho do brainstorming: arquitetural
+Data: 2026-11-08 · Status: revisado após incorporação de R1–R10 e conferência do fluxo de estados; aguardando validação do usuário · Caminho do brainstorming: arquitetural
 
 ## 1. Objetivo
 
@@ -55,7 +55,7 @@ Peça de portfólio: um rolador de dados de RPG em 3D realista, rodando só loca
 
 - **Números na superfície (R9):** os glifos são marcações sobre a face (texto plano rente à superfície, com `depthOffset` para não brigar com a profundidade da gema), em dourado opaco com aparência de gravação. Não ficam dentro da casca, onde a superfície refrativa os esconderia.
 - 6 e 9 levam um ponto (`6.` `9.`).
-- Fonte dos números: arquivo local em `public/fonts/` (só os glifos `0123456789.`), carregado explicitamente no `Text`. Sem CDN de fonte em tempo de execução.
+- Fonte dos números: arquivo local em `public/fonts/`, contendo os glifos `0123456789.` e acompanhado da licença de redistribuição, carregado explicitamente no `Text`. Sem CDN de fonte em tempo de execução; não é necessário criar um subset.
 - Todos os tipos têm tamanho parecido (cerca de 1 unidade), como dados reais.
 
 ### 3.3 Mão, mira e arremesso
@@ -79,7 +79,8 @@ Peça de portfólio: um rolador de dados de RPG em 3D realista, rodando só loca
   - Guarda a origem (`pointer` com seu `pointerId`, ou `key`) e usa captura do ponteiro.
   - Só a mesma origem pode soltar: outro ponteiro ou outra tecla não arremessa.
   - Repetição de tecla (`event.repeat`) é ignorada.
-  - `pointercancel`, perda de captura ou perda de foco da área de jogo cancelam a carga e voltam para `hand`, sem arremesso.
+  - `pointercancel`, perda de captura ou perda de foco da área de jogo, inclusive troca de janela, cancelam uma carga ainda ativa e voltam para `hand`, sem arremesso. A perda de captura após uma soltura já aceita não cancela o arremesso.
+  - Só começa em `hand`, após os dados estarem prontos. Em `returning`, novos gestos são ignorados; os seletores continuam disponíveis.
 - Teclado: setas movem a mira; Espaço segura para carregar e solta para jogar (com a área de jogo em foco).
 - `prefers-reduced-motion`: sem balanço da mão e sem voo de recolher (os dados reaparecem na mão com um fade curto); a física do arremesso continua, porque é o conteúdo.
 
@@ -100,7 +101,9 @@ Peça de portfólio: um rolador de dados de RPG em 3D realista, rodando só loca
 | vitest | **4.1.12** | testes unitários e de física (engines inclui Node 25; aceita Vite 8) |
 | @playwright/test | 1.65 | E2E com o Chrome já instalado (seção 7) |
 
-Lint: oxlint, que vem no template. Checagem de tipos: `tsc -b` do template (R2).
+Lint: oxlint, que vem no template. Checagem de tipos: `tsc -b` do template (R2). Scaffold fixado em `create-vite@9.3.0` e Vitest em `4.1.12`; gerar e preservar o lockfile na execução. Os metadados dessas versões incluem Node 25.9.0; não é necessário alterar o Node instalado para este plano.
+
+Fontes do setup: metadados oficiais de [Vitest 4.1.12](https://registry.npmjs.org/vitest/4.1.12) e [create-vite 9.3.0](https://registry.npmjs.org/create-vite/9.3.0), incluindo o template `react-ts` do pacote publicado. Compatibilidade declarada conferida; instalação e gates serão validados na execução.
 
 ### 4.2 Unidades
 
@@ -133,15 +136,15 @@ Regra de fronteira: toda lógica com decisão (geometria, leitura, mira, gesto, 
 
 ### 4.3 Fases e fluxo de dados
 
-Fases no store: `hand` → `charging` → `rolling` → `settled` → (recolher) → `hand`.
+Fases no store: `hand` → `charging` → `rolling` → `settled` → `returning` → `hand`. Cancelamento da carga retorna a `hand`; mudança de tipo/quantidade, em qualquer fase, reinicia em `hand`.
 
-1. `Controls` muda tipo/quantidade → novo `throwId`, fase `hand`. O `Stage` renderiza N `Die` (2N para d100) com `key` contendo o `throwId`: trocar tipo/quantidade em qualquer fase remonta os corpos, e nenhum evento do arremesso anterior sobrevive.
+1. `Controls` muda tipo/quantidade → invalida o `throwId` anterior, limpa carga, tentativas, tempo e resultados; fase `hand`. O `Stage` renderiza N `Die` (2N para d100), identificados por tipo, quantidade e índice. Só a mudança da seleção remonta esses corpos; mudar de fase ou iniciar outro arremesso com a mesma seleção não os remonta. Eventos antigos são descartados pelo `throwId`, sem depender da desmontagem.
 2. `Hand` faz raycast do ponteiro num plano invisível da mesa e grava o alvo (`aim.clampTarget`).
 3. Início da carga aceito por `gesture.ts`: fase `charging`, guarda o instante e a origem. A cada quadro a força é `aim.charge(t)`.
-4. Soltura aceita por `gesture.ts`: `store.throw()` gera a semente e muda para `rolling`. Cada `Die` vira dinâmico e recebe `aim.launchVelocity(...)` + `aim.spin(seed, i)`.
-5. Depois de cada passo físico (`useAfterPhysicsStep`), o `Stage` coleta o estado de todos os corpos do `throwId` atual (dormindo?, rotação, posição) e chama `settle.step(...)`. As ações devolvidas (esperar, empurrar, reposicionar, congelar, publicar) são aplicadas aos corpos e ao store.
+4. Soltura aceita por `gesture.ts`: `store.throw()` cria um novo `throwId` e captura semente, alvo, força, tipo/quantidade, poses e giro atual da mão. Com esse único snapshot, aplicar as poses aos corpos existentes, torná-los dinâmicos e aplicar a velocidade linear de `aim.launchVelocity(...)` e a velocidade angular da mão + `aim.spin(seed, i)` uma única vez. Só então iniciar a contagem dos passos de `rolling`; renderizações posteriores não reaplicam o lançamento.
+5. Somente em `rolling`, depois de cada passo físico (`useAfterPhysicsStep`), o `Stage` coleta o estado de todos os corpos esperados do arremesso atual (identificador, dormindo?, rotação, posição) e chama `settle.step(...)`. As ações devolvidas (esperar, empurrar, reposicionar, congelar, publicar) são aplicadas aos corpos e ao store.
 6. Publicação: fase `settled`, painel mostra os resultados (d100 combinado com `read.combineD100`).
-7. Novo clique/Espaço em `settled`: os dados voltam à mão (cinemáticos, interpolação ~400 ms; instantâneo com reduced motion), fase `hand`.
+7. Novo clique/Espaço em `settled`: fase `returning`; os dados voltam à mão como cinemáticos, com interpolação de ~400 ms. Ao terminar, fase `hand` e novos gestos são aceitos. Com reduced motion, o retorno é imediato. Mudança de seleção interrompe o retorno e reinicia a mão.
 
 ### 4.4 Leitura do resultado
 
@@ -155,11 +158,16 @@ Fases no store: `hand` → `charging` → `rolling` → `settled` → (recolher)
 
 Função pura `settle.step(estado, corpos, tempoSimulado)`, chamada depois de cada passo físico com o estado **atual** de todos os corpos do arremesso. Nada é publicado a partir de um histórico de "já dormiu".
 
-1. Algum corpo acordado ou empurrão pendente → esperar. (Sequência A dorme → A acorda → B dorme: A não está dormindo agora, então espera.)
-2. Corpo fora da bandeja (Y abaixo do chão) → reposicionar no centro e soltar de novo; conta como tentativa daquele corpo.
-3. Todos dormindo: ler todos no mesmo passo. Se algum está encostado e tem menos de 3 tentativas → empurrãozinho só nele (que o acorda), tentativas +1, esperar. Com 3 tentativas, vale a face mais próxima.
-4. Todos dormindo e nenhum empurrão necessário → publicar todos os valores juntos.
-5. **Tempo limite:** 8 s de **tempo simulado** (passos × 1/60) desde o arremesso → congelar todos os corpos na pose atual (viram fixos), ler essas poses e publicar. A face visível não muda depois da publicação.
+As condições abaixo têm prioridade, de cima para baixo; a espera nunca impede a recuperação nem o timeout:
+
+1. **Validade:** ignorar outro `throwId`, fase diferente de `rolling` ou um arremesso já concluído. Só avaliar a conclusão quando todos os corpos esperados estiverem registrados (N, ou 2N no d100); uma lista vazia/incompleta não significa que todos dormiram.
+2. **Tempo limite:** ao completar 480 passos de 1/60 s (8 s simulados), congelar todos os corpos nas poses atuais, ler essas mesmas poses e publicar uma única vez. Se houver corpo fora dos limites, recolocá-lo antes em uma pose de recuperação segura dentro da bandeja, preservando sua orientação, sem sobreposição. O timeout prevalece sobre corpo acordado e recuperação pendente.
+3. **Recuperação:** antes do prazo, corpo que atravessou o chão ou escapou pelos limites laterais → reposicionar em um ponto seguro dentro da bandeja e acordá-lo; conta como tentativa daquele corpo. Considerar a extensão do colisor, não só seu centro. Recuperação invalida qualquer leitura anterior e não reinicia o prazo global.
+4. **Espera:** algum corpo acordado ou recuperação ainda pendente → esperar. Sequência A dorme → A acorda → B dorme não publica, porque A não está dormindo agora.
+5. **Encostado:** todos dormindo; se algum está encostado e tem menos de 3 tentativas → empurrãozinho só nele, acordá-lo, tentativas +1 e esperar. Com 3 tentativas, vale a face mais próxima.
+6. **Conclusão normal:** todos dormindo e nenhuma recuperação necessária → capturar todas as poses no mesmo passo e publicar uma única vez.
+
+Em qualquer conclusão, congelar os corpos, zerar suas velocidades e sincronizar as malhas com o snapshot final antes da publicação. `settled` mantém essas poses até recolher ou mudar a seleção; a interpolação visual não pode mostrar uma face diferente da publicada.
 
 Tentativas são contadas por corpo e por arremesso. O `throwId` garante que um arremesso novo começa do zero.
 
@@ -169,6 +177,7 @@ Tentativas são contadas por corpo e por arremesso. O `throwId` garante que um a
 - Gravidade inicial −40 (mais forte que −9,81 para dar peso a um dado de 1 unidade).
 - CCD ligado nos dados; passo fixo 1/60.
 - **Colisor de cada dado (R7):** `RigidBody` com `colliders={false}` e um `ConvexHullCollider` explícito com os vértices de `polyhedra.ts`, os mesmos usados nos testes em Node. Sem colisor automático duplicado.
+- Na mão e durante o retorno, mover os próprios corpos cinemáticos e suas malhas sincronizadas. O giro da mão faz parte da pose física; não adicionar uma rotação visual que a leitura do resultado desconheça. As poses de lançamento ficam acima da borda próxima, com os volumes dentro da projeção interna da bandeja e sem sobreposição. Os pontos de recuperação também respeitam os limites e o tamanho dos corpos.
 
 ### 4.7 Refração por dado
 
@@ -199,7 +208,7 @@ Online, sem cópia local: `webgl_materials_physical_transmission` (threejs.org) 
 | Fonte dos números carregando | `Suspense`; a cena aparece quando a fonte está pronta |
 | Dado fora da bandeja, encostado, sem parar | Protocolo de conclusão (seção 4.5) |
 | Carga cancelada (pointercancel, perda de captura ou foco) | Volta para `hand`, sem arremesso |
-| Clique/Espaço durante `rolling` | Ignorado |
+| Clique/Espaço durante `rolling` ou `returning` | Ignorado; seletores ainda podem reiniciar a mão |
 
 ## 6. Ordem de construção
 
@@ -212,23 +221,26 @@ Online, sem cópia local: `webgl_materials_physical_transmission` (threejs.org) 
 ## 7. Testes
 
 **Unitários (Vitest):**
+- Vitest coleta somente `tests/**/*.test.ts` em ambiente Node; Playwright usa `testDir: 'e2e'`. Os runners não coletam os testes um do outro. Configurar timeout próprio para a bateria física.
 - `polyhedra`: número de faces certo por tipo; cada valor lógico aparece uma vez; opostas somam o esperado; normais unitárias e para fora; a âncora de cada rótulo está na face cujo número ela mostra (liga desenho e leitura).
 - `read`: para cada face (e cada vértice do d4), uma rotação que a põe para cima é lida como esse número; d4 bem apoiado tem inclinação 0° (e não 70,53°); inclinação acima de 15° é detectada; `combineD100` com dígitos brutos (0+0=100, 9+9=99, 0+1=1) e o d10 isolado (0 → 10).
 - `aim`: alvo sempre dentro da bandeja; oscilador entre 0 e 1 e periódico; velocidade cresce com a força e aponta para o alvo; mesma semente → mesmo giro; índices diferentes → giros diferentes (dezenas e unidades do d100 recebem estados distintos).
-- `gesture`: carga só começa com origem válida; soltura só da mesma origem/`pointerId`; repetição de tecla ignorada; cancelamento e perda de foco voltam para `hand`; troca de tipo/quantidade durante `charging` e `rolling` volta para `hand`.
-- `settle`: A dorme → A acorda → B dorme não publica; todos dormindo publica todos juntos; encostado recebe até 3 empurrões; fora da bandeja reposiciona; 8 s de tempo simulado congela e publica; estado de outro `throwId` não interfere.
+- `gesture`: carga só começa com origem válida em `hand`; soltura só da mesma origem/`pointerId`; repetição de tecla ignorada; cancelamento e perda de foco voltam para `hand`; perda de captura depois de uma soltura aceita não desfaz o lançamento; gestos durante `returning` são ignorados; troca de tipo/quantidade em qualquer fase volta para `hand`.
+- `settle`: A dorme → A acorda → B dorme não publica; todos dormindo publica todos juntos; lista vazia/incompleta não publica; encostado recebe até 3 empurrões; corpo acordado fora da bandeja é recuperado antes de esperar; 480 passos congelam e publicam mesmo com corpos acordados/recuperação pendente; recuperação não zera o prazo; timeout com corpo fora respeita os limites; estado de outro `throwId` e chamadas após conclusão não publicam.
 
 **Física em Node (Vitest + Rapier 0.19.2, com `world.ts`, `aim.ts`, `polyhedra.ts` e `settle.ts` reais):**
-- Para cada tipo, a quantidade máxima (10 dados; no d100, **20 corpos em 10 pares, 10 resultados**), em força mínima e máxima: o protocolo publica dentro do tempo e todos terminam dentro da bandeja (nenhum atravessa parede).
+- Para cada tipo, a quantidade máxima (10 dados; no d100, **20 corpos em 10 pares, 10 resultados**), em força mínima e máxima: nenhum dado atravessa chão/parede durante a simulação normal; todos terminam dentro da bandeja e o protocolo publica até o passo 480. Testes separados forçam uma fuga e o timeout para validar a recuperação; ela não pode mascarar uma falha de colisão no cenário normal.
 - Diagnóstico de distribuição: centenas de arremessos de d6 e d20 com sementes fixas, qui-quadrado com p > 0,001. É repetível, mas não prova justiça para toda mira/força; se indicar viés, ajustar giro e atrito.
 
 **E2E (Playwright, R8):**
-- Chrome instalado (`channel: 'chrome'`) com WebGL por software explícito: `launchOptions.args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader']`, conforme suporte da versão instalada.
+- Chrome instalado (`channel: 'chrome'`) com WebGL por software explícito: `launchOptions.args: ['--use-gl=angle', '--use-angle=swiftshader']`, conforme suporte da versão instalada. Essas flags ficam restritas à configuração de testes.
 - Antes dos cenários: verificar que o contexto WebGL foi criado e registrar o renderer.
+- `webServer` do Playwright inicia o Vite na raiz, em modo `test`, com host `127.0.0.1` e porta fixa. Os cenários aguardam física/fontes prontas antes de interagir. O gancho `window.__dice` existe somente nesse modo, não no build normal.
 - A página abre sem erros no console e o canvas desenha (pixels não uniformes).
-- d20 × 3: foco na área de jogo → segurar Espaço ~0,7 s → soltar → os valores do painel são iguais aos lidos dos corpos dentro da página (gancho `window.__dice` exposto só em modo dev/teste) e a soma confere.
+- Uma fixture de pose conhecida valida a cena real: quaternion do corpo e transformação mundial da malha concordam, glifos ficam nas faces/vértices previstos e o painel mostra o valor esperado fixo da fixture. O esperado não é calculado chamando novamente o leitor da aplicação.
+- d20 × 3: foco na área de jogo → segurar Espaço ~0,7 s → soltar → painel e poses finais dos corpos concordam e a soma confere. Verificar também a transição cinemático → dinâmico: a pose/giro da mão é preservada, sem remontar o corpo ou aplicar o lançamento duas vezes.
 - d100 × 10: 20 corpos, 10 resultados entre 1 e 100, iguais aos lidos dos corpos.
-- Espaço num botão dos controles não arremessa; perder o foco durante a carga cancela.
+- Espaço num botão dos controles não arremessa; perder o foco durante a carga cancela; novo gesto durante o recolhimento não arremessa; repetir um arremesso com a mesma seleção recebe novo `throwId` e descarta eventos antigos.
 
 ## 8. Gate do loop (cerebro-loop)
 
