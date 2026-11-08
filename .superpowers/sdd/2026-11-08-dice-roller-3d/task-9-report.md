@@ -41,3 +41,29 @@ P10: transmission is 0.9, retaining the exact gem palette, material type, thickn
 ## Self review and scope
 
 Reviewed spec 3.1/3.2/4.6/4.7, the local Three.js references from CLAUDE.md, and installed drei MeshTransmissionMaterial/Text/useFBO/PerformanceMonitor and Rapier sources. Only scene/test integration is implemented; throwing, hand interaction, settlement orchestration and UI remain Tasks 10–12. Dependency manifests/lockfiles and Playwright launch flags are unchanged. Upstream deprecation console warnings (Three Clock/shadow mode and Rapier init signature) are informational; no console errors occurred in successful browser checks. No provider sessions were touched. Local commit uses the configured identity and prescribed subject, with no coauthor trailer or push.
+
+## Review fix round 1
+
+Addressed the mobile legibility review by using substantially more of the existing face area: d4 font .33, d20 .42 and percentile tens .39. Other sizes remain unchanged. A very thin outline, 2% of font size in ink `#140E10`, separates the unchanged gold fill from bright gem reflections. Surface anchors, up/normal basis, depth offset, camera and gem material remain unchanged; no zoom feature was added. These values supersede the earlier visual adjustment values above.
+
+Reviewed every affected shape at identity, X35° and Y120° in native 390×844 captures, and used desktop details to inspect face edges. Face-on d4 digits, d20 values and percentile tens are now distinguishable at native size, with no visible glyph overlap or spill across face edges in the three orientations. The controller independently inspected the same native sheets and agreed that face-on values are distinguishable. Values on narrow, oblique faces remain small and foreshortened; this is an honest residual of fitting the entire tray, rather than an assertion that every visible face reads equally well.
+
+Native sheets preserve each screenshot's 390px width without resizing:
+
+- [d4 native three angles](../../../screens/native-d4-390.png)
+- [d20 native three angles](../../../screens/native-d20-390.png)
+- [percentile tens native three angles](../../../screens/native-d10-tens-390.png)
+
+The underlying `screens/one-{d4,d20,d10-tens}-{identity,x35,y120}-{1440,390}.png` captures and desktop/detail contact sheets were updated. Screenshot color/gold checks establish rendering, not readable values; the native visual inspection provides that assessment.
+
+The quaternion smoke assertion now checks `abs(dot(body.q, mesh.q)) ≈ 1`, accepting the equivalent whole-quaternion sign reversal while rejecting unrelated component sign changes.
+
+Commands/output for this fix:
+
+- `npm run e2e -- e2e/screens.spec.ts --grep "d4|d20|d10-tens" --max-failures=1` → exit 0, 6 passed (39.0s), 18 affected captures.
+- `npm run e2e -- e2e/smoke.spec.ts --max-failures=1` → exit 0, 6 passed (23.6s), including body reuse/cleanup and the revised quaternion assertion.
+- `npm run build` → exit 0, 580 modules transformed; same informational large-bundle warning.
+- `npm run lint` → exit 0, no warnings.
+- `git diff --check` → exit 0, Windows line-ending notices only.
+
+No new test scenarios, physics logic, dependency changes or future-task work were introduced in this fix. The 95 unit tests from the initial task gate remain applicable; this review wave changes only Text sizing/outline and the smoke assertion.

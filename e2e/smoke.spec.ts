@@ -45,7 +45,8 @@ test('a d6 at identity shows 1 on top and 6 below; mesh and body agree', async (
   expect(byText('6')[1]).toBeLessThan(-0.999);
   const [body] = await page.evaluate(() => window.__dice.bodies());
   const [mesh] = await page.evaluate(() => window.__dice.meshes());
-  body.q.forEach((v, i) => expect(Math.abs(Math.abs(v) - Math.abs(mesh.q[i]))).toBeLessThan(1e-4));
+  const alignment = Math.abs(body.q.reduce((dot, v, i) => dot + v * mesh.q[i], 0));
+  expect(alignment).toBeCloseTo(1, 4);
 });
 
 test('every supported selection creates the expected bodies and surface numerals', async ({ page }) => {

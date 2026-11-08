@@ -12,7 +12,7 @@ export const GEM: Record<DieKind, string> = {
   d4: '#1F9D63', d6: '#C0182E', d8: '#1F4FB8', d10: '#E0A21B',
   d12: '#8B4FC9', d20: '#E8F1F8', d100: '#E7B416',
 };
-const FONT: Record<Shape, number> = { d4: 0.23, d6: 0.48, d8: 0.36, d10: 0.32, d12: 0.34, d20: 0.27 };
+const FONT: Record<Shape, number> = { d4: 0.33, d6: 0.48, d8: 0.36, d10: 0.32, d12: 0.34, d20: 0.42 };
 
 function SurfaceLabel({ label, size }: { label: Label; size: number }) {
   const normal = new Vector3(...label.normal);
@@ -24,6 +24,7 @@ function SurfaceLabel({ label, size }: { label: Label; size: number }) {
     <Text position={position} quaternion={quaternion} fontSize={size}
       font="/fonts/bricolage-grotesque-800.woff" characters="0123456789."
       color="#D4A93F" depthOffset={-1} userData={{ diceLabel: true }}
+      outlineWidth="2%" outlineColor="#140E10"
       material-toneMapped={false}>
       {label.text}
     </Text>
@@ -58,7 +59,7 @@ export function Die({ index, shape, labels, color, buffer, register, samples = 6
             transmission={0.9} thickness={0.6} ior={1.6} chromaticAberration={0.06} roughness={0.05} transparent />
         </mesh>
         {model.labelList.map((label, i) => (
-          <SurfaceLabel key={i} label={label} size={labels === 'tens' ? 0.25 : FONT[shape]} />
+          <SurfaceLabel key={i} label={label} size={labels === 'tens' ? 0.39 : FONT[shape]} />
         ))}
       </group>
     </RigidBody>
