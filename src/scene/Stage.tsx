@@ -2,10 +2,10 @@ import { useCallback, useEffect, useRef, type RefObject } from 'react';
 import { useThree } from '@react-three/fiber';
 import { Environment, Lightformer } from '@react-three/drei';
 import { Physics, useAfterPhysicsStep, useBeforePhysicsStep, type RapierRigidBody } from '@react-three/rapier';
-import { Group, Quaternion, Vector3 } from 'three';
+import { Group, Matrix4, Quaternion, Vector3, type Object3D } from 'three';
 import { bodiesFor, polyhedron } from '../dice/polyhedra';
-import { toResults } from '../dice/read';
-import { applyLaunch, applyPoses, applySettle, bodyStates } from '../physics/apply';
+import { bodyValues, revealRotation } from '../dice/read';
+import { applyLaunch, applySettle, bodyStates } from '../physics/apply';
 import { initSettle, stepSettle, type SettleState } from '../throw/settle';
 import type { DiceHook } from '../testHook';
 import { GRAVITY, HAND, MAX_RADIUS, STEP, TRAY, handPositions, type Vec3 } from '../physics/world';
@@ -15,34 +15,39 @@ import { Die, GEM } from './Die';
 import { Tray } from './Tray';
 import { Hand } from './Hand';
 
-function ThrowLoop({ bodies, recordLaunch }: {
-  bodies: RefObject<(RapierRigidBody | null)[]>; recordLaunch: (last: NonNullable<ReturnType<DiceHook['launches']>['last']>) => void;
+function ThrowLoop({ bodies, dice, recordLaunch }: {
+  bodies: RefObject<(RapierRigidBody | null)[]>; dice: RefObject<Group | null>;
+  recordLaunch: (last: NonNullable<ReturnType<DiceHook['launches']>['last']>) => void;
 }) {
   const applied = useRef(-1);
   const settle = useRef<SettleState | null>(null);
+  const live = () => bodies.current.filter((b): b is RapierRigidBody => b !== null && b.isValid());
+  const shown = (i: number) => dice.current?.getObjectByName(`die-${i}`);
   useBeforePhysicsStep(() => {
-    const state = useDice.getState();
-    const current = bodies.current.filter((b): b is RapierRigidBody => b !== null && b.isValid());
-    if (state.gesture.phase !== 'rolling' || state.throwId === applied.current || current.length !== bodiesFor(state.kind, state.count).length) return;
+    const { gesture, throwId, launch, kind, count } = useDice.getState();
+    const current = live();
+    if (gesture.phase !== 'rolling' || !launch || throwId === applied.current || current.length !== bodiesFor(kind, count).length) return;
     const before = bodyStates(current).map(({ p, q }) => ({ p, q }));
-    if (state.fixture) applyPoses(current, state.fixture);
-    else if (state.launch) applyLaunch(current, state.launch);
-    else return;
-    applied.current = state.throwId;
+    applyLaunch(current, launch);
+    current.forEach((_, i) => shown(i)?.quaternion.identity()); // numbers are hidden; the reveal sets the final turn
+    applied.current = throwId;
     recordLaunch({ before, after: bodyStates(current).map(({ p, q }) => ({ p, q })) });
-    settle.current = initSettle(state.throwId, current.length);
+    settle.current = initSettle(throwId, current.length);
   });
   useAfterPhysicsStep(() => {
     const state = useDice.getState();
-    if (state.gesture.phase !== 'rolling' || !settle.current || settle.current.throwId !== state.throwId) return;
-    const current = bodies.current.filter((b): b is RapierRigidBody => b !== null && b.isValid());
+    if (state.gesture.phase !== 'rolling' || !state.launch || settle.current?.throwId !== state.throwId) return;
+    const current = live();
+    const polys = bodiesFor(state.kind, state.count).map(({ shape, labels }) => polyhedron(shape, labels));
     const next = stepSettle(settle.current, {
-      throwId: state.throwId, phase: state.gesture.phase,
-      polys: bodiesFor(state.kind, state.count).map(({ shape, labels }) => polyhedron(shape, labels)), bodies: bodyStates(current),
+      throwId: state.throwId, phase: state.gesture.phase, radii: polys.map((p) => p.radius), bodies: bodyStates(current),
     });
     settle.current = next.state;
     applySettle(current, next.action);
-    if (next.action.type === 'publish') state.publish(state.throwId, toResults(state.kind, next.action.raw));
+    if (next.action.type !== 'reveal') return;
+    const values = bodyValues(state.kind, state.launch.results);
+    next.action.poses.forEach(({ q }, i) => shown(i)?.quaternion.fromArray(revealRotation(polys[i], q, values[i])));
+    state.publish(state.throwId, state.launch.results);
   });
   return null;
 }
@@ -93,6 +98,8 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
     camera.lookAt(0, 0, 0);
   }, [camera, size.width, size.height]);
 
+  const numbersOf = (index: number) => dice.current?.getObjectByName(`die-${index}`)?.children.find((o) => o.userData.labels);
+
   useEffect(() => {
     installTestHook({
       state: () => {
@@ -123,22 +130,26 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
       },
       labels: (index) => {
         const result: { text: string; position: Vec3; normal: Vec3 }[] = [];
-        const die = dice.current?.getObjectByName(`die-${index}`);
-        die?.updateWorldMatrix(true, true);
-        die?.traverse((object) => {
-          if (object.userData.diceLabel && 'text' in object) {
-            result.push({
-              text: String(object.text),
-              position: object.getWorldPosition(new Vector3()).toArray(),
-              normal: new Vector3(0, 0, 1).transformDirection(object.matrixWorld).toArray(),
-            });
-          }
-        });
+        const batch = numbersOf(index);
+        if (!batch) return result;
+        batch.updateWorldMatrix(true, false);
+        // BatchedText members are not scene children: world matrix = batch matrix × member matrix.
+        for (const label of batch.userData.labels as (Object3D & { text: string })[]) {
+          label.updateMatrix();
+          const world = new Matrix4().multiplyMatrices(batch.matrixWorld, label.matrix);
+          result.push({
+            text: label.text,
+            position: new Vector3().setFromMatrixPosition(world).toArray(),
+            normal: new Vector3(0, 0, 1).transformDirection(world).toArray(),
+          });
+        }
         return result;
       },
-      fixture: (poses) => {
-        if (poses.length !== bodiesFor(useDice.getState().kind, useDice.getState().count).length) throw new Error('Fixture must include every body');
-        useDice.getState().startFixture(poses);
+      numbersVisible: (index) => numbersOf(index)?.visible ?? false,
+      rig: (results) => {
+        const { gesture, launch } = useDice.getState();
+        if (gesture.phase !== 'rolling' || !launch || results.length !== launch.results.length) throw new Error('rig needs a throw in progress with one result per die');
+        useDice.setState({ launch: { ...launch, results: [...results] } });
       },
       launches: () => launches.current,
       previewSurface: (index, p, q) => {
@@ -170,7 +181,7 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
       <Physics gravity={GRAVITY} timeStep={STEP} interpolate={false}>
         <Tray />
         <Hand gameArea={gameArea} bodies={bodies} />
-        <ThrowLoop bodies={bodies} recordLaunch={recordLaunch} />
+        <ThrowLoop bodies={bodies} dice={dice} recordLaunch={recordLaunch} />
         <group ref={dice}>
           {bodiesFor(kind, count).map(({ shape, labels }, i) => (
             <Die key={`${kind}-${count}-${i}`} index={i} shape={shape} labels={labels} color={GEM[kind]}

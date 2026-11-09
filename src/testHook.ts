@@ -11,7 +11,8 @@ export interface DiceHook {
   bodies(): { handle: number; p: Vec3; q: Quat; type: number }[];
   meshes(): { q: Quat }[];
   labels(index: number): { text: string; position: Vec3; normal: Vec3 }[];
-  fixture(poses: { p: Vec3; q: Quat }[]): void;
+  numbersVisible(index: number): boolean;
+  rig(results: number[]): void; // test-only: replaces the hidden results of the throw in progress
   launches(): { count: number; last: { before: { p: Vec3; q: Quat }[]; after: { p: Vec3; q: Quat }[] } | null };
   previewSurface(index: number, position: Vec3, quaternion: Quat): void;
 }

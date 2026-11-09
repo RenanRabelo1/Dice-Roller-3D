@@ -15,14 +15,13 @@ const equivalent = (a: number[], b: number[]) => expect(Math.abs(a.reduce((dot, 
 
 test.beforeEach(async ({ page }) => { await page.goto('/'); await ready(page); });
 
-test('known pose fixture: d6 turned +90° about Z shows 3 in the panel and on top', async ({ page }) => {
+test('the result decided at the throw is the one revealed on top and in the panel', async ({ page }) => {
   await page.evaluate(() => window.__dice.select('d6', 1)); await ready(page, 1);
-  await page.evaluate(() => window.__dice.fixture([{ p: [0, 0.5, 0], q: [0, 0, Math.SQRT1_2, Math.SQRT1_2] }]));
+  await throwWithSpace(page);
+  await page.evaluate(() => window.__dice.rig([3]));
   await settled(page);
   await expect(page.getByTestId('result')).toContainText('3');
   expect(await topValue(page, 0)).toBe('3');
-  const [body] = await page.evaluate(() => window.__dice.bodies()), [mesh] = await page.evaluate(() => window.__dice.meshes());
-  equivalent(body.q, mesh.q);
 });
 
 test('d20 × 3 thrown with Space: panel matches the dice on screen', async ({ page }) => {
@@ -97,7 +96,7 @@ test('blur cancels charge and reduced motion returns without a flight', async ({
   expect(await page.evaluate(() => window.__dice.state().phase)).toBe('hand');
   expect(await page.evaluate(() => window.__dice.launches().count)).toBe(0);
   await page.evaluate(() => window.__dice.select('d6', 1)); await ready(page, 1);
-  await page.evaluate(() => window.__dice.fixture([{ p: [0, 0.5, 0], q: [0, 0, 0, 1] }]));
+  await throwWithSpace(page);
   await settled(page);
   await area.focus(); await page.keyboard.press('Space');
   await page.waitForFunction(() => window.__dice.state().phase === 'hand');
@@ -152,7 +151,8 @@ for (const width of [1440, 390]) {
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
     await expect(page.getByRole('heading', { name: 'Rolador de dados' })).toBeVisible();
     await page.evaluate(() => window.__dice.select('d6', 1)); await ready(page, 1);
-    await page.evaluate(() => window.__dice.fixture([{ p: [0, 0.5, 0], q: [0, 0, Math.SQRT1_2, Math.SQRT1_2] }]));
+    await throwWithSpace(page);
+    await page.evaluate(() => window.__dice.rig([3]));
     await settled(page);
     await expect(page.getByTestId('result')).toContainText('3');
     await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));

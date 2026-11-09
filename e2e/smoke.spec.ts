@@ -34,20 +34,20 @@ test('canvas paints a non-uniform image without console errors', async ({ page }
   expect(errors).toEqual([]);
 });
 
-test('a d6 at identity shows 1 on top and 6 below; mesh and body agree', async ({ page }) => {
+test('a rigged d6 reveals 1 on top with 6 underneath, numbers hidden while rolling', async ({ page }) => {
   await page.evaluate(() => window.__dice.select('d6', 1));
   await expect.poll(() => page.evaluate(() => window.__dice.labels(0).length)).toBe(6);
-  await page.evaluate(() => window.__dice.fixture([{ p: [0, 0.5, 0], q: [0, 0, 0, 1] }]));
-  await page.waitForFunction(() => window.__dice.state().phase === 'settled');
+  await page.locator('.game-area').focus();
+  await page.keyboard.down('Space'); await page.waitForTimeout(500); await page.keyboard.up('Space');
+  await page.evaluate(() => window.__dice.rig([1]));
+  await expect.poll(() => page.evaluate(() => window.__dice.numbersVisible(0))).toBe(false);
+  await page.waitForFunction(() => window.__dice.state().phase === 'settled', null, { timeout: 90_000 });
+  await expect.poll(() => page.evaluate(() => window.__dice.numbersVisible(0))).toBe(true);
   await expect(page.getByTestId('result')).toContainText('1');
   const labels = await page.evaluate(() => window.__dice.labels(0));
   const byText = (text: string) => labels.find((label) => label.text === text)!.normal;
-  expect(byText('1')[1]).toBeGreaterThan(0.999);
-  expect(byText('6')[1]).toBeLessThan(-0.999);
-  const [body] = await page.evaluate(() => window.__dice.bodies());
-  const [mesh] = await page.evaluate(() => window.__dice.meshes());
-  const alignment = Math.abs(body.q.reduce((dot, v, i) => dot + v * mesh.q[i], 0));
-  expect(alignment).toBeCloseTo(1, 4);
+  expect(Math.max(...labels.map((l) => l.normal[1]))).toBe(byText('1')[1]);
+  expect(byText('6')[1]).toBeCloseTo(-byText('1')[1], 4); // opposite faces stay opposite after the reveal turn
 });
 
 test('every supported selection creates the expected bodies and surface numerals', async ({ page }) => {

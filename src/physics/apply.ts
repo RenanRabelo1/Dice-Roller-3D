@@ -2,11 +2,11 @@ import { RigidBodyType } from '@dimforge/rapier3d-compat';
 import type { RigidBody } from '@dimforge/rapier3d-compat';
 import { launchVelocity, spin } from '../throw/aim';
 import type { BodyState, SettleAction } from '../throw/settle';
-import { NUDGE, type Quat, type Vec3 } from './world';
+import type { Quat, Vec3 } from './world';
 
 // The single place that changes Rapier body types, velocities and poses (scene and Node tests alike).
 
-export interface Launch { throwId: number; seed: number; target: Vec3; force: number; handCenter: Vec3; handOmega: Vec3 }
+export interface Launch { throwId: number; seed: number; target: Vec3; force: number; handCenter: Vec3; handOmega: Vec3; results: number[] }
 
 const v = ([x, y, z]: Vec3) => ({ x, y, z });
 const ZERO = { x: 0, y: 0, z: 0 };
@@ -25,7 +25,8 @@ export function bodyStates(bodies: RigidBody[]): BodyState[] {
   return bodies.map((b) => {
     const t = b.translation();
     const r = b.rotation();
-    return { asleep: b.isSleeping(), p: [t.x, t.y, t.z], q: [r.x, r.y, r.z, r.w] };
+    const l = b.linvel(), w = b.angvel();
+    return { p: [t.x, t.y, t.z], q: [r.x, r.y, r.z, r.w], speed: Math.hypot(l.x, l.y, l.z), spin: Math.hypot(w.x, w.y, w.z) };
   });
 }
 
@@ -37,15 +38,6 @@ export function applyLaunch(bodies: RigidBody[], launch: Launch): void {
     b.setBodyType(RigidBodyType.Dynamic, true); // keeps the current pose
     b.setLinvel(vel, true);
     b.setAngvel({ x: w[0] + s[0], y: w[1] + s[1], z: w[2] + s[2] }, true);
-  });
-}
-
-export function applyPoses(bodies: RigidBody[], poses: { p: Vec3; q: Quat }[]): void {
-  bodies.forEach((b, i) => {
-    b.setBodyType(RigidBodyType.Dynamic, true);
-    pose(b, poses[i].p, poses[i].q);
-    still(b);
-    b.wakeUp();
   });
 }
 
@@ -68,15 +60,7 @@ export function applySettle(bodies: RigidBody[], action: SettleAction): void {
         b.wakeUp();
       }
       return;
-    case 'nudge':
-      for (const i of action.indices) {
-        const b = bodies[i];
-        const m = b.mass();
-        b.applyImpulse({ x: 0, y: NUDGE.up * m, z: 0 }, true);
-        b.applyTorqueImpulse({ x: NUDGE.torque * m, y: 0, z: NUDGE.torque * m }, true);
-      }
-      return;
-    case 'publish':
+    case 'reveal':
       bodies.forEach((b, i) => {
         still(b);
         pose(b, action.poses[i].p, action.poses[i].q);

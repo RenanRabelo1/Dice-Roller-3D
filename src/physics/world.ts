@@ -15,8 +15,8 @@ export const MATERIAL = {
 
 export const LAUNCH = { minSpeed: 6, maxSpeed: 22, lift: 0.35 };
 export const SPIN = { min: 10, max: 25 };
-export const NUDGE = { up: 3, torque: 0.6 };
-export const SETTLE = { timeoutSteps: 480, maxAttempts: 3, cockedDeg: 15 };
+// Stopped = every body under `speed` (units/s) and `spin` (rad/s) for `calmSteps` steps; hard cap at `timeoutSteps`.
+export const SETTLE = { timeoutSteps: 240, calmSteps: 12, speed: 0.08, spin: 0.15 };
 export const HAND = { y: 3, z: 3, spacing: 1.9, cols: 5, pull: 0.6 };
 export const MAX_RADIUS = 0.9;
 

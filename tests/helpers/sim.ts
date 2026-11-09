@@ -1,6 +1,5 @@
 import RAPIER, { RigidBodyType, type RigidBody } from '@dimforge/rapier3d-compat';
 import { bodiesFor, polyhedron, type DieKind } from '../../src/dice/polyhedra';
-import { toResults } from '../../src/dice/read';
 import { applyLaunch, applySettle, bodyStates } from '../../src/physics/apply';
 import { GRAVITY, handPositions, isOutside, MATERIAL, STEP, trayColliders, type Vec3 } from '../../src/physics/world';
 import { initSettle, stepSettle } from '../../src/throw/settle';
@@ -24,7 +23,7 @@ export function initRapier(): Promise<void> {
 export async function simulate(o: {
   kind: DieKind; count: number; force: number; target: Vec3; seed: number;
   perturb?: (step: number, bodies: RigidBody[]) => void;
-}): Promise<{ results: number[]; steps: number; escaped: boolean; recovered: boolean; bodies: number; final: Vec3[]; fixed: boolean }> {
+}): Promise<{ steps: number; timedOut: boolean; escaped: boolean; recovered: boolean; bodies: number; final: Vec3[]; fixed: boolean }> {
   await initRapier();
   const world = new RAPIER.World({ x: GRAVITY[0], y: GRAVITY[1], z: GRAVITY[2] });
   try {
@@ -51,7 +50,7 @@ export async function simulate(o: {
     });
 
     const handCenter = [0, 1, 2].map((k) => hand.reduce((s, p) => s + p[k], 0) / hand.length) as Vec3;
-    applyLaunch(bodies, { throwId: 1, seed: o.seed, target: o.target, force: o.force, handCenter, handOmega: [0, 0, 0] });
+    applyLaunch(bodies, { throwId: 1, seed: o.seed, target: o.target, force: o.force, handCenter, handOmega: [0, 0, 0], results: [] });
 
     let settle = initSettle(1, bodies.length);
     let escaped = false;
@@ -61,13 +60,13 @@ export async function simulate(o: {
       o.perturb?.(step, bodies);
       const states = bodyStates(bodies);
       if (states.some((b, i) => isOutside(b.p, polys[i].radius))) escaped = true;
-      const next = stepSettle(settle, { throwId: 1, phase: 'rolling', polys, bodies: states });
+      const next = stepSettle(settle, { throwId: 1, phase: 'rolling', radii: polys.map((p) => p.radius), bodies: states });
       settle = next.state;
       applySettle(bodies, next.action);
       if (next.action.type === 'recover') recovered = true;
-      if (next.action.type === 'publish') {
+      if (next.action.type === 'reveal') {
         return {
-          results: toResults(o.kind, next.action.raw),
+          timedOut: next.action.timedOut,
           steps: step,
           escaped,
           recovered,
@@ -77,7 +76,7 @@ export async function simulate(o: {
         };
       }
     }
-    throw new Error(`no publish within ${SAFETY_STEPS} steps (${o.kind} × ${o.count}, seed ${o.seed})`);
+    throw new Error(`no reveal within ${SAFETY_STEPS} steps (${o.kind} × ${o.count}, seed ${o.seed})`);
   } finally {
     world.free();
   }

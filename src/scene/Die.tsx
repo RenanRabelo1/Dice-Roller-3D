@@ -19,6 +19,7 @@ const FONT: Record<Shape, number> = { d4: 0.33, d6: 0.48, d8: 0.36, d10: 0.32, d
 function useNumbers(model: Polyhedron, size: number) {
   const batch = useMemo(() => {
     const b = new BatchedText();
+    const texts: Text[] = [];
     b.depthOffset = -1;
     b.material = new MeshBasicMaterial({ toneMapped: false });
     for (const label of model.labelList) {
@@ -27,9 +28,10 @@ function useNumbers(model: Polyhedron, size: number) {
       Object.assign(t, { text: label.text, font: FONT_URL, fontSize: size, color: '#D4A93F', anchorX: 'center', anchorY: 'middle', outlineWidth: '2%', outlineColor: '#140E10' });
       t.quaternion.setFromRotationMatrix(new Matrix4().makeBasis(new Vector3().crossVectors(up, normal), up, normal));
       t.position.set(...label.position).addScaledVector(normal, 0.002);
-      t.userData.diceLabel = true;
+      texts.push(t);
       b.add(t);
     }
+    b.userData.labels = texts; // BatchedText keeps members out of the scene graph; tests read them here
     b.sync();
     return b;
   }, [model, size]);
@@ -43,6 +45,7 @@ export function Die({ index, shape, labels, color, register }: {
 }) {
   const kind = useDice((state) => state.kind);
   const count = useDice((state) => state.count);
+  const rolling = useDice((state) => state.gesture.phase === 'rolling'); // numbers stay hidden until the reveal
   const registerBody = useCallback((body: RapierRigidBody | null) => register(index, body), [index, register]);
   // Rapier's callback ref reports creation only; explicitly remove disposed bodies.
   useEffect(() => () => register(index, null), [index, register]);
@@ -66,7 +69,7 @@ export function Die({ index, shape, labels, color, register }: {
           <meshPhysicalMaterial color={color} roughness={0.08} clearcoat={1} clearcoatRoughness={0.04}
             ior={1.6} specularIntensity={1} transparent opacity={0.88} />
         </mesh>
-        <primitive object={numbers} />
+        <primitive object={numbers} visible={!rolling} />
       </group>
     </RigidBody>
   );

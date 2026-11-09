@@ -29,9 +29,14 @@ describe('store', () => {
     s().publish(1, [5]); expect(s().results).toEqual([5]); expect(s().gesture.phase).toBe('settled');
     s().publish(1, [6]); expect(s().results).toEqual([5]);
   });
-  it('startFixture enters rolling with a fresh throwId', () => {
-    s().startFixture([{ p: [0, 1, 0], q: [0, 0, 0, 1] }]);
-    expect(s().gesture.phase).toBe('rolling'); expect(s().throwId).toBe(1); expect(s().launch).toBeNull();
+  it('a throw decides one result per die up front, hidden until publish', () => {
+    s().setKind('d100'); s().setCount(3);
+    s().input({ type: 'press', source: P, at: 0, repeat: false });
+    s().input({ type: 'release', source: P, at: 700 });
+    const { results } = s().launch!;
+    expect(results).toHaveLength(3);
+    results.forEach((v) => { expect(v).toBeGreaterThanOrEqual(1); expect(v).toBeLessThanOrEqual(100); });
+    expect(s().results).toBeNull();
   });
   it('copies the release inputs and keeps the launch stable as aim and force change', () => {
     const target: Vec3 = [2, 0, -2];
@@ -50,21 +55,24 @@ describe('store', () => {
     expect(launch.seed).toBeGreaterThanOrEqual(0);
     expect(launch.seed).toBeLessThanOrEqual(0xffffffff);
   });
-  it('selection invalidates active fixtures and stale publications and clears force', () => {
-    s().startFixture([{ p: [0, 1, 0], q: [0, 0, 0, 1] }]);
+  it('selection invalidates active throws and stale publications and clears force', () => {
+    s().input({ type: 'press', source: P, at: 0, repeat: false });
+    s().input({ type: 'release', source: P, at: 700 });
     s().setForce(0.8);
     s().setCount(2);
     s().publish(1, [5]);
-    expect(s()).toMatchObject({ throwId: 2, count: 2, force: 0, gesture: { phase: 'hand' }, fixture: null, launch: null, results: null });
-    s().startFixture([{ p: [0, 1, 0], q: [0, 0, 0, 1] }]);
+    expect(s()).toMatchObject({ throwId: 2, count: 2, force: 0, gesture: { phase: 'hand' }, launch: null, results: null });
+    s().input({ type: 'press', source: P, at: 0, repeat: false });
+    s().input({ type: 'release', source: P, at: 700 });
     s().publish(1, [5]);
     expect(s().results).toBeNull();
     s().publish(3, [6]);
     s().setKind('d6');
-    expect(s()).toMatchObject({ throwId: 4, force: 0, fixture: null, results: null, gesture: { phase: 'hand' } });
+    expect(s()).toMatchObject({ throwId: 4, force: 0, results: null, gesture: { phase: 'hand' } });
   });
   it('retains copied results through return and clears them on the next throw', () => {
-    s().startFixture([{ p: [0, 1, 0], q: [0, 0, 0, 1] }]);
+    s().input({ type: 'press', source: P, at: 0, repeat: false });
+    s().input({ type: 'release', source: P, at: 700 });
     const results = [5];
     s().publish(1, results); results[0] = 9;
     expect(s().input({ type: 'press', source: P, at: 0, repeat: false })).toEqual({ type: 'return' });
@@ -72,7 +80,7 @@ describe('store', () => {
     s().input({ type: 'returned' });
     s().input({ type: 'press', source: P, at: 0, repeat: false });
     s().input({ type: 'release', source: P, at: 350 });
-    expect(s()).toMatchObject({ throwId: 2, fixture: null, results: null, force: 0.5 });
+    expect(s()).toMatchObject({ throwId: 2, results: null, force: 0.5 });
     expect(s().launch).toMatchObject({ handCenter: [0, 3, 3], handOmega: [0, 0, 0] });
   });
 });
