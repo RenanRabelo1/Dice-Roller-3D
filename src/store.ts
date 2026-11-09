@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { DieKind } from './dice/polyhedra';
+import { MAX_DICE, sortDice, type DieKind } from './dice/polyhedra';
 import type { Launch } from './physics/apply';
 import { HAND, type Vec3 } from './physics/world';
 import { initialGesture, reduce, type Effect, type GestureEvent, type GestureState } from './throw/gesture';
@@ -8,8 +8,7 @@ type HandMotion = { center: Vec3; omega: Vec3 };
 type DiceError = 'graphics' | 'physics' | null;
 
 interface DiceState {
-  kind: DieKind;
-  count: number;
+  dice: DieKind[]; // the selection, one entry per die
   gesture: GestureState;
   throwId: number;
   aim: Vec3;
@@ -21,8 +20,9 @@ interface DiceState {
   ready: boolean;
   reducedMotion: boolean;
   showcased: number; // throwId whose dice finished flying to the front
-  setKind: (kind: DieKind) => void;
-  setCount: (count: number) => void;
+  addDie: (kind: DieKind) => void;
+  removeDie: (kind: DieKind) => void;
+  setDice: (dice: DieKind[]) => void;
   setAim: (aim: Vec3) => void;
   setForce: (force: number) => void;
   setReady: () => void;
@@ -42,11 +42,15 @@ const selection = (s: DiceState) => ({
 });
 
 export const useDice = create<DiceState>((set) => ({
-  kind: 'd20', count: 1, gesture: initialGesture, throwId: 0,
+  dice: ['d20'], gesture: initialGesture, throwId: 0,
   aim: [0, 0, -1], force: 0, launch: null, results: null, raw: null,
   error: null, ready: false, reducedMotion: false, showcased: 0,
-  setKind: (kind) => set((s) => ({ ...selection(s), kind })),
-  setCount: (count) => set((s) => ({ ...selection(s), count: Math.min(10, Math.max(1, count)) })),
+  addDie: (kind) => set((s) => (s.dice.length >= MAX_DICE ? s : { ...selection(s), dice: sortDice([...s.dice, kind]) })),
+  removeDie: (kind) => set((s) => {
+    const i = s.dice.lastIndexOf(kind);
+    return i < 0 || s.dice.length === 1 ? s : { ...selection(s), dice: s.dice.filter((_, j) => j !== i) };
+  }),
+  setDice: (dice) => set((s) => ({ ...selection(s), dice: sortDice(dice.slice(0, MAX_DICE)) })),
   setAim: (aim) => set({ aim: [...aim] }),
   setForce: (force) => set({ force }),
   setReady: () => set({ ready: true }),

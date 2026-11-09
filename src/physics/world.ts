@@ -14,6 +14,8 @@ export const MATERIAL = {
 };
 
 export const LAUNCH = { minSpeed: 6, maxSpeed: 22, lift: 0.35 };
+// The d100 is nearly a sphere: without rolling resistance it keeps rolling past the 4 s cap.
+export const DAMPING: Record<string, { linear: number; angular: number }> = { d100: { linear: 1.2, angular: 6 } };
 export const SPIN = { min: 10, max: 25 };
 // Stopped = every body under `speed` (units/s) and `spin` (rad/s) for `calmSteps` steps; hard cap at `timeoutSteps`.
 export const SETTLE = { timeoutSteps: 240, calmSteps: 12, speed: 0.08, spin: 0.15 };

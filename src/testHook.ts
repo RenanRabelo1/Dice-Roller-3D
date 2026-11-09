@@ -4,10 +4,10 @@ import type { Phase } from './throw/gesture';
 
 export interface DiceHook {
   state(): {
-    kind: DieKind; count: number; phase: Phase; throwId: number;
+    dice: DieKind[]; phase: Phase; throwId: number;
     results: number[] | null; ready: boolean; error: 'graphics' | 'physics' | null; aim: Vec3; showcased: number;
   };
-  select(kind: DieKind, count: number): void;
+  select(dice: DieKind[]): void;
   bodies(): { handle: number; p: Vec3; q: Quat; type: number }[];
   meshes(): { q: Quat }[];
   labels(index: number): { text: string; position: Vec3; normal: Vec3 }[];

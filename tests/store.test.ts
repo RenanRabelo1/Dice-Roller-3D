@@ -9,11 +9,19 @@ beforeEach(() => useDice.setState(useDice.getInitialState(), true));
 describe('store', () => {
   it('a selection change resets phase, results and launch and bumps throwId', () => {
     s().input({ type: 'press', source: P, at: 0, repeat: false });
-    s().setKind('d6');
+    s().setDice(['d6']);
     expect(s().gesture.phase).toBe('hand'); expect(s().throwId).toBe(1);
     expect(s().launch).toBeNull(); expect(s().results).toBeNull();
   });
-  it('setCount clamps to 1..10', () => { s().setCount(0); expect(s().count).toBe(1); s().setCount(42); expect(s().count).toBe(10); });
+  it('builds a mixed selection: sorted, 1 to 10 dice', () => {
+    s().addDie('d100'); s().addDie('d4'); s().addDie('d12');
+    expect(s().dice).toEqual(['d4', 'd12', 'd20', 'd100']);
+    s().removeDie('d20'); s().removeDie('d4'); s().removeDie('d12');
+    expect(s().dice).toEqual(['d100']);
+    s().removeDie('d100'); expect(s().dice).toEqual(['d100']); // never empty
+    for (let i = 0; i < 20; i++) s().addDie('d6');
+    expect(s().dice).toHaveLength(10);
+  });
   it('a release throws with one snapshot of seed, target, force and hand motion', () => {
     s().setAim([2, 0, -2]);
     s().input({ type: 'press', source: P, at: 0, repeat: false });
@@ -50,15 +58,15 @@ describe('store', () => {
     s().input({ type: 'press', source: P, at: 0, repeat: false });
     s().input({ type: 'release', source: P, at: 700 });
     s().setForce(0.8);
-    s().setCount(2);
+    s().setDice(['d20', 'd20']);
     s().publish(1, [5]);
-    expect(s()).toMatchObject({ throwId: 2, count: 2, force: 0, gesture: { phase: 'hand' }, launch: null, results: null });
+    expect(s()).toMatchObject({ throwId: 2, dice: ['d20', 'd20'], force: 0, gesture: { phase: 'hand' }, launch: null, results: null });
     s().input({ type: 'press', source: P, at: 0, repeat: false });
     s().input({ type: 'release', source: P, at: 700 });
     s().publish(1, [5]);
     expect(s().results).toBeNull();
     s().publish(3, [6]);
-    s().setKind('d6');
+    s().setDice(['d6']);
     expect(s()).toMatchObject({ throwId: 4, force: 0, results: null, gesture: { phase: 'hand' } });
   });
   it('retains copied results through return and clears them on the next throw', () => {

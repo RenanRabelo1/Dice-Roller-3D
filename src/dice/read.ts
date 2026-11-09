@@ -19,11 +19,7 @@ export function readUp(poly: Polyhedron, q: Quat): { value: number; tilt: number
   return { value: best.value, tilt: (Math.acos(Math.min(1, best.y)) * 180) / Math.PI };
 }
 
-export const combineD100 = (tens: number, units: number): number => (tens === 0 && units === 0 ? 100 : tens * 10 + units);
-
-// Raw face values per body → results per die (d10: 0 is 10; d100: tens body then units body).
-export function toResults(kind: DieKind, raw: number[]): number[] {
-  if (kind === 'd10') return raw.map((n) => (n === 0 ? 10 : n));
-  if (kind === 'd100') return Array.from({ length: raw.length >> 1 }, (_, i) => combineD100(raw[2 * i], raw[2 * i + 1]));
-  return raw;
+// Raw face values per die → results (a d10's 0 face counts as 10).
+export function toResults(dice: DieKind[], raw: number[]): number[] {
+  return raw.map((v, i) => (dice[i] === 'd10' && v === 0 ? 10 : v));
 }

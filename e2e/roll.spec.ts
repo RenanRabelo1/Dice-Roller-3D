@@ -4,9 +4,11 @@ const ready = (p: Page, n?: number) => p.waitForFunction((n) => window.__dice?.s
 const settled = (p: Page) => p.waitForFunction(() => { const s = window.__dice.state(); return s.phase === 'settled' && s.showcased === s.throwId; }, null, { timeout: 90_000 });
 const topValue = async (p: Page, i: number, d4 = false) => {
   const [labels, cam] = await p.evaluate((i) => [window.__dice.labels(i), window.__dice.camera()] as const, i);
-  // Shown faces are parallel to the screen: compare with the camera axis (it looks at the origin), not the ray to each die.
-  const axis = Math.hypot(...cam);
-  const toward = (l: (typeof labels)[number]) => l.normal.reduce((s, v, k) => s + v * cam[k] / axis, 0);
+  // Each shown face looks straight at the camera.
+  const toward = (l: (typeof labels)[number]) => {
+    const d = l.position.map((v, k) => cam[k] - v), n = Math.hypot(...d);
+    return l.normal.reduce((s, v, k) => s + v * d[k] / n, 0);
+  };
   // The rolled face looks at the camera; on a d4 its number is the label nearest the top corner.
   const best = labels.reduce((a, b) => (d4 ? b.position[1] > a.position[1] : toward(b) > toward(a)) ? b : a);
   return best.text.replace('.', '');
@@ -20,7 +22,7 @@ const equivalent = (a: number[], b: number[]) => expect(Math.abs(a.reduce((dot, 
 test.beforeEach(async ({ page }) => { await page.goto('/'); await ready(page); });
 
 test('the face that lands on top is the published result, numbers visible the whole roll', async ({ page }) => {
-  await page.evaluate(() => window.__dice.select('d6', 1)); await ready(page, 1);
+  await page.evaluate(() => window.__dice.select(['d6'])); await ready(page, 1);
   await throwWithSpace(page);
   expect(await page.evaluate(() => window.__dice.numbersVisible(0))).toBe(true);
   await settled(page);
@@ -30,7 +32,7 @@ test('the face that lands on top is the published result, numbers visible the wh
 });
 
 test('d20 × 3 thrown with Space: panel matches the dice on screen', async ({ page }) => {
-  await page.evaluate(() => window.__dice.select('d20', 3)); await ready(page, 3);
+  await page.evaluate(() => window.__dice.select(Array(3).fill('d20'))); await ready(page, 3);
   const before = await page.evaluate(() => window.__dice.bodies().map((b) => b.handle));
   await throwWithSpace(page); await settled(page);
   const tops = await Promise.all([0, 1, 2].map((i) => topValue(page, i)));
@@ -47,15 +49,22 @@ test('d20 × 3 thrown with Space: panel matches the dice on screen', async ({ pa
   });
 });
 
-test('d100 × 10 uses 20 bodies and 10 results matching the rendered pairs', async ({ page }) => {
-  await page.evaluate(() => window.__dice.select('d100', 10)); await ready(page, 20);
+test('d100 × 10 is ten single 100-sided dice whose shown faces match the results', async ({ page }) => {
+  await page.evaluate(() => window.__dice.select(Array(10).fill('d100'))); await ready(page, 10);
   await throwWithSpace(page); await settled(page);
   const results = (await page.evaluate(() => window.__dice.state().results))!;
   expect(results).toHaveLength(10);
-  for (let i = 0; i < 10; i++) {
-    const tens = Number((await topValue(page, 2 * i))[0]), units = Number(await topValue(page, 2 * i + 1));
-    expect(results[i]).toBe(tens === 0 && units === 0 ? 100 : tens * 10 + units);
-  }
+  for (let i = 0; i < 10; i++) expect(String(results[i])).toBe(await topValue(page, i));
+});
+
+test('a mixed selection (d10 + 2d12 + d100) rolls together and each die shows its own result', async ({ page }) => {
+  await page.evaluate(() => window.__dice.select(['d100', 'd12', 'd10', 'd12'])); await ready(page, 4);
+  expect(await page.evaluate(() => window.__dice.state().dice)).toEqual(['d10', 'd12', 'd12', 'd100']);
+  await throwWithSpace(page); await settled(page);
+  const results = (await page.evaluate(() => window.__dice.state().results))!;
+  expect(results).toHaveLength(4);
+  for (let i = 0; i < 4; i++) expect(String(results[i])).toBe(await topValue(page, i));
+  await expect(page.getByTestId('result')).toContainText(String(results.reduce((a, b) => a + b, 0)));
 });
 
 test('repeating a throw with the same selection gets a new throwId', async ({ page }) => {
@@ -75,10 +84,11 @@ test('pointer capture launches once and keyboard controls keep their native scop
   const before = await page.evaluate(() => window.__dice.state().aim);
   await area.focus(); await page.keyboard.press('ArrowRight');
   expect((await page.evaluate(() => window.__dice.state().aim))[0]).toBeCloseTo(before[0] + 0.5);
-  await page.getByRole('button', { name: 'd6', exact: true }).focus();
-  await page.keyboard.press('Space');
+  await page.getByRole('button', { name: 'Adicionar d6' }).focus();
+  await page.keyboard.press('Space'); // the button's own activation: adds a d6, never throws
   expect(await page.evaluate(() => window.__dice.state().phase)).toBe('hand');
-  await ready(page, 1);
+  expect(await page.evaluate(() => window.__dice.state().dice)).toEqual(['d6', 'd20']);
+  await ready(page, 2);
   const rect = (await area.boundingBox())!;
   await page.mouse.move(rect.x + rect.width / 2, rect.y + rect.height / 2);
   await page.mouse.down();
@@ -96,11 +106,11 @@ test('blur cancels charge and reduced motion returns without a flight', async ({
   const area = page.locator('.game-area');
   await area.focus(); await page.keyboard.down('Space');
   await page.waitForFunction(() => window.__dice.state().phase === 'charging');
-  await page.getByRole('button', { name: 'd6', exact: true }).focus();
+  await page.getByRole('button', { name: 'Adicionar d6' }).focus();
   await page.keyboard.up('Space');
   expect(await page.evaluate(() => window.__dice.state().phase)).toBe('hand');
   expect(await page.evaluate(() => window.__dice.launches().count)).toBe(0);
-  await page.evaluate(() => window.__dice.select('d6', 1)); await ready(page, 1);
+  await page.evaluate(() => window.__dice.select(['d6'])); await ready(page, 1);
   await throwWithSpace(page);
   await settled(page);
   await area.focus(); await page.keyboard.press('Space');
@@ -155,7 +165,7 @@ for (const width of [1440, 390]) {
     expect(area.y + area.height).toBeLessThanOrEqual(footer.y);
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
     await expect(page.getByRole('heading', { name: 'Rolador de dados' })).toBeVisible();
-    await page.evaluate(() => window.__dice.select('d6', 1)); await ready(page, 1);
+    await page.evaluate(() => window.__dice.select(['d6'])); await ready(page, 1);
     await throwWithSpace(page);
     await settled(page);
     await expect(page.getByTestId('result')).not.toBeEmpty();

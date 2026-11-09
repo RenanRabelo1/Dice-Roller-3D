@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { PerspectiveCamera, Quaternion, Vector3 } from 'three';
-import { bodiesFor, polyhedron, type DieKind } from '../src/dice/polyhedra';
+import { polyhedron, type DieKind } from '../src/dice/polyhedra';
 import { showcasePoses } from '../src/scene/showcase';
 
 const camera = (aspect: number) => {
@@ -15,15 +15,16 @@ describe('showcasePoses', () => {
     '%s × %i (aspect %s): the rolled number faces the camera upright, every die on screen',
     (kind, count, aspect) => {
       const c = camera(aspect);
-      const polys = bodiesFor(kind, count).map((b) => polyhedron(b.shape, b.labels));
+      const polys = Array.from({ length: count }, () => polyhedron(kind));
       const raw = polys.map((p, i) => (kind === 'd4' ? p.tops : p.faces)[i % p.faces.length].value);
-      const poses = showcasePoses(polys, raw, view(c), kind === 'd100');
-      const back = new Vector3(0, 0, 1).applyQuaternion(c.quaternion), up = new Vector3(0, 1, 0).applyQuaternion(c.quaternion);
+      const poses = showcasePoses(polys, raw, view(c));
+      const up = new Vector3(0, 1, 0).applyQuaternion(c.quaternion);
       poses.forEach(({ p, q }, i) => {
         const rot = new Quaternion(...q);
         const label = polys[i].labelList.find((l) => l.value === raw[i])!;
-        expect(new Vector3(...label.normal).applyQuaternion(rot).dot(back)).toBeCloseTo(1, 5);
-        expect(new Vector3(...label.up).applyQuaternion(rot).dot(up)).toBeCloseTo(1, 5);
+        const toCam = c.position.clone().sub(new Vector3(...p)).normalize();
+        expect(new Vector3(...label.normal).applyQuaternion(rot).dot(toCam)).toBeCloseTo(1, 5); // faces the camera
+        expect(new Vector3(...label.up).applyQuaternion(rot).dot(up)).toBeGreaterThan(0.9); // reads upright
         const ndc = new Vector3(...p).project(c);
         expect(Math.abs(ndc.x)).toBeLessThan(0.95); expect(Math.abs(ndc.y)).toBeLessThan(0.95); expect(ndc.z).toBeLessThan(1);
       });
@@ -31,7 +32,7 @@ describe('showcasePoses', () => {
     },
   );
   it('keeps results order left to right in one row', () => {
-    const polys = bodiesFor('d6', 3).map((b) => polyhedron(b.shape, b.labels));
+    const polys = [1, 2, 3].map(() => polyhedron('d6'));
     const xs = showcasePoses(polys, [1, 2, 3], view(camera(1.6))).map(({ p }) => p[0]);
     expect(xs[0]).toBeLessThan(xs[1]); expect(xs[1]).toBeLessThan(xs[2]);
   });

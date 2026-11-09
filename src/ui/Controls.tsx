@@ -1,7 +1,8 @@
 import { useDice } from '../store';
-import type { DieKind } from '../dice/polyhedra';
+import { KINDS, MAX_DICE, type DieKind } from '../dice/polyhedra';
 
-const kinds: DieKind[] = ['d4', 'd6', 'd8', 'd10', 'd12', 'd20', 'd100'];
+// "2d12 + 1d10" style notation for the selection.
+const notation = (dice: DieKind[]) => KINDS.filter((k) => dice.includes(k)).map((k) => `${dice.filter((d) => d === k).length}${k}`).join(' + ');
 
 function Force() {
   const force = useDice((s) => s.force);
@@ -9,26 +10,31 @@ function Force() {
 }
 
 export function Controls() {
-  const kind = useDice((s) => s.kind), count = useDice((s) => s.count);
+  const dice = useDice((s) => s.dice);
   const phase = useDice((s) => s.gesture.phase), results = useDice((s) => s.results);
   return (
     <>
       <header className="controls panel">
         <h1>Rolador de dados</h1>
-        <div className="selection" role="group" aria-label="Tipo de dado">
-          {kinds.map((type) => <button key={type} aria-pressed={kind === type} onClick={() => useDice.getState().setKind(type)}>{type}</button>)}
+        <div className="selection" role="group" aria-label="Dados">
+          {KINDS.map((type) => {
+            const n = dice.filter((d) => d === type).length;
+            return (
+              <div className="pick" key={type}>
+                <button aria-label={`Adicionar ${type}`} aria-pressed={n > 0} disabled={dice.length >= MAX_DICE}
+                  onClick={() => useDice.getState().addDie(type)}>{n ? `${n}${type}` : type}</button>
+                {n > 0 && <button className="remove" aria-label={`Remover ${type}`} disabled={dice.length === 1}
+                  onClick={() => useDice.getState().removeDie(type)}>−</button>}
+              </div>
+            );
+          })}
         </div>
-        <div className="quantity" role="group" aria-label="Quantidade">
-          <span>Quantidade</span>
-          <button aria-label="Diminuir quantidade" disabled={count === 1} onClick={() => useDice.getState().setCount(count - 1)}>−</button>
-          <span className="count" aria-live="polite">{count}</span>
-          <button aria-label="Aumentar quantidade" disabled={count === 10} onClick={() => useDice.getState().setCount(count + 1)}>+</button>
-        </div>
+        <p className="pool" aria-live="polite">{notation(dice)}</p>
       </header>
       <footer className="status panel">
         <div className="feedback">
           <output data-testid="result" aria-live="polite">
-            {results && <><strong>{results.reduce((sum, value) => sum + value, 0)}</strong>{results.length > 1 && <span>{results.join(' + ')}</span>}</>}
+            {results && <><strong>{results.reduce((sum, value) => sum + value, 0)}</strong>{results.length > 1 && <span>{KINDS.filter((k) => dice.includes(k)).map((k) => `${k}: ${results.filter((_, i) => dice[i] === k).join(' + ')}`).join(' · ')}</span>}</>}
           </output>
           {phase === 'charging' && <Force />}
         </div>

@@ -1,6 +1,5 @@
 import RAPIER, { type RigidBody } from '@dimforge/rapier3d-compat';
 import type { DieKind } from '../../src/dice/polyhedra';
-import { bodiesFor } from '../../src/dice/polyhedra';
 import { presimulate } from '../../src/physics/presim';
 import { handPositions, type Vec3 } from '../../src/physics/world';
 
@@ -20,13 +19,14 @@ export function initRapier(): Promise<void> {
 
 // The app's own offline roll, from the resting hand poses.
 export async function simulate(o: {
-  kind: DieKind; count: number; force: number; target: Vec3; seed: number;
+  kind: DieKind; count: number; dice?: DieKind[]; force: number; target: Vec3; seed: number;
   perturb?: (step: number, bodies: RigidBody[]) => void;
 }) {
   await initRapier();
-  const hand = handPositions(bodiesFor(o.kind, o.count).length, 0);
+  const dice = o.dice ?? Array<DieKind>(o.count).fill(o.kind);
+  const hand = handPositions(dice.length, 0);
   const handCenter = [0, 1, 2].map((k) => hand.reduce((s, p) => s + p[k], 0) / hand.length) as Vec3;
   const start = hand.map((p) => ({ p, q: [0, 0, 0, 1] as [number, number, number, number] }));
-  const rec = presimulate(o.kind, o.count, start, { throwId: 1, seed: o.seed, target: o.target, force: o.force, handCenter, handOmega: [0, 0, 0] }, o.perturb);
+  const rec = presimulate(dice, start, { throwId: 1, seed: o.seed, target: o.target, force: o.force, handCenter, handOmega: [0, 0, 0] }, o.perturb);
   return { ...rec, steps: rec.frames.length, bodies: hand.length, final: rec.frames.at(-1)!.map((f) => f.p) };
 }

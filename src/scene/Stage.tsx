@@ -3,7 +3,7 @@ import { useThree } from '@react-three/fiber';
 import { Environment, Lightformer } from '@react-three/drei';
 import { Physics, useBeforePhysicsStep, type RapierRigidBody } from '@react-three/rapier';
 import { Group, Matrix4, Quaternion, Vector3, type Object3D } from 'three';
-import { bodiesFor } from '../dice/polyhedra';
+
 import { bodyStates } from '../physics/apply';
 import { presimulate, type Recording } from '../physics/presim';
 import type { DiceHook } from '../testHook';
@@ -23,13 +23,13 @@ function ThrowLoop({ bodies, recordLaunch }: {
   // On release the whole roll is simulated offline from the dice's current poses, then replayed one recorded
   // step per physics step: a real roll in real time, whose result is published the moment it ends.
   useBeforePhysicsStep(() => {
-    const { gesture, throwId, launch, kind, count, publish } = useDice.getState();
+    const { gesture, throwId, launch, dice, publish } = useDice.getState();
     if (gesture.phase !== 'rolling' || !launch) return;
     const current = live();
     if (play.current?.throwId !== throwId) {
-      if (current.length !== bodiesFor(kind, count).length) return;
+      if (current.length !== dice.length) return;
       const start = bodyStates(current).map(({ p, q }) => ({ p, q }));
-      play.current = { throwId, rec: presimulate(kind, count, start, launch), at: 0 };
+      play.current = { throwId, rec: presimulate(dice, start, launch), at: 0 };
       recordLaunch({ before: start, after: bodyStates(current).map(({ p, q }) => ({ p, q })) });
     }
     const { rec } = play.current;
@@ -43,8 +43,8 @@ function ThrowLoop({ bodies, recordLaunch }: {
 }
 
 export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> }) {
-  const kind = useDice((state) => state.kind);
-  const count = useDice((state) => state.count);
+  const selected = useDice((state) => state.dice);
+  const key = selected.join(',');
   const { camera, size } = useThree();
   const bodies = useRef<(RapierRigidBody | null)[]>([]);
   const launches = useRef<ReturnType<DiceHook['launches']>>({ count: 0, last: null });
@@ -95,16 +95,13 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
       state: () => {
         const state = useDice.getState();
         return {
-          kind: state.kind, count: state.count, phase: state.gesture.phase, throwId: state.throwId,
+          dice: state.dice, phase: state.gesture.phase, throwId: state.throwId,
           results: state.results,
-          ready: state.ready && state.kind === kind && state.count === count && bodies.current.filter((b) => b?.isValid()).length === bodiesFor(kind, count).length,
+          ready: state.ready && state.dice.join(',') === key && bodies.current.filter((b) => b?.isValid()).length === selected.length,
           error: state.error, aim: state.aim, showcased: state.showcased,
         };
       },
-      select: (nextKind, nextCount) => {
-        useDice.getState().setKind(nextKind);
-        useDice.getState().setCount(nextCount);
-      },
+      select: (next) => useDice.getState().setDice(next),
       bodies: () => bodies.current.filter((body): body is RapierRigidBody => body !== null && body.isValid()).map((body) => {
         const p = body.translation(), q = body.rotation();
         return { handle: body.handle, p: [p.x, p.y, p.z], q: [q.x, q.y, q.z, q.w], type: body.bodyType() };
@@ -149,7 +146,7 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
       },
     });
     useDice.getState().setReady();
-  }, [gameArea, kind, count]);
+  }, [camera, gameArea, key, selected]);
 
 
   return (
@@ -169,8 +166,8 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
         <Hand gameArea={gameArea} bodies={bodies} />
         <ThrowLoop bodies={bodies} recordLaunch={recordLaunch} />
         <group ref={dice}>
-          {bodiesFor(kind, count).map(({ shape, labels }, i) => (
-            <Die key={`${kind}-${count}-${i}`} index={i} shape={shape} labels={labels} color={GEM[kind]}
+          {selected.map((shape, i) => (
+            <Die key={`${key}-${i}`} index={i} shape={shape} selection={key} count={selected.length} color={GEM[shape]}
               register={register} />
           ))}
         </group>

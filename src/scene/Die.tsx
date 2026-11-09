@@ -2,20 +2,18 @@ import { useCallback, useEffect, useMemo } from 'react';
 import { BatchedText, Text } from 'troika-three-text';
 import { ConvexHullCollider, RigidBody, type RapierRigidBody } from '@react-three/rapier';
 import { BufferGeometry, Float32BufferAttribute, Matrix4, MeshBasicMaterial, Vector3 } from 'three';
-import { bodiesFor, polyhedron, type DieKind, type LabelSet, type Polyhedron, type Shape } from '../dice/polyhedra';
+import { polyhedron, type DieKind, type Polyhedron, type Shape } from '../dice/polyhedra';
 import { handPositions, MATERIAL } from '../physics/world';
-import { useDice } from '../store';
 
 // Kept alongside Die as the scene's specified gem palette.
 // oxlint-disable-next-line react/only-export-components
 export const GEM: Record<DieKind, string> = {
   d4: '#1F9D63', d6: '#C0182E', d8: '#1F4FB8', d10: '#E0A21B',
-  d12: '#8B4FC9', d20: '#E8F1F8', d100: '#E7B416',
+  d12: '#8B4FC9', d20: '#E8F1F8', d100: '#7FD3D8',
 };
 const FONT_URL = '/fonts/bricolage-grotesque-800.woff';
 // Sized to each face: d4/d6 were right; the rest were crowding their faces.
-const FONT: Record<Shape, number> = { d4: 0.33, d6: 0.48, d8: 0.32, d10: 0.28, d12: 0.29, d20: 0.28 };
-const TENS_FONT = 0.23;
+const FONT: Record<Shape, number> = { d4: 0.33, d6: 0.48, d8: 0.32, d10: 0.28, d12: 0.29, d20: 0.28, d100: 0.13 };
 // Light gems (topaz, crystal, citrine) get dark numerals; dark gems keep gold.
 type Ink = { color: string; outline?: string };
 const DARK: Ink = { color: '#1B1A16' }; // no outline: at this size a dark outline turns into noise
@@ -46,16 +44,14 @@ function useNumbers(model: Polyhedron, size: number, ink: Ink) {
   return batch;
 }
 
-export function Die({ index, shape, labels, color, register }: {
-  index: number; shape: Shape; labels: LabelSet; color: string;
+export function Die({ index, shape, selection, count, color, register }: {
+  index: number; shape: Shape; selection: string; count: number; color: string;
   register: (index: number, body: RapierRigidBody | null) => void;
 }) {
-  const kind = useDice((state) => state.kind);
-  const count = useDice((state) => state.count);
   const registerBody = useCallback((body: RapierRigidBody | null) => register(index, body), [index, register]);
   // Rapier's callback ref reports creation only; explicitly remove disposed bodies.
   useEffect(() => () => register(index, null), [index, register]);
-  const model = polyhedron(shape, labels);
+  const model = polyhedron(shape);
   const geometry = useMemo(() => {
     const result = new BufferGeometry();
     result.setAttribute('position', new Float32BufferAttribute(model.triangles, 3));
@@ -64,10 +60,10 @@ export function Die({ index, shape, labels, color, register }: {
   }, [model]);
   useEffect(() => () => geometry.dispose(), [geometry]);
   const points = useMemo(() => model.points.flat(), [model]);
-  const numbers = useNumbers(model, labels === 'tens' ? TENS_FONT : FONT[shape], INK[kind] ?? GOLD);
+  const numbers = useNumbers(model, FONT[shape], INK[shape] ?? GOLD);
   return (
     <RigidBody ref={registerBody} type="kinematicPosition" colliders={false}
-      userData={{ selection: `${kind}-${count}` }} ccd position={handPositions(bodiesFor(kind, count).length, 0)[index]}>
+      userData={{ selection }} ccd position={handPositions(count, 0)[index]}>
       <ConvexHullCollider args={[points]} {...MATERIAL.die} />
       <group name={`die-${index}`}>
         <mesh name={`gem-${index}`} geometry={geometry} castShadow receiveShadow>

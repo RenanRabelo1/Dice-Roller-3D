@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, type RefObject } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import type { RapierRigidBody } from '@react-three/rapier';
 import { ArrowHelper, Color, Mesh, Plane, Quaternion, Raycaster, Vector2, Vector3, type Object3D, type PerspectiveCamera } from 'three';
-import { bodiesFor, polyhedron } from '../dice/polyhedra';
+import { polyhedron } from '../dice/polyhedra';
 import { toKinematic } from '../physics/apply';
 import { clampHandX, HAND, handPositions, type Quat, type Vec3 } from '../physics/world';
 import { useDice } from '../store';
@@ -23,13 +23,13 @@ export function Hand({ gameArea, bodies }: {
   const rotations = useRef<Quaternion[]>([]);
   const mode = useRef('');
   const returning = useRef<{ at: number; poses: { p: Vec3; q: Quat }[] } | null>(null);
-  const showcase = useRef<{ at: number; throwId: number; from: { p: Vec3; q: Quat }[]; to: { p: Vec3; q: Quat }[]; gems: (Object3D | undefined)[] } | null>(null);
+  const showcase = useRef<{ at: number; throwId: number; from: { p: Vec3; q: Quat }[]; to: { p: Vec3; q: Quat }[]; gems: (Object3D | undefined)[]; landed?: boolean } | null>(null);
   const arrow = useRef<ArrowHelper>(null);
   const preview = import.meta.env.MODE === 'test' && new URLSearchParams(location.search).has('surface-preview');
   const live = useCallback(() => {
     const state = useDice.getState();
-    const expected = bodiesFor(state.kind, state.count).length;
-    const registered = bodies.current.filter((b): b is RapierRigidBody => b !== null && b.isValid() && (b.userData as { selection?: string } | undefined)?.selection === `${state.kind}-${state.count}`);
+    const expected = state.dice.length, selection = state.dice.join(',');
+    const registered = bodies.current.filter((b): b is RapierRigidBody => b !== null && b.isValid() && (b.userData as { selection?: string } | undefined)?.selection === selection);
     return state.ready && registered.length === expected ? registered : null;
   }, [bodies]);
 
@@ -106,7 +106,7 @@ export function Hand({ gameArea, bodies }: {
     marker.visible = !preview && !!current && (phase === 'hand' || phase === 'charging');
     if (!current) return;
     const now = performance.now(), dt = Math.max(0.0001, Math.min(elapsed, 0.1));
-    const identity = `${state.kind}-${state.count}`;
+    const identity = state.dice.join(',');
     const active = phase === 'hand' || phase === 'charging';
     const nextMode = active ? `${identity}-hand` : `${identity}-${phase}`;
     const setOpacity = (opacity: number) => {
@@ -137,7 +137,7 @@ export function Hand({ gameArea, bodies }: {
       showcase.current = null;
       if (state.reducedMotion || !state.raw) state.setShowcased(state.throwId); // dice stay where they landed
       else {
-        const polys = bodiesFor(state.kind, state.count).map(({ shape, labels }) => polyhedron(shape, labels));
+        const polys = state.dice.map((d) => polyhedron(d));
         const from = current.map((body) => {
           const p = body.translation(), q = body.rotation();
           return { p: [p.x, p.y, p.z] as Vec3, q: [q.x, q.y, q.z, q.w] as Quat };
@@ -145,7 +145,7 @@ export function Hand({ gameArea, bodies }: {
         const cam = camera as PerspectiveCamera;
         // The values the panel shows, from the simulation: never re-read a die that stopped near an edge.
         const to = showcasePoses(polys, state.raw,
-          { position: cam.position, quaternion: cam.quaternion, fov: cam.fov, aspect: cam.aspect }, state.kind === 'd100');
+          { position: cam.position, quaternion: cam.quaternion, fov: cam.fov, aspect: cam.aspect });
         showcase.current = { at: now, throwId: state.throwId, from, to, gems: current.map((_, i) => scene.getObjectByName(`gem-${i}`)) };
       }
     }
@@ -166,7 +166,9 @@ export function Hand({ gameArea, bodies }: {
         body.setNextKinematicTranslation(p);
         body.setNextKinematicRotation(q);
       });
-      if (done && state.showcased !== throwId) state.setShowcased(throwId);
+      // Report "shown" one frame after landing, once the scene has rendered the pinned poses.
+      if (done && showcase.current.landed && state.showcased !== throwId) state.setShowcased(throwId);
+      if (done) showcase.current.landed = true;
       return;
     }
     if (phase === 'returning' && returning.current) {

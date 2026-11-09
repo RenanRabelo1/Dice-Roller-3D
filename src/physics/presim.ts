@@ -1,9 +1,9 @@
 import RAPIER from '@dimforge/rapier3d-compat';
-import { bodiesFor, polyhedron, type DieKind } from '../dice/polyhedra';
+import { polyhedron, type DieKind } from '../dice/polyhedra';
 import { readUp, toResults } from '../dice/read';
 import { initSettle, stepSettle } from '../throw/settle';
 import { applyLaunch, applySettle, bodyStates, type Launch } from './apply';
-import { GRAVITY, isOutside, MATERIAL, SETTLE, STEP, trayColliders, type Quat, type Vec3 } from './world';
+import { DAMPING, GRAVITY, isOutside, MATERIAL, SETTLE, STEP, trayColliders, type Quat, type Vec3 } from './world';
 
 export type Pose = { p: Vec3; q: Quat };
 export interface Recording { frames: Pose[][]; raw: number[]; results: number[]; timedOut: boolean; escaped: boolean; recovered: boolean }
@@ -12,7 +12,7 @@ export interface Recording { frames: Pose[][]; raw: number[]; results: number[];
 // recording one pose per body per step. The screen then replays a genuine roll whose result is already
 // known, so it can be published the moment the dice stop. Rapier must already be initialised.
 export function presimulate(
-  kind: DieKind, count: number, start: Pose[], launch: Launch,
+  dice: DieKind[], start: Pose[], launch: Launch,
   perturb?: (step: number, bodies: RAPIER.RigidBody[]) => void,
 ): Recording {
   const world = new RAPIER.World({ x: GRAVITY[0], y: GRAVITY[1], z: GRAVITY[2] });
@@ -26,12 +26,13 @@ export function presimulate(
         tray,
       );
     }
-    const polys = bodiesFor(kind, count).map((b) => polyhedron(b.shape, b.labels));
+    const polys = dice.map((d) => polyhedron(d));
     if (start.length !== polys.length) throw new Error(`presimulate needs ${polys.length} start poses, got ${start.length}`);
     const bodies = polys.map((poly, i) => {
       const [x, y, z, w] = start[i].q;
       const body = world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased()
-        .setTranslation(...start[i].p).setRotation({ x, y, z, w }).setCcdEnabled(true));
+        .setTranslation(...start[i].p).setRotation({ x, y, z, w }).setCcdEnabled(true)
+        .setLinearDamping(DAMPING[poly.shape]?.linear ?? 0).setAngularDamping(DAMPING[poly.shape]?.angular ?? 0));
       const hull = RAPIER.ColliderDesc.convexHull(new Float32Array(poly.points.flat()));
       if (!hull) throw new Error(`convex hull failed for ${poly.shape}`);
       const m = MATERIAL.die;
@@ -55,7 +56,7 @@ export function presimulate(
       frames.push(bodyStates(bodies).map(({ p, q }) => ({ p, q })));
       if (next.action.type === 'reveal') {
         const raw = next.action.poses.map((pose, i) => readUp(polys[i], pose.q).value);
-        return { frames, raw, results: toResults(kind, raw), timedOut: next.action.timedOut, escaped, recovered };
+        return { frames, raw, results: toResults(dice, raw), timedOut: next.action.timedOut, escaped, recovered };
       }
     }
     throw new Error('settle never revealed'); // unreachable: stepSettle reveals at SETTLE.timeoutSteps
