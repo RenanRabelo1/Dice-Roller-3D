@@ -54,7 +54,7 @@ describe('Rapier body adapters', () => {
       expectVector(b.linvel(), [0, 0, 0]);
       expectVector(b.angvel(), [0, 0, 0]);
     });
-    const launch = { throwId: 2, seed: 17, target: [2, 0, -3] as Vec3, force: 0.7, handCenter: [1, 3, 2] as Vec3, handOmega: [2, -3, 4] as Vec3, results: [] };
+    const launch = { throwId: 2, seed: 17, target: [2, 0, -3] as Vec3, force: 0.7, handCenter: [1, 3, 2] as Vec3, handOmega: [2, -3, 4] as Vec3 };
     applyLaunch(bodies, launch);
     expect(bodyStates(bodies).map(({ p, q }) => ({ p, q }))).toEqual(before);
     bodies.forEach((b, i) => {
@@ -99,11 +99,14 @@ describe('Rapier body adapters', () => {
 });
 
 describe.each(KINDS)('%s × 10', (kind) => {
-  it.each([0, 1])('force %s: stops before the cap, no escape, all inside', async (force) => {
+  it.each([0, 1])('force %s: stops before the cap, no escape, all inside, one result per die', async (force) => {
     const r = await simulate({ kind, count: 10, force, target: [0, 0, -1], seed: 7 });
     expect(r.escaped).toBe(false); expect(r.recovered).toBe(false);
     expect(r.timedOut).toBe(false); // the dice really stop: the reveal does not wait for the cap
     expect(r.bodies).toBe(kind === 'd100' ? 20 : 10);
+    expect(r.results).toHaveLength(10);
+    r.results.forEach((v) => { expect(v).toBeGreaterThanOrEqual(1); expect(v).toBeLessThanOrEqual(Number(kind.slice(1))); });
+    expect(r.frames.every((f) => f.length === r.bodies)).toBe(true);
     r.final.forEach((p) => expect(isOutside(p, MAX_RADIUS)).toBe(false));
   }, T);
 });
@@ -122,6 +125,15 @@ describe('edges', () => {
   it('a body kept moving is revealed at the cap and frozen', async () => {
     const r = await simulate({ kind: 'd6', count: 2, force: 0.5, target: [0, 0, 0], seed: 1,
       perturb: (_s, b) => b[0].applyImpulse({ x: 0, y: 0.5, z: 0 }, true) });
-    expect(r.steps).toBe(SETTLE.timeoutSteps); expect(r.timedOut).toBe(true); expect(r.fixed).toBe(true);
+    expect(r.steps).toBe(SETTLE.timeoutSteps); expect(r.timedOut).toBe(true);
+  }, T);
+});
+
+describe('replay', () => {
+  it('is deterministic: the same throw records the same roll and result', async () => {
+    const o = { kind: 'd20' as const, count: 3, force: 0.6, target: [1, 0, -2] as Vec3, seed: 11 };
+    const [a, b] = [await simulate(o), await simulate(o)];
+    expect(b.results).toEqual(a.results);
+    expect(b.frames.at(-1)).toEqual(a.frames.at(-1));
   }, T);
 });

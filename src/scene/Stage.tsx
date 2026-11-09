@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useRef, type RefObject } from 'react';
 import { useThree } from '@react-three/fiber';
 import { Environment, Lightformer } from '@react-three/drei';
-import { Physics, useAfterPhysicsStep, useBeforePhysicsStep, type RapierRigidBody } from '@react-three/rapier';
+import { Physics, useBeforePhysicsStep, type RapierRigidBody } from '@react-three/rapier';
 import { Group, Matrix4, Quaternion, Vector3, type Object3D } from 'three';
-import { bodiesFor, polyhedron } from '../dice/polyhedra';
-import { bodyValues, revealRotation } from '../dice/read';
-import { applyLaunch, applySettle, bodyStates } from '../physics/apply';
-import { initSettle, stepSettle, type SettleState } from '../throw/settle';
+import { bodiesFor } from '../dice/polyhedra';
+import { bodyStates } from '../physics/apply';
+import { presimulate, type Recording } from '../physics/presim';
 import type { DiceHook } from '../testHook';
 import { GRAVITY, HAND, MAX_RADIUS, STEP, TRAY, handPositions, type Vec3 } from '../physics/world';
 import { useDice } from '../store';
@@ -15,39 +14,30 @@ import { Die, GEM } from './Die';
 import { Tray } from './Tray';
 import { Hand } from './Hand';
 
-function ThrowLoop({ bodies, dice, recordLaunch }: {
-  bodies: RefObject<(RapierRigidBody | null)[]>; dice: RefObject<Group | null>;
+function ThrowLoop({ bodies, recordLaunch }: {
+  bodies: RefObject<(RapierRigidBody | null)[]>;
   recordLaunch: (last: NonNullable<ReturnType<DiceHook['launches']>['last']>) => void;
 }) {
-  const applied = useRef(-1);
-  const settle = useRef<SettleState | null>(null);
+  const play = useRef<{ throwId: number; rec: Recording; at: number } | null>(null);
   const live = () => bodies.current.filter((b): b is RapierRigidBody => b !== null && b.isValid());
-  const shown = (i: number) => dice.current?.getObjectByName(`die-${i}`);
+  // On release the whole roll is simulated offline from the dice's current poses, then replayed one recorded
+  // step per physics step: a real roll in real time, whose result is published the moment it ends.
   useBeforePhysicsStep(() => {
-    const { gesture, throwId, launch, kind, count } = useDice.getState();
+    const { gesture, throwId, launch, kind, count, publish } = useDice.getState();
+    if (gesture.phase !== 'rolling' || !launch) return;
     const current = live();
-    if (gesture.phase !== 'rolling' || !launch || throwId === applied.current || current.length !== bodiesFor(kind, count).length) return;
-    const before = bodyStates(current).map(({ p, q }) => ({ p, q }));
-    applyLaunch(current, launch);
-    current.forEach((_, i) => shown(i)?.quaternion.identity()); // numbers are hidden; the reveal sets the final turn
-    applied.current = throwId;
-    recordLaunch({ before, after: bodyStates(current).map(({ p, q }) => ({ p, q })) });
-    settle.current = initSettle(throwId, current.length);
-  });
-  useAfterPhysicsStep(() => {
-    const state = useDice.getState();
-    if (state.gesture.phase !== 'rolling' || !state.launch || settle.current?.throwId !== state.throwId) return;
-    const current = live();
-    const polys = bodiesFor(state.kind, state.count).map(({ shape, labels }) => polyhedron(shape, labels));
-    const next = stepSettle(settle.current, {
-      throwId: state.throwId, phase: state.gesture.phase, radii: polys.map((p) => p.radius), bodies: bodyStates(current),
+    if (play.current?.throwId !== throwId) {
+      if (current.length !== bodiesFor(kind, count).length) return;
+      const start = bodyStates(current).map(({ p, q }) => ({ p, q }));
+      play.current = { throwId, rec: presimulate(kind, count, start, launch), at: 0 };
+      recordLaunch({ before: start, after: bodyStates(current).map(({ p, q }) => ({ p, q })) });
+    }
+    const { rec } = play.current;
+    rec.frames[play.current.at].forEach(({ p, q }, i) => {
+      current[i].setNextKinematicTranslation({ x: p[0], y: p[1], z: p[2] });
+      current[i].setNextKinematicRotation({ x: q[0], y: q[1], z: q[2], w: q[3] });
     });
-    settle.current = next.state;
-    applySettle(current, next.action);
-    if (next.action.type !== 'reveal') return;
-    const values = bodyValues(state.kind, state.launch.results);
-    next.action.poses.forEach(({ q }, i) => shown(i)?.quaternion.fromArray(revealRotation(polys[i], q, values[i])));
-    state.publish(state.throwId, state.launch.results);
+    if (++play.current.at === rec.frames.length) publish(throwId, rec.results);
   });
   return null;
 }
@@ -146,11 +136,6 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
         return result;
       },
       numbersVisible: (index) => numbersOf(index)?.visible ?? false,
-      rig: (results) => {
-        const { gesture, launch } = useDice.getState();
-        if (gesture.phase !== 'rolling' || !launch || results.length !== launch.results.length) throw new Error('rig needs a throw in progress with one result per die');
-        useDice.setState({ launch: { ...launch, results: [...results] } });
-      },
       launches: () => launches.current,
       previewSurface: (index, p, q) => {
         if (import.meta.env.MODE !== 'test' || !new URLSearchParams(location.search).has('surface-preview') || useDice.getState().gesture.phase !== 'hand') throw new Error('Surface preview is only available in the test preview scene');
@@ -181,7 +166,7 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
       <Physics gravity={GRAVITY} timeStep={STEP} interpolate={false}>
         <Tray />
         <Hand gameArea={gameArea} bodies={bodies} />
-        <ThrowLoop bodies={bodies} dice={dice} recordLaunch={recordLaunch} />
+        <ThrowLoop bodies={bodies} recordLaunch={recordLaunch} />
         <group ref={dice}>
           {bodiesFor(kind, count).map(({ shape, labels }, i) => (
             <Die key={`${kind}-${count}-${i}`} index={i} shape={shape} labels={labels} color={GEM[kind]}

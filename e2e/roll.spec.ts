@@ -15,13 +15,14 @@ const equivalent = (a: number[], b: number[]) => expect(Math.abs(a.reduce((dot, 
 
 test.beforeEach(async ({ page }) => { await page.goto('/'); await ready(page); });
 
-test('the result decided at the throw is the one revealed on top and in the panel', async ({ page }) => {
+test('the face that lands on top is the published result, numbers visible the whole roll', async ({ page }) => {
   await page.evaluate(() => window.__dice.select('d6', 1)); await ready(page, 1);
   await throwWithSpace(page);
-  await page.evaluate(() => window.__dice.rig([3]));
+  expect(await page.evaluate(() => window.__dice.numbersVisible(0))).toBe(true);
   await settled(page);
-  await expect(page.getByTestId('result')).toContainText('3');
-  expect(await topValue(page, 0)).toBe('3');
+  const [result] = (await page.evaluate(() => window.__dice.state().results))!;
+  expect(await topValue(page, 0)).toBe(String(result));
+  await expect(page.getByTestId('result')).toContainText(String(result));
 });
 
 test('d20 × 3 thrown with Space: panel matches the dice on screen', async ({ page }) => {
@@ -152,9 +153,8 @@ for (const width of [1440, 390]) {
     await expect(page.getByRole('heading', { name: 'Rolador de dados' })).toBeVisible();
     await page.evaluate(() => window.__dice.select('d6', 1)); await ready(page, 1);
     await throwWithSpace(page);
-    await page.evaluate(() => window.__dice.rig([3]));
     await settled(page);
-    await expect(page.getByTestId('result')).toContainText('3');
+    await expect(page.getByTestId('result')).not.toBeEmpty();
     await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
     await page.screenshot({ path: `screens/controls-${width}.png` });
   });

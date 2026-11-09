@@ -1,10 +1,8 @@
-import RAPIER, { RigidBodyType, type RigidBody } from '@dimforge/rapier3d-compat';
-import { bodiesFor, polyhedron, type DieKind } from '../../src/dice/polyhedra';
-import { applyLaunch, applySettle, bodyStates } from '../../src/physics/apply';
-import { GRAVITY, handPositions, isOutside, MATERIAL, STEP, trayColliders, type Vec3 } from '../../src/physics/world';
-import { initSettle, stepSettle } from '../../src/throw/settle';
-
-const SAFETY_STEPS = 600;
+import RAPIER, { type RigidBody } from '@dimforge/rapier3d-compat';
+import type { DieKind } from '../../src/dice/polyhedra';
+import { bodiesFor } from '../../src/dice/polyhedra';
+import { presimulate } from '../../src/physics/presim';
+import { handPositions, type Vec3 } from '../../src/physics/world';
 
 // rapier3d-compat 0.19.2's init() always hands wasm-bindgen a bare byte array, which logs a deprecation
 // warning no argument of ours can avoid; mute exactly that line while the module loads.
@@ -20,64 +18,15 @@ export function initRapier(): Promise<void> {
   return ready;
 }
 
+// The app's own offline roll, from the resting hand poses.
 export async function simulate(o: {
   kind: DieKind; count: number; force: number; target: Vec3; seed: number;
   perturb?: (step: number, bodies: RigidBody[]) => void;
-}): Promise<{ steps: number; timedOut: boolean; escaped: boolean; recovered: boolean; bodies: number; final: Vec3[]; fixed: boolean }> {
+}) {
   await initRapier();
-  const world = new RAPIER.World({ x: GRAVITY[0], y: GRAVITY[1], z: GRAVITY[2] });
-  try {
-    world.timestep = STEP;
-
-    const tray = world.createRigidBody(RAPIER.RigidBodyDesc.fixed());
-    for (const box of trayColliders()) {
-      const m = box.kind === 'floor' ? MATERIAL.velvet : MATERIAL.wall;
-      world.createCollider(
-        RAPIER.ColliderDesc.cuboid(...box.half).setTranslation(...box.center).setFriction(m.friction).setRestitution(m.restitution),
-        tray,
-      );
-    }
-
-    const polys = bodiesFor(o.kind, o.count).map((b) => polyhedron(b.shape, b.labels));
-    const hand = handPositions(polys.length, 0);
-    const bodies = polys.map((poly, i) => {
-      const body = world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(...hand[i]).setCcdEnabled(true));
-      const hull = RAPIER.ColliderDesc.convexHull(new Float32Array(poly.points.flat()));
-      if (!hull) throw new Error(`convex hull failed for ${poly.shape}`);
-      const m = MATERIAL.die;
-      world.createCollider(hull.setFriction(m.friction).setRestitution(m.restitution).setDensity(m.density), body);
-      return body;
-    });
-
-    const handCenter = [0, 1, 2].map((k) => hand.reduce((s, p) => s + p[k], 0) / hand.length) as Vec3;
-    applyLaunch(bodies, { throwId: 1, seed: o.seed, target: o.target, force: o.force, handCenter, handOmega: [0, 0, 0], results: [] });
-
-    let settle = initSettle(1, bodies.length);
-    let escaped = false;
-    let recovered = false;
-    for (let step = 1; step <= SAFETY_STEPS; step++) {
-      world.step();
-      o.perturb?.(step, bodies);
-      const states = bodyStates(bodies);
-      if (states.some((b, i) => isOutside(b.p, polys[i].radius))) escaped = true;
-      const next = stepSettle(settle, { throwId: 1, phase: 'rolling', radii: polys.map((p) => p.radius), bodies: states });
-      settle = next.state;
-      applySettle(bodies, next.action);
-      if (next.action.type === 'recover') recovered = true;
-      if (next.action.type === 'reveal') {
-        return {
-          timedOut: next.action.timedOut,
-          steps: step,
-          escaped,
-          recovered,
-          bodies: bodies.length,
-          final: bodyStates(bodies).map((b) => b.p),
-          fixed: bodies.every((b) => b.bodyType() === RigidBodyType.Fixed),
-        };
-      }
-    }
-    throw new Error(`no reveal within ${SAFETY_STEPS} steps (${o.kind} × ${o.count}, seed ${o.seed})`);
-  } finally {
-    world.free();
-  }
+  const hand = handPositions(bodiesFor(o.kind, o.count).length, 0);
+  const handCenter = [0, 1, 2].map((k) => hand.reduce((s, p) => s + p[k], 0) / hand.length) as Vec3;
+  const start = hand.map((p) => ({ p, q: [0, 0, 0, 1] as [number, number, number, number] }));
+  const rec = presimulate(o.kind, o.count, start, { throwId: 1, seed: o.seed, target: o.target, force: o.force, handCenter, handOmega: [0, 0, 0] }, o.perturb);
+  return { ...rec, steps: rec.frames.length, bodies: hand.length, final: rec.frames.at(-1)!.map((f) => f.p) };
 }

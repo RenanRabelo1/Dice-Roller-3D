@@ -6,7 +6,7 @@ import type { Quat, Vec3 } from './world';
 
 // The single place that changes Rapier body types, velocities and poses (scene and Node tests alike).
 
-export interface Launch { throwId: number; seed: number; target: Vec3; force: number; handCenter: Vec3; handOmega: Vec3; results: number[] }
+export interface Launch { throwId: number; seed: number; target: Vec3; force: number; handCenter: Vec3; handOmega: Vec3 }
 
 const v = ([x, y, z]: Vec3) => ({ x, y, z });
 const ZERO = { x: 0, y: 0, z: 0 };

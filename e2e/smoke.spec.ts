@@ -34,20 +34,18 @@ test('canvas paints a non-uniform image without console errors', async ({ page }
   expect(errors).toEqual([]);
 });
 
-test('a rigged d6 reveals 1 on top with 6 underneath, numbers hidden while rolling', async ({ page }) => {
+test('a d6 roll keeps its numbers on screen and opposite faces opposite', async ({ page }) => {
   await page.evaluate(() => window.__dice.select('d6', 1));
   await expect.poll(() => page.evaluate(() => window.__dice.labels(0).length)).toBe(6);
   await page.locator('.game-area').focus();
   await page.keyboard.down('Space'); await page.waitForTimeout(500); await page.keyboard.up('Space');
-  await page.evaluate(() => window.__dice.rig([1]));
-  await expect.poll(() => page.evaluate(() => window.__dice.numbersVisible(0))).toBe(false);
+  expect(await page.evaluate(() => window.__dice.numbersVisible(0))).toBe(true);
   await page.waitForFunction(() => window.__dice.state().phase === 'settled', null, { timeout: 90_000 });
-  await expect.poll(() => page.evaluate(() => window.__dice.numbersVisible(0))).toBe(true);
-  await expect(page.getByTestId('result')).toContainText('1');
   const labels = await page.evaluate(() => window.__dice.labels(0));
   const byText = (text: string) => labels.find((label) => label.text === text)!.normal;
-  expect(Math.max(...labels.map((l) => l.normal[1]))).toBe(byText('1')[1]);
-  expect(byText('6')[1]).toBeCloseTo(-byText('1')[1], 4); // opposite faces stay opposite after the reveal turn
+  const top = labels.reduce((a, b) => (b.normal[1] > a.normal[1] ? b : a));
+  await expect(page.getByTestId('result')).toContainText(top.text);
+  expect(byText('6')[1]).toBeCloseTo(-byText('1')[1], 4);
 });
 
 test('every supported selection creates the expected bodies and surface numerals', async ({ page }) => {

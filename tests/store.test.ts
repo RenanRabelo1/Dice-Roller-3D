@@ -29,15 +29,6 @@ describe('store', () => {
     s().publish(1, [5]); expect(s().results).toEqual([5]); expect(s().gesture.phase).toBe('settled');
     s().publish(1, [6]); expect(s().results).toEqual([5]);
   });
-  it('a throw decides one result per die up front, hidden until publish', () => {
-    s().setKind('d100'); s().setCount(3);
-    s().input({ type: 'press', source: P, at: 0, repeat: false });
-    s().input({ type: 'release', source: P, at: 700 });
-    const { results } = s().launch!;
-    expect(results).toHaveLength(3);
-    results.forEach((v) => { expect(v).toBeGreaterThanOrEqual(1); expect(v).toBeLessThanOrEqual(100); });
-    expect(s().results).toBeNull();
-  });
   it('copies the release inputs and keeps the launch stable as aim and force change', () => {
     const target: Vec3 = [2, 0, -2];
     const center: Vec3 = [0, 3, 3], omega: Vec3 = [1, 0, 0];

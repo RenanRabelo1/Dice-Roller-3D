@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import type { DieKind } from './dice/polyhedra';
-import { rollResults } from './dice/read';
 import type { Launch } from './physics/apply';
 import { HAND, type Vec3 } from './physics/world';
 import { initialGesture, reduce, type Effect, type GestureEvent, type GestureState } from './throw/gesture';
@@ -62,7 +61,6 @@ export const useDice = create<DiceState>((set) => ({
         throwId, seed, target: [...s.aim], force: effect.force,
         handCenter: hand ? [...hand.center] : [0, HAND.y, HAND.z],
         handOmega: hand ? [...hand.omega] : [0, 0, 0],
-        results: rollResults(s.kind, s.count), // decided now, revealed when the dice stop
       };
       return { gesture: next.state, throwId, force: effect.force, launch, results: null };
     });
