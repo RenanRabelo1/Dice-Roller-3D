@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
-import { useFrame, useThree } from '@react-three/fiber';
-import { Environment, Lightformer, PerformanceMonitor, useFBO } from '@react-three/drei';
+import { useCallback, useEffect, useRef, type RefObject } from 'react';
+import { useThree } from '@react-three/fiber';
+import { Environment, Lightformer } from '@react-three/drei';
 import { Physics, useAfterPhysicsStep, useBeforePhysicsStep, type RapierRigidBody } from '@react-three/rapier';
-import { Group, NoToneMapping, Quaternion, Vector3 } from 'three';
+import { Group, Quaternion, Vector3 } from 'three';
 import { bodiesFor, polyhedron } from '../dice/polyhedra';
 import { toResults } from '../dice/read';
 import { applyLaunch, applyPoses, applySettle, bodyStates } from '../physics/apply';
@@ -57,8 +57,6 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
   const recordLaunch = useCallback((last: NonNullable<ReturnType<DiceHook['launches']>['last']>) => {
     launches.current = { count: launches.current.count + 1, last };
   }, []);
-  const [quality, setQuality] = useState({ resolution: 1024, samples: 6 });
-  const fbo = useFBO(quality.resolution, quality.resolution);
   const register = useCallback((index: number, body: RapierRigidBody | null) => {
     bodies.current[index] = body;
   }, []);
@@ -156,21 +154,6 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
     useDice.getState().setReady();
   }, [gameArea, kind, count]);
 
-  useFrame(({ gl, scene, camera }) => {
-    if (!dice.current) return;
-    const target = gl.getRenderTarget();
-    const toneMapping = gl.toneMapping;
-    dice.current.visible = false;
-    try {
-      gl.toneMapping = NoToneMapping;
-      gl.setRenderTarget(fbo);
-      gl.render(scene, camera);
-    } finally {
-      gl.setRenderTarget(target);
-      gl.toneMapping = toneMapping;
-      dice.current.visible = true;
-    }
-  });
 
   return (
     <>
@@ -184,9 +167,6 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
         <Lightformer position={[-8, 3, 4]} target={[0, 0, 0]} scale={[3, 8, 1]} intensity={4} color="#dceaff" />
         <Lightformer position={[6, -2, 6]} target={[0, 0, 0]} scale={[5, 9, 1]} intensity={3} color="#ffdab0" />
       </Environment>
-      <PerformanceMonitor
-        onDecline={() => setQuality((q) => ({ resolution: Math.max(256, q.resolution / 2), samples: Math.max(2, Math.floor(q.samples / 2)) }))}
-        onIncline={() => setQuality((q) => ({ resolution: Math.min(1024, q.resolution * 2), samples: Math.min(6, q.samples * 2) }))} />
       <Physics gravity={GRAVITY} timeStep={STEP} interpolate={false}>
         <Tray />
         <Hand gameArea={gameArea} bodies={bodies} />
@@ -194,7 +174,7 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
         <group ref={dice}>
           {bodiesFor(kind, count).map(({ shape, labels }, i) => (
             <Die key={`${kind}-${count}-${i}`} index={i} shape={shape} labels={labels} color={GEM[kind]}
-              buffer={fbo.texture} samples={quality.samples} register={register} />
+              register={register} />
           ))}
         </group>
       </Physics>
