@@ -40,10 +40,12 @@ test('a d6 roll keeps its numbers on screen and opposite faces opposite', async 
   await page.locator('.game-area').focus();
   await page.keyboard.down('Space'); await page.waitForTimeout(500); await page.keyboard.up('Space');
   expect(await page.evaluate(() => window.__dice.numbersVisible(0))).toBe(true);
-  await page.waitForFunction(() => window.__dice.state().phase === 'settled', null, { timeout: 90_000 });
+  await page.waitForFunction(() => { const s = window.__dice.state(); return s.phase === 'settled' && s.showcased === s.throwId; }, null, { timeout: 90_000 });
   const labels = await page.evaluate(() => window.__dice.labels(0));
+  const cam = await page.evaluate(() => window.__dice.camera());
   const byText = (text: string) => labels.find((label) => label.text === text)!.normal;
-  const top = labels.reduce((a, b) => (b.normal[1] > a.normal[1] ? b : a));
+  const toward = (l: (typeof labels)[number]) => l.normal.reduce((s, v, k) => s + v * cam[k] / Math.hypot(...cam), 0); // camera axis (looks at origin)
+  const top = labels.reduce((a, b) => (toward(b) > toward(a) ? b : a)); // the rolled face is shown to the camera
   await expect(page.getByTestId('result')).toContainText(top.text);
   expect(byText('6')[1]).toBeCloseTo(-byText('1')[1], 4);
 });

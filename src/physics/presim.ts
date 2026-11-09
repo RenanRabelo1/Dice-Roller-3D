@@ -6,7 +6,7 @@ import { applyLaunch, applySettle, bodyStates, type Launch } from './apply';
 import { GRAVITY, isOutside, MATERIAL, SETTLE, STEP, trayColliders, type Quat, type Vec3 } from './world';
 
 export type Pose = { p: Vec3; q: Quat };
-export interface Recording { frames: Pose[][]; results: number[]; timedOut: boolean; escaped: boolean; recovered: boolean }
+export interface Recording { frames: Pose[][]; raw: number[]; results: number[]; timedOut: boolean; escaped: boolean; recovered: boolean }
 
 // Runs the whole throw offline with the real engine and the real inputs (hand poses, aim, force, spin),
 // recording one pose per body per step. The screen then replays a genuine roll whose result is already
@@ -55,7 +55,7 @@ export function presimulate(
       frames.push(bodyStates(bodies).map(({ p, q }) => ({ p, q })));
       if (next.action.type === 'reveal') {
         const raw = next.action.poses.map((pose, i) => readUp(polys[i], pose.q).value);
-        return { frames, results: toResults(kind, raw), timedOut: next.action.timedOut, escaped, recovered };
+        return { frames, raw, results: toResults(kind, raw), timedOut: next.action.timedOut, escaped, recovered };
       }
     }
     throw new Error('settle never revealed'); // unreachable: stepSettle reveals at SETTLE.timeoutSteps

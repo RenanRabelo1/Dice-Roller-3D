@@ -1,10 +1,14 @@
 import { test, expect, type Page } from '@playwright/test';
 
 const ready = (p: Page, n?: number) => p.waitForFunction((n) => window.__dice?.state().ready && (n === undefined || window.__dice.bodies().length === n), n);
-const settled = (p: Page) => p.waitForFunction(() => window.__dice.state().phase === 'settled', null, { timeout: 90_000 });
+const settled = (p: Page) => p.waitForFunction(() => { const s = window.__dice.state(); return s.phase === 'settled' && s.showcased === s.throwId; }, null, { timeout: 90_000 });
 const topValue = async (p: Page, i: number, d4 = false) => {
-  const labels = await p.evaluate((i) => window.__dice.labels(i), i);
-  const best = labels.reduce((a, b) => (d4 ? b.position[1] > a.position[1] : b.normal[1] > a.normal[1]) ? b : a);
+  const [labels, cam] = await p.evaluate((i) => [window.__dice.labels(i), window.__dice.camera()] as const, i);
+  // Shown faces are parallel to the screen: compare with the camera axis (it looks at the origin), not the ray to each die.
+  const axis = Math.hypot(...cam);
+  const toward = (l: (typeof labels)[number]) => l.normal.reduce((s, v, k) => s + v * cam[k] / axis, 0);
+  // The rolled face looks at the camera; on a d4 its number is the label nearest the top corner.
+  const best = labels.reduce((a, b) => (d4 ? b.position[1] > a.position[1] : toward(b) > toward(a)) ? b : a);
   return best.text.replace('.', '');
 };
 const throwWithSpace = async (p: Page) => {

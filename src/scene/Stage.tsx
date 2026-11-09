@@ -37,7 +37,7 @@ function ThrowLoop({ bodies, recordLaunch }: {
       current[i].setNextKinematicTranslation({ x: p[0], y: p[1], z: p[2] });
       current[i].setNextKinematicRotation({ x: q[0], y: q[1], z: q[2], w: q[3] });
     });
-    if (++play.current.at === rec.frames.length) publish(throwId, rec.results);
+    if (++play.current.at === rec.frames.length) publish(throwId, rec.results, rec.raw);
   });
   return null;
 }
@@ -98,7 +98,7 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
           kind: state.kind, count: state.count, phase: state.gesture.phase, throwId: state.throwId,
           results: state.results,
           ready: state.ready && state.kind === kind && state.count === count && bodies.current.filter((b) => b?.isValid()).length === bodiesFor(kind, count).length,
-          error: state.error, aim: state.aim,
+          error: state.error, aim: state.aim, showcased: state.showcased,
         };
       },
       select: (nextKind, nextCount) => {
@@ -135,6 +135,7 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
         }
         return result;
       },
+      camera: () => camera.position.toArray(),
       numbersVisible: (index) => numbersOf(index)?.visible ?? false,
       launches: () => launches.current,
       previewSurface: (index, p, q) => {

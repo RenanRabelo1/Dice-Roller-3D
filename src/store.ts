@@ -16,9 +16,11 @@ interface DiceState {
   force: number;
   launch: Launch | null;
   results: number[] | null;
+  raw: number[] | null; // per-body up value behind `results` (d10 digit, d4 vertex)
   error: DiceError;
   ready: boolean;
   reducedMotion: boolean;
+  showcased: number; // throwId whose dice finished flying to the front
   setKind: (kind: DieKind) => void;
   setCount: (count: number) => void;
   setAim: (aim: Vec3) => void;
@@ -26,8 +28,9 @@ interface DiceState {
   setReady: () => void;
   setError: (error: DiceError) => void;
   setReducedMotion: (reducedMotion: boolean) => void;
+  setShowcased: (throwId: number) => void;
   input: (event: GestureEvent, hand?: HandMotion) => Effect;
-  publish: (throwId: number, results: number[]) => void;
+  publish: (throwId: number, results: number[], raw?: number[]) => void;
 }
 
 const selection = (s: DiceState) => ({
@@ -40,8 +43,8 @@ const selection = (s: DiceState) => ({
 
 export const useDice = create<DiceState>((set) => ({
   kind: 'd20', count: 1, gesture: initialGesture, throwId: 0,
-  aim: [0, 0, -1], force: 0, launch: null, results: null,
-  error: null, ready: false, reducedMotion: false,
+  aim: [0, 0, -1], force: 0, launch: null, results: null, raw: null,
+  error: null, ready: false, reducedMotion: false, showcased: 0,
   setKind: (kind) => set((s) => ({ ...selection(s), kind })),
   setCount: (count) => set((s) => ({ ...selection(s), count: Math.min(10, Math.max(1, count)) })),
   setAim: (aim) => set({ aim: [...aim] }),
@@ -49,6 +52,7 @@ export const useDice = create<DiceState>((set) => ({
   setReady: () => set({ ready: true }),
   setError: (error) => set({ error }),
   setReducedMotion: (reducedMotion) => set({ reducedMotion }),
+  setShowcased: (showcased) => set({ showcased }),
   input: (event, hand) => {
     let effect: Effect = { type: 'none' };
     set((s) => {
@@ -66,9 +70,9 @@ export const useDice = create<DiceState>((set) => ({
     });
     return effect;
   },
-  publish: (throwId, results) => set((s) => {
+  publish: (throwId, results, raw) => set((s) => {
     if (throwId !== s.throwId || s.gesture.phase !== 'rolling') return s;
     // Publish the result and reducer transition together so subscribers see one settled snapshot.
-    return { results: [...results], gesture: reduce(s.gesture, { type: 'published' }).state };
+    return { results: [...results], raw: raw ? [...raw] : null, gesture: reduce(s.gesture, { type: 'published' }).state };
   }),
 }));

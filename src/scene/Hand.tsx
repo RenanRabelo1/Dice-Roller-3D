@@ -1,12 +1,17 @@
 import { useCallback, useEffect, useRef, type RefObject } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import type { RapierRigidBody } from '@react-three/rapier';
-import { ArrowHelper, Color, Mesh, Plane, Quaternion, Raycaster, Vector2, Vector3 } from 'three';
-import { bodiesFor } from '../dice/polyhedra';
+import { ArrowHelper, Color, Mesh, Plane, Quaternion, Raycaster, Vector2, Vector3, type PerspectiveCamera } from 'three';
+import { bodiesFor, polyhedron } from '../dice/polyhedra';
 import { toKinematic } from '../physics/apply';
 import { clampHandX, HAND, handPositions, type Quat, type Vec3 } from '../physics/world';
 import { useDice } from '../store';
 import { charge, clampTarget } from '../throw/aim';
+import { showcasePoses } from './showcase';
+
+// Showcase motion: settle beat, then each die flies to the front, staggered, with a strong ease-out.
+const SHOW = { delay: 250, duration: 650, stagger: 70 };
+const easeOut = (t: number) => 1 - (1 - t) ** 4;
 
 export function Hand({ gameArea, bodies }: {
   gameArea: RefObject<HTMLDivElement | null>; bodies: RefObject<(RapierRigidBody | null)[]>;
@@ -18,6 +23,7 @@ export function Hand({ gameArea, bodies }: {
   const rotations = useRef<Quaternion[]>([]);
   const mode = useRef('');
   const returning = useRef<{ at: number; poses: { p: Vec3; q: Quat }[] } | null>(null);
+  const showcase = useRef<{ at: number; throwId: number; from: { p: Vec3; q: Quat }[]; to: { p: Vec3; q: Quat }[] } | null>(null);
   const arrow = useRef<ArrowHelper>(null);
   const preview = import.meta.env.MODE === 'test' && new URLSearchParams(location.search).has('surface-preview');
   const live = useCallback(() => {
@@ -125,7 +131,41 @@ export function Hand({ gameArea, bodies }: {
         return { p: [p.x, p.y, p.z], q: [q.x, q.y, q.z, q.w] };
       }) };
     }
+    if (phase === 'settled' && mode.current !== nextMode) {
+      showcase.current = null;
+      if (state.reducedMotion || !state.raw) state.setShowcased(state.throwId); // dice stay where they landed
+      else {
+        const polys = bodiesFor(state.kind, state.count).map(({ shape, labels }) => polyhedron(shape, labels));
+        const from = current.map((body) => {
+          const p = body.translation(), q = body.rotation();
+          return { p: [p.x, p.y, p.z] as Vec3, q: [q.x, q.y, q.z, q.w] as Quat };
+        });
+        const cam = camera as PerspectiveCamera;
+        // The values the panel shows, from the simulation: never re-read a die that stopped near an edge.
+        const to = showcasePoses(polys, state.raw,
+          { position: cam.position, quaternion: cam.quaternion, fov: cam.fov, aspect: cam.aspect }, state.kind === 'd100');
+        showcase.current = { at: now, throwId: state.throwId, from, to };
+      }
+    }
     mode.current = nextMode;
+    if (phase === 'settled' && showcase.current) {
+      const { at, from, to, throwId } = showcase.current;
+      let done = true;
+      current.forEach((body, i) => {
+        const t = Math.min(1, Math.max(0, (now - at - SHOW.delay - i * SHOW.stagger) / SHOW.duration));
+        if (t < 1) done = false;
+        const e = easeOut(t);
+        const p = new Vector3(...from[i].p).lerp(new Vector3(...to[i].p), e);
+        p.y += Math.sin(Math.PI * t) * 0.6; // small lift so the flight reads as an arc, not a slide
+        const q = new Quaternion(...from[i].q).slerp(new Quaternion(...to[i].q), e);
+        // Landed: pin the exact pose every frame (physics steps can lag frames on slow GPUs).
+        if (t === 1) { body.setTranslation(p, false); body.setRotation(q, false); }
+        body.setNextKinematicTranslation(p);
+        body.setNextKinematicRotation(q);
+      });
+      if (done && state.showcased !== throwId) state.setShowcased(throwId);
+      return;
+    }
     if (phase === 'returning' && returning.current) {
       const t = Math.min(1, (now - returning.current.at) / (state.reducedMotion ? 150 : 400));
       const ease = state.reducedMotion ? 1 : 1 - (1 - t) ** 3;
