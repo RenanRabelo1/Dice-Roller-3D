@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, type RefObject } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import type { RapierRigidBody } from '@react-three/rapier';
-import { ArrowHelper, Color, Mesh, Plane, Quaternion, Raycaster, Vector2, Vector3, type PerspectiveCamera } from 'three';
+import { ArrowHelper, Color, Mesh, Plane, Quaternion, Raycaster, Vector2, Vector3, type Object3D, type PerspectiveCamera } from 'three';
 import { bodiesFor, polyhedron } from '../dice/polyhedra';
 import { toKinematic } from '../physics/apply';
 import { clampHandX, HAND, handPositions, type Quat, type Vec3 } from '../physics/world';
@@ -23,7 +23,7 @@ export function Hand({ gameArea, bodies }: {
   const rotations = useRef<Quaternion[]>([]);
   const mode = useRef('');
   const returning = useRef<{ at: number; poses: { p: Vec3; q: Quat }[] } | null>(null);
-  const showcase = useRef<{ at: number; throwId: number; from: { p: Vec3; q: Quat }[]; to: { p: Vec3; q: Quat }[] } | null>(null);
+  const showcase = useRef<{ at: number; throwId: number; from: { p: Vec3; q: Quat }[]; to: { p: Vec3; q: Quat }[]; gems: (Object3D | undefined)[] } | null>(null);
   const arrow = useRef<ArrowHelper>(null);
   const preview = import.meta.env.MODE === 'test' && new URLSearchParams(location.search).has('surface-preview');
   const live = useCallback(() => {
@@ -114,7 +114,9 @@ export function Hand({ gameArea, bodies }: {
         if (object instanceof Mesh) for (const material of Array.isArray(object.material) ? object.material : [object.material]) material.opacity = opacity;
       });
     };
+    const shadows = (on: boolean) => { for (let i = 0; i < current.length; i++) { const g = scene.getObjectByName(`gem-${i}`); if (g) g.castShadow = on; } };
     if (active && mode.current !== nextMode) {
+      shadows(true);
       toKinematic(current);
       rotations.current = current.map((body) => {
         const q = body.rotation();
@@ -144,16 +146,17 @@ export function Hand({ gameArea, bodies }: {
         // The values the panel shows, from the simulation: never re-read a die that stopped near an edge.
         const to = showcasePoses(polys, state.raw,
           { position: cam.position, quaternion: cam.quaternion, fov: cam.fov, aspect: cam.aspect }, state.kind === 'd100');
-        showcase.current = { at: now, throwId: state.throwId, from, to };
+        showcase.current = { at: now, throwId: state.throwId, from, to, gems: current.map((_, i) => scene.getObjectByName(`gem-${i}`)) };
       }
     }
     mode.current = nextMode;
     if (phase === 'settled' && showcase.current) {
-      const { at, from, to, throwId } = showcase.current;
+      const { at, from, to, throwId, gems } = showcase.current;
       let done = true;
       current.forEach((body, i) => {
         const t = Math.min(1, Math.max(0, (now - at - SHOW.delay - i * SHOW.stagger) / SHOW.duration));
         if (t < 1) done = false;
+        if (gems[i]) gems[i]!.castShadow = t === 0; // the shadow goes away as the die lifts off
         const e = easeOut(t);
         const p = new Vector3(...from[i].p).lerp(new Vector3(...to[i].p), e);
         p.y += Math.sin(Math.PI * t) * 0.6; // small lift so the flight reads as an arc, not a slide
