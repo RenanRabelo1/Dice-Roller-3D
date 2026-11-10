@@ -11,9 +11,10 @@ export const GEM: Record<DieKind, string> = {
   d4: '#1F9D63', d6: '#C0182E', d8: '#1F4FB8', d10: '#E0A21B',
   d12: '#8B4FC9', d20: '#E8F1F8', d100: '#7FD3D8',
 };
-const FONT_URL = '/fonts/bricolage-grotesque-800.woff';
+export const FONT_URL = '/fonts/bricolage-grotesque-800.woff';
 // Sized to each face: d4/d6 were right; the rest were crowding their faces.
-const FONT: Record<Shape, number> = { d4: 0.33, d6: 0.48, d8: 0.32, d10: 0.28, d12: 0.29, d20: 0.28, d100: 0.13 };
+// oxlint-disable-next-line react/only-export-components
+export const FONT: Record<Shape, number> = { d4: 0.33, d6: 0.48, d8: 0.32, d10: 0.28, d12: 0.29, d20: 0.28, d100: 0.13 };
 // Light gems (topaz, crystal, citrine) get dark numerals; dark gems keep gold.
 type Ink = { color: string; outline?: string };
 const DARK: Ink = { color: '#1B1A16' }; // no outline: at this size a dark outline turns into noise

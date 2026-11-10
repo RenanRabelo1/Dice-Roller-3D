@@ -1,17 +1,18 @@
 import { useCallback, useEffect, useRef, type RefObject } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import type { RapierRigidBody } from '@react-three/rapier';
-import { ArrowHelper, Color, Mesh, Plane, Quaternion, Raycaster, Vector2, Vector3, type Object3D, type PerspectiveCamera } from 'three';
-import { polyhedron } from '../dice/polyhedra';
+import { ArrowHelper, Color, Group, Mesh, MeshBasicMaterial, Plane, Quaternion, Raycaster, Vector2, Vector3, type Object3D, type PerspectiveCamera } from 'three';
+import { Text } from 'troika-three-text';
+import { MAX_DICE, polyhedron } from '../dice/polyhedra';
 import { toKinematic } from '../physics/apply';
 import { clampHandX, HAND, handPositions, type Quat, type Vec3 } from '../physics/world';
 import { useDice } from '../store';
 import { charge, clampTarget } from '../throw/aim';
 import { showcasePoses } from './showcase';
+import { easeOut, highlightAt, HL_SIZE, SHOW } from './highlight';
+import { FONT, FONT_URL } from './Die';
 
-// Showcase motion: settle beat, then each die flies to the front, staggered, with a strong ease-out.
-const SHOW = { delay: 250, duration: 650, stagger: 70 };
-const easeOut = (t: number) => 1 - (1 - t) ** 4;
+type Mark = { local: Vector3; start: Vector3; face: Vector3; scale: number }; // local: the rolled numeral in die space
 
 export function Hand({ gameArea, bodies }: {
   gameArea: RefObject<HTMLDivElement | null>; bodies: RefObject<(RapierRigidBody | null)[]>;
@@ -23,7 +24,24 @@ export function Hand({ gameArea, bodies }: {
   const rotations = useRef<Quaternion[]>([]);
   const mode = useRef('');
   const returning = useRef<{ at: number; poses: { p: Vec3; q: Quat }[] } | null>(null);
-  const showcase = useRef<{ at: number; throwId: number; from: { p: Vec3; q: Quat }[]; to: { p: Vec3; q: Quat }[]; gems: (Object3D | undefined)[]; landed?: boolean } | null>(null);
+  const showcase = useRef<{ at: number; throwId: number; from: { p: Vec3; q: Quat }[]; to: { p: Vec3; q: Quat }[]; gems: (Object3D | undefined)[]; marks: Mark[]; still?: boolean; landed?: boolean } | null>(null);
+  // The rolled numbers that rise over the settled dice, ride to their faces and glow (one per die, drawn on top).
+  const numbersGroup = useRef<Group>(null);
+  const numbersRef = useRef<Text[]>([]);
+  useEffect(() => {
+    const group = numbersGroup.current!;
+    const list = Array.from({ length: MAX_DICE }, () => {
+      const t = new Text();
+      Object.assign(t, { font: FONT_URL, fontSize: HL_SIZE, anchorX: 'center', anchorY: 'middle', color: '#FFE38A',
+        outlineWidth: 0, outlineBlur: '45%', outlineColor: '#FFB000', fillOpacity: 0, outlineOpacity: 0 });
+      t.material = new MeshBasicMaterial({ transparent: true, depthTest: false, toneMapped: false });
+      t.renderOrder = 20; t.visible = false;
+      group.add(t);
+      return t;
+    });
+    numbersRef.current = list;
+    return () => { list.forEach((t) => { group.remove(t); t.dispose(); }); numbersRef.current = []; };
+  }, []);
   const arrow = useRef<ArrowHelper>(null);
   const preview = import.meta.env.MODE === 'test' && new URLSearchParams(location.search).has('surface-preview');
   const live = useCallback(() => {
@@ -100,6 +118,7 @@ export function Hand({ gameArea, bodies }: {
   }, [camera, gameArea, gl, live]);
 
   useFrame((_, elapsed) => {
+    const numbers = numbersRef.current;
     const state = useDice.getState(), phase = state.gesture.phase;
     const marker = arrow.current!;
     const current = live();
@@ -133,10 +152,12 @@ export function Hand({ gameArea, bodies }: {
         return { p: [p.x, p.y, p.z], q: [q.x, q.y, q.z, q.w] };
       }) };
     }
+    if (phase !== 'settled') numbers.forEach((t) => { t.visible = false; });
     if (phase === 'settled' && mode.current !== nextMode) {
       showcase.current = null;
-      if (state.reducedMotion || !state.raw) state.setShowcased(state.throwId); // dice stay where they landed
+      if (!state.raw) state.setShowcased(state.throwId);
       else {
+        const raw = state.raw;
         const polys = state.dice.map((d) => polyhedron(d));
         const from = current.map((body) => {
           const p = body.translation(), q = body.rotation();
@@ -144,14 +165,39 @@ export function Hand({ gameArea, bodies }: {
         });
         const cam = camera as PerspectiveCamera;
         // The values the panel shows, from the simulation: never re-read a die that stopped near an edge.
-        const to = showcasePoses(polys, state.raw,
+        // Reduced motion: dice stay where they landed and the number only fades in above them.
+        const still = state.reducedMotion;
+        const to = still ? from : showcasePoses(polys, raw,
           { position: cam.position, quaternion: cam.quaternion, fov: cam.fov, aspect: cam.aspect });
-        showcase.current = { at: now, throwId: state.throwId, from, to, gems: current.map((_, i) => scene.getObjectByName(`gem-${i}`)) };
+        const marks = polys.map((poly, i) => {
+          const label = poly.labelList.find((l) => l.value === raw[i])!;
+          const local = new Vector3(...label.position).addScaledVector(new Vector3(...label.normal), 0.03);
+          numbers[i].text = label.text; numbers[i].visible = true;
+          return {
+            local,
+            start: new Vector3(...from[i].p).add(new Vector3(0, poly.radius + 0.35, 0)),
+            face: new Vector3(...from[i].p).add(new Vector3(0, poly.radius + 0.35, 0)),
+            scale: still ? 1 : FONT[poly.shape] / HL_SIZE,
+          };
+        });
+        showcase.current = { at: now, throwId: state.throwId, from, to, marks, still, gems: current.map((_, i) => scene.getObjectByName(`gem-${i}`)) };
+        if (still) state.setShowcased(state.throwId);
       }
     }
     mode.current = nextMode;
     if (phase === 'settled' && showcase.current) {
-      const { at, from, to, throwId, gems } = showcase.current;
+      const { at, from, to, throwId, gems, marks, still } = showcase.current;
+      const draw = (i: number, face: Vector3) => {
+        const n = numbers[i], m = marks[i];
+        if (still) { Object.assign(n, { fillOpacity: Math.min(1, (now - at) / 150), outlineOpacity: 0.6 }); n.position.copy(m.start); }
+        else {
+          const h = highlightAt(now - at, i, m.start, face, m.scale);
+          Object.assign(n, { fillOpacity: h.opacity, outlineOpacity: h.glow });
+          n.position.copy(h.p); n.scale.setScalar(h.scale);
+        }
+        n.quaternion.copy(camera.quaternion); // always faces the viewer
+      };
+      if (still) { marks.forEach((m, i) => draw(i, m.face)); return; }
       let done = true;
       current.forEach((body, i) => {
         const t = Math.min(1, Math.max(0, (now - at - SHOW.delay - i * SHOW.stagger) / SHOW.duration));
@@ -165,6 +211,7 @@ export function Hand({ gameArea, bodies }: {
         if (t === 1) { body.setTranslation(p, false); body.setRotation(q, false); }
         body.setNextKinematicTranslation(p);
         body.setNextKinematicRotation(q);
+        draw(i, marks[i].local.clone().applyQuaternion(q).add(p)); // the rolled numeral where the die is now
       });
       // Report "shown" one frame after landing, once the scene has rendered the pinned poses.
       if (done && showcase.current.landed && state.showcased !== throwId) state.setShowcased(throwId);
@@ -218,5 +265,8 @@ export function Hand({ gameArea, bodies }: {
     marker.setColor(new Color('#D4A93F').lerp(new Color('#F25C3A'), force));
   });
 
-  return <arrowHelper ref={arrow} />;
+  return <>
+    <arrowHelper ref={arrow} />
+    <group ref={numbersGroup} />
+  </>;
 }
