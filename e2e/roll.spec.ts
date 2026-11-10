@@ -173,3 +173,16 @@ for (const width of [1440, 390]) {
     await page.screenshot({ path: `screens/controls-${width}.png` });
   });
 }
+
+test('a coin flips heads or tails: the panel names the face it shows', async ({ page }) => {
+  await page.getByRole('button', { name: 'Adicionar Moeda' }).click();
+  await page.getByRole('button', { name: 'Remover d20' }).click();
+  expect(await page.evaluate(() => window.__dice.state().dice)).toEqual(['coin']);
+  await expect(page.getByRole('button', { name: 'Adicionar Moeda' })).toHaveText('1 moeda');
+  await ready(page, 1);
+  await throwWithSpace(page); await settled(page);
+  const [result] = (await page.evaluate(() => window.__dice.state().results))!;
+  expect([1, 2]).toContain(result);
+  expect(await topValue(page, 0)).toBe(String(result));
+  await expect(page.getByTestId('result')).toHaveText(result === 1 ? 'Cara' : 'Coroa');
+});

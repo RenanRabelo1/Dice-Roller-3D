@@ -12,13 +12,13 @@ import { handPositions, MATERIAL } from '../physics/world';
 export const GEM: Record<DieKind, string> = {
   d4: '#1F9D63', d6: '#C0182E', d8: '#1F4FB8', d10: '#E0A21B',
   d12: '#8B4FC9', d20: '#E8F1F8', d100: '#7FD3D8',
-  vtm: '#231C20', hunger: '#8E0F1C', fire: '#E8571B',
+  vtm: '#231C20', hunger: '#8E0F1C', fire: '#E8571B', coin: '#C8962C',
 };
 const EMBER: Partial<Record<DieKind, string>> = { fire: '#FF4D00' }; // the fire die glows a little on its own
 export const FONT_URL = '/fonts/bricolage-grotesque-800.woff';
 // Sized to each face: d4/d6 were right; the rest were crowding their faces.
 // oxlint-disable-next-line react/only-export-components
-export const FONT: Record<Shape, number> = { d4: 0.33, d6: 0.48, d8: 0.32, d10: 0.28, d12: 0.29, d20: 0.28, d100: 0.13 };
+export const FONT: Record<Shape, number> = { d4: 0.33, d6: 0.48, d8: 0.32, d10: 0.28, d12: 0.29, d20: 0.28, d100: 0.13, coin: 0.27 };
 export const SYMBOL = 1.35; // height of a face symbol, in numeral font sizes
 // Light gems (topaz, crystal, citrine) get dark numerals; dark gems keep gold.
 type Ink = { color: string; outline?: string };
@@ -26,6 +26,7 @@ const DARK: Ink = { color: '#1B1A16' }; // no outline: at this size a dark outli
 const INK: Partial<Record<DieKind, Ink>> = {
   d10: DARK, d20: DARK, d100: DARK,
   vtm: { color: '#C8102E' }, hunger: { color: '#0E0A0B' }, fire: { color: '#FFF1A8', outline: '#7A1E00' },
+  coin: { color: '#4A2F06' }, // struck into the gold
 };
 const GOLD: Ink = { color: '#D4A93F', outline: '#140E10' };
 
@@ -91,9 +92,10 @@ export function Die({ index, kind, selection, count, color, register }: {
       <ConvexHullCollider args={[points]} {...MATERIAL.die} />
       <group name={`die-${index}`}>
         <mesh name={`gem-${index}`} geometry={geometry} castShadow receiveShadow>
-          {/* Gem look without a refraction pass: clearcoat + env reflections + slight translucency. */}
-          <meshPhysicalMaterial color={color} roughness={0.08} clearcoat={1} clearcoatRoughness={0.04}
-            ior={1.6} specularIntensity={1} transparent opacity={0.88} emissive={EMBER[kind] ?? '#000000'} emissiveIntensity={0.35} />
+          {/* Gem look without a refraction pass: clearcoat + env reflections + slight translucency. The coin is solid gold. */}
+          {kind === 'coin' ? <meshPhysicalMaterial color={color} metalness={1} roughness={0.32} envMapIntensity={0.75} transparent opacity={1} />
+            : <meshPhysicalMaterial color={color} roughness={0.08} clearcoat={1} clearcoatRoughness={0.04}
+              ior={1.6} specularIntensity={1} transparent opacity={0.88} emissive={EMBER[kind] ?? '#000000'} emissiveIntensity={0.35} />}
         </mesh>
         <primitive object={numbers} />
       </group>

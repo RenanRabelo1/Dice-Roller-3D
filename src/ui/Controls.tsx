@@ -1,6 +1,6 @@
 import { useDice } from '../store';
 import { KINDS, MAX_DICE } from '../dice/polyhedra';
-import { dieName, formatDice } from '../dice/notation';
+import { dieName, formatDice, resultText } from '../dice/notation';
 import { Chat } from './Chat';
 
 
@@ -12,6 +12,7 @@ function Force() {
 export function Controls() {
   const dice = useDice((s) => s.dice);
   const phase = useDice((s) => s.gesture.phase), results = useDice((s) => s.results);
+  const text = results && resultText(dice, results);
   return (
     <>
       <header className="controls panel">
@@ -22,7 +23,7 @@ export function Controls() {
             return (
               <div className="pick" key={type}>
                 <button aria-label={`Adicionar ${name}`} aria-pressed={n > 0} disabled={dice.length >= MAX_DICE}
-                  onClick={() => useDice.getState().addDie(type)}>{n ? `${n}${name}` : name}</button>
+                  onClick={() => useDice.getState().addDie(type)}>{n ? formatDice(dice.filter((d) => d === type)) : name}</button>
                 {n > 0 && <button className="remove" aria-label={`Remover ${name}`} disabled={dice.length === 1}
                   onClick={() => useDice.getState().removeDie(type)}>−</button>}
               </div>
@@ -35,7 +36,7 @@ export function Controls() {
       <footer className="status panel">
         <div className="feedback">
           <output data-testid="result" aria-live="polite">
-            {results && <><strong>{results.reduce((sum, value) => sum + value, 0)}</strong>{results.length > 1 && <span>{KINDS.filter((k) => dice.includes(k)).map((k) => `${dieName(k)}: ${results.filter((_, i) => dice[i] === k).join(' + ')}`).join(' · ')}</span>}</>}
+            {text && <><strong>{text.total}</strong>{text.detail && <span>{text.detail}</span>}</>}
           </output>
           {phase === 'charging' && <Force />}
         </div>

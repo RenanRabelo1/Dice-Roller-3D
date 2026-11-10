@@ -10,15 +10,15 @@ import {
 import { ConvexHull } from 'three/examples/jsm/math/ConvexHull.js';
 import type { Vec3 } from '../physics/world';
 
-export type Shape = 'd4' | 'd6' | 'd8' | 'd10' | 'd12' | 'd20' | 'd100';
+export type Shape = 'd4' | 'd6' | 'd8' | 'd10' | 'd12' | 'd20' | 'd100' | 'coin';
 export type DieKind = Shape | 'vtm' | 'hunger' | 'fire'; // every kind is one physical die
 export type SymbolName = 'ankh' | 'crit' | 'skull' | 'fangs';
 
-export const KINDS: DieKind[] = ['d4', 'd6', 'd8', 'd10', 'd12', 'd20', 'd100', 'vtm', 'hunger', 'fire'];
+export const KINDS: DieKind[] = ['d4', 'd6', 'd8', 'd10', 'd12', 'd20', 'd100', 'vtm', 'hunger', 'fire', 'coin'];
 // The physical die behind each kind: geometry, collider, radius, numbering and reading.
 // Custom dice (Vampire: The Masquerade d10s, Fireball d6) only change how that die looks.
 export const BASE: Record<DieKind, Shape> = {
-  d4: 'd4', d6: 'd6', d8: 'd8', d10: 'd10', d12: 'd12', d20: 'd20', d100: 'd100', vtm: 'd10', hunger: 'd10', fire: 'd6',
+  d4: 'd4', d6: 'd6', d8: 'd8', d10: 'd10', d12: 'd12', d20: 'd20', d100: 'd100', vtm: 'd10', hunger: 'd10', fire: 'd6', coin: 'coin',
 };
 // Vampire d10s show symbols instead of digits, by d10 digit (0 is the 10); the other faces are blank.
 const SYMBOL: Partial<Record<DieKind, (digit: number) => SymbolName | undefined>> = {
@@ -26,7 +26,7 @@ const SYMBOL: Partial<Record<DieKind, (digit: number) => SymbolName | undefined>
   hunger: (v) => (v === 0 ? 'fangs' : v === 1 ? 'skull' : v >= 6 ? 'ankh' : undefined),
 };
 // Circumscribed radius of each shape.
-export const RADIUS: Record<Shape, number> = { d4: 0.9, d6: 0.75, d8: 0.7, d10: 0.7, d12: 0.7, d20: 0.7, d100: 0.9 };
+export const RADIUS: Record<Shape, number> = { d4: 0.9, d6: 0.75, d8: 0.7, d10: 0.7, d12: 0.7, d20: 0.7, d100: 0.9, coin: 0.76 };
 
 export interface Face { normal: Vec3; center: Vec3; value: number }
 export interface Top { dir: Vec3; value: number }
@@ -97,6 +97,28 @@ function hundredTriangles(radius: number): Vec3[] {
   return tris;
 }
 
+// Coin: a thin 48-sided prism (round to the eye; the flats read as a milled rim). Only the two caps are faces,
+// so it always reads heads or tails, even leaning on its rim: 1 = CARA (up), 2 = COROA (down).
+function coin(): Polyhedron {
+  const sides = 48, h = 0.08, R = RADIUS.coin, r = Math.sqrt(R * R - h * h);
+  const at = (k: number, radius: number, y: number): Vec3 => [radius * Math.cos((2 * Math.PI * k) / sides), y, radius * Math.sin((2 * Math.PI * k) / sides)];
+  const ring = (y: number) => Array.from({ length: sides }, (_, k) => at(k, r, y));
+  const top = ring(h), bottom = ring(-h), up: Vec3 = [0, h, 0], down: Vec3 = [0, -h, 0];
+  const triangles: number[] = [];
+  for (let k = 0; k < sides; k++) {
+    const n = (k + 1) % sides; // outward winding: both caps, then the rim quad
+    triangles.push(...[up, top[n], top[k], down, bottom[k], bottom[n], top[k], top[n], bottom[n], top[k], bottom[n], bottom[k]].flat());
+    // A raised ring near the edge of each cap (drawn only: the collider is the plain disc), so the light picks out a coin.
+    for (const s of [1, -1]) for (const [r1, y1, r2, y2] of [[0.8, 0, 0.86, 0.025], [0.86, 0.025, 0.92, 0]]) {
+      const [a, b, c, d] = [at(k, r1 * r, s * (h + y1)), at(k + 1, r1 * r, s * (h + y1)), at(k + 1, r2 * r, s * (h + y2)), at(k, r2 * r, s * (h + y2))];
+      triangles.push(...(s > 0 ? [a, b, c, a, c, d] : [a, c, b, a, d, c]).flat());
+    }
+  }
+  const faces: Face[] = [{ normal: [0, 1, 0], center: up, value: 1 }, { normal: [0, -1, 0], center: down, value: 2 }];
+  const labelList: Label[] = faces.map((f) => ({ text: f.value === 1 ? 'CARA' : 'COROA', value: f.value, position: f.center, normal: f.normal, up: [0, 0, -1] }));
+  return { shape: 'coin', radius: R, points: [...top, ...bottom], triangles, faces, tops: [], labelList };
+}
+
 function geometryTriangles(g: BufferGeometry): Vec3[] {
   const pos = (g.index ? g.toNonIndexed() : g).getAttribute('position');
   return Array.from({ length: pos.count }, (_, i) => [pos.getX(i), pos.getY(i), pos.getZ(i)] as Vec3);
@@ -112,10 +134,12 @@ function rawTriangles(shape: Shape): Vec3[] {
     case 'd12': return geometryTriangles(new DodecahedronGeometry(r));
     case 'd20': return geometryTriangles(new IcosahedronGeometry(r));
     case 'd100': return hundredTriangles(r);
+    case 'coin': throw new Error('the coin is built by coin()');
   }
 }
 
 function build(shape: Shape): Polyhedron {
+  if (shape === 'coin') return coin();
   const verts = rawTriangles(shape);
   const points: Vec3[] = [];
   const indexOf = (v: Vec3) => {

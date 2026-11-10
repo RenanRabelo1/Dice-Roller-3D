@@ -33,7 +33,9 @@ export function presimulate(
       const body = world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased()
         .setTranslation(...start[i].p).setRotation({ x, y, z, w }).setCcdEnabled(true)
         .setLinearDamping(DAMPING[poly.shape]?.linear ?? 0).setAngularDamping(DAMPING[poly.shape]?.angular ?? 0));
-      const hull = RAPIER.ColliderDesc.convexHull(new Float32Array(poly.points.flat()));
+      // A thin hull rocks forever on its flat cap; the coin rolls as a rounded cylinder of the same size.
+      const hull = poly.shape === 'coin' ? RAPIER.ColliderDesc.roundCylinder(0.08 - 0.01, poly.radius - 0.01, 0.01)
+        : RAPIER.ColliderDesc.convexHull(new Float32Array(poly.points.flat()));
       if (!hull) throw new Error(`convex hull failed for ${poly.shape}`);
       const m = MATERIAL.die;
       world.createCollider(hull.setFriction(m.friction).setRestitution(m.restitution).setDensity(m.density), body);
@@ -49,6 +51,15 @@ export function presimulate(
       perturb?.(step, bodies);
       const states = bodyStates(bodies);
       if (states.some((b, i) => isOutside(b.p, radii[i]))) escaped = true;
+      // Coins resting on coins rock on their rims forever. A slow coin that lies (not stands on its rim)
+      // stops turning, so friction holds it where it rests; it turns again if something knocks it.
+      states.forEach((b, i) => {
+        if (polys[i].shape !== 'coin') return;
+        const [x, , z] = b.q, lying = Math.abs(1 - 2 * (x * x + z * z)) > 0.4; // |cap normal · up|
+        const rest = b.speed < 1 && b.spin < 3 && lying;
+        if (rest) bodies[i].setAngvel({ x: 0, y: 0, z: 0 }, false);
+        bodies[i].lockRotations(rest, false);
+      });
       const next = stepSettle(settle, { throwId: launch.throwId, phase: 'rolling', radii, bodies: states });
       settle = next.state;
       applySettle(bodies, next.action);

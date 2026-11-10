@@ -19,7 +19,7 @@ export function readUp(poly: Polyhedron, q: Quat): { value: number; tilt: number
   return { value: best.value, tilt: (Math.acos(Math.min(1, best.y)) * 180) / Math.PI };
 }
 
-// Raw face values per die → results (the 0 face of a d10, Vampire ones included, counts as 10).
+// Raw face values per die → results (the 0 face of a d10, Vampire ones included, counts as 10; a coin is 1 heads, 2 tails).
 export function toResults(dice: DieKind[], raw: number[]): number[] {
   return raw.map((v, i) => (BASE[dice[i]] === 'd10' && v === 0 ? 10 : v));
 }

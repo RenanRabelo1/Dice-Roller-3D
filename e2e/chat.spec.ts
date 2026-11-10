@@ -88,3 +88,11 @@ test('bad notation answers with an error and keeps the dice', async ({ page }) =
   expect(await dice(page)).toEqual(['d20']);
   await expect(input).toHaveValue('2d7');
 });
+
+test('"2 moedas + d20" puts two coins next to the die', async ({ page }) => {
+  await page.keyboard.press('c');
+  await page.getByRole('textbox', { name: /Dados/ }).fill('2 moedas + d20');
+  await page.keyboard.press('Enter');
+  expect(await dice(page)).toEqual(['d20', 'coin', 'coin']);
+  await expect(page.getByRole('complementary', { name: 'Chat de dados' })).toContainText('Na mão: 1d20 + 2 moedas');
+});

@@ -106,7 +106,7 @@ describe.each(KINDS.filter((k) => BASE[k] === k))('%s × 10', (kind) => {
     expect(r.timedOut).toBe(false); // the dice really stop: the reveal does not wait for the cap
     expect(r.bodies).toBe(10);
     expect(r.results).toHaveLength(10);
-    r.results.forEach((v) => { expect(v).toBeGreaterThanOrEqual(1); expect(v).toBeLessThanOrEqual(Number(kind.slice(1))); });
+    r.results.forEach((v) => { expect(v).toBeGreaterThanOrEqual(1); expect(v).toBeLessThanOrEqual(kind === 'coin' ? 2 : Number(kind.slice(1))); });
     expect(r.frames.every((f) => f.length === r.bodies)).toBe(true);
     r.final.forEach((p) => expect(isOutside(p, MAX_RADIUS)).toBe(false));
   }, T);

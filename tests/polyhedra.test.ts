@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { polyhedron, sortDice, RADIUS, KINDS, type Shape } from '../src/dice/polyhedra';
 import { MAX_RADIUS } from '../src/physics/world';
 
-const SIDES: Record<Shape, number> = { d4: 4, d6: 6, d8: 8, d10: 10, d12: 12, d20: 20, d100: 100 };
+const SIDES: Record<Shape, number> = { d4: 4, d6: 6, d8: 8, d10: 10, d12: 12, d20: 20, d100: 100, coin: 2 };
 const SUM: Partial<Record<Shape, number>> = { d6: 7, d8: 9, d10: 9, d12: 13, d20: 21 };
 const dot = (a: number[], b: number[]) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 const range = (from: number, n: number) => Array.from({ length: n }, (_, i) => from + i);
@@ -89,7 +89,21 @@ describe('custom dice', () => {
     expect(p.labelList).toEqual(base.labelList);
   });
   it('custom dice come after the standard ones, in the UI and in a sorted hand', () => {
-    expect(KINDS).toEqual(['d4', 'd6', 'd8', 'd10', 'd12', 'd20', 'd100', 'vtm', 'hunger', 'fire']);
+    expect(KINDS).toEqual(['d4', 'd6', 'd8', 'd10', 'd12', 'd20', 'd100', 'vtm', 'hunger', 'fire', 'coin']);
     expect(sortDice(['fire', 'hunger', 'd100', 'vtm', 'd4'])).toEqual(['d4', 'd100', 'vtm', 'hunger', 'fire']);
   });
+});
+
+describe('coin', () => {
+  const p = polyhedron('coin');
+  it('is a thin disc whose only readable faces are heads (up) and tails (down)', () => {
+    expect(p.faces.map((f) => [f.normal, f.value])).toEqual([[[0, 1, 0], 1], [[0, -1, 0], 2]]);
+    const ys = p.points.map((v) => v[1]), rim = Math.max(...p.points.map((v) => Math.hypot(v[0], v[2])));
+    expect(Math.max(...ys) - Math.min(...ys)).toBeLessThan(0.25 * rim);
+    expect(p.points.length).toBeGreaterThanOrEqual(48); // round enough to read as a coin
+  });
+  it('says CARA and COROA on its faces', () => {
+    expect(p.labelList.map((l) => [l.value, l.text])).toEqual([[1, 'CARA'], [2, 'COROA']]);
+  });
+  it('sorts after the dice', () => expect(sortDice(['coin', 'd20', 'fire'])).toEqual(['d20', 'fire', 'coin']));
 });
