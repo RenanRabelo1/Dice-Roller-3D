@@ -2,6 +2,7 @@ import { Suspense, useEffect, useRef } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Stage } from './scene/Stage';
 import { Controls } from './ui/Controls';
+import { OmenOverlay } from './ui/OmenOverlay';
 import { useDice } from './store';
 
 export default function App() {
@@ -22,6 +23,7 @@ export default function App() {
           <Stage gameArea={gameArea} />
         </Suspense>
       </Canvas>
+      <OmenOverlay gameArea={gameArea} />
     </div>
     </main>
   );

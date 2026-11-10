@@ -38,7 +38,7 @@ button:focus-visible { outline: 3px solid var(--chalk); outline-offset: 3px; }
 .pick { display: flex; }
 .pick .remove { min-width: 32px; padding: 4px; border-left: 0; font-size: 18px; }
 .pool { margin: 0; min-width: 110px; font-weight: 800; color: var(--brass); }
-.game-area { grid-row: 2; width: 100%; height: 100%; min-width: 0; min-height: 0; overflow: hidden; touch-action: none; }
+.game-area { position: relative; grid-row: 2; width: 100%; height: 100%; min-width: 0; min-height: 0; overflow: hidden; touch-action: none; }
 .game-area:focus-visible { outline: 3px solid var(--brass); outline-offset: -3px; }
 .status { grid-row: 3; min-height: 110px; border-top: 1px solid #49332E; display: flex; align-items: center; gap: 24px; }
 .feedback { min-width: 180px; }
@@ -82,3 +82,27 @@ canvas { display: block; }
 .chat input { flex: 1; min-width: 0; font: inherit; color: var(--chalk); background: #1E1517; border: 1px solid #786958; border-radius: 3px; padding: 8px 10px; }
 .chat input:focus-visible { outline: 3px solid var(--brass); outline-offset: 1px; }
 @media (prefers-reduced-motion: reduce) { .chat, .chat[data-open="true"] { transition: none; } }
+
+/* Omens: the screen side of a critical, a fumble or duality (see OmenOverlay). Fades out as it ends. */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.omen { position: absolute; inset: 0; pointer-events: none; overflow: hidden; animation: omen-out var(--ms) linear forwards; }
+.omen-blood { position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 38%, rgba(120, 0, 8, 0.62) 100%); animation: omen-in 220ms ease-out both; }
+.omen-splat { position: absolute; aspect-ratio: 1; fill: #7A0410; filter: drop-shadow(0 3px 0 rgba(40, 0, 0, 0.55)); animation: omen-splat 200ms cubic-bezier(0.2, 1.6, 0.4, 1) both; }
+.omen-drip { position: absolute; top: 0; width: var(--w); height: 0; border-radius: 0 0 999px 999px;
+  background: linear-gradient(90deg, #4E0007, #8E0A16 45%, #5C0009); animation: omen-drip 1s cubic-bezier(0.5, 0, 0.9, 0.6) forwards; }
+.omen-drip::after { content: ''; position: absolute; left: 50%; bottom: calc(var(--w) * -0.45); width: calc(var(--w) * 1.5); aspect-ratio: 1;
+  transform: translateX(-50%); border-radius: 50%; background: #840914; }
+.omen-flash { position: absolute; inset: 0; background: #EAF5FF; opacity: 0; animation: omen-flash 280ms ease-out 30ms; }
+.omen-deep { position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 30%, rgba(2, 32, 28, 0.72) 100%); animation: omen-in 450ms ease-out both; }
+/* Duality: the two fish collide at DUALITY_HIT (1100 ms) and the screen shakes. */
+.game-area[data-omen="duality"] canvas { animation: omen-shake 520ms linear 1100ms; }
+@keyframes omen-out { 0%, 82% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes omen-in { from { opacity: 0; } }
+@keyframes omen-splat { from { transform: scale(0.2); opacity: 0; } }
+@keyframes omen-drip { to { height: var(--h); } }
+@keyframes omen-flash { 20% { opacity: 0.4; } 100% { opacity: 0; } }
+@keyframes omen-shake {
+  10% { transform: translate(-10px, 6px) rotate(-0.6deg); } 22% { transform: translate(9px, -6px) rotate(0.5deg); }
+  36% { transform: translate(-7px, -4px) rotate(-0.3deg); } 50% { transform: translate(5px, 4px); }
+  66% { transform: translate(-3px, 2px); } 82% { transform: translate(2px, -1px); } 100% { transform: none; }
+}

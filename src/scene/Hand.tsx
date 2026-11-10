@@ -165,7 +165,7 @@ export function Hand({ gameArea, bodies }: {
       }) };
     }
     if (phase !== 'settled') for (const o of [...numbers, ...glyphs]) o.visible = false;
-    if (phase === 'settled' && mode.current !== nextMode) {
+    if (phase === 'settled' && (mode.current !== nextMode || (state.reducedMotion && showcase.current?.still === false))) {
       showcase.current = null;
       if (!state.raw) state.setShowcased(state.throwId);
       else {
@@ -203,6 +203,8 @@ export function Hand({ gameArea, bodies }: {
     }
     mode.current = nextMode;
     if (phase === 'settled' && showcase.current) {
+      // An omen plays first: the numbers wait, unrisen, and the dice stay where they landed until it is over.
+      if (state.omen?.throwId === state.throwId && state.omenDone !== state.throwId) showcase.current.at = now;
       const { at, from, to, throwId, gems, marks, still } = showcase.current;
       const draw = (i: number, face: Vector3, q?: Quaternion, ride = 0) => {
         const n = numbers[i], g = glyphs[i], m = marks[i];

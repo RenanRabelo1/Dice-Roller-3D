@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { MAX_DICE, sortDice, type DieKind } from './dice/polyhedra';
+import { omenOf, type Omen } from './dice/omen';
 import type { Launch } from './physics/apply';
 import { HAND, type Vec3 } from './physics/world';
 import { initialGesture, reduce, type Effect, type GestureEvent, type GestureState } from './throw/gesture';
@@ -20,6 +21,9 @@ interface DiceState {
   ready: boolean;
   reducedMotion: boolean;
   showcased: number; // throwId whose dice finished flying to the front
+  omen: (Omen & { throwId: number }) | null; // the show this throw's result puts on before it appears
+  omenDone: number; // throwId whose omen finished playing
+  omenRig: Omen | null; // test mode only: forces the omen of the next throws
   addDie: (kind: DieKind) => void;
   removeDie: (kind: DieKind) => void;
   setDice: (dice: DieKind[]) => void;
@@ -29,6 +33,8 @@ interface DiceState {
   setError: (error: DiceError) => void;
   setReducedMotion: (reducedMotion: boolean) => void;
   setShowcased: (throwId: number) => void;
+  setOmenDone: (throwId: number) => void;
+  rigOmen: (omen: Omen | null) => void;
   input: (event: GestureEvent, hand?: HandMotion) => Effect;
   publish: (throwId: number, results: number[], raw?: number[]) => void;
 }
@@ -44,7 +50,7 @@ const selection = (s: DiceState) => ({
 export const useDice = create<DiceState>((set) => ({
   dice: ['d20'], gesture: initialGesture, throwId: 0,
   aim: [0, 0, -1], force: 0, launch: null, results: null, raw: null,
-  error: null, ready: false, reducedMotion: false, showcased: 0,
+  error: null, ready: false, reducedMotion: false, showcased: 0, omen: null, omenDone: 0, omenRig: null,
   addDie: (kind) => set((s) => (s.dice.length >= MAX_DICE ? s : { ...selection(s), dice: sortDice([...s.dice, kind]) })),
   removeDie: (kind) => set((s) => {
     const i = s.dice.lastIndexOf(kind);
@@ -55,8 +61,10 @@ export const useDice = create<DiceState>((set) => ({
   setForce: (force) => set({ force }),
   setReady: () => set({ ready: true }),
   setError: (error) => set({ error }),
-  setReducedMotion: (reducedMotion) => set({ reducedMotion }),
+  setReducedMotion: (reducedMotion) => set((s) => ({ reducedMotion, omen: reducedMotion ? null : s.omen })),
   setShowcased: (showcased) => set({ showcased }),
+  setOmenDone: (omenDone) => set({ omenDone }),
+  rigOmen: (omenRig) => set({ omenRig }),
   input: (event, hand) => {
     let effect: Effect = { type: 'none' };
     set((s) => {
@@ -76,7 +84,9 @@ export const useDice = create<DiceState>((set) => ({
   },
   publish: (throwId, results, raw) => set((s) => {
     if (throwId !== s.throwId || s.gesture.phase !== 'rolling') return s;
-    // Publish the result and reducer transition together so subscribers see one settled snapshot.
-    return { results: [...results], raw: raw ? [...raw] : null, gesture: reduce(s.gesture, { type: 'published' }).state };
+    // Publish the result, its omen and the reducer transition together so subscribers see one settled snapshot.
+    // Reduced motion skips the omens' shows.
+    const omen = s.reducedMotion ? null : s.omenRig ?? omenOf(s.dice, results);
+    return { results: [...results], raw: raw ? [...raw] : null, omen: omen && { throwId, ...omen }, gesture: reduce(s.gesture, { type: 'published' }).state };
   }),
 }));

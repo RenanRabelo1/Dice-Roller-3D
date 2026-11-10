@@ -29,7 +29,7 @@ Regras do pedido:
 
 ### Moeda (`coin`)
 
-- Novo `Shape`/`DieKind` `'coin'`. O corpo é um prisma de 32 lados (raio 0,75, espessura 0,16). O colisor é o casco convexo dos mesmos pontos, como nos dados.
+- Novo `Shape`/`DieKind` `'coin'`. O corpo é um disco de 48 lados (raio aproximado 0,75, espessura 0,16), com aro em relevo. O colisor é um cilindro arredondado: o casco convexo fino balançava sem parar sobre as tampas. Uma moeda lenta e deitada tem a rotação travada para a fricção conseguir pará-la, inclusive em pilhas.
 - `faces` tem **só as duas tampas**: valor 1 = **Cara** (+y) e 2 = **Coroa** (−y). Assim, `readUp` sempre devolve cara ou coroa, mesmo se a moeda parar encostada.
 - Os rótulos são texto: "CARA" e "COROA", gravados nas tampas, no mesmo `BatchedText` por dado.
 - O material é ouro metálico e opaco (`metalness` 1).
@@ -99,3 +99,14 @@ Regras do projeto:
 - Não voltar a um `Text` por número.
 
 Estado: veja `git log` a partir de `59361c1`. A ordem é moeda (commit 1), presságios (commit 2) e atualização da nota `02-Projetos/Ativos/DiceRoller.md` no vault do Obsidian `C:\Users\renpo\Downloads\SegundoCérebro`.
+
+### Entrega e validação — 2026-11-10
+
+- Moeda entregue em `59f2d99`; presságios concluídos na sequência, na mesma branch local.
+- `e2e/omen.spec.ts` força somente a classificação do presságio pelo gancho de teste. A rolagem e o resultado continuam vindo da física, sem alterar a face sorteada.
+- Cobertura: raio, kraken, sangue, dualidade e crítico simultâneo em d20/d100; dados e painel aguardam o fim do efeito; recolher cancela e o arremesso seguinte toca novamente.
+- Movimento reduzido desativa os presságios e, se ativado durante um efeito, interrompe-o imediatamente, libera o resultado e mantém os dados onde pararam, sem o voo seguinte.
+- Gate: build aprovado, lint sem avisos, 182 testes em 13 arquivos e 32 E2E aprovados (smoke, roll, chat, omen; Chrome com SwiftShader). O build mantém o aviso de tamanho do bundle.
+- Chrome com Intel Iris Xe / D3D11, 1440×900, 180 quadros por amostra, sem relógio simulado: d20×10 e d100×10 a 60,3 FPS, p95 de 17,1 ms; nenhum mesh dos presságios visível fora de um efeito.
+- Capturas conferidas em `screens/verified-{lightning,kraken,blood,duality,both}.png`; `screens/verification.json` guarda a medição e os estados. O relógio simulado foi usado somente nas capturas para fixar o instante do efeito. Esses artefatos são locais e ignorados pelo Git.
+- Tasks 11–12 do plano original (fronteiras de erro e revisão geral) continuam no backlog; esta entrega conclui moeda e presságios.

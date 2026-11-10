@@ -13,6 +13,8 @@ import { installTestHook } from '../testHook';
 import { Die, GEM } from './Die';
 import { Tray } from './Tray';
 import { Hand } from './Hand';
+import { Omens } from './Omens';
+import { omenKind } from '../dice/omen';
 
 function ThrowLoop({ bodies, recordLaunch }: {
   bodies: RefObject<(RapierRigidBody | null)[]>;
@@ -99,9 +101,11 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
           results: state.results,
           ready: state.ready && state.dice.join(',') === key && bodies.current.filter((b) => b?.isValid()).length === selected.length,
           error: state.error, aim: state.aim, showcased: state.showcased,
+          omen: state.omen?.throwId === state.throwId ? omenKind(state.omen) : null, omenDone: state.omenDone,
         };
       },
       select: (next) => useDice.getState().setDice(next),
+      rigOmen: (omen) => useDice.getState().rigOmen(omen),
       bodies: () => bodies.current.filter((body): body is RapierRigidBody => body !== null && body.isValid()).map((body) => {
         const p = body.translation(), q = body.rotation();
         return { handle: body.handle, p: [p.x, p.y, p.z], q: [q.x, q.y, q.z, q.w], type: body.bodyType() };
@@ -172,6 +176,7 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
           ))}
         </group>
       </Physics>
+      <Omens bodies={bodies} />
     </>
   );
 }

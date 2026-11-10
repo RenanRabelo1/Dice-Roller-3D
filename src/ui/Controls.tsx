@@ -12,7 +12,9 @@ function Force() {
 export function Controls() {
   const dice = useDice((s) => s.dice);
   const phase = useDice((s) => s.gesture.phase), results = useDice((s) => s.results);
-  const text = results && resultText(dice, results);
+  const omen = useDice((s) => s.omen), omenDone = useDice((s) => s.omenDone), throwId = useDice((s) => s.throwId);
+  const waiting = omen?.throwId === throwId && omenDone !== throwId; // the result shows once its omen has played
+  const text = results && !waiting && resultText(dice, results);
   return (
     <>
       <header className="controls panel">
