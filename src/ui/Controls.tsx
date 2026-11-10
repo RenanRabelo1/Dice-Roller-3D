@@ -1,8 +1,8 @@
 import { useDice } from '../store';
-import { KINDS, MAX_DICE, type DieKind } from '../dice/polyhedra';
+import { KINDS, MAX_DICE } from '../dice/polyhedra';
+import { formatDice } from '../dice/notation';
+import { Chat } from './Chat';
 
-// "2d12 + 1d10" style notation for the selection.
-const notation = (dice: DieKind[]) => KINDS.filter((k) => dice.includes(k)).map((k) => `${dice.filter((d) => d === k).length}${k}`).join(' + ');
 
 function Force() {
   const force = useDice((s) => s.force);
@@ -29,7 +29,8 @@ export function Controls() {
             );
           })}
         </div>
-        <p className="pool" aria-live="polite">{notation(dice)}</p>
+        <p className="pool" aria-live="polite">{formatDice(dice)}</p>
+        <Chat />
       </header>
       <footer className="status panel">
         <div className="feedback">

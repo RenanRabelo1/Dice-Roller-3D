@@ -159,7 +159,7 @@ for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: width === 1440 ? 900 : 844 });
     const area = (await page.locator('.game-area').boundingBox())!;
     const canvas = (await page.locator('canvas').boundingBox())!;
-    const header = (await page.locator('header').boundingBox())!, footer = (await page.locator('footer').boundingBox())!;
+    const header = (await page.locator('header.controls').boundingBox())!, footer = (await page.locator('footer').boundingBox())!;
     expect(canvas).toEqual(area);
     expect(header.y + header.height).toBeLessThanOrEqual(area.y);
     expect(area.y + area.height).toBeLessThanOrEqual(footer.y);
