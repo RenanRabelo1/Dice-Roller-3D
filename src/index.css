@@ -73,7 +73,7 @@ canvas { display: block; }
 .chat h2 { margin: 0; font-size: 18px; }
 .chat header button { min-width: 40px; font-size: 20px; }
 .chat-log { flex: 1; overflow-y: auto; margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
-.chat-log li { max-width: 85%; padding: 8px 10px; border-radius: 3px; line-height: 1.35; font-size: 14px; }
+.chat-log li { max-width: 85%; padding: 8px 10px; border-radius: 3px; line-height: 1.35; font-size: 14px; overflow-wrap: anywhere; }
 .chat-log .msg-you { align-self: flex-end; background: #2A1E1C; }
 .chat-log .msg-app { align-self: flex-start; color: var(--brass); }
 .chat-log [data-error] { color: #F28B6B; }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { polyhedron, sortDice, RADIUS, type Shape } from '../src/dice/polyhedra';
+import { polyhedron, sortDice, RADIUS, KINDS, type Shape } from '../src/dice/polyhedra';
 import { MAX_RADIUS } from '../src/physics/world';
 
 const SIDES: Record<Shape, number> = { d4: 4, d6: 6, d8: 8, d10: 10, d12: 12, d20: 20, d100: 100 };
@@ -57,5 +57,39 @@ describe('labels', () => {
   it('RADIUS and MAX_RADIUS agree', () => expect(Math.max(...Object.values(RADIUS))).toBe(MAX_RADIUS));
   it('sortDice keeps a mixed selection in d4-d100 order', () => {
     expect(sortDice(['d100', 'd12', 'd4', 'd12', 'd10'])).toEqual(['d4', 'd10', 'd12', 'd12', 'd100']);
+  });
+});
+
+describe('custom dice', () => {
+  // Symbol drawn on the face of each d10 digit, 1…9 then 0 (the 10).
+  const symbols = (kind: 'vtm' | 'hunger') => [1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map((v) => polyhedron(kind).labelList.find((l) => l.value === v)!.symbol);
+  it('the Vampire d10 is a d10 body: same faces and values, one label per face', () => {
+    for (const kind of ['vtm', 'hunger'] as const) {
+      const p = polyhedron(kind), base = polyhedron('d10');
+      expect(p.shape).toBe('d10');
+      expect(p.faces).toBe(base.faces);
+      expect(p.points).toBe(base.points);
+      expect(p.labelList.map((l) => [l.value, l.position, l.normal])).toEqual(base.labelList.map((l) => [l.value, l.position, l.normal]));
+    }
+  });
+  it('normal Vampire die: 1-5 blank, 6-9 ankh, 10 critical', () => {
+    expect(symbols('vtm')).toEqual([...Array(5).fill(undefined), 'ankh', 'ankh', 'ankh', 'ankh', 'crit']);
+  });
+  it('Hunger die: 1 skull, 2-5 blank, 6-9 ankh, 10 fangs', () => {
+    expect(symbols('hunger')).toEqual(['skull', ...Array(4).fill(undefined), 'ankh', 'ankh', 'ankh', 'ankh', 'fangs']);
+  });
+  it('Vampire faces carry no digits, standard faces no symbols', () => {
+    expect(polyhedron('vtm').labelList.every((l) => l.text === '')).toBe(true);
+    expect(polyhedron('d10').labelList.every((l) => l.symbol === undefined && l.text !== '')).toBe(true);
+  });
+  it('the Fireball d6 is the d6 itself, numbers and all', () => {
+    const p = polyhedron('fire'), base = polyhedron('d6');
+    expect(p.shape).toBe('d6');
+    expect(p.faces).toBe(base.faces);
+    expect(p.labelList).toEqual(base.labelList);
+  });
+  it('custom dice come after the standard ones, in the UI and in a sorted hand', () => {
+    expect(KINDS).toEqual(['d4', 'd6', 'd8', 'd10', 'd12', 'd20', 'd100', 'vtm', 'hunger', 'fire']);
+    expect(sortDice(['fire', 'hunger', 'd100', 'vtm', 'd4'])).toEqual(['d4', 'd100', 'vtm', 'hunger', 'fire']);
   });
 });

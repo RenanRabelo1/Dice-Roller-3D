@@ -116,16 +116,16 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
         return result;
       },
       labels: (index) => {
-        const result: { text: string; position: Vec3; normal: Vec3 }[] = [];
+        const result: ReturnType<DiceHook['labels']> = [];
         const batch = numbersOf(index);
         if (!batch) return result;
         batch.updateWorldMatrix(true, false);
         // BatchedText members are not scene children: world matrix = batch matrix × member matrix.
-        for (const label of batch.userData.labels as (Object3D & { text: string })[]) {
+        for (const label of batch.userData.labels as Object3D[]) {
           label.updateMatrix();
           const world = new Matrix4().multiplyMatrices(batch.matrixWorld, label.matrix);
           result.push({
-            text: label.text,
+            text: label.userData.text, value: label.userData.value,
             position: new Vector3().setFromMatrixPosition(world).toArray(),
             normal: new Vector3(0, 0, 1).transformDirection(world).toArray(),
           });
@@ -166,8 +166,8 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
         <Hand gameArea={gameArea} bodies={bodies} />
         <ThrowLoop bodies={bodies} recordLaunch={recordLaunch} />
         <group ref={dice}>
-          {selected.map((shape, i) => (
-            <Die key={`${key}-${i}`} index={i} shape={shape} selection={key} count={selected.length} color={GEM[shape]}
+          {selected.map((kind, i) => (
+            <Die key={`${key}-${i}`} index={i} kind={kind} selection={key} count={selected.length} color={GEM[kind]}
               register={register} />
           ))}
         </group>

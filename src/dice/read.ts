@@ -1,5 +1,5 @@
 import { Quaternion, Vector3 } from 'three';
-import type { DieKind, Polyhedron } from './polyhedra';
+import { BASE, type DieKind, type Polyhedron } from './polyhedra';
 import type { Quat } from '../physics/world';
 
 const UP = new Vector3(0, 1, 0);
@@ -19,7 +19,7 @@ export function readUp(poly: Polyhedron, q: Quat): { value: number; tilt: number
   return { value: best.value, tilt: (Math.acos(Math.min(1, best.y)) * 180) / Math.PI };
 }
 
-// Raw face values per die → results (a d10's 0 face counts as 10).
+// Raw face values per die → results (the 0 face of a d10, Vampire ones included, counts as 10).
 export function toResults(dice: DieKind[], raw: number[]): number[] {
-  return raw.map((v, i) => (dice[i] === 'd10' && v === 0 ? 10 : v));
+  return raw.map((v, i) => (BASE[dice[i]] === 'd10' && v === 0 ? 10 : v));
 }

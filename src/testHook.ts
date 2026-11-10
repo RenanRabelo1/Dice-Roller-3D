@@ -10,7 +10,7 @@ export interface DiceHook {
   select(dice: DieKind[]): void;
   bodies(): { handle: number; p: Vec3; q: Quat; type: number }[];
   meshes(): { q: Quat }[];
-  labels(index: number): { text: string; position: Vec3; normal: Vec3 }[];
+  labels(index: number): { text: string; value: number; position: Vec3; normal: Vec3 }[]; // text: the numeral, the symbol's name, or '' on a blank face
   numbersVisible(index: number): boolean;
   camera(): Vec3;
   launches(): { count: number; last: { before: { p: Vec3; q: Quat }[]; after: { p: Vec3; q: Quat }[] } | null };

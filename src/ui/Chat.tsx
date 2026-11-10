@@ -51,7 +51,7 @@ export function Chat() {
           <button aria-label="Fechar chat" onClick={() => { setOpen(false); toggle.current?.focus(); }}>×</button>
         </header>
         <ol className="chat-log" aria-live="polite">
-          {lines.length === 0 && <li className="hint">Escreva os dados e aperte Enter. Ex.: <code>2d10 + d100</code> ou <code>2d10d100d4</code>.</li>}
+          {lines.length === 0 && <li className="hint">Escreva os dados e aperte Enter. Ex.: <code>2d10 + d100</code> ou <code>2d10d100d4</code>. Dados especiais: <code>2d10v + 1d10fome</code> (Vampiro) e <code>bola de fogo</code> (8d6 de fogo).</li>}
           {lines.map((l) => <li key={l.id} className={`msg-${l.from}`} data-error={l.error || undefined}>{l.text}</li>)}
         </ol>
         <form onSubmit={apply}>

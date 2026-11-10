@@ -1,6 +1,6 @@
 import { afterEach, beforeAll, describe, it, expect } from 'vitest';
 import RAPIER, { RigidBodyType } from '@dimforge/rapier3d-compat';
-import { KINDS } from '../src/dice/polyhedra';
+import { BASE, KINDS } from '../src/dice/polyhedra';
 import { clampTarget, launchVelocity, spin } from '../src/throw/aim';
 import { applyLaunch, applySettle, bodyStates, toKinematic } from '../src/physics/apply';
 import { isOutside, MAX_RADIUS, SETTLE, type Quat, type Vec3 } from '../src/physics/world';
@@ -98,7 +98,8 @@ describe('Rapier body adapters', () => {
   });
 });
 
-describe.each(KINDS)('%s × 10', (kind) => {
+// Custom dice roll the body of their base die, so each physical die is thrown once.
+describe.each(KINDS.filter((k) => BASE[k] === k))('%s × 10', (kind) => {
   it.each([0, 1])('force %s: stops before the cap, no escape, all inside, one result per die', async (force) => {
     const r = await simulate({ kind, count: 10, force, target: [0, 0, -1], seed: 7 });
     expect(r.escaped).toBe(false); expect(r.recovered).toBe(false);

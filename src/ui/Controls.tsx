@@ -1,6 +1,6 @@
 import { useDice } from '../store';
 import { KINDS, MAX_DICE } from '../dice/polyhedra';
-import { formatDice } from '../dice/notation';
+import { dieName, formatDice } from '../dice/notation';
 import { Chat } from './Chat';
 
 
@@ -18,12 +18,12 @@ export function Controls() {
         <h1>Rolador de dados</h1>
         <div className="selection" role="group" aria-label="Dados">
           {KINDS.map((type) => {
-            const n = dice.filter((d) => d === type).length;
+            const n = dice.filter((d) => d === type).length, name = dieName(type);
             return (
               <div className="pick" key={type}>
-                <button aria-label={`Adicionar ${type}`} aria-pressed={n > 0} disabled={dice.length >= MAX_DICE}
-                  onClick={() => useDice.getState().addDie(type)}>{n ? `${n}${type}` : type}</button>
-                {n > 0 && <button className="remove" aria-label={`Remover ${type}`} disabled={dice.length === 1}
+                <button aria-label={`Adicionar ${name}`} aria-pressed={n > 0} disabled={dice.length >= MAX_DICE}
+                  onClick={() => useDice.getState().addDie(type)}>{n ? `${n}${name}` : name}</button>
+                {n > 0 && <button className="remove" aria-label={`Remover ${name}`} disabled={dice.length === 1}
                   onClick={() => useDice.getState().removeDie(type)}>−</button>}
               </div>
             );
@@ -35,7 +35,7 @@ export function Controls() {
       <footer className="status panel">
         <div className="feedback">
           <output data-testid="result" aria-live="polite">
-            {results && <><strong>{results.reduce((sum, value) => sum + value, 0)}</strong>{results.length > 1 && <span>{KINDS.filter((k) => dice.includes(k)).map((k) => `${k}: ${results.filter((_, i) => dice[i] === k).join(' + ')}`).join(' · ')}</span>}</>}
+            {results && <><strong>{results.reduce((sum, value) => sum + value, 0)}</strong>{results.length > 1 && <span>{KINDS.filter((k) => dice.includes(k)).map((k) => `${dieName(k)}: ${results.filter((_, i) => dice[i] === k).join(' + ')}`).join(' · ')}</span>}</>}
           </output>
           {phase === 'charging' && <Force />}
         </div>

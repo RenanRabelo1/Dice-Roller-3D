@@ -11,15 +11,26 @@ import { ConvexHull } from 'three/examples/jsm/math/ConvexHull.js';
 import type { Vec3 } from '../physics/world';
 
 export type Shape = 'd4' | 'd6' | 'd8' | 'd10' | 'd12' | 'd20' | 'd100';
-export type DieKind = Shape; // every kind is one physical die
+export type DieKind = Shape | 'vtm' | 'hunger' | 'fire'; // every kind is one physical die
+export type SymbolName = 'ankh' | 'crit' | 'skull' | 'fangs';
 
-export const KINDS: DieKind[] = ['d4', 'd6', 'd8', 'd10', 'd12', 'd20', 'd100'];
+export const KINDS: DieKind[] = ['d4', 'd6', 'd8', 'd10', 'd12', 'd20', 'd100', 'vtm', 'hunger', 'fire'];
+// The physical die behind each kind: geometry, collider, radius, numbering and reading.
+// Custom dice (Vampire: The Masquerade d10s, Fireball d6) only change how that die looks.
+export const BASE: Record<DieKind, Shape> = {
+  d4: 'd4', d6: 'd6', d8: 'd8', d10: 'd10', d12: 'd12', d20: 'd20', d100: 'd100', vtm: 'd10', hunger: 'd10', fire: 'd6',
+};
+// Vampire d10s show symbols instead of digits, by d10 digit (0 is the 10); the other faces are blank.
+const SYMBOL: Partial<Record<DieKind, (digit: number) => SymbolName | undefined>> = {
+  vtm: (v) => (v === 0 ? 'crit' : v >= 6 ? 'ankh' : undefined),
+  hunger: (v) => (v === 0 ? 'fangs' : v === 1 ? 'skull' : v >= 6 ? 'ankh' : undefined),
+};
 // Circumscribed radius of each shape.
 export const RADIUS: Record<Shape, number> = { d4: 0.9, d6: 0.75, d8: 0.7, d10: 0.7, d12: 0.7, d20: 0.7, d100: 0.9 };
 
 export interface Face { normal: Vec3; center: Vec3; value: number }
 export interface Top { dir: Vec3; value: number }
-export interface Label { text: string; value: number; position: Vec3; normal: Vec3; up: Vec3 }
+export interface Label { text: string; value: number; position: Vec3; normal: Vec3; up: Vec3; symbol?: SymbolName }
 export interface Polyhedron {
   shape: Shape;
   radius: number;
@@ -179,10 +190,16 @@ function build(shape: Shape): Polyhedron {
   return { shape, radius: RADIUS[shape], points, triangles, faces, tops, labelList };
 }
 
-const cache = new Map<Shape, Polyhedron>();
-export function polyhedron(shape: Shape): Polyhedron {
-  let p = cache.get(shape);
-  if (!p) { p = build(shape); cache.set(shape, p); }
+const cache = new Map<DieKind, Polyhedron>();
+export function polyhedron(kind: DieKind): Polyhedron {
+  let p = cache.get(kind);
+  if (!p) {
+    const base = BASE[kind], symbol = SYMBOL[kind];
+    p = base === kind ? build(base) : polyhedron(base);
+    // One label per face even when blank, so the showcase still finds the rolled face by value.
+    if (symbol) p = { ...p, labelList: p.labelList.map((l) => ({ ...l, text: '', symbol: symbol(l.value) })) };
+    cache.set(kind, p);
+  }
   return p;
 }
 

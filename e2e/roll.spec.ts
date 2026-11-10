@@ -11,7 +11,7 @@ const topValue = async (p: Page, i: number, d4 = false) => {
   };
   // The rolled face looks at the camera; on a d4 its number is the label nearest the top corner.
   const best = labels.reduce((a, b) => (d4 ? b.position[1] > a.position[1] : toward(b) > toward(a)) ? b : a);
-  return best.text.replace('.', '');
+  return String(best.value || 10); // a d10's 0 face is the 10
 };
 const throwWithSpace = async (p: Page) => {
   await p.locator('.game-area').focus();
@@ -84,7 +84,7 @@ test('pointer capture launches once and keyboard controls keep their native scop
   const before = await page.evaluate(() => window.__dice.state().aim);
   await area.focus(); await page.keyboard.press('ArrowRight');
   expect((await page.evaluate(() => window.__dice.state().aim))[0]).toBeCloseTo(before[0] + 0.5);
-  await page.getByRole('button', { name: 'Adicionar d6' }).focus();
+  await page.getByRole('button', { name: 'Adicionar d6', exact: true }).focus();
   await page.keyboard.press('Space'); // the button's own activation: adds a d6, never throws
   expect(await page.evaluate(() => window.__dice.state().phase)).toBe('hand');
   expect(await page.evaluate(() => window.__dice.state().dice)).toEqual(['d6', 'd20']);
@@ -106,7 +106,7 @@ test('blur cancels charge and reduced motion returns without a flight', async ({
   const area = page.locator('.game-area');
   await area.focus(); await page.keyboard.down('Space');
   await page.waitForFunction(() => window.__dice.state().phase === 'charging');
-  await page.getByRole('button', { name: 'Adicionar d6' }).focus();
+  await page.getByRole('button', { name: 'Adicionar d6', exact: true }).focus();
   await page.keyboard.up('Space');
   expect(await page.evaluate(() => window.__dice.state().phase)).toBe('hand');
   expect(await page.evaluate(() => window.__dice.launches().count)).toBe(0);

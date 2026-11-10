@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, type RefObject } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import type { RapierRigidBody } from '@react-three/rapier';
-import { ArrowHelper, Color, Group, Mesh, MeshBasicMaterial, Plane, Quaternion, Raycaster, Vector2, Vector3, type Object3D, type PerspectiveCamera } from 'three';
+import { ArrowHelper, Color, Group, Matrix4, Mesh, MeshBasicMaterial, Plane, Quaternion, Raycaster, Vector2, Vector3, type BufferGeometry, type Object3D, type PerspectiveCamera } from 'three';
 import { Text } from 'troika-three-text';
 import { MAX_DICE, polyhedron } from '../dice/polyhedra';
 import { toKinematic } from '../physics/apply';
@@ -10,9 +10,10 @@ import { useDice } from '../store';
 import { charge, clampTarget } from '../throw/aim';
 import { showcasePoses } from './showcase';
 import { easeOut, highlightAt, HL_SIZE, SHOW } from './highlight';
-import { FONT, FONT_URL } from './Die';
+import { symbolGeometry } from '../dice/symbols';
+import { FONT, FONT_URL, SYMBOL } from './Die';
 
-type Mark = { local: Vector3; start: Vector3; face: Vector3; scale: number }; // local: the rolled numeral in die space
+type Mark = { local: Vector3; turn: Quaternion; start: Vector3; face: Vector3; scale: number }; // local, turn: the rolled numeral's place and turn in die space
 
 export function Hand({ gameArea, bodies }: {
   gameArea: RefObject<HTMLDivElement | null>; bodies: RefObject<(RapierRigidBody | null)[]>;
@@ -28,8 +29,16 @@ export function Hand({ gameArea, bodies }: {
   // The rolled numbers that rise over the settled dice, ride to their faces and glow (one per die, drawn on top).
   const numbersGroup = useRef<Group>(null);
   const numbersRef = useRef<Text[]>([]);
+  const glyphsRef = useRef<Mesh<BufferGeometry, MeshBasicMaterial>[]>([]); // same, for a rolled face that shows a symbol
   useEffect(() => {
     const group = numbersGroup.current!;
+    const glyphs = Array.from({ length: MAX_DICE }, () => {
+      const g = new Mesh<BufferGeometry, MeshBasicMaterial>(undefined, new MeshBasicMaterial({ color: '#FFE38A', transparent: true, depthTest: false, toneMapped: false }));
+      g.renderOrder = 20; g.visible = false;
+      group.add(g);
+      return g;
+    });
+    glyphsRef.current = glyphs;
     const list = Array.from({ length: MAX_DICE }, () => {
       const t = new Text();
       Object.assign(t, { font: FONT_URL, fontSize: HL_SIZE, anchorX: 'center', anchorY: 'middle', color: '#FFE38A',
@@ -40,7 +49,10 @@ export function Hand({ gameArea, bodies }: {
       return t;
     });
     numbersRef.current = list;
-    return () => { list.forEach((t) => { group.remove(t); t.dispose(); }); numbersRef.current = []; };
+    return () => {
+      list.forEach((t) => { group.remove(t); t.dispose(); }); numbersRef.current = [];
+      glyphs.forEach((g) => { group.remove(g); g.material.dispose(); }); glyphsRef.current = []; // symbol geometries are shared
+    };
   }, []);
   const arrow = useRef<ArrowHelper>(null);
   const preview = import.meta.env.MODE === 'test' && new URLSearchParams(location.search).has('surface-preview');
@@ -118,7 +130,7 @@ export function Hand({ gameArea, bodies }: {
   }, [camera, gameArea, gl, live]);
 
   useFrame((_, elapsed) => {
-    const numbers = numbersRef.current;
+    const numbers = numbersRef.current, glyphs = glyphsRef.current;
     const state = useDice.getState(), phase = state.gesture.phase;
     const marker = arrow.current!;
     const current = live();
@@ -152,7 +164,7 @@ export function Hand({ gameArea, bodies }: {
         return { p: [p.x, p.y, p.z], q: [q.x, q.y, q.z, q.w] };
       }) };
     }
-    if (phase !== 'settled') numbers.forEach((t) => { t.visible = false; });
+    if (phase !== 'settled') for (const o of [...numbers, ...glyphs]) o.visible = false;
     if (phase === 'settled' && mode.current !== nextMode) {
       showcase.current = null;
       if (!state.raw) state.setShowcased(state.throwId);
@@ -171,10 +183,15 @@ export function Hand({ gameArea, bodies }: {
           { position: cam.position, quaternion: cam.quaternion, fov: cam.fov, aspect: cam.aspect });
         const marks = polys.map((poly, i) => {
           const label = poly.labelList.find((l) => l.value === raw[i])!;
-          const local = new Vector3(...label.position).addScaledVector(new Vector3(...label.normal), 0.03);
-          numbers[i].text = label.text; numbers[i].visible = true;
+          const normal = new Vector3(...label.normal), up = new Vector3(...label.up);
+          const local = new Vector3(...label.position).addScaledVector(normal, 0.03);
+          const turn = new Quaternion().setFromRotationMatrix(new Matrix4().makeBasis(new Vector3().crossVectors(up, normal), up, normal));
+          // A symbol face raises its symbol; a blank Vampire face raises its value, so the highlight is never empty.
+          if (label.symbol) glyphs[i].geometry = symbolGeometry(label.symbol);
+          else numbers[i].text = label.text || String(raw[i]);
+          numbers[i].visible = !label.symbol; glyphs[i].visible = !!label.symbol;
           return {
-            local,
+            local, turn,
             start: new Vector3(...from[i].p).add(new Vector3(0, poly.radius + 0.35, 0)),
             face: new Vector3(...from[i].p).add(new Vector3(0, poly.radius + 0.35, 0)),
             scale: still ? 1 : FONT[poly.shape] / HL_SIZE,
@@ -187,15 +204,15 @@ export function Hand({ gameArea, bodies }: {
     mode.current = nextMode;
     if (phase === 'settled' && showcase.current) {
       const { at, from, to, throwId, gems, marks, still } = showcase.current;
-      const draw = (i: number, face: Vector3) => {
-        const n = numbers[i], m = marks[i];
-        if (still) { Object.assign(n, { fillOpacity: Math.min(1, (now - at) / 150), outlineOpacity: 0.6 }); n.position.copy(m.start); }
-        else {
-          const h = highlightAt(now - at, i, m.start, face, m.scale);
-          Object.assign(n, { fillOpacity: h.opacity, outlineOpacity: h.glow });
-          n.position.copy(h.p); n.scale.setScalar(h.scale);
-        }
-        n.quaternion.copy(camera.quaternion); // always faces the viewer
+      const draw = (i: number, face: Vector3, q?: Quaternion, ride = 0) => {
+        const n = numbers[i], g = glyphs[i], m = marks[i];
+        const h = still ? { p: m.start, opacity: Math.min(1, (now - at) / 150), glow: 0.6, scale: 1 } : highlightAt(now - at, i, m.start, face, m.scale);
+        Object.assign(n, { fillOpacity: h.opacity, outlineOpacity: h.glow });
+        g.material.opacity = h.opacity;
+        n.scale.setScalar(h.scale); g.scale.setScalar(h.scale * HL_SIZE * SYMBOL); // a symbol is 1 unit tall, a numeral HL_SIZE
+        // Faces the viewer while it floats; once it rides the die it lies on the face, exactly over the die's own mark.
+        const facing = q ? camera.quaternion.clone().slerp(q.clone().multiply(m.turn), ride) : camera.quaternion;
+        for (const o of [n, g]) { o.position.copy(h.p); o.quaternion.copy(facing); }
       };
       if (still) { marks.forEach((m, i) => draw(i, m.face)); return; }
       let done = true;
@@ -211,7 +228,7 @@ export function Hand({ gameArea, bodies }: {
         if (t === 1) { body.setTranslation(p, false); body.setRotation(q, false); }
         body.setNextKinematicTranslation(p);
         body.setNextKinematicRotation(q);
-        draw(i, marks[i].local.clone().applyQuaternion(q).add(p)); // the rolled numeral where the die is now
+        draw(i, marks[i].local.clone().applyQuaternion(q).add(p), q, Math.min(1, t / 0.35)); // the rolled numeral where the die is now
       });
       // Report "shown" one frame after landing, once the scene has rendered the pinned poses.
       if (done && showcase.current.landed && state.showcased !== throwId) state.setShowcased(throwId);
