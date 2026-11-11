@@ -60,3 +60,7 @@ npm run e2e
 ```
 
 Artefatos locais ignorados pelo Git: `test-results/`, `playwright-report/`, `screens/` (capturas e medições).
+
+## `screens.spec.ts` (numerais na superfície)
+
+Falhava em 7 casos por duas causas do teste, não do desenho: (1) contava pixels **dourados** em todos os dados, mas d10, d20 e d100 têm numeral **escuro** em gema clara (`INK` em `Die.tsx`); agora conta tinta escura entre pixels claros da mesma linha para esses três; (2) a página `?surface-preview` herdava o DPR 0,35 do SwiftShader e a queda adaptativa de DPR, deixando o dado com poucos pixels. A prévia (só em `mode=test`) agora mantém a resolução real (`isPreview` em `Stage.tsx`). As margens são conferidas em px CSS.

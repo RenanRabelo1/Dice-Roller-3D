@@ -20,6 +20,9 @@ import { customKind } from '../dice/custom';
 import { customsOf } from '../dice/polyhedra';
 import { useTable } from './tableState';
 
+// The test-only surface preview checks numeral pixels, so it keeps the real resolution (no SwiftShader or adaptive DPR drop).
+const isPreview = () => import.meta.env.MODE === 'test' && new URLSearchParams(location.search).has('surface-preview');
+
 function ThrowLoop({ bodies, recordLaunch }: {
   bodies: RefObject<(RapierRigidBody | null)[]>;
   recordLaunch: (last: NonNullable<ReturnType<DiceHook['launches']>['last']>) => void;
@@ -94,7 +97,7 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
     const context = gl.getContext(), debug = context.getExtension('WEBGL_debug_renderer_info');
     const renderer = context.getParameter(debug ? debug.UNMASKED_RENDERER_WEBGL : context.RENDERER) as string;
     // SwiftShader cannot afford a full-resolution first throw or a late buffer resize on pickup.
-    if (/swiftshader/i.test(renderer)) { desiredDpr.current = 0.35; setDpr(0.35); }
+    if (!isPreview() && /swiftshader/i.test(renderer)) { desiredDpr.current = 0.35; setDpr(0.35); }
   }, [gl, setDpr]);
   const bodies = useRef<(RapierRigidBody | null)[]>([]);
   const launches = useRef<ReturnType<DiceHook['launches']>>({ count: 0, last: null });
@@ -103,6 +106,7 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
     launches.current = { count: launches.current.count + 1, last };
   }, []);
   const adjustDpr = (scale: number) => {
+    if (isPreview()) return;
     desiredDpr.current = Math.min(initialDpr, Math.max(0.35, desiredDpr.current * scale));
   };
   useFrame(() => {
