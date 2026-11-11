@@ -38,3 +38,12 @@ export function isOpaque(image: CanvasImageSource & { width: number; height: num
   for (let i = 3; i < d.length; i += 4) if (d[i] !== 255) return false;
   return true;
 }
+
+// The browser's first image decode in a page can freeze the main thread for a second or more (measured with a 2048 px
+// PNG); decoding a 1-pixel PNG at startup pays that once, when nobody is throwing.
+const ONE_PIXEL = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+export function warmImageDecoder() {
+  if (typeof createImageBitmap !== 'function') return;
+  const bytes = Uint8Array.from(atob(ONE_PIXEL), (c) => c.charCodeAt(0));
+  createImageBitmap(new Blob([bytes], { type: 'image/png' })).then((b) => b.close(), () => {});
+}

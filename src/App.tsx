@@ -6,10 +6,11 @@ import { OmenOverlay } from './ui/OmenOverlay';
 import { useDice } from './store';
 import { Backdrop } from './scene/Backdrop';
 import { useTable } from './scene/tableState';
+import { warmImageDecoder } from './scene/tableImages';
 
 export default function App() {
   const gameArea = useRef<HTMLDivElement>(null);
-  useEffect(() => { void useDice.getState().loadCustoms(); void useTable.getState().load(); }, []);
+  useEffect(() => { void useDice.getState().loadCustoms(); void useTable.getState().load(); warmImageDecoder(); }, []);
   useEffect(() => {
     const media = matchMedia('(prefers-reduced-motion: reduce)');
     const update = () => useDice.getState().setReducedMotion(media.matches);

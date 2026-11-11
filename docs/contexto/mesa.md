@@ -36,6 +36,7 @@ O jogador muda o fundo e a aparência da bandeja, salva no navegador e exporta/i
 
 ## Armadilhas
 
+- O primeiro `createImageBitmap` da página para a thread principal por ~1 s; `warmImageDecoder()` (em `App`) decodifica um PNG de 1 pixel na abertura para pagar isso cedo.
 - Nunca mudar o número de luzes por causa da mesa. Trocar textura do feltro pode recompilar um shader uma vez (só no painel).
 - O `GLTFExporter` binário usa `FileReader`: só roda no navegador (o ida-e-volta é E2E, não Vitest). Vitest cobre o encaixe, os avisos e a limpeza com objetos montados à mão.
 - `Tray` só tem estado de React; o objeto 3D da mesa é recriado a cada mudança de cor/textura/modelo (descartado com `disposeTable`). Colisores não mudam.

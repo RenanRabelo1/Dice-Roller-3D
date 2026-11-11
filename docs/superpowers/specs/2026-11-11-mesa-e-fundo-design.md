@@ -244,6 +244,10 @@ Implementada na ordem da seção 11, com os padrões da seção 10 (temas Tavern
 | Padrão | 60,0 / 60,1 / 60,1 | 16,9 / 16,9 / 17,0 ms | 33,4 / 17,2 / 17,1 ms |
 | Importada no limite (12,6 MB, 96 062 triângulos, textura 2048² de ruído, ornamento de 96 mil triângulos) | 57,9 / 60,1 / 60,0 | 16,9 / 16,9 / 16,9 ms | 233 / 17,1 / 17,1 ms |
 
-p95 ≤ 20 ms nos dois casos. **Custo à parte, uma vez só:** aplicar a mesa pesada congela a página por 1 a 5 s, e a causa está na decodificação do PNG 2048² de ruído pelo navegador (um `createImageBitmap` isolado também deixa a página parada); com textura de 16 px ou ornamento de 64 triângulos o congelamento some ou cai para ~1 s. Texturas reais comprimem melhor, mas a decodificação custa por pixel; fica registrado como limitação conhecida.
+p95 ≤ 20 ms nos dois casos. **Congelamento ao aplicar a mesa pesada (corrigido na revisão).** A primeira medição acusou 1 a 5 s parados e atribuiu a causa à decodificação do PNG 2048². A investigação posterior (sonda com `PerformanceObserver`, perfil de CPU e medição de cada chamada WebGL) mostrou duas causas diferentes:
+1. **Artefato da medição:** o script passava o `.glb` de 12,6 MB para a página como um array de 12,6 milhões de números em `page.evaluate`; a desserialização parava a página por 3 a 5 s. Servindo o arquivo por `route`/`fetch` isso some.
+2. **Custo real, na primeira decodificação de imagem da página:** o primeiro `createImageBitmap` de um PNG 2048² parou a thread principal por ~1,1 s; o seguinte levou 71–111 ms. Decodificar um PNG de 1 pixel na abertura (`warmImageDecoder`, em `App`) paga isso antes de qualquer arremesso.
+
+Depois: aplicar a mesa pesada (96 062 triângulos, textura 2048²) deixa o pior quadro entre 50 e 133 ms (antes, 3,5–6,8 s medidos com o artefato); o upload da textura (`texSubImage2D`) leva 30–50 ms. O desempenho do crítico não mudou (p95 16,9–17 ms na rodada limpa; uma segunda série, feita com a máquina ocupada, teve p95 até 33 ms **também na mesa padrão**, então não é custo da mesa).
 
 **Testes:** `tests/table.test.ts` (15), `e2e/table.spec.ts` (6, incluindo M13 e o upgrade do IndexedDB v1→v2), `e2e/table-kraken.spec.ts` (2).
