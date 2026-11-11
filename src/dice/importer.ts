@@ -217,9 +217,26 @@ export function idealSolid(base: CustomBase, found: Plane[]): Solid {
 // Does the model have numerals cut into (or raised from) its faces? A numeral leaves vertices well below the plane
 // of a face, in the middle of it. An edge chamfer also sits below the planes, but near an edge, so it does not count.
 const DENT = 0.01, INTERIOR = 0.08, MIN_DENTS = 8;
-export function looksNumbered(positions: Float32Array, { poly, fit }: Solid): boolean {
+// Is this model point sunk into the middle of a face (a numeral), by the rule above? `at(k)` is its coordinate k.
+function dentTester({ poly, fit }: Solid): (at: (k: number) => number) => boolean {
   const R = RADIUS[poly.shape];
   const planes = poly.faces.map((f) => ({ n: f.normal, d: dot3(f.normal, f.center) }));
+  return (at) => {
+    const p: Vec3 = [0, 1, 2].map((k) => (at(k) - fit.center[k]) * fit.scale) as Vec3;
+    const slack = planes.map((pl) => pl.d - dot3(pl.n, p)).sort((a, b) => a - b);
+    return slack[0] > DENT * R && slack[1] > INTERIOR * R;
+  };
+}
+
+// Per-vertex ink for the preview: 1 where the model is cut into a face, 0 elsewhere (3 floats per vertex, grey).
+export function inkOf(positions: ArrayLike<number>, solid: Solid): Float32Array {
+  const dent = dentTester(solid), out = new Float32Array(positions.length);
+  for (let i = 0; i + 2 < positions.length; i += 3) if (dent((k) => positions[i + k])) out.fill(1, i, i + 3);
+  return out;
+}
+
+export function looksNumbered(positions: Float32Array, solid: Solid): boolean {
+  const dent = dentTester(solid);
   let lo = Infinity, hi = -Infinity;
   for (const x of positions) { lo = Math.min(lo, x); hi = Math.max(hi, x); }
   const q = Math.max(hi - lo, 1e-9) * 1e-5, seen = new Set<string>();
@@ -228,9 +245,7 @@ export function looksNumbered(positions: Float32Array, { poly, fit }: Solid): bo
     const key = `${Math.round(positions[i] / q)},${Math.round(positions[i + 1] / q)},${Math.round(positions[i + 2] / q)}`;
     if (seen.has(key)) continue;
     seen.add(key); total++;
-    const p: Vec3 = [0, 1, 2].map((k) => (positions[i + k] - fit.center[k]) * fit.scale) as Vec3;
-    const slack = planes.map((pl) => pl.d - dot3(pl.n, p)).sort((a, b) => a - b);
-    if (slack[0] > DENT * R && slack[1] > INTERIOR * R) dents++;
+    if (dent((k) => positions[i + k])) dents++;
   }
   return dents >= Math.max(MIN_DENTS, total * 0.01);
 }

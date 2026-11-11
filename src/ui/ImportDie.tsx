@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState, type ElementRef } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Environment, Lightformer, OrbitControls } from '@react-three/drei';
-import { BufferGeometry, Float32BufferAttribute, Group, Matrix4, Mesh, Quaternion, Vector3 } from 'three';
+import { BufferGeometry, Color, Float32BufferAttribute, Group, Matrix4, Mesh, Quaternion, Vector3 } from 'three';
 import { customKind, type CustomDie } from '../dice/custom';
-import { askOrder, checkValue, checkValues, formatOf, importModel, ImportError, LIMITS, normaliseValues, renumbered, suggestOpposite, type Imported } from '../dice/importer';
+import { askOrder, checkValue, checkValues, formatOf, importModel, ImportError, inkOf, LIMITS, normaliseValues, renumbered, suggestOpposite, type Imported } from '../dice/importer';
 import { slugOf, slugProblem } from '../dice/notation';
 import { MAX_DICE, type Polyhedron } from '../dice/polyhedra';
 import { GEM } from '../scene/Die';
@@ -45,10 +45,20 @@ function Marker({ poly, face }: { poly: Polyhedron; face: number }) {
   if (poly.shape === 'd4') return <mesh position={poly.points[face]}><sphereGeometry args={[0.07, 16, 12]} /><meshBasicMaterial color="#ffb000" depthTest={false} /></mesh>;
   return (
     <>
-      <mesh geometry={geometry}><meshBasicMaterial color="#ffb000" transparent opacity={0.18} depthWrite={false} side={2} /></mesh>
+      <mesh geometry={geometry}><meshBasicMaterial color="#ffb000" transparent opacity={0.08} depthWrite={false} side={2} /></mesh>
       <lineLoop geometry={outline}><lineBasicMaterial color="#ff8a00" /></lineLoop>
     </>
   );
+}
+
+// Frames the camera on the asked face (and again on demand: `nonce`), after the player has dragged it around.
+function Rig({ distance, nonce, pose, controls }: { distance: number; nonce: number; pose: Quaternion | null; controls: React.RefObject<ElementRef<typeof OrbitControls> | null> }) {
+  const camera = useThree((s) => s.camera);
+  useEffect(() => {
+    camera.position.set(0, 0, distance); camera.up.set(0, 1, 0); camera.lookAt(0, 0, 0);
+    controls.current?.update();
+  }, [camera, distance, nonce, pose, controls]);
+  return null;
 }
 
 function Preview({ loaded, color, orient, face, plain }: { loaded: Loaded; color: string; orient: Quaternion | null; face: number | null; plain: boolean }) {
@@ -60,12 +70,21 @@ function Preview({ loaded, color, orient, face, plain }: { loaded: Loaded; color
     if (orient) g.quaternion.copy(orient); else g.rotateY(dt * 0.6);
   });
   const at = fit.center.map((c) => -c * fit.scale) as [number, number, number];
+  // While reading the numbers the model is "painted": pale and matte, with ink where it is cut into a face.
+  const painted = useMemo(() => {
+    if (!plain || format !== 'stl') return null;
+    const g = (object as Mesh).geometry.clone(), ink = inkOf(g.getAttribute('position').array, loaded.imported);
+    const pale = new Color('#e6e1d4'), dark = new Color('#16130f'), c = new Color(), colors = new Float32Array(ink.length);
+    for (let i = 0; i < ink.length; i += 3) { c.copy(pale).lerp(dark, ink[i]); c.toArray(colors, i); }
+    g.setAttribute('color', new Float32BufferAttribute(colors, 3));
+    return g;
+  }, [plain, format, object, loaded.imported]);
+  useEffect(() => () => painted?.dispose(), [painted]);
   return (
     <group ref={group}>
       {format === 'stl'
-        ? <mesh geometry={(object as Mesh).geometry} position={at} scale={fit.scale}>
-          {/* While reading the numbers the model is matte and light, so the relief shows; otherwise the gem it will become. */}
-          {plain ? <meshStandardMaterial color="#d9d4c7" roughness={0.9} metalness={0} />
+        ? <mesh geometry={painted ?? (object as Mesh).geometry} position={at} scale={fit.scale}>
+          {plain ? <meshStandardMaterial vertexColors roughness={0.95} metalness={0} />
             : <meshPhysicalMaterial color={color} roughness={0.08} clearcoat={1} clearcoatRoughness={0.04} ior={1.6} />}
         </mesh>
         : <primitive object={object} position={at} scale={fit.scale} />}
@@ -140,7 +159,14 @@ export function ImportDie({ open, onClose }: { open: boolean; onClose: () => voi
     return isD4 ? orientation(imp.poly.tops[face].dir, [0, 1, 0.001]) : orientation(imp.poly.faces[face].normal, turned.labelList[face].up);
   }, [imp, step, asking, face, turns, isD4]);
 
-  useEffect(() => { orbit.current?.reset(); }, [preview]); // a new face (or turn) looks at the player again
+  const [look, setLook] = useState(0); // "Voltar à face"
+  // Close enough that the asked face fills most of the preview (~75%).
+  const distance = useMemo(() => {
+    if (!imp || face === undefined || isD4) return 2.8;
+    const f = imp.poly.faces[face], c = new Vector3(...f.center);
+    const reach = Math.max(...imp.poly.points.map((p) => new Vector3(...p)).filter((p) => Math.abs(p.clone().sub(c).dot(new Vector3(...f.normal))) < 1e-4).map((p) => p.distanceTo(c)));
+    return c.length() + reach / (0.75 * Math.tan((17.5 * Math.PI) / 180));
+  }, [imp, face, isD4]);
 
   const askNext = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -226,6 +252,7 @@ export function ImportDie({ open, onClose }: { open: boolean; onClose: () => voi
               <Preview loaded={loaded} color={color} orient={step === 'numbers' && asking ? preview : null}
                 face={step === 'numbers' && asking && face !== undefined ? face : null} plain={step === 'numbers'} />
               <OrbitControls ref={orbit} enableZoom={false} enablePan={false} />
+              {step === 'numbers' && asking && <Rig distance={distance} nonce={look} pose={preview} controls={orbit} />}
             </Canvas>
           </div>
         )}
@@ -257,6 +284,7 @@ export function ImportDie({ open, onClose }: { open: boolean; onClose: () => voi
                 <label>{isD4 ? 'Que número você lê no vértice voltado para você?' : 'Que número está nesta face?'}
                   <input key={pos} name="value" type="number" defaultValue={values[face] ?? ''} onChange={() => setError('')} autoFocus /></label>
                 <div className="import-row">
+                  <button type="button" onClick={() => setLook((n) => n + 1)}>Voltar à face</button>
                   {!isD4 && <button type="button" aria-label="Girar o numeral" onClick={() => setTurns((t) => ({ ...t, [face]: ((t[face] ?? 0) + 1) % turnLabel }))}>↻ Girar</button>}
                   <button type="button" disabled={pos === 0} onClick={() => { setPos(pos - 1); setError(''); }}>Voltar</button>
                   <button type="submit">{pos + 1 === faceCount ? 'Concluir' : 'Confirmar face'}</button>
