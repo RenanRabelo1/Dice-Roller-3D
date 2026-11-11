@@ -21,6 +21,7 @@ O jogador muda o fundo e a aparência da bandeja, salva no navegador e exporta/i
 
 - **Fundo:** cor = `scene.background` (`Stage`); foto e tema pronto = `scene.background` nulo e canvas transparente sobre `.backdrop`. Os reflexos dos dados continuam dos `Lightformer`s: o fundo não toca nos materiais dos dados.
 - **Mesa:** `Tray` desenha `buildDefault(tema)` na hora (cores/texturas geradas) e, se o tema tem modelo ou imagem de feltro, troca pelo `buildFor(tema)` quando decodifica. Nomes na cena: grupo `mesa` → `tray-surface` (base + `feltro`), `moldura` (4 paredes), `guia-area-de-jogo` (caixa 14 × 1,5 × 9, invisível), `fundo` (só no arquivo).
+- A cor do feltro multiplica a textura. Ao escolher uma imagem própria o painel põe o feltro em `#FFFFFF` (a imagem aparece como é) e avisa que a cor tinge; veludo e couro mantêm a cor.
 - **Tema ativo = registro salvo.** Editar a mesa padrão cria "Minha mesa"; editar grava com atraso de 300 ms (e no `pagehide`). Sem IndexedDB vale só na sessão (`sessionOnly`, o painel avisa).
 - **Kraken:** `Kraken.start(..., useTable.colors)`: cacos com o feltro da mesa e a madeira "iluminada" (`shardWood`; a madeira padrão dá `#815435`, igual a antes). Sem nó `piso`, o modelo inteiro some na quebra (o grupo raiz vira `tray-surface`).
 

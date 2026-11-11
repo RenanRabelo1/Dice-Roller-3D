@@ -39,7 +39,8 @@ export function TablePanel() {
     edit({ background: { kind: 'image', image, blur: bg.kind === 'image' ? bg.blur : 0, dim: bg.kind === 'image' ? bg.dim : 25 } });
   });
   const feltImage = (file: File | undefined) => file && task('Preparando imagem…', async () => {
-    edit({ felt: { color: theme.felt.color, texture: { image: await reduceImage(file, LIMITS.texturePx), tile: 2 } } });
+    // White, so the picture shows in its own colours; the colour can still be changed afterwards to tint it on purpose.
+    edit({ felt: { color: '#ffffff', texture: { image: await reduceImage(file, LIMITS.texturePx), tile: 2 } } });
   });
   const setBackground = (background: Background) => edit({ background });
 
@@ -128,6 +129,7 @@ export function TablePanel() {
             </label>
             <input id="table-felt-image" data-testid="table-felt-image" type="file" accept="image/png,image/jpeg,image/webp" hidden
               onChange={(e) => { feltImage(e.target.files?.[0]); e.target.value = ''; }} />
+            {typeof theme.felt.texture === 'object' && <small>A cor do feltro tinge a textura. Branco mostra a imagem como ela é.</small>}
             {typeof theme.felt.texture === 'object' && (
               <label className="table-row">Tamanho da textura <input type="range" min={LIMITS.tile[0]} max={LIMITS.tile[1]} step={0.5} value={theme.felt.texture.tile}
                 onChange={(e) => edit({ felt: { color: theme.felt.color, texture: { image: (theme.felt.texture as { image: Blob }).image, tile: clampTile(+e.target.value) } } })} /></label>

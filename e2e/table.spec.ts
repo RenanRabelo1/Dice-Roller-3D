@@ -84,6 +84,21 @@ test('felt and wood colours change what is drawn, at once', async ({ page }) => 
   expect(await page.evaluate(() => window.__dice.state().error)).toBeNull();
 });
 
+test('a felt image shows in its own colours: the felt colour turns white, and can tint it again', async ({ page }) => {
+  await openPanel(page);
+  expect((await table(page)).felt).toBe('#3a0f1a');
+  await page.getByTestId('table-felt-image').setInputFiles(png);
+  await expect.poll(async () => (await table(page)).felt).toBe('#ffffff');
+  expect((await table(page)).feltTextured).toBe(true);
+  await expect(panel(page).getByText('A cor do feltro tinge a textura')).toBeVisible();
+  await panel(page).getByLabel('Feltro', { exact: true }).fill('#2a6f3a');
+  await expect.poll(async () => (await table(page)).felt).toBe('#2a6f3a');
+  // Generated textures keep the colour they had.
+  await panel(page).getByLabel('Textura do feltro').selectOption('veludo');
+  await expect.poll(async () => (await table(page)).feltTextured).toBe(true);
+  expect((await table(page)).felt).toBe('#2a6f3a');
+});
+
 test('exporting a table and importing it back gives the same table (M13)', async ({ page }) => {
   await openPanel(page);
   await panel(page).getByLabel('Feltro', { exact: true }).fill('#2a6f3a');
