@@ -13,6 +13,7 @@ Rolador de dados 3D (React 19 + three/R3F + Rapier + zustand, Vite). UI em pt-BR
 | Vitest, Playwright, `window.__dice`, gate | [testes.md](docs/contexto/testes.md) |
 | Fundo, mesa (cores, textura), exportar/importar mesa `.glb`, kraken nos cacos | [mesa.md](docs/contexto/mesa.md) |
 | Antes de mexer em física, cena ou desempenho; specs antigas vs. código | [armadilhas.md](docs/contexto/armadilhas.md) |
+| Próximas features combinadas, ainda sem spec | [backlog.md](docs/backlog.md) |
 
 Gate: `npm run build && npm run lint && npm test && npm run e2e`.
 `docs/superpowers/` é histórico e diverge do código (ver armadilhas.md). Mudou o comportamento? Atualize o módulo correspondente no mesmo commit.
