@@ -10,9 +10,17 @@ import { fractureCells, KRAKEN, krakenAt, span } from './krakenMotion';
 const ARMS = 10, RINGS = 36, SIDES = 10, SUCKERS = 8;
 const UP = new Vector3(0, 1, 0), Z = new Vector3(0, 0, 1);
 const FLESH = new Color('#E8AFB9'), SKIN = new Color('#41243F'), TIP = new Color('#915C82');
-const FELT = new Color('#3A0F1A'), WOOD = new Color('#815435');
+// The shards take the table's own colours; their wood is the lit inside of the plank, lighter than the planks' face
+// (the default table's #3B2416 shows as #815435, and any other wood gets the same lift).
+export const SHARD_DEFAULT = { felt: '#3A0F1A', wood: '#815435' };
+export const shardWood = (wood: string) => {
+  if (wood.toLowerCase() === '#3b2416') return new Color(SHARD_DEFAULT.wood);
+  const c = new Color(wood), hsl = { h: 0, s: 0, l: 0 };
+  c.getHSL(hsl);
+  return c.setHSL(hsl.h, hsl.s, Math.min(0.85, hsl.l * 2.24));
+};
 
-function shard(points: [number, number][], x: number, z: number) {
+export function shard(points: [number, number][], x: number, z: number, felt = new Color(SHARD_DEFAULT.felt), wood = new Color(SHARD_DEFAULT.wood)) {
   const positions: number[] = [], colors: number[] = [];
   const tri = (a: number[], b: number[], c: number[], color: Color) => {
     positions.push(...a, ...b, ...c);
@@ -21,12 +29,12 @@ function shard(points: [number, number][], x: number, z: number) {
   const top = points.map(([px, pz]) => [px - x, 0, pz - z]);
   const bottom = points.map(([px, pz]) => [px - x, -0.5, pz - z]);
   for (let i = 1; i < points.length - 1; i++) {
-    tri(top[0], top[i + 1], top[i], FELT);
-    tri(bottom[0], bottom[i], bottom[i + 1], WOOD);
+    tri(top[0], top[i + 1], top[i], felt);
+    tri(bottom[0], bottom[i], bottom[i + 1], wood);
   }
   for (let i = 0; i < points.length; i++) {
     const next = (i + 1) % points.length;
-    tri(top[i], top[next], bottom[i], WOOD); tri(top[next], bottom[next], bottom[i], WOOD);
+    tri(top[i], top[next], bottom[i], wood); tri(top[next], bottom[next], bottom[i], wood);
   }
   const g = new BufferGeometry();
   g.setAttribute('position', new BufferAttribute(new Float32Array(positions), 3));
@@ -69,7 +77,7 @@ export class Kraken {
   readonly root = new Group();
   private arms: Mesh<BufferGeometry, MeshPhysicalMaterial>;
   private suckers = new InstancedMesh(new TorusGeometry(0.115, 0.035, 5, 10), new MeshStandardMaterial({ color: FLESH, roughness: 0.4 }), ARMS * SUCKERS);
-  private splinters = new InstancedMesh(new BoxGeometry(0.11, 0.55, 0.09), new MeshStandardMaterial({ color: WOOD, transparent: true }), 56);
+  private splinters = new InstancedMesh(new BoxGeometry(0.11, 0.55, 0.09), new MeshStandardMaterial({ color: SHARD_DEFAULT.wood, transparent: true }), 56);
   private floor = new Group();
   private floorMaterial = new MeshStandardMaterial({ vertexColors: true, roughness: 0.9 });
   private pieces: { mesh: Mesh; x: number; z: number; dx: number; dz: number; near: number }[] = [];
@@ -118,8 +126,10 @@ export class Kraken {
     this.hide();
   }
 
-  start(positions: Vector3[], targets: number[]) {
+  start(positions: Vector3[], targets: number[], table = SHARD_DEFAULT) {
     this.targets = targets;
+    const felt = new Color(table.felt), wood = shardWood(table.wood);
+    this.splinters.material.color.copy(wood);
     this.center.set(0, 0, 0);
     positions.forEach((p) => this.center.addScaledVector(p, 1 / positions.length));
     this.center.set(Math.max(-4.1, Math.min(4.1, this.center.x)), 0, Math.max(-2.1, Math.min(2.1, this.center.z)));
@@ -136,7 +146,7 @@ export class Kraken {
       const x = cell.reduce((sum, p) => sum + p[0], 0) / cell.length, z = cell.reduce((sum, p) => sum + p[1], 0) / cell.length;
       const dir = new Vector3(x - this.center.x, 0, z - this.center.z), near = dir.length() < 3.1 ? 1 : 0.35;
       dir.normalize();
-      const mesh = new Mesh(shard(cell, x, z), this.floorMaterial); this.floor.add(mesh);
+      const mesh = new Mesh(shard(cell, x, z, felt, wood), this.floorMaterial); this.floor.add(mesh);
       cell.forEach((p, i) => { const next = cell[(i + 1) % cell.length]; lines.push(p[0], 0.018, p[1], next[0], 0.018, next[1]); });
       return { mesh, x, z, dx: dir.x, dz: dir.z, near };
     });
