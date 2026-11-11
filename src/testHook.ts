@@ -16,7 +16,7 @@ export interface DiceHook {
   meshes(): { q: Quat }[];
   labels(index: number): { text: string; value: number; position: Vec3; normal: Vec3 }[]; // text: the numeral, the symbol's name, or '' on a blank face
   numbersVisible(index: number): boolean;
-  highlights(): { text: string | null; visible: boolean }[];
+  highlights(): { text: string | null; visible: boolean; position: Vec3 }[];
   camera(): Vec3;
   launches(): { count: number; last: { before: { p: Vec3; q: Quat }[]; after: { p: Vec3; q: Quat }[] } | null };
   previewSurface(index: number, position: Vec3, quaternion: Quat): void;

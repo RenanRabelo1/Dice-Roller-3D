@@ -212,7 +212,7 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
       camera: () => camera.position.toArray(),
       numbersVisible: (index) => numbersOf(index)?.visible ?? false,
       highlights: () => (scene.getObjectByName('result-highlights')?.children ?? []).map((o) => ({
-        text: o instanceof Text ? o.text : null, visible: o.visible,
+        text: o instanceof Text ? o.text : null, visible: o.visible, position: o.position.toArray(),
       })),
       launches: () => launches.current,
       previewSurface: (index, p, q) => {

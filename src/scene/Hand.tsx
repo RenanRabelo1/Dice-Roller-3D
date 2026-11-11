@@ -3,13 +3,13 @@ import { useFrame, useThree } from '@react-three/fiber';
 import type { RapierRigidBody } from '@react-three/rapier';
 import { ArrowHelper, Color, Group, Matrix4, Mesh, MeshBasicMaterial, Plane, Quaternion, Raycaster, Vector2, Vector3, type BufferGeometry, type Object3D, type PerspectiveCamera } from 'three';
 import { Text } from 'troika-three-text';
-import { MAX_DICE, polyhedron } from '../dice/polyhedra';
+import { MAX_DICE, polyhedron, RADIUS } from '../dice/polyhedra';
 import { toKinematic } from '../physics/apply';
 import { HAND, type Quat, type Vec3 } from '../physics/world';
 import { omenPlaying, useDice } from '../store';
 import { charge, clampTarget } from '../throw/aim';
 import { newWhirl, ORBITS, restingPlaces, spinAngle, stepWhirl, vortexCenter } from '../throw/vortex';
-import { showcasePoses } from './showcase';
+import { CAPTION, showcasePoses } from './showcase';
 import { easeOut, highlightAt, HL_SIZE, SHOW } from './highlight';
 import { symbolGeometry } from '../dice/symbols';
 import { FONT, FONT_URL, SYMBOL } from './Die';
@@ -205,7 +205,7 @@ export function Hand({ gameArea, bodies }: {
           const normal = new Vector3(...label.normal), up = new Vector3(...label.up);
           const local = new Vector3(...label.position).addScaledVector(normal, 0.03);
           const turn = new Quaternion().setFromRotationMatrix(new Matrix4().makeBasis(new Vector3().crossVectors(up, normal), up, normal));
-          // Coins raise their name; Vampire faces raise their symbol, or the value on a blank face.
+          // Coins show their name (under the coin); Vampire faces raise their symbol, or the value on a blank face.
           const symbol = poly.shape !== 'coin' && label.symbol;
           if (symbol) glyphs[i].geometry = symbolGeometry(symbol);
           else numbers[i].text = label.text || String(raw[i]);
@@ -214,7 +214,7 @@ export function Hand({ gameArea, bodies }: {
             local, turn,
             start: new Vector3(...from[i].p).add(new Vector3(0, poly.radius + 0.35, 0)),
             face: new Vector3(...from[i].p).add(new Vector3(0, poly.radius + 0.35, 0)),
-            scale: still || poly.shape === 'coin' ? 1 : FONT[poly.shape] / HL_SIZE,
+            scale: still ? 1 : poly.shape === 'coin' ? CAPTION.scale : FONT[poly.shape] / HL_SIZE,
           };
         });
         showcase.current = { at: now, throwId: state.throwId, from, to, kraken, storm, omenAt: state.omenAt, marks, still, gems: current.map((_, i) => scene.getObjectByName(`gem-${i}`)) };
@@ -249,15 +249,8 @@ export function Hand({ gameArea, bodies }: {
         return;
       }
       let done = !waiting;
+      const under = new Vector3(0, -1, 0).applyQuaternion(camera.quaternion); // straight down the screen
       current.forEach((body, i) => {
-        if (state.dice[i] === 'coin') {
-          const t = Math.min(1, Math.max(0, (now - at - SHOW.delay - i * SHOW.stagger) / SHOW.duration));
-          if (t < 1) done = false;
-          // The coin stays on the tray; only its Cara/Coroa caption rises to the result row.
-          pin(body, new Vector3(...from[i].p), new Quaternion(...from[i].q));
-          draw(i, new Vector3(...to[i].p));
-          return;
-        }
         const grabbed = kraken.includes(i), adrift = storm.includes(i);
         if (grabbed || adrift) { // the omen moves this die, and leaves it at its result pose
           const ms = now - omenAt, pose = grabbed ? krakenDieAt(ms, from[i], to[i]) : stormDieAt(ms, from[i], to[i]);
@@ -279,7 +272,9 @@ export function Hand({ gameArea, bodies }: {
         if (t === 1) { body.setTranslation(p, false); body.setRotation(q, false); }
         body.setNextKinematicTranslation(p);
         body.setNextKinematicRotation(q);
-        draw(i, marks[i].local.clone().applyQuaternion(q).add(p), q, Math.min(1, t / 0.35)); // the rolled numeral where the die is now
+        // A coin comes up showing its drawing, and its Cara/Coroa stays under it, facing you.
+        if (state.dice[i] === 'coin') draw(i, p.clone().addScaledVector(under, RADIUS.coin + CAPTION.gap));
+        else draw(i, marks[i].local.clone().applyQuaternion(q).add(p), q, Math.min(1, t / 0.35)); // the rolled numeral where the die is now
       });
       // Report "shown" one frame after landing, once the scene has rendered the pinned poses.
       if (done && showcase.current.landed && state.showcased !== throwId) state.setShowcased(throwId);
