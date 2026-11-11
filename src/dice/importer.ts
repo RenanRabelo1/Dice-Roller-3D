@@ -214,6 +214,27 @@ export function idealSolid(base: CustomBase, found: Plane[]): Solid {
   return { poly, fit: { center, scale } };
 }
 
+// Does the model have numerals cut into (or raised from) its faces? A numeral leaves vertices well below the plane
+// of a face, in the middle of it. An edge chamfer also sits below the planes, but near an edge, so it does not count.
+const DENT = 0.01, INTERIOR = 0.08, MIN_DENTS = 8;
+export function looksNumbered(positions: Float32Array, { poly, fit }: Solid): boolean {
+  const R = RADIUS[poly.shape];
+  const planes = poly.faces.map((f) => ({ n: f.normal, d: dot3(f.normal, f.center) }));
+  let lo = Infinity, hi = -Infinity;
+  for (const x of positions) { lo = Math.min(lo, x); hi = Math.max(hi, x); }
+  const q = Math.max(hi - lo, 1e-9) * 1e-5, seen = new Set<string>();
+  let total = 0, dents = 0;
+  for (let i = 0; i + 2 < positions.length; i += 3) {
+    const key = `${Math.round(positions[i] / q)},${Math.round(positions[i + 1] / q)},${Math.round(positions[i + 2] / q)}`;
+    if (seen.has(key)) continue;
+    seen.add(key); total++;
+    const p: Vec3 = [0, 1, 2].map((k) => (positions[i + k] - fit.center[k]) * fit.scale) as Vec3;
+    const slack = planes.map((pl) => pl.d - dot3(pl.n, p)).sort((a, b) => a - b);
+    if (slack[0] > DENT * R && slack[1] > INTERIOR * R) dents++;
+  }
+  return dents >= Math.max(MIN_DENTS, total * 0.01);
+}
+
 // --- numbering --------------------------------------------------------------------------------------------------
 
 // The numbers allowed are 1..N (d10: 0..9, where "10" reads as 0); a d4 numbers its corners 1..4.
@@ -257,11 +278,12 @@ export function renumbered(poly: Polyhedron, numbering: Numbering): Polyhedron {
 
 // --- the whole import -------------------------------------------------------------------------------------------
 
-export interface Imported extends Solid { base: CustomBase; triangles: number; object: Object3D }
+export interface Imported extends Solid { base: CustomBase; triangles: number; object: Object3D; hasNumbers: boolean }
 export async function importModel(bytes: ArrayBuffer, format: ModelFormat): Promise<Imported> {
   const model = await readModel(bytes, format);
   const { base, planes } = detectPlanes(model.positions);
-  return { base, ...idealSolid(base, planes), triangles: model.triangles, object: model.object };
+  const solid = idealSolid(base, planes);
+  return { base, ...solid, triangles: model.triangles, object: model.object, hasNumbers: looksNumbered(model.positions, solid) };
 }
 
 // --- showing the model in the scene -----------------------------------------------------------------------------

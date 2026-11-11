@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { BoxGeometry, IcosahedronGeometry } from 'three';
 import type { CustomBase } from '../src/dice/custom';
-import { askOrder, checkValues, detectPlanes, idealSolid, ImportError, importModel, LIMITS, readModel, renumbered, suggestOpposite } from '../src/dice/importer';
+import { askOrder, checkValues, detectPlanes, idealSolid, ImportError, importModel, LIMITS, looksNumbered, readModel, renumbered, suggestOpposite } from '../src/dice/importer';
 import { RADIUS, polyhedron } from '../src/dice/polyhedra';
 import { glb, modelTriangles, stl } from './helpers/models';
 
@@ -91,5 +91,18 @@ describe('numbering', () => {
     const d4 = renumbered(polyhedron('d4'), { values: [4, 3, 2, 1] });
     expect(d4.tops.map((t) => t.value)).toEqual([4, 3, 2, 1]);
     expect(d4.labelList).toHaveLength(12);
+  });
+});
+
+describe('numerals cut into the faces', () => {
+  for (const base of BASES) it(`${base}: told apart from smooth and from chamfered-smooth`, () => {
+    const check = (o: { bevel?: number; engrave?: number }) => {
+      const positions = modelTriangles(polyhedron(base), o);
+      return looksNumbered(positions, idealSolid(base, detectPlanes(positions).planes));
+    };
+    expect(check({})).toBe(false);
+    expect(check({ bevel: 0.1 })).toBe(false);
+    expect(check({ engrave: 0.04 })).toBe(true);
+    expect(check({ bevel: 0.1, engrave: 0.04 })).toBe(true);
   });
 });

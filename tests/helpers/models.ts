@@ -8,7 +8,7 @@ import { polyhedron, type Polyhedron } from '../../src/dice/polyhedra';
 
 // The solid as loose triangles, optionally chamfered (every corner of every face pulled in by `bevel`),
 // then turned, scaled (a mm-sized model) and moved off the origin, like a model from a slicer.
-export function modelTriangles(poly: Polyhedron, { bevel = 0, scale = 25 } = {}): Float32Array {
+export function modelTriangles(poly: Polyhedron, { bevel = 0, scale = 25, engrave = 0 } = {}): Float32Array {
   const pts: Vector3[] = [];
   const t = poly.triangles;
   for (let i = 0; i < t.length; i += 9) {
@@ -21,6 +21,14 @@ export function modelTriangles(poly: Polyhedron, { bevel = 0, scale = 25 } = {})
   const moved = (v: Vector3) => v.clone().applyQuaternion(q).multiplyScalar(scale).add(new Vector3(30, -12, 7));
   const hull = new ConvexHull().setFromPoints(pts.map(moved));
   const out: number[] = [];
+  // Engraving: a hexagonal pit in the middle of every face, `engrave` deep (as a share of the radius).
+  if (engrave) for (const f of poly.faces) {
+    const n = new Vector3(...f.normal), c = new Vector3(...f.center);
+    const u = new Vector3().crossVectors(n, Math.abs(n.y) < 0.9 ? new Vector3(0, 1, 0) : new Vector3(1, 0, 0)).normalize(), w = new Vector3().crossVectors(n, u);
+    const rim = Array.from({ length: 6 }, (_, k) => c.clone().addScaledVector(u, 0.12 * Math.cos((k * Math.PI) / 3) * poly.radius).addScaledVector(w, 0.12 * Math.sin((k * Math.PI) / 3) * poly.radius));
+    const floor = rim.map((r) => r.clone().addScaledVector(n, -engrave * poly.radius));
+    for (let k = 0; k < 6; k++) for (const p of [rim[k], floor[k], floor[(k + 1) % 6], rim[k], floor[(k + 1) % 6], rim[(k + 1) % 6]]) { const m = moved(p); out.push(m.x, m.y, m.z); }
+  }
   for (const f of hull.faces) {
     const ring: Vector3[] = [];
     let e = f.edge;
