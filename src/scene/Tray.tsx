@@ -5,7 +5,7 @@ import { useFrame } from '@react-three/fiber';
 import type { Group, Object3D } from 'three';
 import { useDice } from '../store';
 import { krakenAt, krakenIndices } from './krakenMotion';
-import { buildDefault, buildFor, colorsOf, disposeTable, SURFACE } from './tableFile';
+import { buildDefault, colorsOf, disposeTable, SURFACE } from './tableBuild';
 import { useTable } from './tableState';
 
 // The tray's colliders are always trayColliders(); what you see comes from the active table theme (a default
@@ -21,7 +21,7 @@ export function Tray() {
   useEffect(() => {
     if (!slow) return;
     let alive = true;
-    buildFor(theme).then((group) => { if (alive) setLoaded({ theme, group }); else disposeTable(group); }, () => { if (alive) setLoaded(null); });
+    import('./tableFile').then((m) => m.buildFor(theme)).then((group) => { if (alive) setLoaded({ theme, group }); else disposeTable(group); }, () => { if (alive) setLoaded(null); });
     return () => { alive = false; };
   }, [theme, slow]);
   useEffect(() => () => { if (loaded) disposeTable(loaded.group); }, [loaded]);

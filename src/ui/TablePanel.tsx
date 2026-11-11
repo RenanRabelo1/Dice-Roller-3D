@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { colorsOf, disposeTable } from '../scene/tableBuild';
 import { reduceImage, TableError } from '../scene/tableImages';
 import { useTable } from '../scene/tableState';
 import { clampBlur, clampDim, clampTile, DEFAULT_THEME, fileSafe, LIMITS, PRESETS, type Background, type PresetName, type TableTheme } from '../scene/tableTheme';
@@ -43,7 +44,7 @@ export function TablePanel() {
   const setBackground = (background: Background) => edit({ background });
 
   const exportFile = () => task('Preparando arquivo…', async () => {
-    const { buildFor, disposeTable, exportTable } = await import('../scene/tableFile');
+    const { buildFor, exportTable } = await import('../scene/tableFile');
     const { CanvasTexture } = await import('three');
     const group = await buildFor(theme);
     const map = bg.kind === 'image' ? new CanvasTexture(await createImageBitmap(bg.image)) : null;
@@ -60,7 +61,7 @@ export function TablePanel() {
   const importFile = (file: File | undefined) => file && task('Lendo a mesa…', async () => {
     if (!file.name.toLowerCase().endsWith('.glb')) throw new TableError('Use um arquivo .glb (exporte como glTF Binário).');
     const bytes = await file.arrayBuffer();
-    const { readTable, colorsOf, disposeTable } = await import('../scene/tableFile');
+    const { readTable } = await import('../scene/tableFile');
     const read = await readTable(bytes);
     const colors = colorsOf(read.group) ?? { felt: DEFAULT_THEME.felt.color, wood: DEFAULT_THEME.wood.color };
     disposeTable(read.group);
@@ -134,13 +135,13 @@ export function TablePanel() {
           </fieldset>
           <fieldset>
             <legend>Arquivo</legend>
-            <label className="table-row">Nome <input value={theme.name} maxLength={40} disabled={theme.id === DEFAULT_THEME.id} onChange={(e) => edit({ name: e.target.value })} /></label>
+            <label className="table-row">Nome da mesa <input value={theme.name} maxLength={40} disabled={theme.id === DEFAULT_THEME.id} onChange={(e) => edit({ name: e.target.value })} /></label>
             <div className="import-row">
               <button onClick={exportFile}>Exportar mesa</button>
               <button onClick={() => document.getElementById('table-import')?.click()}>Importar mesa</button>
               <input id="table-import" data-testid="table-import" type="file" accept=".glb,model/gltf-binary" hidden
                 onChange={(e) => { importFile(e.target.files?.[0]); e.target.value = ''; }} />
-              <button onClick={copy} disabled={theme.id === DEFAULT_THEME.id}>Salvar como nova</button>
+              <button onClick={copy} disabled={theme.id === DEFAULT_THEME.id}>Duplicar mesa</button>
               <button onClick={reset} disabled={theme.id === DEFAULT_THEME.id}>Restaurar mesa padrão</button>
             </div>
             <small>Só .glb (até 20 MB, 100 mil triângulos, texturas de 2048 px). A mesa só muda o visual: a física e os resultados não mudam.</small>

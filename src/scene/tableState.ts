@@ -20,13 +20,14 @@ export interface TableState {
 
 const newId = () => (globalThis.crypto?.randomUUID?.() ?? `m-${Date.now()}-${Math.random().toString(36).slice(2)}`);
 let timer: ReturnType<typeof setTimeout> | undefined;
+let unsaved: (() => void) | undefined; // the debounced write still waiting, if any
 
 export const useTable = create<TableState>((set, get) => {
   const persist = (t: TableTheme, now = false) => {
     if (t.id === DEFAULT_ID) return;
-    const write = () => saveTable(t).catch(() => set({ sessionOnly: true }));
+    const write = () => { unsaved = undefined; clearTimeout(timer); return saveTable(t).catch(() => set({ sessionOnly: true })); };
     clearTimeout(timer);
-    if (now) void write(); else timer = setTimeout(() => void write(), 400);
+    if (now) void write(); else { unsaved = () => void write(); timer = setTimeout(unsaved, 300); }
   };
   const activate = (theme: TableTheme) => {
     setActiveId(theme.id === DEFAULT_ID ? null : theme.id);
@@ -58,6 +59,7 @@ export const useTable = create<TableState>((set, get) => {
       activate(next); persist(next, true);
     },
     remove(id) {
+      clearTimeout(timer); unsaved = undefined; // a pending save of this table must not bring it back
       void deleteTable(id).catch(() => set({ sessionOnly: true }));
       set((s) => ({ tables: s.tables.filter((t) => t.id !== id) }));
       if (get().theme.id === id) activate(DEFAULT_THEME);
@@ -66,3 +68,6 @@ export const useTable = create<TableState>((set, get) => {
     setColors: (colors) => set({ colors }),
   };
 });
+
+// Closing the tab within the debounce window still saves the last change (best effort: IndexedDB may not finish).
+if (typeof addEventListener === 'function') addEventListener('pagehide', () => unsaved?.());
