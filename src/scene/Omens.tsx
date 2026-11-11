@@ -7,7 +7,7 @@ import {
   Shape, Sprite, SpriteMaterial, Vector3, type Camera, type Material, type Scene, type WebGLRenderer,
 } from 'three';
 import { MAX_DICE, type DieKind } from '../dice/polyhedra';
-import { DUALITY_HIT, omenKind, omenMs } from '../dice/omen';
+import { DUALITY_HIT, isD20, omenKind, omenMs } from '../dice/omen';
 import { useDice } from '../store';
 import { Kraken } from './Kraken';
 
@@ -190,8 +190,8 @@ class Show {
     if (!o || o.throwId !== s.throwId || s.gesture.phase !== 'settled' || s.omenDone === o.throwId) { if (this.run) this.hide(); return null; }
     if (this.run?.throwId !== o.throwId) {
       this.hide();
-      const kind = omenKind(o), on = (die: DieKind) => (kind === 'crit' ? o.crits.filter((i) => s.dice[i] === die).map(at).filter((p): p is Vector3 => !!p) : []);
-      const lit = on('d20'), deep = on('d100');
+      const kind = omenKind(o), on = (is: (die: DieKind) => boolean) => (kind === 'crit' ? o.crits.filter((i) => is(s.dice[i])).map(at).filter((p): p is Vector3 => !!p) : []);
+      const lit = on(isD20), deep = on((die) => die === 'd100');
       lit.forEach((p, i) => this.bolts[i].start(p));
       if (deep.length) this.kraken.start(deep, o.crits.filter((i) => s.dice[i] === 'd100'));
       if (lit[0]) this.light.position.copy(lit[0]).y += 1.2;
