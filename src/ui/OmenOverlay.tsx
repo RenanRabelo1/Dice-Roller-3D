@@ -1,5 +1,6 @@
 import { useEffect, type CSSProperties, type RefObject } from 'react';
-import { omenKind, omenMs, type OmenKind } from '../dice/omen';
+import { isD20, omenKind, omenMs, type OmenKind } from '../dice/omen';
+import type { DieKind } from '../dice/polyhedra';
 import { useDice } from '../store';
 
 // The screen side of an omen: blood for a fumble, a white flash as the lightning strikes, a deep-sea
@@ -50,7 +51,7 @@ export function OmenOverlay({ gameArea }: { gameArea: RefObject<HTMLDivElement |
     return () => { area.removeAttribute('data-omen'); area.removeAttribute('data-kraken'); };
   }, [gameArea, kind, kraken]);
   if (!live || !kind) return null;
-  const on = (die: string) => kind === 'crit' && live.crits.some((i) => dice[i] === die);
+  const on = (is: (die: DieKind) => boolean) => kind === 'crit' && live.crits.some((i) => is(dice[i]));
   return (
     <>
       <div key={live.throwId} className="omen" style={{ '--ms': `${omenMs(live, dice)}ms` } as CSSProperties} aria-hidden="true">
@@ -60,8 +61,8 @@ export function OmenOverlay({ gameArea }: { gameArea: RefObject<HTMLDivElement |
           {DRIPS.map(([left, w, h, delay, ms], i) => <i key={i} className="omen-drip"
             style={{ left: `${left}%`, '--w': `${w}px`, '--h': `${h}%`, animationDelay: `${delay + 120}ms`, animationDuration: `${ms}ms` } as CSSProperties} />)}
         </>}
-        {on('d20') && <div className="omen-flash" />}
-        {on('d100') && <><div className="omen-deep" /><div className="omen-heaven" /></>}
+        {on(isD20) && <div className="omen-flash" />}
+        {on((die) => die === 'd100') && <><div className="omen-deep" /><div className="omen-heaven" /></>}
       </div>
       <p className="sr-only" role="status">{SAY[kind]}</p>
     </>

@@ -114,3 +114,23 @@ canvas { display: block; }
   36% { transform: translate(-7px, -4px) rotate(-0.3deg); } 50% { transform: translate(5px, 4px); }
   66% { transform: translate(-3px, 2px); } 82% { transform: translate(2px, -1px); } 100% { transform: none; }
 }
+
+/* Importing a die: the chat's side sheet, wider, with a preview and a short form per step. */
+.selection[aria-label="Meus dados"] { margin-left: 0; }
+.import { width: min(420px, 100vw); overflow-y: auto; }
+.import-body { display: flex; flex-direction: column; gap: 12px; flex: 1; }
+.import-drop { display: flex; flex-direction: column; gap: 8px; padding: 24px 16px; border: 2px dashed #786958; border-radius: 3px; text-align: center; cursor: pointer; }
+.import-drop:focus-within { outline: 3px solid var(--brass); outline-offset: 2px; }
+.import-drop small, .import small { opacity: 0.75; }
+.import-preview { height: 220px; border: 1px solid #49332E; border-radius: 3px; overflow: hidden; background: #1E1517; }
+.import-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.import-ask { display: flex; flex-direction: column; gap: 10px; }
+.import-ask label { display: flex; flex-direction: column; gap: 4px; }
+.import input:not([type="checkbox"]):not([type="color"]):not([type="file"]) { font: inherit; color: var(--chalk); background: #1E1517; border: 1px solid #786958; border-radius: 3px; padding: 8px 10px; }
+.import-error { color: #F28B6B; margin: 0; }
+.import-note { color: var(--brass); margin: 0; font-size: 14px; }
+.import-choice { display: flex; flex-direction: column; gap: 8px; }
+.import-choice button { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; padding: 10px 12px; }
+.import-choice button small { opacity: 0.8; font-size: 13px; }
+.import-choice button.primary { background: var(--brass); color: var(--ink); border-color: var(--brass); font-weight: 800; }
+.import-choice button.primary small { opacity: 1; font-weight: 400; }

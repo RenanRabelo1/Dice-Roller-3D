@@ -9,19 +9,21 @@ import {
 } from 'three';
 import { ConvexHull } from 'three/examples/jsm/math/ConvexHull.js';
 import type { Vec3 } from '../physics/world';
+import { customBase, customKind, customList, customOrder, customPoly, isCustom, type CustomKind } from './custom';
 
 export type Shape = 'd4' | 'd6' | 'd8' | 'd10' | 'd12' | 'd20' | 'd100' | 'coin';
-export type DieKind = Shape | 'vtm' | 'hunger' | 'fire'; // every kind is one physical die
+export type BuiltinKind = Shape | 'vtm' | 'hunger' | 'fire';
+export type DieKind = BuiltinKind | CustomKind; // every kind is one physical die
 export type SymbolName = 'ankh' | 'crit' | 'skull' | 'fangs' | 'heads' | 'crown';
 
-export const KINDS: DieKind[] = ['d4', 'd6', 'd8', 'd10', 'd12', 'd20', 'd100', 'vtm', 'hunger', 'fire', 'coin'];
+export const KINDS: BuiltinKind[] = ['d4', 'd6', 'd8', 'd10', 'd12', 'd20', 'd100', 'vtm', 'hunger', 'fire', 'coin'];
 // The physical die behind each kind: geometry, collider, radius, numbering and reading.
 // Custom dice (Vampire: The Masquerade d10s, Fireball d6) only change how that die looks.
-export const BASE: Record<DieKind, Shape> = {
+export const BASE: Record<BuiltinKind, Shape> = {
   d4: 'd4', d6: 'd6', d8: 'd8', d10: 'd10', d12: 'd12', d20: 'd20', d100: 'd100', vtm: 'd10', hunger: 'd10', fire: 'd6', coin: 'coin',
 };
 // Vampire d10s show symbols instead of digits, by d10 digit (0 is the 10); the other faces are blank.
-const SYMBOL: Partial<Record<DieKind, (digit: number) => SymbolName | undefined>> = {
+const SYMBOL: Partial<Record<BuiltinKind, (digit: number) => SymbolName | undefined>> = {
   vtm: (v) => (v === 0 ? 'crit' : v >= 6 ? 'ankh' : undefined),
   hunger: (v) => (v === 0 ? 'fangs' : v === 1 ? 'skull' : v >= 6 ? 'ankh' : undefined),
 };
@@ -41,7 +43,7 @@ export interface Polyhedron {
   labelList: Label[];
 }
 
-const OPPOSITE_SUM: Partial<Record<Shape, number>> = { d6: 7, d8: 9, d10: 9, d12: 13, d20: 21 };
+export const OPPOSITE_SUM: Partial<Record<Shape, number>> = { d6: 7, d8: 9, d10: 9, d12: 13, d20: 21 };
 
 const sub = (a: Vec3, b: Vec3): Vec3 => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
 const dot = (a: Vec3, b: Vec3) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
@@ -139,8 +141,13 @@ function rawTriangles(shape: Shape): Vec3[] {
 }
 
 function build(shape: Shape): Polyhedron {
-  if (shape === 'coin') return coin();
-  const verts = rawTriangles(shape);
+  return shape === 'coin' ? coin() : fromTriangles(shape, rawTriangles(shape));
+}
+
+// Faces, values and labels for a convex solid given as loose triangles (3 points each), centred on the origin.
+// `numbering` overrides the default values (per face; d4: per vertex) and turns each numeral in steps of 360°/sides.
+export interface Numbering { values?: number[]; turns?: number[] }
+export function fromTriangles(shape: Shape, verts: Vec3[], numbering?: Numbering): Polyhedron {
   const points: Vec3[] = [];
   const indexOf = (v: Vec3) => {
     let i = points.findIndex((p) => Math.hypot(p[0] - v[0], p[1] - v[1], p[2] - v[2]) < 1e-6);
@@ -181,7 +188,8 @@ function build(shape: Shape): Polyhedron {
     const done = new Set<number>();
     for (const i of shape === 'd100' ? [] : order) {
       if (done.has(i)) continue;
-      const o = faces.findIndex((g) => dot(g.normal, faces[i].normal) < -0.9999);
+      let o = -1; // the most opposite face (exact on a regular die, the nearest on a modelled one)
+      faces.forEach((g, j) => { if (o < 0 || dot(g.normal, faces[i].normal) < dot(faces[o].normal, faces[i].normal)) o = j; });
       faces[i].value = next;
       faces[o].value = sum - next;
       done.add(i).add(o);
@@ -189,7 +197,8 @@ function build(shape: Shape): Polyhedron {
     }
   }
 
-  const tops: Top[] = shape === 'd4' ? points.map((p, i) => ({ dir: unit(p), value: i + 1 })) : [];
+  const tops: Top[] = shape === 'd4' ? points.map((p, i) => ({ dir: unit(p), value: numbering?.values?.[i] ?? i + 1 })) : [];
+  if (numbering?.values && shape !== 'd4') faces.forEach((f, i) => { f.value = numbering.values![i]; });
 
   const marked = shape === 'd10' || shape === 'd12' || shape === 'd20' || shape === 'd100';
   const text = (v: number) => (marked && (v === 6 || v === 9) ? `${v}.` : String(v));
@@ -199,7 +208,7 @@ function build(shape: Shape): Polyhedron {
       for (const j of faceVerts[i]) {
         const d = sub(points[j], f.center);
         labelList.push({
-          text: String(j + 1), value: j + 1, normal: f.normal, up: unit(d),
+          text: String(tops[j].value), value: tops[j].value, normal: f.normal, up: unit(d),
           position: [f.center[0] + 0.55 * d[0], f.center[1] + 0.55 * d[1], f.center[2] + 0.55 * d[2]],
         });
       }
@@ -208,7 +217,9 @@ function build(shape: Shape): Polyhedron {
     const project = (v: Vec3): Vec3 => { const k = dot(v, f.normal); return [v[0] - k * f.normal[0], v[1] - k * f.normal[1], v[2] - k * f.normal[2]]; };
     let up = project([0, 1, 0]);
     if (Math.hypot(...up) < 1e-6) up = project([0, 0, 1]);
-    labelList.push({ text: text(f.value), value: f.value, position: f.center, normal: f.normal, up: unit(up) });
+    const turn = ((numbering?.turns?.[i] ?? 0) * 2 * Math.PI) / faceVerts[i].length;
+    const upDir = turn ? new Vector3(...unit(up)).applyAxisAngle(new Vector3(...f.normal), turn).toArray() as Vec3 : unit(up);
+    labelList.push({ text: text(f.value), value: f.value, position: f.center, normal: f.normal, up: upDir });
   });
 
   return { shape, radius: RADIUS[shape], points, triangles, faces, tops, labelList };
@@ -218,6 +229,11 @@ const cache = new Map<DieKind, Polyhedron>();
 export function polyhedron(kind: DieKind): Polyhedron {
   let p = cache.get(kind);
   if (!p) {
+    if (isCustom(kind)) {
+      p = customPoly(kind);
+      if (!p) throw new Error(`unknown imported die ${kind}`);
+      return p; // the registry owns it
+    }
     const base = BASE[kind], symbol = SYMBOL[kind];
     p = base === kind ? build(base) : polyhedron(base);
     // One label per face even when blank, so the showcase still finds the rolled face by value.
@@ -228,5 +244,14 @@ export function polyhedron(kind: DieKind): Polyhedron {
 }
 
 // A mixed selection, one entry per die, kept in KINDS order (e.g. ['d10', 'd12', 'd12']).
-export const sortDice = (dice: DieKind[]): DieKind[] => [...dice].sort((a, b) => KINDS.indexOf(a) - KINDS.indexOf(b));
+// Imported dice come after the built-in ones, in the order they were created.
+const rank = (k: DieKind) => (isCustom(k) ? KINDS.length + customOrder(k) : KINDS.indexOf(k));
+export const sortDice = (dice: DieKind[]): DieKind[] => [...dice].sort((a, b) => rank(a) - rank(b));
+// Every kind that can be in a selection, in display order.
+export const allKinds = (): DieKind[] => [...KINDS, ...customList().map((d) => customKind(d.id))];
+// The physical shape behind a kind (imported dice report the base they were recognised as).
+export const baseOf = (kind: DieKind): Shape => (isCustom(kind) ? customBase(kind) ?? 'd20' : BASE[kind]);
 export const MAX_DICE = 10;
+// The solids of the imported dice in a selection, for the worker (which has no registry of its own).
+export const customsOf = (dice: DieKind[]): Record<CustomKind, Polyhedron> =>
+  Object.fromEntries(dice.filter(isCustom).map((k) => [k, polyhedron(k)])) as Record<CustomKind, Polyhedron>;
