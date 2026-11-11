@@ -16,6 +16,7 @@ export const GEM: Record<BuiltinKind, string> = {
   vtm: '#231C20', hunger: '#8E0F1C', fire: '#E8571B', coin: '#C8962C',
 };
 // An imported die wears the colour the player picked (STL), or the gem colour of its base.
+// oxlint-disable-next-line react/only-export-components
 export const gemColor = (kind: DieKind): string => (isCustom(kind) ? customDie(kind)?.color ?? GEM[baseOf(kind) as BuiltinKind] : GEM[kind]);
 const EMBER: Partial<Record<string, string>> = { fire: '#FF4D00' }; // the fire die glows a little on its own
 export const FONT_URL = '/fonts/bricolage-grotesque-800.woff';

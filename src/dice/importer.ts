@@ -218,9 +218,15 @@ export function idealSolid(base: CustomBase, found: Plane[]): Solid {
 
 // The numbers allowed are 1..N (d10: 0..9, where "10" reads as 0); a d4 numbers its corners 1..4.
 export const normaliseValues = (base: CustomBase, values: number[]): number[] => values.map((v) => (base === 'd10' && v === 10 ? 0 : v));
+// One value on its own: is it a number this die can show?
+export function checkValue(base: CustomBase, value: number): string | null {
+  const n = FACES[base], first = base === 'd10' ? 0 : 1, v = normaliseValues(base, [value])[0];
+  return Number.isInteger(v) && v >= first && v < first + n ? null : `Os números vão de ${first} a ${first + n - 1}${base === 'd10' ? ' (ou 10 no lugar do 0)' : ''}.`;
+}
 export function checkValues(base: CustomBase, values: number[]): string | null {
-  const n = FACES[base], first = base === 'd10' ? 0 : 1, got = normaliseValues(base, values);
-  if (got.some((v) => !Number.isInteger(v) || v < first || v >= first + n)) return `Os números vão de ${first} a ${first + n - 1}${base === 'd10' ? ' (ou 10 no lugar do 0)' : ''}.`;
+  const n = FACES[base], got = normaliseValues(base, values);
+  const range = values.map((v) => checkValue(base, v)).find(Boolean);
+  if (range) return range;
   const seen = new Set<number>();
   for (const v of got) { if (seen.has(v)) return `O número ${v} apareceu mais de uma vez.`; seen.add(v); }
   return got.length === n ? null : 'Faltam números.';

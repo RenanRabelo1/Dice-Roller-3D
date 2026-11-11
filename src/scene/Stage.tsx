@@ -16,6 +16,7 @@ import { Tray } from './Tray';
 import { Hand } from './Hand';
 import { Omens } from './Omens';
 import { omenKind } from '../dice/omen';
+import { customKind } from '../dice/custom';
 import { customsOf } from '../dice/polyhedra';
 
 function ThrowLoop({ bodies, recordLaunch }: {
@@ -198,6 +199,7 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
         text: o instanceof Text ? o.text : null, visible: o.visible,
       })),
       launches: () => launches.current,
+      customs: () => useDice.getState().customs.map((d) => ({ kind: customKind(d.id), id: d.id, name: d.name, slug: d.slug, base: d.base, printed: d.printed })),
       previewSurface: (index, p, q) => {
         if (import.meta.env.MODE !== 'test' || !new URLSearchParams(location.search).has('surface-preview') || useDice.getState().gesture.phase !== 'hand') throw new Error('Surface preview is only available in the test preview scene');
         const body = bodies.current[index];
