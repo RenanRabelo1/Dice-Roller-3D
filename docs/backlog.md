@@ -1,6 +1,14 @@
 # Próximas features (a especificar)
 
-Combinado com o usuário em 2026-11-11: estas entram **depois** das pendências atuais (exportar textura em JPEG, travada ao aplicar mesa pesada, falhas antigas do `screens.spec` e proteção contra falha de WebGL/física). Cada uma precisa de spec própria em `docs/superpowers/specs/` antes de implementar. Ao especificar, mova o item para a spec e deixe aqui só o link.
+Combinado com o usuário em 2026-11-11. As três já têm spec (escrita pela sessão principal) e estão em implementação:
+
+| Item | Spec |
+|---|---|
+| Dado de forma livre (caminho B) | [2026-11-11-dado-forma-livre-design.md](superpowers/specs/2026-11-11-dado-forma-livre-design.md) |
+| Fundo 360° (fase 3 da mesa) | [2026-11-11-fundo-360-design.md](superpowers/specs/2026-11-11-fundo-360-design.md) |
+| Números pintados na mesa | [2026-11-11-numeros-pintados-mesa-design.md](superpowers/specs/2026-11-11-numeros-pintados-mesa-design.md) |
+
+As notas abaixo são o contexto original que gerou as specs; valem as specs.
 
 ## 1. Dado importado de forma livre (caminho B)
 
