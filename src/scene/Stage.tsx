@@ -16,6 +16,7 @@ import { Tray } from './Tray';
 import { Hand } from './Hand';
 import { Omens } from './Omens';
 import { omenKind } from '../dice/omen';
+import { customsOf } from '../dice/polyhedra';
 
 function ThrowLoop({ bodies, recordLaunch }: {
   bodies: RefObject<(RapierRigidBody | null)[]>;
@@ -57,7 +58,7 @@ function ThrowLoop({ bodies, recordLaunch }: {
     if (play.current?.throwId !== throwId) {
       if (current.length !== dice.length) return;
       const start = bodyStates(current).map(({ p, q }) => ({ p, q }));
-      const request: RollRequest = { dice, start, launch };
+      const request: RollRequest = { dice, start, launch, customs: customsOf(dice) };
       play.current = { throwId, request, rec: null, at: 0 };
       if (worker.current) worker.current.postMessage(request);
       else play.current.rec = presimulate(dice, start, launch);

@@ -252,3 +252,6 @@ export const allKinds = (): DieKind[] => [...KINDS, ...customList().map((d) => c
 // The physical shape behind a kind (imported dice report the base they were recognised as).
 export const baseOf = (kind: DieKind): Shape => (isCustom(kind) ? customBase(kind) ?? 'd20' : BASE[kind]);
 export const MAX_DICE = 10;
+// The solids of the imported dice in a selection, for the worker (which has no registry of its own).
+export const customsOf = (dice: DieKind[]): Record<CustomKind, Polyhedron> =>
+  Object.fromEntries(dice.filter(isCustom).map((k) => [k, polyhedron(k)])) as Record<CustomKind, Polyhedron>;

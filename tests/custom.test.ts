@@ -1,6 +1,6 @@
 import { Quaternion, Vector3 } from 'three';
 import { afterEach, describe, expect, it } from 'vitest';
-import { customKind, unregisterCustom } from '../src/dice/custom';
+import { customKind, registerPoly, unregisterCustom } from '../src/dice/custom';
 import { formatDice, parseDice, resultText, slugOf, slugProblem } from '../src/dice/notation';
 import { isD20, omenOf } from '../src/dice/omen';
 import { baseOf, polyhedron, sortDice } from '../src/dice/polyhedra';
@@ -61,5 +61,16 @@ describe('imported dice in play', () => {
     expect(a.escaped).toBe(false);
     expect(a.results).toEqual(b.results);
     a.results.forEach((v) => { expect(v).toBeGreaterThanOrEqual(1); expect(v).toBeLessThanOrEqual(20); });
+  });
+});
+
+describe('the worker', () => {
+  it('rolls a die it only knows by its solid (registerPoly)', async () => {
+    const die = skull(), kind = customKind(die.id);
+    unregisterCustom(kind);
+    registerPoly(kind, die.poly);
+    const rec = await simulate({ kind, count: 2, force: 0.6, target: [1, 0, -1], seed: 5 });
+    expect(rec.escaped).toBe(false);
+    expect(rec.results).toHaveLength(2);
   });
 });
