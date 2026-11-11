@@ -17,6 +17,9 @@ import type { Pose } from './showcase';
 
 type Mark = { local: Vector3; turn: Quaternion; start: Vector3; face: Vector3; scale: number }; // local, turn: the rolled numeral's place and turn in die space
 
+// An imported die's gem is a group (a GLB has many meshes), so the shadow switch goes on its meshes.
+const shade = (gem: Object3D | undefined, on: boolean) => gem?.traverse((o) => { if (o instanceof Mesh) o.castShadow = on; });
+
 export function Hand({ gameArea, bodies }: {
   gameArea: RefObject<HTMLDivElement | null>; bodies: RefObject<(RapierRigidBody | null)[]>;
 }) {
@@ -147,7 +150,7 @@ export function Hand({ gameArea, bodies }: {
         if (object instanceof Mesh) for (const material of Array.isArray(object.material) ? object.material : [object.material]) material.opacity = opacity;
       });
     };
-    const shadows = (on: boolean) => { for (let i = 0; i < current.length; i++) { const g = scene.getObjectByName(`gem-${i}`); if (g) g.castShadow = on; } };
+    const shadows = (on: boolean) => { for (let i = 0; i < current.length; i++) shade(scene.getObjectByName(`gem-${i}`), on); };
     if (active && mode.current !== nextMode) {
       shadows(true);
       toKinematic(current);
@@ -245,7 +248,7 @@ export function Hand({ gameArea, bodies }: {
         if (critical >= 0) {
           const ms = now - omenAt, pose = krakenFlightAt(ms, from[i], hero[critical], to[i]);
           const p = new Vector3(...pose.p), q = new Quaternion(...pose.q);
-          if (gems[i]) gems[i]!.castShadow = ms <= KRAKEN.launch;
+          shade(gems[i], ms <= KRAKEN.launch);
           body.setTranslation(p, false); body.setRotation(q, false);
           body.setNextKinematicTranslation(p); body.setNextKinematicRotation(q);
           draw(i, marks[i].local.clone().applyQuaternion(q).add(p), q, 1, ms);
@@ -254,7 +257,7 @@ export function Hand({ gameArea, bodies }: {
         }
         const t = Math.min(1, Math.max(0, (now - at - SHOW.delay - i * SHOW.stagger) / SHOW.duration));
         if (t < 1) done = false;
-        if (gems[i]) gems[i]!.castShadow = t === 0; // the shadow goes away as the die lifts off
+        shade(gems[i], t === 0); // the shadow goes away as the die lifts off
         const e = easeOut(t);
         const p = new Vector3(...from[i].p).lerp(new Vector3(...to[i].p), e);
         p.y += Math.sin(Math.PI * t) * 0.6; // small lift so the flight reads as an arc, not a slide

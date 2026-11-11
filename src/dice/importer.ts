@@ -70,7 +70,11 @@ export async function readModel(bytes: ArrayBuffer, format: ModelFormat): Promis
   if (!bytes.byteLength) throw refuse('está vazio');
   let object: Object3D;
   try {
-    object = format === 'stl' ? new Mesh(new STLLoader().parse(bytes)) : await parseGlb(bytes);
+    if (format === 'stl') {
+      const geometry = new STLLoader().parse(bytes);
+      geometry.computeVertexNormals(); // many exporters leave the normals zero
+      object = new Mesh(geometry);
+    } else object = await parseGlb(bytes);
   } catch (e) {
     if (e instanceof ImportError) throw e;
     throw refuse(`não parece um ${format.toUpperCase()} válido`);

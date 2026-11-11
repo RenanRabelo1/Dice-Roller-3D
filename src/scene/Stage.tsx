@@ -11,7 +11,7 @@ import type { DiceHook } from '../testHook';
 import { GRAVITY, HAND, MAX_RADIUS, STEP, TRAY, handPositions, type Vec3 } from '../physics/world';
 import { useDice } from '../store';
 import { installTestHook } from '../testHook';
-import { Die, GEM } from './Die';
+import { Die, gemColor } from './Die';
 import { Tray } from './Tray';
 import { Hand } from './Hand';
 import { Omens } from './Omens';
@@ -233,7 +233,7 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
         <ThrowLoop bodies={bodies} recordLaunch={recordLaunch} />
         <group ref={dice}>
           {selected.map((kind, i) => (
-            <Die key={`${key}-${i}`} index={i} kind={kind} selection={key} count={selected.length} color={GEM[kind]}
+            <Die key={`${key}-${i}`} index={i} kind={kind} selection={key} count={selected.length} color={gemColor(kind)}
               register={register} />
           ))}
         </group>
