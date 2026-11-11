@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { Box3, BoxGeometry, Color, DirectionalLight, Group, Mesh, MeshBasicMaterial, PerspectiveCamera, Vector3 } from 'three';
 import { shard, shardWood } from '../src/scene/Kraken';
-import { cleanTable, defaultTable, fitTable, GUIDE, readTable, SURFACE } from '../src/scene/tableFile';
+import { defaultTable, GUIDE, SURFACE } from '../src/scene/tableBuild';
+import { cleanTable, fitTable, readTable } from '../src/scene/tableFile';
 import { checkTheme, clampBlur, DEFAULT_THEME, EXTRAS_KEY, extrasOf, fileSafe, readExtras, type TableTheme } from '../src/scene/tableTheme';
 import { glb } from './helpers/models';
 
