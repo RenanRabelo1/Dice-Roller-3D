@@ -1,4 +1,4 @@
-import { useDice } from '../store';
+import { omenPlaying, useDice } from '../store';
 import { KINDS, MAX_DICE } from '../dice/polyhedra';
 import { dieName, formatDice, resultText } from '../dice/notation';
 import { Chat } from './Chat';
@@ -12,8 +12,8 @@ function Force() {
 export function Controls() {
   const dice = useDice((s) => s.dice);
   const phase = useDice((s) => s.gesture.phase), results = useDice((s) => s.results);
-  const omen = useDice((s) => s.omen), omenDone = useDice((s) => s.omenDone), throwId = useDice((s) => s.throwId);
-  const waiting = omen?.throwId === throwId && omenDone !== throwId; // the result shows once its omen has played
+  const waiting = useDice(omenPlaying); // the result shows once its omen has played (or the dice are picked up)
+  const failed = useDice((s) => s.error === 'physics');
   const text = results && !waiting && resultText(dice, results);
   return (
     <>
@@ -42,7 +42,7 @@ export function Controls() {
           </output>
           {phase === 'charging' && <Force />}
         </div>
-        <p>{phase === 'hand' ? 'Mire com o mouse e segure para carregar a força. Solte para jogar. No teclado: setas miram, Espaço carrega e solta.'
+        <p>{failed ? 'A física não respondeu; os dados voltaram para a mão. Tente jogar de novo.' : phase === 'hand' ? 'Mire com o mouse e segure para carregar a força. Solte para jogar. No teclado: setas miram, Espaço carrega e solta.'
           : phase === 'settled' ? 'Clique na mesa para pegar os dados de novo.'
             : phase === 'charging' ? 'Solte para jogar.' : phase === 'rolling' ? 'Os dados estão rolando…' : 'Recolhendo os dados…'}</p>
       </footer>

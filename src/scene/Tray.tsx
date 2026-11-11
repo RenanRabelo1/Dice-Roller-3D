@@ -3,14 +3,14 @@ import { MATERIAL, TRAY, trayColliders } from '../physics/world';
 import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import type { Group } from 'three';
-import { useDice } from '../store';
+import { omenPlaying, useDice } from '../store';
 import { krakenAt, krakenIndices } from './krakenMotion';
 
 export function Tray() {
   const surface = useRef<Group>(null);
   useFrame(() => {
     const s = useDice.getState();
-    const live = s.gesture.phase === 'settled' && s.omen?.throwId === s.throwId && s.omenDone !== s.throwId;
+    const live = omenPlaying(s);
     if (surface.current) surface.current.visible = !(live && krakenIndices(s.omen, s.dice).length && krakenAt(performance.now() - s.omenAt).broken);
   });
   return (

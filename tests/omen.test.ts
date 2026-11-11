@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import type { DieKind } from '../src/dice/polyhedra';
 import { OMEN_MS, omenKind, omenMs, omenOf } from '../src/dice/omen';
-import { useDice } from '../src/store';
+import { omenPlaying, useDice } from '../src/store';
 
 const d20 = (n: number) => Array<DieKind>(n).fill('d20');
 
@@ -50,6 +50,14 @@ describe('store omen', () => {
     expect(s().omenDone).toBe(0);
     s().setOmenDone(1);
     expect(s().omenDone).toBe(1);
+  });
+  it('picking the dice up ends the omen, so the result shows at once', () => {
+    roll(); s().publish(1, [20]);
+    expect(omenPlaying(s())).toBe(true);
+    s().input({ type: 'press', source: P, at: 0, repeat: false }); // pick up while it plays
+    expect(s().gesture.phase).toBe('returning');
+    expect(omenPlaying(s())).toBe(false);
+    expect(s().results).toEqual([20]);
   });
   it('a plain roll has no omen', () => {
     roll(); s().publish(1, [12]);

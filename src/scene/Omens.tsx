@@ -8,7 +8,8 @@ import {
 } from 'three';
 import { MAX_DICE, type DieKind } from '../dice/polyhedra';
 import { DUALITY_HIT, omenKind, omenMs } from '../dice/omen';
-import { useDice } from '../store';
+import { omenPlaying, useDice } from '../store';
+import { span } from './krakenMotion';
 import { Kraken } from './Kraken';
 
 // The 3D side of an omen, played after the dice settle and before the result shows:
@@ -17,7 +18,6 @@ import { Kraken } from './Kraken';
 // (0 draw calls) outside an omen. When the show ends it marks the omen done, and the result goes on.
 
 const clamp01 = (t: number) => Math.min(1, Math.max(0, t));
-const span = (t: number, a: number, b: number) => clamp01((t - a) / (b - a));
 const easeOut = (t: number) => 1 - (1 - clamp01(t)) ** 3;
 const easeIn = (t: number) => clamp01(t) ** 3;
 
@@ -187,7 +187,7 @@ class Show {
   hide() { this.bolts.forEach((b) => b.hide()); this.kraken.hide(); this.taiji.hide(); this.light.intensity = 0; this.run = null; }
   frame(now: number, camera: Camera, at: (i: number) => Vector3 | null): number | null {
     const s = useDice.getState(), o = s.omen;
-    if (!o || o.throwId !== s.throwId || s.gesture.phase !== 'settled' || s.omenDone === o.throwId) { if (this.run) this.hide(); return null; }
+    if (!o || !omenPlaying(s)) { if (this.run) this.hide(); return null; }
     if (this.run?.throwId !== o.throwId) {
       this.hide();
       const kind = omenKind(o), on = (die: DieKind) => (kind === 'crit' ? o.crits.filter((i) => s.dice[i] === die).map(at).filter((p): p is Vector3 => !!p) : []);

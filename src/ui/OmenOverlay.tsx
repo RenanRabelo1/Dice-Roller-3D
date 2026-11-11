@@ -1,6 +1,6 @@
 import { useEffect, type CSSProperties, type RefObject } from 'react';
 import { omenKind, omenMs, type OmenKind } from '../dice/omen';
-import { useDice } from '../store';
+import { omenPlaying, useDice } from '../store';
 
 // The screen side of an omen: blood for a fumble, a white flash as the lightning strikes, a deep-sea
 // vignette while the kraken rises. Duality shakes the canvas (CSS on the game area). Gone when the omen ends.
@@ -37,9 +37,8 @@ const DRIPS = [[4, 16, 34, 40, 1100], [11, 9, 20, 160, 900], [19, 22, 46, 0, 130
 const SAY: Record<OmenKind, string> = { crit: 'Crítico!', fumble: 'Falha crítica!', duality: 'Dualidade: crítico e falha!' };
 
 export function OmenOverlay({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> }) {
-  const omen = useDice((s) => s.omen), done = useDice((s) => s.omenDone), throwId = useDice((s) => s.throwId);
-  const phase = useDice((s) => s.gesture.phase), dice = useDice((s) => s.dice);
-  const live = omen && omen.throwId === throwId && phase === 'settled' && done !== throwId ? omen : null;
+  const playing = useDice(omenPlaying), omen = useDice((s) => s.omen), dice = useDice((s) => s.dice);
+  const live = playing ? omen : null;
   const kind = live && omenKind(live);
   const kraken = kind === 'crit' && !!live?.crits.some((i) => dice[i] === 'd100');
   useEffect(() => {

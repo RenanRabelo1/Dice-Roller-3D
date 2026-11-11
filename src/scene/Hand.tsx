@@ -6,7 +6,7 @@ import { Text } from 'troika-three-text';
 import { MAX_DICE, polyhedron } from '../dice/polyhedra';
 import { toKinematic } from '../physics/apply';
 import { clampHandX, HAND, handPositions, type Quat, type Vec3 } from '../physics/world';
-import { useDice } from '../store';
+import { omenPlaying, useDice } from '../store';
 import { charge, clampTarget } from '../throw/aim';
 import { showcasePoses } from './showcase';
 import { easeOut, highlightAt, HL_SIZE, SHOW } from './highlight';
@@ -168,12 +168,14 @@ export function Hand({ gameArea, bodies }: {
     }
     if (phase !== 'settled') for (const o of [...numbers, ...glyphs]) o.visible = false;
     if (phase === 'settled' && (mode.current !== nextMode || (state.reducedMotion && showcase.current?.still === false))) {
+      // Reduced motion switched on mid-show: the dice go back to where they landed instead of hanging mid-flight.
+      const landed = mode.current === nextMode ? showcase.current?.from : undefined;
       showcase.current = null;
       if (!state.raw) state.setShowcased(state.throwId);
       else {
         const raw = state.raw;
         const polys = state.dice.map((d) => polyhedron(d));
-        const from = current.map((body) => {
+        const from = landed ?? current.map((body) => {
           const p = body.translation(), q = body.rotation();
           return { p: [p.x, p.y, p.z] as Vec3, q: [q.x, q.y, q.z, q.w] as Quat };
         });
@@ -210,7 +212,7 @@ export function Hand({ gameArea, bodies }: {
     mode.current = nextMode;
     if (phase === 'settled' && showcase.current) {
       // An omen plays first: the numbers wait, unrisen, and the dice stay where they landed until it is over.
-      const waiting = state.omen?.throwId === state.throwId && state.omenDone !== state.throwId;
+      const waiting = omenPlaying(state);
       if (waiting) showcase.current.at = now;
       const { at, from, to, throwId, gems, marks, still, hero, kraken, omenAt } = showcase.current;
       const draw = (i: number, face: Vector3, q?: Quaternion, ride = 0, ascension?: number) => {
@@ -228,16 +230,21 @@ export function Hand({ gameArea, bodies }: {
         const facing = q ? camera.quaternion.clone().slerp(q.clone().multiply(m.turn), ride) : camera.quaternion;
         for (const o of [n, g]) { o.position.copy(h.p); o.quaternion.copy(facing); }
       };
-      if (still) { marks.forEach((m, i) => draw(i, m.face)); return; }
+      const pin = (body: RapierRigidBody, p: Vector3, q: Quaternion) => {
+        body.setTranslation(p, false); body.setRotation(q, false); body.setNextKinematicTranslation(p); body.setNextKinematicRotation(q);
+      };
+      if (still) {
+        current.forEach((body, i) => { pin(body, new Vector3(...from[i].p), new Quaternion(...from[i].q)); if (gems[i]) gems[i]!.castShadow = true; });
+        marks.forEach((m, i) => draw(i, m.face));
+        return;
+      }
       let done = !waiting;
       current.forEach((body, i) => {
         if (state.dice[i] === 'coin') {
           const t = Math.min(1, Math.max(0, (now - at - SHOW.delay - i * SHOW.stagger) / SHOW.duration));
           if (t < 1) done = false;
           // The coin stays on the tray; only its Cara/Coroa caption rises to the result row.
-          const p = new Vector3(...from[i].p), q = new Quaternion(...from[i].q);
-          body.setTranslation(p, false); body.setRotation(q, false);
-          body.setNextKinematicTranslation(p); body.setNextKinematicRotation(q);
+          pin(body, new Vector3(...from[i].p), new Quaternion(...from[i].q));
           draw(i, new Vector3(...to[i].p));
           return;
         }
@@ -246,8 +253,7 @@ export function Hand({ gameArea, bodies }: {
           const ms = now - omenAt, pose = krakenFlightAt(ms, from[i], hero[critical], to[i]);
           const p = new Vector3(...pose.p), q = new Quaternion(...pose.q);
           if (gems[i]) gems[i]!.castShadow = ms <= KRAKEN.launch;
-          body.setTranslation(p, false); body.setRotation(q, false);
-          body.setNextKinematicTranslation(p); body.setNextKinematicRotation(q);
+          pin(body, p, q);
           draw(i, marks[i].local.clone().applyQuaternion(q).add(p), q, 1, ms);
           if (ms < KRAKEN.restored) done = false;
           return;

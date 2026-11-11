@@ -48,6 +48,11 @@ const selection = (s: DiceState) => ({
   force: 0,
 });
 
+// The omen of this throw is on screen: it plays only while the dice lie settled, so picking them up ends it
+// (and the result shows at once).
+export const omenPlaying = (s: Pick<DiceState, 'gesture' | 'omen' | 'omenDone' | 'throwId'>) =>
+  s.gesture.phase === 'settled' && s.omen?.throwId === s.throwId && s.omenDone !== s.throwId;
+
 export const useDice = create<DiceState>((set) => ({
   dice: ['d20'], gesture: initialGesture, throwId: 0,
   aim: [0, 0, -1], force: 0, launch: null, results: null, raw: null,

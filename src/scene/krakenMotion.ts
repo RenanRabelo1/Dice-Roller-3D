@@ -1,6 +1,7 @@
 import { MathUtils, Quaternion, Vector3 } from 'three';
 import type { Omen } from '../dice/omen';
 import type { DieKind, Polyhedron } from '../dice/polyhedra';
+import { TRAY } from '../physics/world';
 import { easeOut } from './highlight';
 import { showcasePoses, type Pose, type View } from './showcase';
 
@@ -55,12 +56,13 @@ export function krakenHeroPoses(polys: Polyhedron[], raw: number[], view: View):
 // Radial subdivision, O(n log n); corner rays ensure that repairing the shards fills the entire rectangle.
 export function fractureCells(x: number, z: number): [number, number][][] {
   const angles = Array.from({ length: 16 }, (_, i) => i * Math.PI / 8);
-  for (const px of [-7.5, 7.5]) for (const pz of [-5, 5]) angles.push((Math.atan2(pz - z, px - x) + 2 * Math.PI) % (2 * Math.PI));
+  const X = TRAY.halfWidth + TRAY.wallThickness, Z = TRAY.halfDepth + TRAY.wallThickness; // the tray mesh's outline
+  for (const px of [-X, X]) for (const pz of [-Z, Z]) angles.push((Math.atan2(pz - z, px - x) + 2 * Math.PI) % (2 * Math.PI));
   angles.sort((a, b) => a - b);
   const rim = angles.map((a): [number, number] => {
     const dx = Math.cos(a), dz = Math.sin(a);
-    const distance = Math.min(Math.abs(dx) < 1e-8 ? Infinity : (dx > 0 ? 7.5 - x : -7.5 - x) / dx,
-      Math.abs(dz) < 1e-8 ? Infinity : (dz > 0 ? 5 - z : -5 - z) / dz);
+    const distance = Math.min(Math.abs(dx) < 1e-8 ? Infinity : (dx > 0 ? X - x : -X - x) / dx,
+      Math.abs(dz) < 1e-8 ? Infinity : (dz > 0 ? Z - z : -Z - z) / dz);
     return [x + dx * distance, z + dz * distance];
   });
   return rim.flatMap((a, i) => {
