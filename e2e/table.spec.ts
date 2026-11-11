@@ -90,7 +90,7 @@ test('a felt image shows in its own colours: the felt colour turns white, and ca
   expect((await table(page)).felt).toBe('#3a0f1a');
   await page.getByTestId('table-felt-image').setInputFiles(png);
   await expect.poll(async () => (await table(page)).felt).toBe('#ffffff');
-  expect((await table(page)).feltTextured).toBe(true);
+  await expect.poll(async () => (await table(page)).feltTextured).toBe(true); // the texture shows once decoded and compiled
   await expect(panel(page).getByText('A cor do feltro tinge a textura')).toBeVisible();
   await panel(page).getByLabel('Feltro', { exact: true }).fill('#2a6f3a');
   await expect.poll(async () => (await table(page)).felt).toBe('#2a6f3a');
@@ -113,8 +113,8 @@ test('opaque textures are exported as JPEG, so a big photo does not balloon the 
   // The file still comes back as the same table.
   await panel(page).getByRole('button', { name: 'Restaurar mesa padrão' }).click();
   await page.getByTestId('table-import').setInputFiles(glbFile('ruido.glb', file));
-  await expect.poll(async () => (await table(page)).model).toBe(true);
-  expect((await table(page)).feltTextured).toBe(true);
+  await expect.poll(async () => (await table(page)).imported).toBe(true);
+  await expect.poll(async () => (await table(page)).feltTextured).toBe(true);
 });
 
 test('exporting a table and importing it back gives the same table (M13)', async ({ page }) => {
@@ -138,7 +138,7 @@ test('exporting a table and importing it back gives the same table (M13)', async
   await panel(page).getByRole('button', { name: 'Restaurar mesa padrão' }).click();
   expect((await table(page)).felt).toBe('#3a0f1a');
   await page.getByTestId('table-import').setInputFiles(glbFile('mesa-taverna-do-ze.glb', file));
-  await expect.poll(async () => (await table(page)).model).toBe(true); // no warnings: applied straight away
+  await expect.poll(async () => (await table(page)).imported).toBe(true); // no warnings: applied straight away, then built
   const after = await table(page);
   expect(after.felt).toBe(before.felt);
   expect(after.wood).toBe(before.wood);
@@ -169,7 +169,7 @@ test('a table exported in centimetres, Z up and moved is fitted back, and a fram
 
   await page.getByTestId('table-import').setInputFiles(strange());
   await warnings.getByRole('button', { name: 'Aplicar mesmo assim' }).click();
-  await expect.poll(async () => (await table(page)).model).toBe(true);
+  await expect.poll(async () => (await table(page)).imported).toBe(true); // the file's table is what the scene shows
   const t = await table(page);
   t.guide!.size.forEach((v, i) => expect(v).toBeCloseTo([14, 1.5, 9][i], 3));
   t.guide!.center.forEach((v, i) => expect(v).toBeCloseTo([0, 0.75, 0][i], 3));

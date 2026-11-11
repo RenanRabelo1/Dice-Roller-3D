@@ -219,6 +219,7 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
           felt: felt?.color ?? null, feltTextured: felt?.textured ?? false, wood: wood?.color ?? null, model: !!t.model,
           guide: box ? { size: box.getSize(new Vector3()).toArray(), center: box.getCenter(new Vector3()).toArray() } : null,
           saved: useTable.getState().tables.length,
+          imported: (scene.getObjectByName('mesa') ?? scene.getObjectByName('tray-surface'))?.userData.imported === true,
         };
       },
       shards: () => {

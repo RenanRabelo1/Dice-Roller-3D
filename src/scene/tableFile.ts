@@ -136,6 +136,7 @@ export function fitTable(root: Object3D): { group: Group; warnings: string[] } {
     warnings.push('Não achei o piso. Na quebra da mesa (crítico do d100) o modelo inteiro some e só os cacos aparecem.');
     group.name = SURFACE;
   }
+  group.userData.imported = true; // the scene's table comes from a file (the test hook reads it)
   if (guia) guia.visible = false;
   const fundo = find(root, 'fundo');
   if (fundo) fundo.visible = false;
