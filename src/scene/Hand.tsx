@@ -13,7 +13,7 @@ import { showcasePoses } from './showcase';
 import { easeOut, highlightAt, HL_SIZE, SHOW } from './highlight';
 import { symbolGeometry } from '../dice/symbols';
 import { FONT, FONT_URL, SYMBOL } from './Die';
-import { KRAKEN, krakenAt, krakenFlightAt, krakenHeroPoses, krakenIndices, span } from './krakenMotion';
+import { KRAKEN, krakenAt, krakenDieAt, krakenIndices, STORM, stormAt, stormDieAt, stormIndices } from './krakenMotion';
 import type { Pose } from './showcase';
 
 type Mark = { local: Vector3; turn: Quaternion; start: Vector3; face: Vector3; scale: number }; // local, turn: the rolled numeral's place and turn in die space
@@ -31,7 +31,7 @@ export function Hand({ gameArea, bodies }: {
   const rotations = useRef<Quaternion[]>([]);
   const mode = useRef('');
   const returning = useRef<{ at: number; poses: { p: Vec3; q: Quat }[] } | null>(null);
-  const showcase = useRef<{ at: number; throwId: number; from: Pose[]; to: Pose[]; hero: Pose[]; kraken: number[]; omenAt: number; gems: (Object3D | undefined)[]; marks: Mark[]; still?: boolean; landed?: boolean } | null>(null);
+  const showcase = useRef<{ at: number; throwId: number; from: Pose[]; to: Pose[]; kraken: number[]; storm: number[]; omenAt: number; gems: (Object3D | undefined)[]; marks: Mark[]; still?: boolean; landed?: boolean } | null>(null);
   // The rolled numbers that rise over the settled dice, ride to their faces and glow (one per die, drawn on top).
   const numbersGroup = useRef<Group>(null);
   const numbersRef = useRef<Text[]>([]);
@@ -197,9 +197,9 @@ export function Hand({ gameArea, bodies }: {
         const still = state.reducedMotion;
         const to = still ? from : showcasePoses(polys, raw,
           { position: cam.position, quaternion: cam.quaternion, fov: cam.fov, aspect: cam.aspect });
-        const kraken = krakenIndices(state.omen?.throwId === state.throwId ? state.omen : null, state.dice);
-        const hero = kraken.length ? krakenHeroPoses(kraken.map((i) => polys[i]), kraken.map((i) => raw[i]),
-          { position: cam.position, quaternion: cam.quaternion, fov: cam.fov, aspect: cam.aspect }) : [];
+        // A d100 1 is carried off and brought back by the kraken; a d100 100 drifts to you in the storm.
+        const omenNow = state.omen?.throwId === state.throwId ? state.omen : null;
+        const kraken = krakenIndices(omenNow, state.dice), storm = stormIndices(omenNow, state.dice);
         const marks = polys.map((poly, i) => {
           const label = poly.labelList.find((l) => l.value === raw[i])!;
           const normal = new Vector3(...label.normal), up = new Vector3(...label.up);
@@ -217,7 +217,7 @@ export function Hand({ gameArea, bodies }: {
             scale: still || poly.shape === 'coin' ? 1 : FONT[poly.shape] / HL_SIZE,
           };
         });
-        showcase.current = { at: now, throwId: state.throwId, from, to, hero, kraken, omenAt: state.omenAt, marks, still, gems: current.map((_, i) => scene.getObjectByName(`gem-${i}`)) };
+        showcase.current = { at: now, throwId: state.throwId, from, to, kraken, storm, omenAt: state.omenAt, marks, still, gems: current.map((_, i) => scene.getObjectByName(`gem-${i}`)) };
         if (still) state.setShowcased(state.throwId);
       }
     }
@@ -226,14 +226,12 @@ export function Hand({ gameArea, bodies }: {
       // An omen plays first: the numbers wait, unrisen, and the dice stay where they landed until it is over.
       const waiting = omenPlaying(state);
       if (waiting) showcase.current.at = now;
-      const { at, from, to, throwId, gems, marks, still, hero, kraken, omenAt } = showcase.current;
-      const draw = (i: number, face: Vector3, q?: Quaternion, ride = 0, ascension?: number) => {
+      const { at, from, to, throwId, gems, marks, still, kraken, storm, omenAt } = showcase.current;
+      const draw = (i: number, face: Vector3, q?: Quaternion, ride = 0, reveal?: number) => {
         const n = numbers[i], g = glyphs[i], m = marks[i];
         const h = still ? { p: m.start, opacity: Math.min(1, (now - at) / 150), glow: 0.6, scale: 1 } : highlightAt(now - at, i, m.start, face, m.scale);
-        if (ascension !== undefined) {
-          h.p = face; h.opacity = easeOut(span(ascension, KRAKEN.launch + 200, KRAKEN.reveal));
-          h.scale = m.scale + (1.6 - m.scale) * krakenAt(ascension).hero;
-          h.glow = h.opacity * 0.85;
+        if (reveal !== undefined) { // carried in by the kraken: the number lights up on the face as it arrives
+          h.p = face; h.opacity = reveal; h.scale = m.scale + (1.4 - m.scale) * reveal; h.glow = reveal * 0.85;
         }
         Object.assign(n, { fillOpacity: h.opacity, outlineOpacity: h.glow });
         g.material.opacity = h.opacity;
@@ -260,14 +258,14 @@ export function Hand({ gameArea, bodies }: {
           draw(i, new Vector3(...to[i].p));
           return;
         }
-        const critical = kraken.indexOf(i);
-        if (critical >= 0) {
-          const ms = now - omenAt, pose = krakenFlightAt(ms, from[i], hero[critical], to[i]);
+        const grabbed = kraken.includes(i), adrift = storm.includes(i);
+        if (grabbed || adrift) { // the omen moves this die, and leaves it at its result pose
+          const ms = now - omenAt, pose = grabbed ? krakenDieAt(ms, from[i], to[i]) : stormDieAt(ms, from[i], to[i]);
           const p = new Vector3(...pose.p), q = new Quaternion(...pose.q);
-          if (gems[i]) gems[i]!.castShadow = ms <= KRAKEN.launch;
+          if (gems[i]) gems[i]!.castShadow = ms <= (grabbed ? KRAKEN.grab : STORM.approach);
           pin(body, p, q);
-          draw(i, marks[i].local.clone().applyQuaternion(q).add(p), q, 1, ms);
-          if (ms < KRAKEN.restored) done = false;
+          draw(i, marks[i].local.clone().applyQuaternion(q).add(p), q, 1, grabbed ? krakenAt(ms).reveal : stormAt(ms).reveal);
+          if (ms < (grabbed ? KRAKEN.duration : STORM.duration)) done = false;
           return;
         }
         const t = Math.min(1, Math.max(0, (now - at - SHOW.delay - i * SHOW.stagger) / SHOW.duration));

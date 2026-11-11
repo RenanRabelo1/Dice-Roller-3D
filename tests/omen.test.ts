@@ -28,10 +28,13 @@ describe('omenOf: which dice crit (d20 20, d100 1) and which fumble (d20 1, d100
     expect(omenOf(['d100'], [50])).toBeNull();
   });
 
-  it('omenMs gives the d100 enough time for the rupture, reveal and repair', () => {
+  it('omenMs: each show gets its time; the kraken is the longest; fire and storm together take the longer', () => {
     expect(omenMs({ crits: [0], fumbles: [] }, ['d20'])).toBe(OMEN_MS.lightning);
     expect(omenMs({ crits: [0, 1], fumbles: [] }, ['d20', 'd100'])).toBe(OMEN_MS.kraken);
-    expect(omenMs({ crits: [], fumbles: [0] }, ['d100'])).toBe(OMEN_MS.blood);
+    expect(omenMs({ crits: [], fumbles: [0] }, ['d100'])).toBe(OMEN_MS.storm);
+    expect(omenMs({ crits: [], fumbles: [0] }, ['d20'])).toBe(OMEN_MS.fire);
+    expect(omenMs({ crits: [], fumbles: [0, 1] }, ['d20', 'd100'])).toBe(Math.max(OMEN_MS.fire, OMEN_MS.storm));
+    expect(OMEN_MS).not.toHaveProperty('blood'); // no more blood
     expect(omenMs({ crits: [0], fumbles: [1] }, ['d20', 'd20'])).toBe(OMEN_MS.duality);
     expect(OMEN_MS.kraken).toBeGreaterThan(OMEN_MS.lightning);
     expect(Math.max(...Object.values(OMEN_MS))).toBe(OMEN_MS.kraken);

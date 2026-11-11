@@ -1,13 +1,20 @@
 import { MathUtils, Quaternion, Vector3 } from 'three';
 import type { Omen } from '../dice/omen';
-import type { DieKind, Polyhedron } from '../dice/polyhedra';
-import { TRAY } from '../physics/world';
+import type { DieKind } from '../dice/polyhedra';
+import { TRAY, type Quat, type Vec3 } from '../physics/world';
 import { easeOut } from './highlight';
-import { showcasePoses, type Pose, type View } from './showcase';
+import type { Pose } from './showcase';
 
-// One clock drives the rupture, die, heavenly reveal and repair; interruptions restore the intact tray.
-export const KRAKEN = { rupture: 450, launch: 1450, reveal: 2600, repair: 4200, restored: 5400, duration: 5600 };
 export const span = (t: number, a: number, b: number) => MathUtils.clamp((t - a) / (b - a), 0, 1);
+const smooth = (t: number, a: number, b: number) => MathUtils.smootherstep(t, a, b);
+const UP = new Vector3(0, 1, 0);
+
+// d100 = 1 (Call of Cthulhu's critical). One clock drives it all: the felt cracks and bursts, a tentacle coils
+// round the die, lifts and shakes it, and flings it far out of sight; it reaches after it, catches it and
+// brings it to the screen with the 1 toward you, lets go and sinks while the tray mends.
+export const KRAKEN = { rupture: 450, grab: 1150, lift: 1750, fling: 2050, away: 2650, catch: 3350, shown: 4350, release: 5300, restored: 6300, duration: 6500 };
+// Where the die is flung: high and far behind the tray, out of the camera's sight.
+export const FAR: Vec3 = [0, 14, -19];
 
 export const krakenIndices = (omen: Omen | null, dice: DieKind[]) =>
   omen && !omen.fumbles.length ? omen.crits.filter((i) => dice[i] === 'd100') : [];
@@ -15,42 +22,69 @@ export const krakenIndices = (omen: Omen | null, dice: DieKind[]) =>
 export function krakenAt(t: number) {
   return {
     broken: t >= KRAKEN.rupture && t < KRAKEN.restored,
-    spread: easeOut(span(t, KRAKEN.rupture, 1100)) * (1 - MathUtils.smootherstep(t, KRAKEN.repair, KRAKEN.restored)),
-    arms: easeOut(span(t, 300, 1400)) * (1 - MathUtils.smootherstep(t, KRAKEN.repair, 5100)),
-    halo: easeOut(span(t, 2100, KRAKEN.reveal + 250)) * (1 - MathUtils.smootherstep(t, KRAKEN.repair, 5200)),
-    hero: MathUtils.smootherstep(t, KRAKEN.launch, KRAKEN.reveal) * (1 - MathUtils.smootherstep(t, KRAKEN.repair, KRAKEN.restored)),
+    spread: easeOut(span(t, KRAKEN.rupture, 1100)) * (1 - smooth(t, KRAKEN.release, KRAKEN.restored)),
+    arms: easeOut(span(t, 300, 1400)) * (1 - smooth(t, KRAKEN.release, 6000)),
+    // How tightly the grabbing tentacle coils round the die: holding it, letting go to throw, catching it again.
+    grip: Math.max(span(t, 700, KRAKEN.grab) * (1 - span(t, KRAKEN.fling, KRAKEN.fling + 150)),
+      span(t, KRAKEN.catch - 150, KRAKEN.catch) * (1 - span(t, KRAKEN.release, KRAKEN.release + 350))),
+    // The rolled number lights up on the die as it is brought to you, and stays.
+    reveal: smooth(t, KRAKEN.catch + 500, KRAKEN.shown),
   };
 }
 
-export function krakenFlightAt(ms: number, from: Pose, hero: Pose, final: Pose): Pose {
-  if (ms <= KRAKEN.launch) return from;
-  if (ms >= KRAKEN.restored) return final;
-  if (ms >= KRAKEN.reveal && ms <= KRAKEN.repair) return hero;
-  const arriving = ms < KRAKEN.reveal;
-  const t = arriving ? span(ms, KRAKEN.launch, KRAKEN.reveal) : span(ms, KRAKEN.repair, KRAKEN.restored);
-  const e = arriving ? easeOut(t) : MathUtils.smootherstep(t, 0, 1);
-  const a = arriving ? from : hero, b = arriving ? hero : final;
-  const p = new Vector3(...a.p).lerp(new Vector3(...b.p), e);
-  const q = new Quaternion(...a.q).slerp(new Quaternion(...b.q), e);
-  if (arriving) {
-    p.y += 2.4 * Math.sin(Math.PI * t) * (1 - t);
-    q.multiply(new Quaternion().setFromAxisAngle(new Vector3(0.4, 1, 0.2).normalize(), 4 * Math.PI * (1 - t) ** 2));
+const turn = (axis: Vec3, angle: number) => new Quaternion().setFromAxisAngle(new Vector3(...axis).normalize(), angle);
+const bezier = (a: Vector3, c: Vector3, b: Vector3, u: number) =>
+  a.clone().multiplyScalar((1 - u) ** 2).addScaledVector(c, 2 * u * (1 - u)).addScaledVector(b, u * u);
+
+// Where the grabbed die is `ms` into the omen: on the felt, lifted and shaken, wound back, flung, away,
+// carried back to `final` (the ordinary result pose) and held there.
+export function krakenDieAt(ms: number, from: Pose, final: Pose): Pose {
+  if (ms < KRAKEN.grab) return from;
+  if (ms >= KRAKEN.shown) return final;
+  const start = new Vector3(...from.p), q0 = new Quaternion(...from.q);
+  // Lifted and shaken in the tentacle's grip, then wound back toward you before the throw.
+  const held = (t: number) => {
+    const a = easeOut(span(t, KRAKEN.grab, KRAKEN.lift));
+    const p = start.clone().addScaledVector(UP, 2.6 * a).add(new Vector3(0, 0, 1.4 * a)) // up and toward you, in view
+      .add(new Vector3(Math.sin(t / 35) * 0.18 * a, 0, Math.cos(t / 41) * 0.18 * a))
+      .add(new Vector3(0, -0.6, 1.0).multiplyScalar(easeOut(span(t, KRAKEN.lift, KRAKEN.fling))));
+    return { p, q: q0.clone().multiply(turn([1, 0, 0.3], 0.5 * Math.sin(t / 90) * a)) };
+  };
+  if (ms < KRAKEN.fling) { const { p, q } = held(ms); return { p: p.toArray() as Vec3, q: q.toArray() as Quat }; }
+  const wound = held(KRAKEN.fling), far = new Vector3(FAR[0] + from.p[0] * 0.4, FAR[1], FAR[2]);
+  const spinning = (u: number) => wound.q.clone().multiply(turn([0.3, 1, 0.5], 7 * Math.PI * u));
+  if (ms < KRAKEN.catch) { // flung in a high arc, then out of sight
+    const u = span(ms, KRAKEN.fling, KRAKEN.away);
+    const top = wound.p.clone().lerp(far, 0.5).addScaledVector(UP, 5);
+    return { p: bezier(wound.p, top, far, 1 - (1 - u) ** 2).toArray() as Vec3, q: spinning(u).toArray() as Quat };
   }
-  return { p: p.toArray(), q: q.toArray() };
+  // Carried back on the tentacle, swinging down to the screen, still turning until it shows its face.
+  const u = smooth(ms, KRAKEN.catch, KRAKEN.shown), end = new Vector3(...final.p);
+  const swing = far.clone().lerp(end, 0.5).addScaledVector(UP, 3.5);
+  const q = spinning(1).slerp(new Quaternion(...final.q), easeOut(u)).multiply(turn([0.2, 1, 0.1], 2 * Math.PI * (1 - u) ** 2));
+  return { p: bezier(far, swing, end, u).toArray() as Vec3, q: q.normalize().toArray() as Quat };
 }
 
-export function krakenHeroPoses(polys: Polyhedron[], raw: number[], view: View): Pose[] {
-  const poses = showcasePoses(polys, raw, view), tan = Math.tan(view.fov * Math.PI / 360);
-  const right = new Vector3(1, 0, 0).applyQuaternion(view.quaternion);
-  const up = new Vector3(0, 1, 0).applyQuaternion(view.quaternion);
-  const forward = new Vector3(0, 0, -1).applyQuaternion(view.quaternion);
-  let scale = 1;
-  for (const pose of poses) {
-    const offset = new Vector3(...pose.p).sub(view.position), depth = offset.dot(forward);
-    scale = Math.max(scale, 3.6 / (depth * tan * view.aspect - Math.abs(offset.dot(right))),
-      3.0 / (depth * tan - Math.abs(offset.dot(up))));
-  }
-  return poses.map(({ p, q }) => ({ p: new Vector3(...p).sub(view.position).multiplyScalar(scale).add(view.position).toArray(), q }));
+// d100 = 100. The storm: tentacles rise from the sea all round the tray and sway in the rain while the die
+// drifts toward you, rocking as on waves, and ends at the result pose; then they sink.
+export const STORM = { rise: 1200, approach: 600, arrive: 3500, sink: 3700, duration: 4600 };
+
+export const stormIndices = (omen: Omen | null, dice: DieKind[]) =>
+  omen && !omen.crits.length ? omen.fumbles.filter((i) => dice[i] === 'd100') : [];
+
+export const stormAt = (t: number) => ({
+  arms: easeOut(span(t, 0, STORM.rise)) * (1 - smooth(t, STORM.sink, STORM.duration - 100)),
+  reveal: smooth(t, STORM.arrive - 1000, STORM.arrive),
+});
+
+export function stormDieAt(ms: number, from: Pose, final: Pose): Pose {
+  if (ms < STORM.approach) return from;
+  if (ms >= STORM.arrive) return final;
+  const u = smooth(ms, STORM.approach, STORM.arrive);
+  const p = new Vector3(...from.p).lerp(new Vector3(...final.p), u);
+  const rock = (1 - u) * Math.sin(Math.PI * u); // fades out as it arrives
+  const q = new Quaternion(...from.q).slerp(new Quaternion(...final.q), easeOut(u)).multiply(turn([0, 0, 1], 0.35 * rock * Math.sin(ms / 260)));
+  return { p: p.toArray() as Vec3, q: q.normalize().toArray() as Quat };
 }
 
 // Radial subdivision, O(n log n); corner rays ensure that repairing the shards fills the entire rectangle.

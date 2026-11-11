@@ -7,7 +7,8 @@ export interface Omen { crits: number[]; fumbles: number[] } // die indices
 export type OmenKind = 'crit' | 'fumble' | 'duality';
 
 // How long each show lasts (ms); the result waits for it.
-export const OMEN_MS = { lightning: 1300, kraken: 5600, blood: 1700, duality: 2600 };
+// d20 = 20: lightning. d100 = 1: the kraken grabs, flings and brings back the die. d20 = 1: fire. d100 = 100: the storm.
+export const OMEN_MS = { lightning: 1300, kraken: 6500, fire: 2400, storm: 4600, duality: 2600 };
 export const DUALITY_HIT = 1100; // when the two fish collide (and the screen shakes)
 
 export function omenOf(dice: DieKind[], results: number[]): Omen | null {
@@ -22,6 +23,6 @@ export const omenKind = (o: Omen): OmenKind => (o.crits.length && o.fumbles.leng
 export function omenMs(o: Omen, dice: DieKind[]): number {
   const kind = omenKind(o);
   if (kind === 'duality') return OMEN_MS.duality;
-  if (kind === 'fumble') return OMEN_MS.blood;
+  if (kind === 'fumble') return Math.max(o.fumbles.some((i) => dice[i] === 'd20') ? OMEN_MS.fire : 0, o.fumbles.some((i) => dice[i] === 'd100') ? OMEN_MS.storm : 0);
   return o.crits.some((i) => dice[i] === 'd100') ? OMEN_MS.kraken : OMEN_MS.lightning;
 }
