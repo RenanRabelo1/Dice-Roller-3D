@@ -52,9 +52,9 @@ test('two coins with a d6 can be tossed repeatedly on mobile and raise only thei
       await page.keyboard.press('Space');
       await page.waitForFunction(() => window.__dice.state().phase === 'hand');
       const hand = await page.evaluate(() => window.__dice.bodies());
-      for (const body of hand) {
-        expect(Math.abs(body.p[1] - 3)).toBeLessThan(0.12);
-        expect(body.p[2]).toBeCloseTo(3, 1);
+      for (const body of hand) { // back in the hand's whirl: lifted, behind the front wall, nowhere near the camera
+        expect(body.p[1]).toBeGreaterThan(1.5); expect(body.p[1]).toBeLessThan(5.5);
+        expect(body.p[2]).toBeGreaterThan(0); expect(body.p[2]).toBeLessThan(4);
       }
     }
     await page.keyboard.down('Space'); await page.waitForTimeout(250); await page.keyboard.up('Space');

@@ -16,6 +16,8 @@ import { Tray } from './Tray';
 import { Hand } from './Hand';
 import { Omens } from './Omens';
 import { omenKind } from '../dice/omen';
+import { MAX_DICE } from '../dice/polyhedra';
+import { VORTEX, vortexCenter, vortexRadius } from '../throw/vortex';
 
 const WORKER_TIMEOUT = 2000; // ms; a ten-dice recording takes well under 200 ms
 
@@ -138,6 +140,13 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
           for (const y of [-MAX_RADIUS, MAX_RADIUS]) {
             for (const z of [-MAX_RADIUS, MAX_RADIUS]) corners.push([p[0] + x, p[1] + y, p[2] + z]);
           }
+        }
+      }
+      // ...and the widest whirl, aimed to either side.
+      for (const side of [-1, 1]) {
+        const c = vortexCenter(MAX_DICE, side * TRAY.halfWidth), R = vortexRadius(MAX_DICE);
+        for (const x of [-1, 1]) for (const y of [-1, 1]) for (const z of [-1, 1]) {
+          corners.push(c.map((v, k) => v + [x, y, z][k] * (R * VORTEX.squash[k] + MAX_RADIUS)) as Vec3);
         }
       }
       const halfFov = Math.tan(20 * Math.PI / 180) * 0.94;

@@ -5,7 +5,8 @@ import { BufferGeometry, Float32BufferAttribute, Matrix4, Mesh, MeshBasicMateria
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { polyhedron, type DieKind, type Label, type Polyhedron, type Shape } from '../dice/polyhedra';
 import { symbolGeometry } from '../dice/symbols';
-import { handPositions, MATERIAL } from '../physics/world';
+import { MATERIAL } from '../physics/world';
+import { vortexCenter } from '../throw/vortex';
 
 // Kept alongside Die as the scene's specified gem palette.
 // oxlint-disable-next-line react/only-export-components
@@ -88,7 +89,7 @@ export function Die({ index, kind, selection, count, color, register }: {
   const numbers = useNumbers(model, FONT[model.shape], INK[kind] ?? GOLD);
   return (
     <RigidBody ref={registerBody} type="kinematicPosition" colliders={false}
-      userData={{ selection }} ccd position={handPositions(count, 0)[index]}>
+      userData={{ selection }} ccd position={vortexCenter(count, 0)}>
       <ConvexHullCollider args={[points]} {...MATERIAL.die} />
       <group name={`die-${index}`}>
         <mesh name={`gem-${index}`} geometry={geometry} castShadow receiveShadow>

@@ -52,8 +52,9 @@ test('ten coins can launch and return repeatedly within the frame budget', async
       await page.keyboard.press('Space');
       await page.waitForFunction(() => window.__dice.state().phase === 'hand');
       const hand = await page.evaluate(() => window.__dice.bodies());
-      hand.forEach((b, i) => {
-        expect(Math.abs(b.p[1] - 3)).toBeLessThan(0.12); expect(b.p[2]).toBeCloseTo(i < 5 ? 3 : 1.1, 1);
+      hand.forEach((b) => { // back in the hand's whirl: lifted, behind the front wall, nowhere near the camera
+        expect(b.p[1]).toBeGreaterThan(0.5); expect(b.p[1]).toBeLessThan(5.5);
+        expect(b.p[2]).toBeGreaterThan(-1); expect(b.p[2]).toBeLessThan(4);
       });
     }
     await page.keyboard.down('Space'); await page.waitForTimeout(350); await page.keyboard.up('Space');

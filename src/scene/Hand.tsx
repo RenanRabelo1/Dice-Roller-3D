@@ -5,9 +5,10 @@ import { ArrowHelper, Color, Group, Matrix4, Mesh, MeshBasicMaterial, Plane, Qua
 import { Text } from 'troika-three-text';
 import { MAX_DICE, polyhedron } from '../dice/polyhedra';
 import { toKinematic } from '../physics/apply';
-import { clampHandX, HAND, handPositions, type Quat, type Vec3 } from '../physics/world';
+import { HAND, type Quat, type Vec3 } from '../physics/world';
 import { omenPlaying, useDice } from '../store';
 import { charge, clampTarget } from '../throw/aim';
+import { newWhirl, ORBITS, restingPlaces, spinAngle, stepWhirl, vortexCenter } from '../throw/vortex';
 import { showcasePoses } from './showcase';
 import { easeOut, highlightAt, HL_SIZE, SHOW } from './highlight';
 import { symbolGeometry } from '../dice/symbols';
@@ -24,6 +25,9 @@ export function Hand({ gameArea, bodies }: {
   const motion = useRef<{ center: Vec3; omega: Vec3 }>({ center: [0, HAND.y, HAND.z], omega: [0, 0, 0] });
   const previousAim = useRef<Vec3>([...useDice.getState().aim]);
   const handX = useRef(0);
+  // The dice in the hand swirl as one whirlwind (see throw/vortex); it outlives a selection change.
+  const whirl = useRef(newWhirl(vortexCenter(1, 0)));
+  const whirled = useRef({ identity: '', count: 0 });
   const rotations = useRef<Quaternion[]>([]);
   const mode = useRef('');
   const returning = useRef<{ at: number; poses: { p: Vec3; q: Quat }[] } | null>(null);
@@ -151,6 +155,14 @@ export function Hand({ gameArea, bodies }: {
     if (active && mode.current !== nextMode) {
       shadows(true);
       toKinematic(current);
+      // A new selection keeps each slot's place in the whirl (the new dice fly out of its middle, where they
+      // appear); back from a pickup, the whirl goes on from where the dice are.
+      const w = whirl.current, kept = whirled.current.identity === identity ? 0 : Math.min(whirled.current.count, current.length);
+      current.forEach((body, i) => {
+        if (i < kept) body.setTranslation(new Vector3(...w.pos[i]), true);
+        else { const p = body.translation(); w.pos[i] = [p.x, p.y, p.z]; }
+      });
+      whirled.current = { identity, count: current.length };
       rotations.current = current.map((body) => {
         const q = body.rotation();
         return new Quaternion(q.x, q.y, q.z, q.w);
@@ -279,7 +291,8 @@ export function Hand({ gameArea, bodies }: {
     if (phase === 'returning' && returning.current) {
       const t = Math.min(1, (now - returning.current.at) / (state.reducedMotion ? 150 : 400));
       const ease = state.reducedMotion ? 1 : 1 - (1 - t) ** 3;
-      const positions = handPositions(current.length, clampHandX(state.aim[0], current.length));
+      const x = vortexCenter(current.length, state.aim[0])[0];
+      const positions = restingPlaces(whirl.current, x, state.dice.map((d) => polyhedron(d).radius));
       current.forEach((body, i) => {
         const from = returning.current!.poses[i];
         const p = new Vector3(...from.p).lerp(new Vector3(...positions[i]), ease);
@@ -290,7 +303,7 @@ export function Hand({ gameArea, bodies }: {
       });
       setOpacity(state.reducedMotion ? t : 1);
       if (t === 1) {
-        handX.current = clampHandX(state.aim[0], current.length);
+        handX.current = x;
         state.input({ type: 'returned' });
       }
       return;
@@ -298,22 +311,18 @@ export function Hand({ gameArea, bodies }: {
     if (!active || preview) return;
     const force = phase === 'charging' ? charge(now - state.gesture.chargeStart) : 0;
     if (phase === 'charging') state.setForce(force);
-    handX.current += (clampHandX(state.aim[0], current.length) - handX.current) * (1 - Math.exp(-12 * dt));
+    handX.current += (vortexCenter(current.length, state.aim[0])[0] - handX.current) * (1 - Math.exp(-12 * dt));
     const vx = (state.aim[0] - previousAim.current[0]) / dt, vz = (state.aim[2] - previousAim.current[2]) / dt;
-    const omega: Vec3 = state.reducedMotion ? [0, 0, 0] : [vz * 1.2 + 0.6, 0.4, -vx * 1.2];
+    const omega: Vec3 = state.reducedMotion ? [0, 0, 0] : [vz * 1.2 + 0.6, 0.4, -vx * 1.2]; // the hand's swing, handed on to the throw
     previousAim.current = [...state.aim];
-    const w = new Vector3(...omega), speed = w.length();
-    const turn = speed ? new Quaternion().setFromAxisAngle(w.normalize(), speed * dt) : new Quaternion();
-    const positions = handPositions(current.length, handX.current);
+    // The whirl: every die on its own orbit and spinning about its own axis, all faster as the charge builds.
+    const places = stepWhirl(whirl.current, { x: handX.current, force, dt, radii: state.dice.map((d) => polyhedron(d).radius), still: state.reducedMotion });
     const center: Vec3 = [0, 0, 0];
     current.forEach((body, i) => {
-      const p = positions[i];
-      p[1] += state.reducedMotion ? 0 : 0.08 * Math.sin(2 * Math.PI * now / 1600);
-      p[2] += HAND.pull * force;
-      const q = rotations.current[i].premultiply(turn).normalize();
-      body.setNextKinematicTranslation(new Vector3(...p)); body.setNextKinematicRotation(q);
-      const actual = body.translation();
-      center[0] += actual.x / current.length; center[1] += actual.y / current.length; center[2] += actual.z / current.length;
+      const spin = new Quaternion().setFromAxisAngle(new Vector3(...ORBITS[i].axis), spinAngle(i, force, dt, state.reducedMotion));
+      body.setNextKinematicTranslation(new Vector3(...places[i]));
+      body.setNextKinematicRotation(rotations.current[i].premultiply(spin).normalize());
+      for (let k = 0; k < 3; k++) center[k] += places[i][k] / current.length;
     });
     motion.current = { center, omega };
     const origin = new Vector3(center[0], 0.01, center[2]);
