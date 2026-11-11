@@ -10,7 +10,7 @@ const orientations: { name: string; q: Quat }[] = [
 ];
 
 for (const width of [1440, 390]) {
-  for (const shape of ['d4', 'd6', 'd10', 'd20', 'd10-tens'] as const) {
+  for (const shape of ['d4', 'd6', 'd10', 'd20', 'd100'] as const) {
     test(`${shape} surface numerals at ${width}px in three orientations`, async ({ page }) => {
       await mkdir('screens', { recursive: true });
       await page.setViewportSize({ width, height: width === 1440 ? 900 : 844 });
@@ -19,14 +19,10 @@ for (const width of [1440, 390]) {
       page.on('console', (message) => message.type() === 'error' && errors.push(`${message.text()} ${message.location().url}`));
       await page.goto('/?surface-preview');
       await page.waitForFunction(() => window.__dice?.state().ready === true);
-      const kind: DieKind = shape === 'd10-tens' ? 'd100' : shape;
-      await page.evaluate((kind) => window.__dice.select(kind, 1), kind);
-      const expectedLabels = shape === 'd4' ? 12 : shape === 'd6' ? 6 : shape === 'd20' ? 20 : 10;
+      const kind: DieKind = shape;
+      await page.evaluate((kind) => window.__dice.select([kind]), kind);
+      const expectedLabels = shape === 'd4' ? 12 : shape === 'd6' ? 6 : shape === 'd20' ? 20 : shape === 'd100' ? 100 : 10;
       await expect.poll(() => page.evaluate(() => window.__dice.labels(0).length)).toBe(expectedLabels);
-      if (shape === 'd10-tens') {
-        await page.evaluate(() => window.__dice.previewSurface(1, [0, -3, 0], [0, 0, 0, 1]));
-        expect(await page.evaluate(() => window.__dice.labels(0).some((label) => label.text === '00'))).toBe(true);
-      }
       for (const { name, q } of orientations) {
         await page.evaluate((q) => window.__dice.previewSurface(0, [0, 2, 0], q), q);
         await expect.poll(() => page.evaluate((q) => 1 - Math.abs(window.__dice.meshes()[0].q.reduce((dot, v, i) => dot + v * q[i], 0)), q)).toBeLessThan(1e-5);

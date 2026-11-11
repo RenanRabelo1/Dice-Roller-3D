@@ -1,6 +1,6 @@
 import { afterEach, beforeAll, describe, it, expect } from 'vitest';
 import RAPIER, { RigidBodyType } from '@dimforge/rapier3d-compat';
-import { KINDS } from '../src/dice/polyhedra';
+import { BASE, KINDS } from '../src/dice/polyhedra';
 import { clampTarget, launchVelocity, spin } from '../src/throw/aim';
 import { applyLaunch, applySettle, bodyStates, toKinematic } from '../src/physics/apply';
 import { isOutside, MAX_RADIUS, SETTLE, type Quat, type Vec3 } from '../src/physics/world';
@@ -98,16 +98,27 @@ describe('Rapier body adapters', () => {
   });
 });
 
-describe.each(KINDS)('%s × 10', (kind) => {
+// Custom dice roll the body of their base die, so each physical die is thrown once.
+describe.each(KINDS.filter((k) => BASE[k] === k))('%s × 10', (kind) => {
   it.each([0, 1])('force %s: stops before the cap, no escape, all inside, one result per die', async (force) => {
     const r = await simulate({ kind, count: 10, force, target: [0, 0, -1], seed: 7 });
     expect(r.escaped).toBe(false); expect(r.recovered).toBe(false);
     expect(r.timedOut).toBe(false); // the dice really stop: the reveal does not wait for the cap
-    expect(r.bodies).toBe(kind === 'd100' ? 20 : 10);
+    expect(r.bodies).toBe(10);
     expect(r.results).toHaveLength(10);
-    r.results.forEach((v) => { expect(v).toBeGreaterThanOrEqual(1); expect(v).toBeLessThanOrEqual(Number(kind.slice(1))); });
+    r.results.forEach((v) => { expect(v).toBeGreaterThanOrEqual(1); expect(v).toBeLessThanOrEqual(kind === 'coin' ? 2 : Number(kind.slice(1))); });
     expect(r.frames.every((f) => f.length === r.bodies)).toBe(true);
     r.final.forEach((p) => expect(isOutside(p, MAX_RADIUS)).toBe(false));
+  }, T);
+});
+
+describe('mixed selection', () => {
+  it('rolls d4 + d10 + 2d12 + d100 together, one result per die in its own range', async () => {
+    const dice = ['d4', 'd10', 'd12', 'd12', 'd100'] as const;
+    const r = await simulate({ kind: 'd4', count: 5, dice: [...dice], force: 0.7, target: [0, 0, -1], seed: 5 });
+    expect(r.escaped).toBe(false); expect(r.timedOut).toBe(false);
+    expect(r.results).toHaveLength(5);
+    r.results.forEach((v, i) => { expect(v).toBeGreaterThanOrEqual(1); expect(v).toBeLessThanOrEqual(Number(dice[i].slice(1))); });
   }, T);
 });
 

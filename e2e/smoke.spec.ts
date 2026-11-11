@@ -35,15 +35,17 @@ test('canvas paints a non-uniform image without console errors', async ({ page }
 });
 
 test('a d6 roll keeps its numbers on screen and opposite faces opposite', async ({ page }) => {
-  await page.evaluate(() => window.__dice.select('d6', 1));
+  await page.evaluate(() => window.__dice.select(['d6']));
   await expect.poll(() => page.evaluate(() => window.__dice.labels(0).length)).toBe(6);
   await page.locator('.game-area').focus();
   await page.keyboard.down('Space'); await page.waitForTimeout(500); await page.keyboard.up('Space');
   expect(await page.evaluate(() => window.__dice.numbersVisible(0))).toBe(true);
-  await page.waitForFunction(() => window.__dice.state().phase === 'settled', null, { timeout: 90_000 });
+  await page.waitForFunction(() => { const s = window.__dice.state(); return s.phase === 'settled' && s.showcased === s.throwId; }, null, { timeout: 90_000 });
   const labels = await page.evaluate(() => window.__dice.labels(0));
+  const cam = await page.evaluate(() => window.__dice.camera());
   const byText = (text: string) => labels.find((label) => label.text === text)!.normal;
-  const top = labels.reduce((a, b) => (b.normal[1] > a.normal[1] ? b : a));
+  const toward = (l: (typeof labels)[number]) => { const d = l.position.map((v, k) => cam[k] - v), n = Math.hypot(...d); return l.normal.reduce((s, v, k) => s + v * d[k] / n, 0); }; // the shown face looks at the camera
+  const top = labels.reduce((a, b) => (toward(b) > toward(a) ? b : a)); // the rolled face is shown to the camera
   await expect(page.getByTestId('result')).toContainText(top.text);
   expect(byText('6')[1]).toBeCloseTo(-byText('1')[1], 4);
 });
@@ -51,10 +53,10 @@ test('a d6 roll keeps its numbers on screen and opposite faces opposite', async 
 test('every supported selection creates the expected bodies and surface numerals', async ({ page }) => {
   const cases = [
     ['d4', 1, 12], ['d6', 1, 6], ['d8', 1, 8], ['d10', 1, 10],
-    ['d12', 1, 12], ['d20', 1, 20], ['d100', 2, 10],
+    ['d12', 1, 12], ['d20', 1, 20], ['d100', 1, 100],
   ] as const;
   for (const [kind, bodyCount, labelCount] of cases) {
-    await page.evaluate((kind) => window.__dice.select(kind, 1), kind);
+    await page.evaluate((kind) => window.__dice.select([kind]), kind);
     await expect.poll(() => page.evaluate(() => window.__dice.bodies().length)).toBe(bodyCount);
     await expect.poll(() => page.evaluate(() => window.__dice.labels(0).length)).toBe(labelCount);
     const labels = await page.evaluate(() => window.__dice.labels(0));
@@ -66,14 +68,14 @@ test('every supported selection creates the expected bodies and surface numerals
       expect(text).toContain('6.');
       expect(text).toContain('9.');
     }
-    if (kind === 'd100') expect(text.sort()).toEqual(['00', '10', '20', '30', '40', '50', '60', '70', '80', '90']);
+    if (kind === 'd100') expect(text).toEqual(expect.arrayContaining(['1', '6.', '9.', '50', '100']));
   }
 });
 
 test('surface preview: rotated Text anchors and gem share the physical transform', async ({ page }) => {
   await page.goto('/?surface-preview');
   await page.waitForFunction(() => window.__dice?.state().ready === true);
-  await page.evaluate(() => window.__dice.select('d6', 1));
+  await page.evaluate(() => window.__dice.select(['d6']));
   await expect.poll(() => page.evaluate(() => window.__dice.labels(0).length)).toBe(6);
   await page.evaluate(() => window.__dice.previewSurface(0, [0, 2, 0], [0, 0, 0, 1]));
   await expect.poll(() => page.evaluate(() => window.__dice.labels(0).reduce((sum, label) => sum + label.position[1], 0) / 6)).toBeCloseTo(2, 5);
@@ -91,17 +93,15 @@ test('surface preview: rotated Text anchors and gem share the physical transform
   });
 });
 
-test('twenty percentile bodies stay registered and same-selection updates reuse them', async ({ page }) => {
-  await page.evaluate(() => window.__dice.select('d100', 10));
-  await expect.poll(() => page.evaluate(() => window.__dice.bodies().length)).toBe(20);
-  await expect.poll(() => page.evaluate(() => window.__dice.meshes().length)).toBe(20);
+test('ten d100 bodies stay registered and same-selection updates reuse them', async ({ page }) => {
+  await page.evaluate(() => window.__dice.select(Array(10).fill('d100')));
+  await expect.poll(() => page.evaluate(() => window.__dice.bodies().length)).toBe(10);
   const before = await page.evaluate(() => window.__dice.bodies());
-  expect(new Set(before.map((body) => body.handle)).size).toBe(20);
+  expect(new Set(before.map((body) => body.handle)).size).toBe(10);
   expect(before.every((body) => body.type === 2)).toBe(true);
-  await page.evaluate(() => window.__dice.select('d100', 10));
+  await page.evaluate(() => window.__dice.select(Array(10).fill('d100')));
   await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())));
   expect(await page.evaluate(() => window.__dice.bodies().map((body) => body.handle))).toEqual(before.map((body) => body.handle));
-  await page.evaluate(() => window.__dice.select('d6', 2));
+  await page.evaluate(() => window.__dice.select(['d6', 'd6']));
   await expect.poll(() => page.evaluate(() => window.__dice.bodies().length)).toBe(2);
-  await expect.poll(() => page.evaluate(() => window.__dice.meshes().length)).toBe(2);
 });

@@ -1,11 +1,12 @@
-import { useCallback, useEffect, useRef, type RefObject } from 'react';
-import { useThree } from '@react-three/fiber';
-import { Environment, Lightformer } from '@react-three/drei';
+import { useCallback, useEffect, useLayoutEffect, useRef, type RefObject } from 'react';
+import { useFrame, useThree } from '@react-three/fiber';
+import { Environment, Lightformer, PerformanceMonitor } from '@react-three/drei';
 import { Physics, useBeforePhysicsStep, type RapierRigidBody } from '@react-three/rapier';
 import { Group, Matrix4, Quaternion, Vector3, type Object3D } from 'three';
-import { bodiesFor } from '../dice/polyhedra';
+import { Text } from 'troika-three-text';
+
 import { bodyStates } from '../physics/apply';
-import { presimulate, type Recording } from '../physics/presim';
+import { presimulate, type Recording, type RollRequest, type RollResponse } from '../physics/presim';
 import type { DiceHook } from '../testHook';
 import { GRAVITY, HAND, MAX_RADIUS, STEP, TRAY, handPositions, type Vec3 } from '../physics/world';
 import { useDice } from '../store';
@@ -13,45 +14,100 @@ import { installTestHook } from '../testHook';
 import { Die, GEM } from './Die';
 import { Tray } from './Tray';
 import { Hand } from './Hand';
+import { Omens } from './Omens';
+import { omenKind } from '../dice/omen';
 
 function ThrowLoop({ bodies, recordLaunch }: {
   bodies: RefObject<(RapierRigidBody | null)[]>;
   recordLaunch: (last: NonNullable<ReturnType<DiceHook['launches']>['last']>) => void;
 }) {
-  const play = useRef<{ throwId: number; rec: Recording; at: number } | null>(null);
+  const play = useRef<{ throwId: number; request: RollRequest; rec: Recording | null; at: number } | null>(null);
+  const worker = useRef<Worker | null>(null);
+  useEffect(() => {
+    const fallback = () => {
+      worker.current?.terminate(); worker.current = null;
+      const pending = play.current, state = useDice.getState();
+      // A blocked/unsupported worker still gets a real roll. Discard cancelled selections.
+      if (pending && !pending.rec && pending.throwId === state.throwId && state.gesture.phase === 'rolling') {
+        const { dice, start, launch } = pending.request;
+        pending.rec = presimulate(dice, start, launch);
+      }
+    };
+    try {
+      const w = new Worker(new URL('../physics/presim.worker.ts', import.meta.url), { type: 'module' });
+      worker.current = w;
+      w.onmessage = ({ data }: MessageEvent<RollResponse>) => {
+        const pending = play.current, state = useDice.getState();
+        if (!pending || data.throwId !== pending.throwId || data.throwId !== state.throwId || state.gesture.phase !== 'rolling') return;
+        if ('error' in data) fallback();
+        else pending.rec = data.rec;
+      };
+      w.onerror = (event) => { event.preventDefault(); fallback(); };
+      w.onmessageerror = fallback;
+    } catch { fallback(); }
+    return () => { worker.current?.terminate(); worker.current = null; };
+  }, []);
   const live = () => bodies.current.filter((b): b is RapierRigidBody => b !== null && b.isValid());
   // On release the whole roll is simulated offline from the dice's current poses, then replayed one recorded
   // step per physics step: a real roll in real time, whose result is published the moment it ends.
   useBeforePhysicsStep(() => {
-    const { gesture, throwId, launch, kind, count, publish } = useDice.getState();
+    const { gesture, throwId, launch, dice, publish } = useDice.getState();
     if (gesture.phase !== 'rolling' || !launch) return;
     const current = live();
     if (play.current?.throwId !== throwId) {
-      if (current.length !== bodiesFor(kind, count).length) return;
+      if (current.length !== dice.length) return;
       const start = bodyStates(current).map(({ p, q }) => ({ p, q }));
-      play.current = { throwId, rec: presimulate(kind, count, start, launch), at: 0 };
+      const request: RollRequest = { dice, start, launch };
+      play.current = { throwId, request, rec: null, at: 0 };
+      if (worker.current) worker.current.postMessage(request);
+      else play.current.rec = presimulate(dice, start, launch);
       recordLaunch({ before: start, after: bodyStates(current).map(({ p, q }) => ({ p, q })) });
     }
     const { rec } = play.current;
+    if (!rec) return;
     rec.frames[play.current.at].forEach(({ p, q }, i) => {
       current[i].setNextKinematicTranslation({ x: p[0], y: p[1], z: p[2] });
       current[i].setNextKinematicRotation({ x: q[0], y: q[1], z: q[2], w: q[3] });
     });
-    if (++play.current.at === rec.frames.length) publish(throwId, rec.results);
+    if (++play.current.at === rec.frames.length) {
+      // Subscribers must see the final pose, even before this physics step has run.
+      rec.frames.at(-1)!.forEach(({ p, q }, i) => {
+        current[i].setTranslation({ x: p[0], y: p[1], z: p[2] }, true);
+        current[i].setRotation({ x: q[0], y: q[1], z: q[2], w: q[3] }, true);
+      });
+      publish(throwId, rec.results, rec.raw);
+    }
   });
   return null;
 }
 
 export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> }) {
-  const kind = useDice((state) => state.kind);
-  const count = useDice((state) => state.count);
-  const { camera, size } = useThree();
+  const selected = useDice((state) => state.dice);
+  const key = selected.join(',');
+  const { camera, size, scene, gl, setDpr, viewport: { initialDpr, dpr } } = useThree();
+  const desiredDpr = useRef(initialDpr);
+  useLayoutEffect(() => {
+    const context = gl.getContext(), debug = context.getExtension('WEBGL_debug_renderer_info');
+    const renderer = context.getParameter(debug ? debug.UNMASKED_RENDERER_WEBGL : context.RENDERER) as string;
+    // SwiftShader cannot afford a full-resolution first throw or a late buffer resize on pickup.
+    if (/swiftshader/i.test(renderer)) { desiredDpr.current = 0.35; setDpr(0.35); }
+  }, [gl, setDpr]);
   const bodies = useRef<(RapierRigidBody | null)[]>([]);
   const launches = useRef<ReturnType<DiceHook['launches']>>({ count: 0, last: null });
   const dice = useRef<Group>(null);
   const recordLaunch = useCallback((last: NonNullable<ReturnType<DiceHook['launches']>['last']>) => {
     launches.current = { count: launches.current.count + 1, last };
   }, []);
+  const adjustDpr = (scale: number) => {
+    desiredDpr.current = Math.min(initialDpr, Math.max(0.35, desiredDpr.current * scale));
+  };
+  useFrame(() => {
+    if (desiredDpr.current === dpr) return;
+    const { gesture, showcased, throwId } = useDice.getState();
+    // Resizing the backing buffer can stall a software renderer: do it between animations.
+    if (gesture.phase !== 'hand' && !(gesture.phase === 'settled' && showcased === throwId)) return;
+    setDpr(desiredDpr.current);
+  });
   const register = useCallback((index: number, body: RapierRigidBody | null) => {
     bodies.current[index] = body;
   }, []);
@@ -95,16 +151,16 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
       state: () => {
         const state = useDice.getState();
         return {
-          kind: state.kind, count: state.count, phase: state.gesture.phase, throwId: state.throwId,
+          dice: state.dice, phase: state.gesture.phase, throwId: state.throwId,
           results: state.results,
-          ready: state.ready && state.kind === kind && state.count === count && bodies.current.filter((b) => b?.isValid()).length === bodiesFor(kind, count).length,
-          error: state.error, aim: state.aim,
+          ready: state.ready && state.dice.join(',') === key && bodies.current.filter((b) => b?.isValid()).length === selected.length,
+          error: state.error, aim: state.aim, showcased: state.showcased,
+          omen: state.omen?.throwId === state.throwId ? omenKind(state.omen) : null, omenDone: state.omenDone,
+          omenTime: performance.now() - state.omenAt, trayBroken: scene.getObjectByName('tray-surface')?.visible === false,
         };
       },
-      select: (nextKind, nextCount) => {
-        useDice.getState().setKind(nextKind);
-        useDice.getState().setCount(nextCount);
-      },
+      select: (next) => useDice.getState().setDice(next),
+      rigOmen: (omen) => useDice.getState().rigOmen(omen),
       bodies: () => bodies.current.filter((body): body is RapierRigidBody => body !== null && body.isValid()).map((body) => {
         const p = body.translation(), q = body.rotation();
         return { handle: body.handle, p: [p.x, p.y, p.z], q: [q.x, q.y, q.z, q.w], type: body.bodyType() };
@@ -119,23 +175,27 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
         return result;
       },
       labels: (index) => {
-        const result: { text: string; position: Vec3; normal: Vec3 }[] = [];
+        const result: ReturnType<DiceHook['labels']> = [];
         const batch = numbersOf(index);
         if (!batch) return result;
         batch.updateWorldMatrix(true, false);
         // BatchedText members are not scene children: world matrix = batch matrix × member matrix.
-        for (const label of batch.userData.labels as (Object3D & { text: string })[]) {
+        for (const label of batch.userData.labels as Object3D[]) {
           label.updateMatrix();
           const world = new Matrix4().multiplyMatrices(batch.matrixWorld, label.matrix);
           result.push({
-            text: label.text,
+            text: label.userData.text, value: label.userData.value,
             position: new Vector3().setFromMatrixPosition(world).toArray(),
             normal: new Vector3(0, 0, 1).transformDirection(world).toArray(),
           });
         }
         return result;
       },
+      camera: () => camera.position.toArray(),
       numbersVisible: (index) => numbersOf(index)?.visible ?? false,
+      highlights: () => (scene.getObjectByName('result-highlights')?.children ?? []).map((o) => ({
+        text: o instanceof Text ? o.text : null, visible: o.visible,
+      })),
       launches: () => launches.current,
       previewSurface: (index, p, q) => {
         if (import.meta.env.MODE !== 'test' || !new URLSearchParams(location.search).has('surface-preview') || useDice.getState().gesture.phase !== 'hand') throw new Error('Surface preview is only available in the test preview scene');
@@ -148,11 +208,14 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
       },
     });
     useDice.getState().setReady();
-  }, [gameArea, kind, count]);
+  }, [camera, gameArea, key, selected, scene]);
 
 
   return (
     <>
+      {/* Slow GPUs need fewer pixels during tosses and pickup; restore detail when there is headroom. */}
+      <PerformanceMonitor ms={200} iterations={3} bounds={() => [28, 55]}
+        onDecline={() => adjustDpr(0.75)} onIncline={() => adjustDpr(1.1)} />
       <color attach="background" args={['#140E10']} />
       <ambientLight intensity={0.35} />
       <directionalLight position={[-4, 10, 5]} intensity={2.5} castShadow
@@ -168,12 +231,13 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
         <Hand gameArea={gameArea} bodies={bodies} />
         <ThrowLoop bodies={bodies} recordLaunch={recordLaunch} />
         <group ref={dice}>
-          {bodiesFor(kind, count).map(({ shape, labels }, i) => (
-            <Die key={`${kind}-${count}-${i}`} index={i} shape={shape} labels={labels} color={GEM[kind]}
+          {selected.map((kind, i) => (
+            <Die key={`${key}-${i}`} index={i} kind={kind} selection={key} count={selected.length} color={GEM[kind]}
               register={register} />
           ))}
         </group>
       </Physics>
+      <Omens bodies={bodies} />
     </>
   );
 }

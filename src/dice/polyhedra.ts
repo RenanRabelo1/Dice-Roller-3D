@@ -4,24 +4,35 @@ import {
   IcosahedronGeometry,
   OctahedronGeometry,
   TetrahedronGeometry,
+  Vector3,
   type BufferGeometry,
 } from 'three';
+import { ConvexHull } from 'three/examples/jsm/math/ConvexHull.js';
 import type { Vec3 } from '../physics/world';
 
-export type Shape = 'd4' | 'd6' | 'd8' | 'd10' | 'd12' | 'd20';
-export type DieKind = Shape | 'd100';
-export type LabelSet = 'plain' | 'tens';
+export type Shape = 'd4' | 'd6' | 'd8' | 'd10' | 'd12' | 'd20' | 'd100' | 'coin';
+export type DieKind = Shape | 'vtm' | 'hunger' | 'fire'; // every kind is one physical die
+export type SymbolName = 'ankh' | 'crit' | 'skull' | 'fangs' | 'heads' | 'crown';
 
-export const KINDS: DieKind[] = ['d4', 'd6', 'd8', 'd10', 'd12', 'd20', 'd100'];
+export const KINDS: DieKind[] = ['d4', 'd6', 'd8', 'd10', 'd12', 'd20', 'd100', 'vtm', 'hunger', 'fire', 'coin'];
+// The physical die behind each kind: geometry, collider, radius, numbering and reading.
+// Custom dice (Vampire: The Masquerade d10s, Fireball d6) only change how that die looks.
+export const BASE: Record<DieKind, Shape> = {
+  d4: 'd4', d6: 'd6', d8: 'd8', d10: 'd10', d12: 'd12', d20: 'd20', d100: 'd100', vtm: 'd10', hunger: 'd10', fire: 'd6', coin: 'coin',
+};
+// Vampire d10s show symbols instead of digits, by d10 digit (0 is the 10); the other faces are blank.
+const SYMBOL: Partial<Record<DieKind, (digit: number) => SymbolName | undefined>> = {
+  vtm: (v) => (v === 0 ? 'crit' : v >= 6 ? 'ankh' : undefined),
+  hunger: (v) => (v === 0 ? 'fangs' : v === 1 ? 'skull' : v >= 6 ? 'ankh' : undefined),
+};
 // Circumscribed radius of each shape.
-export const RADIUS: Record<Shape, number> = { d4: 0.9, d6: 0.75, d8: 0.7, d10: 0.7, d12: 0.7, d20: 0.7 };
+export const RADIUS: Record<Shape, number> = { d4: 0.9, d6: 0.75, d8: 0.7, d10: 0.7, d12: 0.7, d20: 0.7, d100: 0.9, coin: 0.76 };
 
 export interface Face { normal: Vec3; center: Vec3; value: number }
 export interface Top { dir: Vec3; value: number }
-export interface Label { text: string; value: number; position: Vec3; normal: Vec3; up: Vec3 }
+export interface Label { text: string; value: number; position: Vec3; normal: Vec3; up: Vec3; symbol?: SymbolName }
 export interface Polyhedron {
   shape: Shape;
-  labels: LabelSet;
   radius: number;
   points: Vec3[];
   triangles: number[];
@@ -57,6 +68,57 @@ function trapezohedronTriangles(radius: number): Vec3[] {
   return tris;
 }
 
+// d100: 100 near-equal faces, each tangent to the sphere at one of 100 evenly spread (Fibonacci) points.
+// Every corner is where three neighbouring tangent planes meet; each face is the polygon around its point.
+function hundredTriangles(radius: number): Vec3[] {
+  const N = 100, turn = Math.PI * (3 - Math.sqrt(5));
+  const pts = Array.from({ length: N }, (_, i) => {
+    const y = 1 - (2 * (i + 0.5)) / N, r = Math.sqrt(1 - y * y);
+    return new Vector3(Math.cos(turn * i) * r, y, Math.sin(turn * i) * r);
+  });
+  const corners: Vector3[][] = pts.map(() => []);
+  for (const face of new ConvexHull().setFromPoints(pts).faces) {
+    const ring: Vector3[] = [];
+    let e = face.edge;
+    do { ring.push(e.head().point); e = e.next; } while (e !== face.edge);
+    const [a, b, c] = ring; // planes a·x = b·x = c·x = 1 meet at (b×c + c×a + a×b) / a·(b×c)
+    const x = new Vector3().crossVectors(b, c).add(new Vector3().crossVectors(c, a)).add(new Vector3().crossVectors(a, b));
+    x.divideScalar(a.dot(new Vector3().crossVectors(b, c)));
+    for (const p of ring) corners[pts.indexOf(p)].push(x);
+  }
+  const far = Math.max(...corners.flat().map((c) => c.length()));
+  const tris: Vec3[] = [];
+  pts.forEach((p, i) => {
+    const u = new Vector3(0, 1, 0).cross(p); if (u.lengthSq() < 1e-9) u.set(1, 0, 0); u.normalize();
+    const v = new Vector3().crossVectors(p, u);
+    const ring = corners[i].sort((m, n) => Math.atan2(m.dot(v), m.dot(u)) - Math.atan2(n.dot(v), n.dot(u)));
+    for (let k = 1; k < ring.length - 1; k++) for (const c of [ring[0], ring[k], ring[k + 1]]) tris.push(c.clone().multiplyScalar(radius / far).toArray() as Vec3);
+  });
+  return tris;
+}
+
+// Coin: a thin 48-sided prism (round to the eye; the flats read as a milled rim). Only the two caps are faces,
+// so it always reads heads or tails, even leaning on its rim: 1 = CARA (up), 2 = COROA (down).
+function coin(): Polyhedron {
+  const sides = 48, h = 0.08, R = RADIUS.coin, r = Math.sqrt(R * R - h * h);
+  const at = (k: number, radius: number, y: number): Vec3 => [radius * Math.cos((2 * Math.PI * k) / sides), y, radius * Math.sin((2 * Math.PI * k) / sides)];
+  const ring = (y: number) => Array.from({ length: sides }, (_, k) => at(k, r, y));
+  const top = ring(h), bottom = ring(-h), up: Vec3 = [0, h, 0], down: Vec3 = [0, -h, 0];
+  const triangles: number[] = [];
+  for (let k = 0; k < sides; k++) {
+    const n = (k + 1) % sides; // outward winding: both caps, then the rim quad
+    triangles.push(...[up, top[n], top[k], down, bottom[k], bottom[n], top[k], top[n], bottom[n], top[k], bottom[n], bottom[k]].flat());
+    // A raised ring near the edge of each cap (drawn only: the collider is the plain disc), so the light picks out a coin.
+    for (const s of [1, -1]) for (const [r1, y1, r2, y2] of [[0.8, 0, 0.86, 0.025], [0.86, 0.025, 0.92, 0]]) {
+      const [a, b, c, d] = [at(k, r1 * r, s * (h + y1)), at(k + 1, r1 * r, s * (h + y1)), at(k + 1, r2 * r, s * (h + y2)), at(k, r2 * r, s * (h + y2))];
+      triangles.push(...(s > 0 ? [a, b, c, a, c, d] : [a, c, b, a, d, c]).flat());
+    }
+  }
+  const faces: Face[] = [{ normal: [0, 1, 0], center: up, value: 1 }, { normal: [0, -1, 0], center: down, value: 2 }];
+  const labelList: Label[] = faces.map((f) => ({ text: f.value === 1 ? 'Cara' : 'Coroa', symbol: f.value === 1 ? 'heads' : 'crown', value: f.value, position: f.center, normal: f.normal, up: [0, 0, -1] }));
+  return { shape: 'coin', radius: R, points: [...top, ...bottom], triangles, faces, tops: [], labelList };
+}
+
 function geometryTriangles(g: BufferGeometry): Vec3[] {
   const pos = (g.index ? g.toNonIndexed() : g).getAttribute('position');
   return Array.from({ length: pos.count }, (_, i) => [pos.getX(i), pos.getY(i), pos.getZ(i)] as Vec3);
@@ -71,10 +133,13 @@ function rawTriangles(shape: Shape): Vec3[] {
     case 'd10': return trapezohedronTriangles(r);
     case 'd12': return geometryTriangles(new DodecahedronGeometry(r));
     case 'd20': return geometryTriangles(new IcosahedronGeometry(r));
+    case 'd100': return hundredTriangles(r);
+    case 'coin': throw new Error('the coin is built by coin()');
   }
 }
 
-function build(shape: Shape, labels: LabelSet): Polyhedron {
+function build(shape: Shape): Polyhedron {
+  if (shape === 'coin') return coin();
   const verts = rawTriangles(shape);
   const points: Vec3[] = [];
   const indexOf = (v: Vec3) => {
@@ -104,15 +169,17 @@ function build(shape: Shape, labels: LabelSet): Polyhedron {
   });
 
   if (shape !== 'd4') {
-    const sum = OPPOSITE_SUM[shape]!;
+    const sum = OPPOSITE_SUM[shape] ?? 0;
     const key = (f: Face) => [-round6(f.normal[1]), Math.atan2(round6(f.normal[2]), round6(f.normal[0]))];
     const order = faces.map((_, i) => i).sort((i, j) => {
       const [a, b] = [key(faces[i]), key(faces[j])];
       return a[0] - b[0] || a[1] - b[1];
     });
+    // d100 has no exactly opposite faces: spread 1-100 over the sphere (37 is coprime with 100, so it's a permutation).
+    if (shape === 'd100') order.forEach((f, rank) => { faces[f].value = ((rank * 37) % 100) + 1; });
     let next = shape === 'd10' ? 0 : 1;
     const done = new Set<number>();
-    for (const i of order) {
+    for (const i of shape === 'd100' ? [] : order) {
       if (done.has(i)) continue;
       const o = faces.findIndex((g) => dot(g.normal, faces[i].normal) < -0.9999);
       faces[i].value = next;
@@ -124,8 +191,8 @@ function build(shape: Shape, labels: LabelSet): Polyhedron {
 
   const tops: Top[] = shape === 'd4' ? points.map((p, i) => ({ dir: unit(p), value: i + 1 })) : [];
 
-  const marked = shape === 'd12' || shape === 'd20' || (shape === 'd10' && labels === 'plain');
-  const text = (v: number) => (labels === 'tens' ? (v === 0 ? '00' : `${v}0`) : marked && (v === 6 || v === 9) ? `${v}.` : String(v));
+  const marked = shape === 'd10' || shape === 'd12' || shape === 'd20' || shape === 'd100';
+  const text = (v: number) => (marked && (v === 6 || v === 9) ? `${v}.` : String(v));
   const labelList: Label[] = [];
   faces.forEach((f, i) => {
     if (shape === 'd4') {
@@ -144,21 +211,22 @@ function build(shape: Shape, labels: LabelSet): Polyhedron {
     labelList.push({ text: text(f.value), value: f.value, position: f.center, normal: f.normal, up: unit(up) });
   });
 
-  return { shape, labels, radius: RADIUS[shape], points, triangles, faces, tops, labelList };
+  return { shape, radius: RADIUS[shape], points, triangles, faces, tops, labelList };
 }
 
-const cache = new Map<string, Polyhedron>();
-export function polyhedron(shape: Shape, labels: LabelSet = 'plain'): Polyhedron {
-  const key = `${shape}:${labels}`;
-  let p = cache.get(key);
-  if (!p) { p = build(shape, labels); cache.set(key, p); }
+const cache = new Map<DieKind, Polyhedron>();
+export function polyhedron(kind: DieKind): Polyhedron {
+  let p = cache.get(kind);
+  if (!p) {
+    const base = BASE[kind], symbol = SYMBOL[kind];
+    p = base === kind ? build(base) : polyhedron(base);
+    // One label per face even when blank, so the showcase still finds the rolled face by value.
+    if (symbol) p = { ...p, labelList: p.labelList.map((l) => ({ ...l, text: '', symbol: symbol(l.value) })) };
+    cache.set(kind, p);
+  }
   return p;
 }
 
-export function bodiesFor(kind: DieKind, count: number): { shape: Shape; labels: LabelSet }[] {
-  if (kind !== 'd100') return Array.from({ length: count }, () => ({ shape: kind, labels: 'plain' as const }));
-  return Array.from({ length: count }, () => [
-    { shape: 'd10' as const, labels: 'tens' as const },
-    { shape: 'd10' as const, labels: 'plain' as const },
-  ]).flat();
-}
+// A mixed selection, one entry per die, kept in KINDS order (e.g. ['d10', 'd12', 'd12']).
+export const sortDice = (dice: DieKind[]): DieKind[] => [...dice].sort((a, b) => KINDS.indexOf(a) - KINDS.indexOf(b));
+export const MAX_DICE = 10;
