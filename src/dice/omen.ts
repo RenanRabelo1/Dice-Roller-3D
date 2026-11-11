@@ -1,4 +1,4 @@
-import type { DieKind } from './polyhedra';
+import type { DieKind } from './kinds.ts';
 
 // An omen is the show a roll puts on before its result appears. A critical is a 20 on a d20, or a 1 on a
 // d100 (Call of Cthulhu: low is good). A fumble is a 1 on a d20, or a 100 on a d100. One of each in the same
