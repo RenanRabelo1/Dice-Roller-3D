@@ -47,7 +47,7 @@ function ThrowLoop({ bodies, recordLaunch }: {
 export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> }) {
   const selected = useDice((state) => state.dice);
   const key = selected.join(',');
-  const { camera, size } = useThree();
+  const { camera, size, scene } = useThree();
   const bodies = useRef<(RapierRigidBody | null)[]>([]);
   const launches = useRef<ReturnType<DiceHook['launches']>>({ count: 0, last: null });
   const dice = useRef<Group>(null);
@@ -102,6 +102,7 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
           ready: state.ready && state.dice.join(',') === key && bodies.current.filter((b) => b?.isValid()).length === selected.length,
           error: state.error, aim: state.aim, showcased: state.showcased,
           omen: state.omen?.throwId === state.throwId ? omenKind(state.omen) : null, omenDone: state.omenDone,
+          omenTime: performance.now() - state.omenAt, trayBroken: scene.getObjectByName('tray-surface')?.visible === false,
         };
       },
       select: (next) => useDice.getState().setDice(next),
@@ -150,7 +151,7 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
       },
     });
     useDice.getState().setReady();
-  }, [camera, gameArea, key, selected]);
+  }, [camera, gameArea, key, selected, scene]);
 
 
   return (

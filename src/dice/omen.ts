@@ -7,7 +7,7 @@ export interface Omen { crits: number[]; fumbles: number[] } // die indices
 export type OmenKind = 'crit' | 'fumble' | 'duality';
 
 // How long each show lasts (ms); the result waits for it.
-export const OMEN_MS = { lightning: 1300, kraken: 2300, blood: 1700, duality: 2600 };
+export const OMEN_MS = { lightning: 1300, kraken: 5600, blood: 1700, duality: 2600 };
 export const DUALITY_HIT = 1100; // when the two fish collide (and the screen shakes)
 
 export function omenOf(dice: DieKind[], results: number[]): Omen | null {

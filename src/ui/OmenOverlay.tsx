@@ -41,12 +41,14 @@ export function OmenOverlay({ gameArea }: { gameArea: RefObject<HTMLDivElement |
   const phase = useDice((s) => s.gesture.phase), dice = useDice((s) => s.dice);
   const live = omen && omen.throwId === throwId && phase === 'settled' && done !== throwId ? omen : null;
   const kind = live && omenKind(live);
+  const kraken = kind === 'crit' && !!live?.crits.some((i) => dice[i] === 'd100');
   useEffect(() => {
     const area = gameArea.current;
     if (!area) return;
     if (kind) area.setAttribute('data-omen', kind); else area.removeAttribute('data-omen');
-    return () => area.removeAttribute('data-omen');
-  }, [gameArea, kind]);
+    area.toggleAttribute('data-kraken', kraken);
+    return () => { area.removeAttribute('data-omen'); area.removeAttribute('data-kraken'); };
+  }, [gameArea, kind, kraken]);
   if (!live || !kind) return null;
   const on = (die: string) => kind === 'crit' && live.crits.some((i) => dice[i] === die);
   return (
@@ -59,7 +61,7 @@ export function OmenOverlay({ gameArea }: { gameArea: RefObject<HTMLDivElement |
             style={{ left: `${left}%`, '--w': `${w}px`, '--h': `${h}%`, animationDelay: `${delay + 120}ms`, animationDuration: `${ms}ms` } as CSSProperties} />)}
         </>}
         {on('d20') && <div className="omen-flash" />}
-        {on('d100') && <div className="omen-deep" />}
+        {on('d100') && <><div className="omen-deep" /><div className="omen-heaven" /></>}
       </div>
       <p className="sr-only" role="status">{SAY[kind]}</p>
     </>

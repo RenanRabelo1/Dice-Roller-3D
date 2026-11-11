@@ -93,7 +93,15 @@ canvas { display: block; }
 .omen-drip::after { content: ''; position: absolute; left: 50%; bottom: calc(var(--w) * -0.45); width: calc(var(--w) * 1.5); aspect-ratio: 1;
   transform: translateX(-50%); border-radius: 50%; background: #840914; }
 .omen-flash { position: absolute; inset: 0; background: #EAF5FF; opacity: 0; animation: omen-flash 280ms ease-out 30ms; }
-.omen-deep { position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 30%, rgba(2, 32, 28, 0.72) 100%); animation: omen-in 450ms ease-out both; }
+.omen-deep { position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 30%, rgba(2, 16, 25, 0.7) 100%); animation: kraken-depth var(--ms) linear both; }
+.omen-heaven { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 38%, rgba(255, 238, 192, 0.16), transparent 65%); animation: kraken-heaven var(--ms) linear both; }
+.game-area[data-kraken] canvas { animation: kraken-impact 650ms ease-out 450ms; }
+@keyframes kraken-depth { 0%, 95%, 100% { opacity: 0; } 10%, 30% { opacity: 1; } 50%, 76% { opacity: 0.45; } }
+@keyframes kraken-heaven { 0%, 35%, 96%, 100% { opacity: 0; } 50%, 76% { opacity: 1; } }
+@keyframes kraken-impact {
+  12% { transform: translate(-7px, 5px); } 28% { transform: translate(6px, -4px); }
+  45% { transform: translate(-4px, 3px); } 65% { transform: translate(3px, -2px); } 100% { transform: none; }
+}
 /* Duality: the two fish collide at DUALITY_HIT (1100 ms) and the screen shakes. */
 .game-area[data-omen="duality"] canvas { animation: omen-shake 520ms linear 1100ms; }
 @keyframes omen-out { 0%, 82% { opacity: 1; } 100% { opacity: 0; } }

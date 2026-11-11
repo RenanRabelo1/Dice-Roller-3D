@@ -1,26 +1,25 @@
-import { useEffect, useMemo, type RefObject } from 'react';
+import { useEffect, useMemo, useRef, type RefObject } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import type { RapierRigidBody } from '@react-three/rapier';
 import {
-  AdditiveBlending, BufferAttribute, BufferGeometry, CanvasTexture, CircleGeometry, Color, CylinderGeometry, DoubleSide,
-  ExtrudeGeometry, Group, Mesh, MeshBasicMaterial, MeshPhysicalMaterial, MeshStandardMaterial, Path, PointLight,
-  RingGeometry, Shape, Sprite, SpriteMaterial, Vector3, type Camera, type Material, type Scene, type WebGLRenderer,
+  AdditiveBlending, BufferAttribute, BufferGeometry, CanvasTexture, CylinderGeometry, DoubleSide,
+  ExtrudeGeometry, Group, LineSegments, Mesh, MeshBasicMaterial, MeshStandardMaterial, Path, PointLight,
+  Shape, Sprite, SpriteMaterial, Vector3, type Camera, type Material, type Scene, type WebGLRenderer,
 } from 'three';
 import { MAX_DICE, type DieKind } from '../dice/polyhedra';
 import { DUALITY_HIT, omenKind, omenMs } from '../dice/omen';
-import { TRAY } from '../physics/world';
 import { useDice } from '../store';
+import { Kraken } from './Kraken';
 
 // The 3D side of an omen, played after the dice settle and before the result shows:
 // lightning on a critical d20, a kraken under a critical d100, the yin-yang fish for duality (the fumble's
-// blood is a screen overlay, see OmenOverlay). Everything is built once, compiled at mount and hidden
+// blood is a screen overlay, see OmenOverlay). Effect materials are compiled at mount and hidden
 // (0 draw calls) outside an omen. When the show ends it marks the omen done, and the result goes on.
 
 const clamp01 = (t: number) => Math.min(1, Math.max(0, t));
 const span = (t: number, a: number, b: number) => clamp01((t - a) / (b - a));
 const easeOut = (t: number) => 1 - (1 - clamp01(t)) ** 3;
 const easeIn = (t: number) => clamp01(t) ** 3;
-const UP = new Vector3(0, 1, 0);
 
 function glowTexture(): CanvasTexture {
   const c = document.createElement('canvas');
@@ -100,85 +99,6 @@ class Bolt {
   hide() { this.glow.visible = this.core.visible = this.flash.visible = false; }
 }
 
-// Kraken: a dark whirlpool opens in the felt under the die and seven tapering, suckered tentacles rise out of it,
-// curl over the die and sink back. All seven are one mesh, recomputed in place each frame (~1.6k vertices).
-const ARMS = 7, RINGS = 28, SEG = 8;
-class Kraken {
-  readonly arms: Mesh<BufferGeometry, MeshPhysicalMaterial>; readonly vortex: Mesh; readonly ripple: Mesh;
-  private center = new Vector3();
-  private roots: { p: Vector3; inward: Vector3; side: Vector3; length: number; phase: number }[] = [];
-  constructor() {
-    const g = new BufferGeometry(), n = ARMS * (RINGS + 1) * SEG;
-    g.setAttribute('position', new BufferAttribute(new Float32Array(n * 3), 3));
-    const colors = new Float32Array(n * 3), index: number[] = [];
-    const outer = [new Color('#3A1636'), new Color('#6E3766')], inner = new Color('#C4707E'), sucker = new Color('#F0B7B0');
-    for (let a = 0; a < ARMS; a++) for (let i = 0; i <= RINGS; i++) for (let j = 0; j < SEG; j++) {
-      const v = (a * (RINGS + 1) + i) * SEG + j, inside = Math.cos((2 * Math.PI * j) / SEG) > 0.5;
-      const c = inside ? (i % 3 === 1 && i < RINGS - 2 ? sucker : inner) : outer[0].clone().lerp(outer[1], i / RINGS);
-      colors.set([c.r, c.g, c.b], v * 3);
-      if (i < RINGS) {
-        const w = (a * (RINGS + 1) + i) * SEG, next = (j + 1) % SEG;
-        index.push(w + j, w + next, w + SEG + j, w + next, w + SEG + next, w + SEG + j);
-      }
-    }
-    g.setAttribute('color', new BufferAttribute(colors, 3));
-    g.setIndex(index);
-    this.arms = new Mesh(g, new MeshPhysicalMaterial({ vertexColors: true, roughness: 0.35, clearcoat: 1, clearcoatRoughness: 0.25 }));
-    this.arms.frustumCulled = false;
-    this.vortex = new Mesh(new CircleGeometry(2.1, 48).rotateX(-Math.PI / 2),
-      new MeshBasicMaterial({ color: '#04110F', transparent: true, opacity: 0.9, depthWrite: false }));
-    this.ripple = new Mesh(new RingGeometry(1.75, 2.1, 48).rotateX(-Math.PI / 2),
-      new MeshBasicMaterial({ color: '#1E6F66', transparent: true, blending: AdditiveBlending, depthWrite: false, toneMapped: false }));
-  }
-  start(target: Vector3) {
-    this.center.set(target.x, 0, target.z);
-    const lim = (v: number, m: number) => Math.max(-m, Math.min(m, v));
-    this.roots = Array.from({ length: ARMS }, (_, a) => {
-      const angle = (2 * Math.PI * a) / ARMS + Math.random() * 0.4, r = 1.25 + Math.random() * 0.35;
-      const p = new Vector3(lim(this.center.x + Math.cos(angle) * r, TRAY.halfWidth - 0.3), 0, lim(this.center.z + Math.sin(angle) * r, TRAY.halfDepth - 0.3));
-      const inward = this.center.clone().sub(p).setY(0).normalize();
-      return { p, inward, side: new Vector3().crossVectors(UP, inward), length: 2.6 + Math.random() * 0.8, phase: Math.random() * 6 };
-    });
-    this.vortex.position.set(this.center.x, 0.012, this.center.z);
-    this.ripple.position.set(this.center.x, 0.014, this.center.z);
-  }
-  update(t: number) {
-    const open = easeOut(t / 350) * (1 - easeIn(span(t, 1950, 2300)));
-    this.vortex.visible = this.ripple.visible = this.arms.visible = open > 0;
-    this.vortex.scale.setScalar(open + 0.001);
-    this.ripple.scale.setScalar((open + 0.001) * (1 + 0.06 * Math.sin(t / 90)));
-    this.ripple.rotation.y = -t / 400;
-    (this.ripple.material as MeshBasicMaterial).opacity = 0.7 * open;
-    const curl = 0.5 + 1.9 * easeOut(span(t, 350, 1300)) - 0.6 * span(t, 1600, 2100);
-    const pos = this.arms.geometry.getAttribute('position') as BufferAttribute;
-    const p = new Vector3(), d = new Vector3(), n = new Vector3(), b = new Vector3(), w = new Vector3(), v = new Vector3();
-    this.roots.forEach((root, a) => {
-      const rise = easeOut(span(t, 150 + 70 * a, 850 + 70 * a)) * (1 - easeIn(span(t, 1600 + 40 * a, 2050 + 40 * a)));
-      const ds = root.length / RINGS, sec = t / 1000;
-      p.copy(root.p).addScaledVector(UP, -(1 - rise) * root.length - 0.05); // below the felt until it rises
-      for (let i = 0; i <= RINGS; i++) {
-        const s = i / RINGS;
-        const theta = curl * s ** 1.6 + 0.35 * s * Math.sin(3.2 * sec + root.phase + 4 * s);
-        const psi = 0.35 * s * Math.sin(2.1 * sec + 1.7 * root.phase);
-        w.copy(root.inward).multiplyScalar(Math.cos(psi)).addScaledVector(root.side, Math.sin(psi));
-        d.copy(UP).multiplyScalar(Math.cos(theta)).addScaledVector(w, Math.sin(theta));
-        n.copy(UP).multiplyScalar(-Math.sin(theta)).addScaledVector(w, Math.cos(theta)); // toward the inside of the curl: the suckers
-        b.crossVectors(d, n);
-        const radius = 0.24 * (1 - 0.93 * s) * (0.7 + 0.3 * rise);
-        for (let j = 0; j < SEG; j++) {
-          const ang = (2 * Math.PI * j) / SEG;
-          v.copy(p).addScaledVector(n, Math.cos(ang) * radius).addScaledVector(b, Math.sin(ang) * radius);
-          pos.setXYZ((a * (RINGS + 1) + i) * SEG + j, v.x, v.y, v.z);
-        }
-        p.addScaledVector(d, ds);
-      }
-    });
-    pos.needsUpdate = true;
-    this.arms.geometry.computeVertexNormals();
-  }
-  hide() { this.arms.visible = this.vortex.visible = this.ripple.visible = false; }
-}
-
 // Duality: the two halves of the yin-yang, each a fish with an eye of the other colour, fly in from opposite
 // sides in a tightening spiral over the tray, collide into the disc (the screen shakes), spin and vanish.
 class TaiJi {
@@ -234,27 +154,37 @@ class TaiJi {
   hide() { this.group.visible = false; }
 }
 
-// Every effect, pooled per die; `frame` plays the current omen and reports when it is over.
+// `frame` plays the current omen and reports when it is over.
 class Show {
   readonly root = new Group();
   private map = glowTexture();
   private bolts = Array.from({ length: MAX_DICE }, () => new Bolt(this.map));
-  private krakens = Array.from({ length: MAX_DICE }, () => new Kraken());
+  private kraken = new Kraken(this.map);
   private taiji = new TaiJi(this.map);
   private light = new PointLight('#CFE6FF', 0, 10, 2);
   private run: { throwId: number; at: number; ms: number; bolts: number; krakens: number; duality: boolean } | null = null;
   constructor() {
     for (const b of this.bolts) this.root.add(b.glow, b.core, b.flash);
-    for (const k of this.krakens) this.root.add(k.vortex, k.ripple, k.arms);
-    this.root.add(this.taiji.group, this.light);
+    // Keep the light count constant: hiding the rupture must not recompile every die's shader.
+    this.root.add(this.kraken.root, this.kraken.light, this.taiji.group, this.light);
   }
   // Compile every effect's shader up front, so the first omen does not stall a frame.
-  compile(gl: WebGLRenderer, scene: Scene, camera: Camera) {
+  compile(gl: WebGLRenderer, scene: Scene, camera: Camera, draw = false) {
+    if (draw) {
+      const target = new Vector3(0, 1, 0);
+      this.bolts.forEach((b) => { b.start(target); b.update(70, camera.position); });
+      this.kraken.update(900, camera, () => target);
+      this.kraken.update(3300, camera, () => target);
+      this.taiji.update(1300, camera);
+    }
     this.root.traverse((o) => { o.visible = true; });
     gl.compile(scene, camera);
+    if (draw) gl.render(scene, camera);
     this.hide();
+    // ANGLE finishes some pipelines on their first draw. Replace the warm-up before the browser paints.
+    if (draw) gl.render(scene, camera);
   }
-  hide() { this.bolts.forEach((b) => b.hide()); this.krakens.forEach((k) => k.hide()); this.taiji.hide(); this.light.intensity = 0; this.run = null; }
+  hide() { this.bolts.forEach((b) => b.hide()); this.kraken.hide(); this.taiji.hide(); this.light.intensity = 0; this.run = null; }
   frame(now: number, camera: Camera, at: (i: number) => Vector3 | null): number | null {
     const s = useDice.getState(), o = s.omen;
     if (!o || o.throwId !== s.throwId || s.gesture.phase !== 'settled' || s.omenDone === o.throwId) { if (this.run) this.hide(); return null; }
@@ -263,14 +193,14 @@ class Show {
       const kind = omenKind(o), on = (die: DieKind) => (kind === 'crit' ? o.crits.filter((i) => s.dice[i] === die).map(at).filter((p): p is Vector3 => !!p) : []);
       const lit = on('d20'), deep = on('d100');
       lit.forEach((p, i) => this.bolts[i].start(p));
-      deep.forEach((p, i) => this.krakens[i].start(p));
+      if (deep.length) this.kraken.start(deep, o.crits.filter((i) => s.dice[i] === 'd100'));
       if (lit[0]) this.light.position.copy(lit[0]).y += 1.2;
-      this.run = { throwId: o.throwId, at: now, ms: omenMs(o, s.dice), bolts: lit.length, krakens: deep.length, duality: kind === 'duality' };
+      this.run = { throwId: o.throwId, at: s.omenAt, ms: omenMs(o, s.dice), bolts: lit.length, krakens: deep.length, duality: kind === 'duality' };
     }
     const r = this.run, t = now - r.at;
     let striking = false;
     for (let i = 0; i < r.bolts; i++) striking = this.bolts[i].update(t, camera.position) || striking;
-    for (let i = 0; i < r.krakens; i++) this.krakens[i].update(t);
+    if (r.krakens) this.kraken.update(t, camera, at);
     if (r.duality) this.taiji.update(t, camera);
     this.light.intensity = r.bolts ? (striking ? 30 : 0) + 10 * (1 - span(t, 0, 900)) : 0;
     if (t < r.ms) return null;
@@ -279,7 +209,8 @@ class Show {
   }
   dispose() {
     this.root.traverse((o) => {
-      if (o instanceof Mesh || o instanceof Sprite) {
+      if (o instanceof Mesh || o instanceof Sprite || o instanceof LineSegments) {
+        o.dispose();
         o.geometry.dispose();
         for (const m of ([] as Material[]).concat(o.material)) m.dispose();
       }
@@ -291,9 +222,14 @@ class Show {
 export function Omens({ bodies }: { bodies: RefObject<(RapierRigidBody | null)[]> }) {
   const { camera, gl, scene } = useThree();
   const show = useMemo(() => new Show(), []);
+  const warmed = useRef(false);
   useEffect(() => { show.compile(gl, scene, camera); return () => show.dispose(); }, [camera, gl, scene, show]);
   useFrame(() => {
-    const done = show.frame(performance.now(), camera, (i) => { const p = bodies.current[i]?.translation(); return p ? new Vector3(p.x, p.y, p.z) : null; });
+    // Environment builds its reflection texture after mount; warm the final shader variants as well.
+    if (!warmed.current && scene.environment && gl.info.render.frame > 5 && !useDice.getState().omen) {
+      show.compile(gl, scene, camera, true); warmed.current = true;
+    }
+    const done = show.frame(performance.now(), camera, (i) => { const b = bodies.current[i]; const p = b?.isValid() ? b.translation() : null; return p ? new Vector3(p.x, p.y, p.z) : null; });
     if (done !== null) useDice.getState().setOmenDone(done);
   });
   return <primitive object={show.root} />;

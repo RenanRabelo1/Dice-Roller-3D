@@ -24,7 +24,7 @@ for (const { name, dice, omen, kind, overlay } of [
   { name: 'mixed duality', dice: ['d20', 'd100'], omen: { crits: [0], fumbles: [1] }, kind: 'duality', overlay: '.omen' },
   { name: 'both critical effects', dice: ['d20', 'd100'], omen: { crits: [0, 1], fumbles: [] }, kind: 'crit', overlay: '.omen-deep' },
 ] as { name: string; dice: DieKind[]; omen: Omen; kind: string; overlay: string }[]) {
-  test(`${name} finishes before the result and dice rise`, async ({ page }) => {
+  test(`${name} holds the result until the scene is restored`, async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', (error) => errors.push(error.message));
     page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()); });
@@ -39,7 +39,9 @@ for (const { name, dice, omen, kind, overlay } of [
     await page.waitForTimeout(350);
     await expect(page.getByTestId('result')).toBeEmpty();
     const after = await page.evaluate(() => window.__dice.bodies());
-    before.bodies.forEach((body, i) => body.p.forEach((v, k) => expect(after[i].p[k]).toBeCloseTo(v, 3)));
+    before.bodies.forEach((body, i) => {
+      if (dice[i] !== 'd100') body.p.forEach((v, k) => expect(after[i].p[k]).toBeCloseTo(v, 3));
+    });
     await page.screenshot({ path: `screens/omen-${name.replaceAll(' ', '-')}.png` });
     await shown(page);
     const state = await page.evaluate(() => window.__dice.state());

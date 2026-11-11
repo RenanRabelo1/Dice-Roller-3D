@@ -23,6 +23,7 @@ interface DiceState {
   showcased: number; // throwId whose dice finished flying to the front
   omen: (Omen & { throwId: number }) | null; // the show this throw's result puts on before it appears
   omenDone: number; // throwId whose omen finished playing
+  omenAt: number; // shared animation clock, starting when the physical result is published
   omenRig: Omen | null; // test mode only: forces the omen of the next throws
   addDie: (kind: DieKind) => void;
   removeDie: (kind: DieKind) => void;
@@ -50,7 +51,7 @@ const selection = (s: DiceState) => ({
 export const useDice = create<DiceState>((set) => ({
   dice: ['d20'], gesture: initialGesture, throwId: 0,
   aim: [0, 0, -1], force: 0, launch: null, results: null, raw: null,
-  error: null, ready: false, reducedMotion: false, showcased: 0, omen: null, omenDone: 0, omenRig: null,
+  error: null, ready: false, reducedMotion: false, showcased: 0, omen: null, omenDone: 0, omenAt: 0, omenRig: null,
   addDie: (kind) => set((s) => (s.dice.length >= MAX_DICE ? s : { ...selection(s), dice: sortDice([...s.dice, kind]) })),
   removeDie: (kind) => set((s) => {
     const i = s.dice.lastIndexOf(kind);
@@ -87,6 +88,6 @@ export const useDice = create<DiceState>((set) => ({
     // Publish the result, its omen and the reducer transition together so subscribers see one settled snapshot.
     // Reduced motion skips the omens' shows.
     const omen = s.reducedMotion ? null : s.omenRig ?? omenOf(s.dice, results);
-    return { results: [...results], raw: raw ? [...raw] : null, omen: omen && { throwId, ...omen }, gesture: reduce(s.gesture, { type: 'published' }).state };
+    return { results: [...results], raw: raw ? [...raw] : null, omen: omen && { throwId, ...omen }, omenAt: omen ? performance.now() : 0, gesture: reduce(s.gesture, { type: 'published' }).state };
   }),
 }));

@@ -11,7 +11,7 @@ Este documento também é o handoff para outro agente, caso o trabalho precise c
 | Caso | Quando | Animação |
 | --- | --- | --- |
 | Crítico do d20 | algum d20 tirou 20 | um raio cai no dado |
-| Crítico do d100 | algum d100 tirou 1 (Call of Cthulhu: menor é melhor) | um kraken sobe de dentro da bandeja, e depois o dado sobe mostrando o 1 (animação maior) |
+| Crítico do d100 | algum d100 tirou 1 (Call of Cthulhu: menor é melhor) | dez tentáculos rompem o piso da bandeja; o dado voa para a frente com o 1 dourado, asas e halo; a bandeja se recompõe |
 | Falha crítica ("piu") | algum d20 tirou 1 ou algum d100 tirou 100 | sangue na tela |
 | Dualidade | pelo menos um crítico **e** pelo menos uma falha no mesmo arremesso | yin-yang 3D (os dois peixes) voando sobre a bandeja, com tremida de tela na colisão |
 
@@ -47,19 +47,19 @@ Regras do pedido:
 - **Unidade pura** `src/dice/omen.ts`:
   - `omenOf(dice, results)` devolve `{ crits: number[]; fumbles: number[] } | null`, com os índices dos dados;
   - `omenKind(o)` devolve `'crit' | 'fumble' | 'duality'`;
-  - `omenMs(o, dice)` dá a duração: raio 1.300 ms, kraken 2.300 ms, sangue 1.700 ms, dualidade 2.600 ms.
+  - `omenMs(o, dice)` dá a duração: raio 1.300 ms, tentáculos/ascensão 5.600 ms, sangue 1.700 ms, dualidade 2.600 ms.
 - **Store:**
   - `publish` calcula `omen` junto com o resultado: `{ throwId, crits, fumbles } | null`;
   - com `reducedMotion`, o presságio é sempre `null`;
   - `omenDone: number` guarda o `throwId` cujo presságio acabou, e `setOmenDone` o grava;
   - `omenRig` é usado só no modo de teste e força os índices.
 - **Sequência:**
-  - enquanto `omen.throwId === throwId && omenDone !== throwId`, o `Hand` segura a apresentação: os números não sobem e os dados não voam;
+  - enquanto `omen.throwId === throwId && omenDone !== throwId`, o `Hand` segura a apresentação comum. No crítico do d100, o próprio dado sorteado voa durante o presságio e o número cresce sobre sua face;
   - o painel não mostra o resultado;
   - quando o presságio acaba, tudo segue como hoje.
 - **3D** (`src/scene/Omens.tsx`, montado no `Stage`):
   - **Raio:** fita em zigue-zague virada para a câmera, com núcleo branco, saindo de cima da tela até cada d20 crítico. São no máximo 3 lampejos (sem estroboscópio), com brilho aditivo no impacto e uma `pointLight` fixa que só muda de intensidade (não recompila shaders).
-  - **Kraken:** um redemoinho escuro se abre no feltro sob cada d100 crítico. Sete tentáculos afinados, com ventosas por cor de vértice, emergem do feltro, curvam sobre o dado e afundam. A geometria é recalculada no lugar a cada quadro (cerca de 2 mil vértices).
+  - **Tentáculos e ascensão** (`src/scene/Kraken.ts`, `krakenMotion.ts`): um efeito por arremesso, com dez tentáculos, ventosas e lascas instanciadas. O piso visual se divide em fragmentos, com madeira exposta nas laterais. O dado real sobe com giro e arco, vira sua face sorteada para a câmera, recebe asas, halo e raios dourados e termina na posição comum do resultado. O enquadramento reserva espaço para as asas em desktop e celular. O relógio `omenAt` sincroniza todos os elementos.
   - **Dualidade:** as duas metades do yin-yang (os "peixes", com o olho da cor oposta) são extrudadas, uma clara e uma escura. Elas entram por lados opostos em espiral sobre a bandeja, colidem e formam o disco, que gira e encolhe.
   - Tudo é criado uma vez e compilado na montagem (`gl.compile`). Fica invisível fora do presságio, então custa 0 draw calls com a mesa parada.
   - O componente marca `omenDone` ao fim da linha do tempo. Se o arremesso mudar ou os dados forem recolhidos, ele esconde tudo.
@@ -110,3 +110,20 @@ Estado: veja `git log` a partir de `59361c1`. A ordem é moeda (commit 1), press
 - Chrome com Intel Iris Xe / D3D11, 1440×900, 180 quadros por amostra, sem relógio simulado: d20×10 e d100×10 a 60,3 FPS, p95 de 17,1 ms; nenhum mesh dos presságios visível fora de um efeito.
 - Capturas conferidas em `screens/verified-{lightning,kraken,blood,duality,both}.png`; `screens/verification.json` guarda a medição e os estados. O relógio simulado foi usado somente nas capturas para fixar o instante do efeito. Esses artefatos são locais e ignorados pelo Git.
 - Tasks 11–12 do plano original (fronteiras de erro e revisão geral) continuam no backlog; esta entrega conclui moeda e presságios.
+
+### Revisão do crítico do d100 — 2026-11-10
+
+Pedido: substituir o efeito anterior por uma ruptura da bandeja com muitos tentáculos, voo angelical do dado mostrando o 1 e restauração completa ao final.
+
+- 0–450 ms: fissuras se desenham no piso.
+- 450–1.450 ms: ruptura, lascas e dez tentáculos com ventosas; tremida breve no impacto.
+- 1.450–2.600 ms: lançamento do dado real em arco, com giro desacelerando até a face correta olhar para a câmera.
+- 2.600–4.200 ms: destaque dourado do 1, asas, halo, raios e iluminação quente.
+- 4.200–5.400 ms: tentáculos recolhem, fragmentos voltam ao encaixe e o dado converge para sua posição habitual.
+- 5.600 ms: resultado liberado e cena normal; o d100 não repete o voo comum.
+- Recolher, trocar a seleção ou ativar movimento reduzido restaura imediatamente a bandeja e remove os efeitos. Os demais dados e a dualidade seguem suas regras.
+- Testes de geometria verificam a cobertura do piso; testes da trajetória verificam a face correta e o encaixe final. Os E2E de desktop e 390 px encontram uma semente que realmente tira 1 na física, sem trocar a numeração nem fabricar o resultado.
+- Capturas locais: `screens/kraken-{rupture,angel,restored}-{1440,390}.png`. O relógio controlado é usado somente nessas capturas e nas verificações de sequência.
+- Desempenho da revisão, Chrome/Intel Iris Xe D3D11 em 1440×900: d20×10 e d100×10 a 60,3 FPS (p95 16,8 ms); sequência completa a 59,1 FPS (p95 16,8 ms, máximo 66,8 ms), com a cena restaurada e sem erros. Registro em `screens/kraken-performance.json`, medido sem relógio simulado.
+- Para evitar recompilações durante o crítico, as luzes continuam presentes com intensidade zero fora do efeito. Depois que o mapa de reflexão fica pronto, os materiais e pipelines do ANGLE recebem um desenho de aquecimento, imediatamente substituído pela cena normal no mesmo quadro.
+- Validação da revisão: build e lint aprovados, 191 testes em 14 arquivos e 37 E2E (smoke, roll, chat, omen, kraken). O build mantém o aviso já existente de tamanho do bundle.
