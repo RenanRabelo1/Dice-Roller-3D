@@ -137,3 +137,12 @@ Pedido: substituir o efeito anterior por uma ruptura da bandeja com muitos tent�
 - Regressão: seis jogadas da mesma moeda, alternando forças, e quatro jogadas com d6 + duas moedas em 390 px. Verifica retorno à mão, pose válida, face de cima igual ao resultado e ausência de ilustrações no destaque.
 - Capturas locais em `screens/coin-repeat-{1..6}.png` e `screens/coin-mixed-mobile.png`.
 - Validação: build e lint aprovados, 195 testes em 14 arquivos e 39 E2E. As regressões de crítico, dualidade, controles e demais dados também passaram.
+
+### Desempenho com várias moedas — 2026-11-11
+
+- A pré-simulação roda em um worker carregado junto com a cena. Respostas de jogadas canceladas são descartadas; falha ou bloqueio do worker mantém a simulação existente como compatibilidade.
+- O replay fixa a última pose antes de publicar o resultado. O teste reproduziu uma diferença entre a pose publicada e a gravação, relevante para moedas que mudam de lado no último passo.
+- A resolução interna se adapta à capacidade de renderização, com mudanças entre animações. SwiftShader começa em DPR 0,35, evitando a primeira jogada em resolução integral e um redimensionamento tardio no recolhimento. O HTML continua nítido.
+- Dez moedas em SwiftShader, 1440×900: retorno de 4,3–5 FPS antes para 20,7–24,4 FPS; intervalo máximo caiu de até 267 ms para aproximadamente 50 ms, inclusive no primeiro retorno. A rolagem final ficou em 22,2–24,8 FPS. Isso não representa uma promessa de 60 FPS sem aceleração gráfica.
+- Build, lint e 195 testes aprovados; 43 E2E aprovados, mais a repetição dos quatro casos de desempenho após os ajustes finais. Cobertura de quatro lançamentos de dez moedas, primeiro recolhimento sem espera de aquecimento, publicação da pose correta, seleção com resposta atrasada e worker bloqueado.
+- Experimentos mantidos e revertidos, orçamentos e limitações em [performance-coins.md](../../performance-coins.md).

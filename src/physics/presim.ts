@@ -7,6 +7,8 @@ import { DAMPING, GRAVITY, isOutside, MATERIAL, SETTLE, STEP, trayColliders, typ
 
 export type Pose = { p: Vec3; q: Quat };
 export interface Recording { frames: Pose[][]; raw: number[]; results: number[]; timedOut: boolean; escaped: boolean; recovered: boolean }
+export interface RollRequest { dice: DieKind[]; start: Pose[]; launch: Launch }
+export type RollResponse = { throwId: number } & ({ rec: Recording } | { error: string });
 
 // Runs the whole throw offline with the real engine and the real inputs (hand poses, aim, force, spin),
 // recording one pose per body per step. The screen then replays a genuine roll whose result is already
