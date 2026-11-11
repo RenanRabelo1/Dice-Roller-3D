@@ -3,6 +3,17 @@
 Data: 2026-11-10. Branch: `feat/dice-3d` (local, sem push). Base: `59361c1`.
 Este documento também é o handoff para outro agente, caso o trabalho precise continuar em outra sessão. A seção "Handoff" no fim diz o que já está feito.
 
+## Estado atual (revisado em 2026-11-11)
+
+O design abaixo continua valendo e bate com o código. O que mudou depois dele:
+
+- **Entrega:** a branch `feat/dice-3d` foi para a `main` pelo PR #2 (`RenanRabelo1/Dice-Roller-3D`). As instruções de "commits locais, sem push" do handoff são da época.
+- **d20 importado conta nos presságios:** um dado importado com forma de d20 dispara raio, sangue e dualidade como um d20, se a opção "conta como d20 nos críticos" estiver ligada no assistente (padrão: ligada). d100 e moeda importados não existem. Ver `2026-11-11-importar-dado-design.md`.
+- **Falha do d100 (100) é sangue, não tentáculos.** Os tentáculos aparecem só no crítico (1), quebrando a mesa. Um "abraço de tentáculos" no 100 nunca foi especificado; se for desejado, é um efeito novo.
+- **Desempenho medido de novo** (Chrome, Intel Iris Xe/D3D11, 1440×900, crítico do d100 forçado por `rigOmen`, três rodadas): 58,9 / 59,6 / 60 FPS, p95 16,8–16,9 ms, pior quadro 66,7 ms só na primeira rodada.
+- **Cacos da quebra da mesa:** hoje usam as cores fixas `FELT`/`WOOD` em `src/scene/Kraken.ts`. A proposta `2026-11-11-mesa-e-fundo-design.md` faz os cacos seguirem a mesa personalizada.
+- **Gate:** além dos specs listados em "Testes", existe `e2e/import.spec.ts`. As 7 falhas de `e2e/screens.spec.ts` nesta máquina já existiam antes do dado importado (não investigadas).
+
 ## O que o usuário pediu
 
 1. **Moeda 3D de cara ou coroa**, junto com os dados que já existem.
