@@ -118,6 +118,8 @@ export function ImportDie({ open, onClose }: { open: boolean; onClose: () => voi
   const faceCount = order.length;
   const face = order[pos];
   const isD4 = imp?.base === 'd4';
+  // A value the player has not typed for this face: the opposite of one already confirmed.
+  const suggested = !isD4 && face !== undefined && values[face] !== undefined && !confirmed.includes(face);
 
   useEffect(() => {
     if (!open) return;
@@ -283,6 +285,7 @@ export function ImportDie({ open, onClose }: { open: boolean; onClose: () => voi
                 <p aria-live="polite" data-testid="import-progress">{pos + 1} de {faceCount}</p>
                 <label>{isD4 ? 'Que número você lê no vértice voltado para você?' : 'Que número está nesta face?'}
                   <input key={pos} name="value" type="number" defaultValue={values[face] ?? ''} onChange={() => setError('')} autoFocus /></label>
+                {suggested && <small data-testid="import-suggestion">Sugestão: {values[face]}, porque a face oposta é {values[order[pos % 2 === 0 ? pos + 1 : pos - 1]]}. Troque se o seu dado for diferente.</small>}
                 <div className="import-row">
                   <button type="button" onClick={() => setLook((n) => n + 1)}>Voltar à face</button>
                   {!isD4 && <button type="button" aria-label="Girar o numeral" onClick={() => setTurns((t) => ({ ...t, [face]: ((t[face] ?? 0) + 1) % turnLabel }))}>↻ Girar</button>}

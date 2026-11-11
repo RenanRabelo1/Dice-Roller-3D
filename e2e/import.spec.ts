@@ -82,10 +82,14 @@ test('a model with its own numbers is calibrated face by face', async ({ page })
   await page.getByRole('button', { name: 'Sim, calibrar' }).click();
   const ask = page.getByLabel('Que número está nesta face?');
   await ask.fill('1'); await ask.press('Enter');
-  await expect(ask).toHaveValue('6'); // the opposite face comes suggested
+  await expect(ask).toHaveValue('6'); // the opposite face comes suggested, and says so
+  await expect(page.getByTestId('import-suggestion')).toContainText('Sugestão: 6, porque a face oposta é 1');
   await ask.fill('1'); await ask.press('Enter'); // a repeat is refused…
   await expect(page.getByRole('alert')).toContainText('já foi usado');
-  for (const v of [5, 2, 6, 3, 4]) { await ask.fill(String(v)); await ask.press('Enter'); }
+  await ask.fill('5'); await ask.press('Enter');
+  await expect(ask).toHaveValue(''); // a face with no suggestion starts empty
+  await expect(page.getByTestId('import-suggestion')).toHaveCount(0);
+  for (const v of [2, 6, 3, 4]) { await ask.fill(String(v)); await ask.press('Enter'); }
   await save(page, 'Spindown');
   const [custom] = await page.evaluate(() => window.__dice.customs());
   expect(custom.printed).toBe(true);
