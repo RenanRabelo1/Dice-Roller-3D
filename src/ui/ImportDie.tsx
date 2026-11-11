@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ElementRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { Environment, Lightformer } from '@react-three/drei';
-import { Group, Matrix4, Mesh, Quaternion, Vector3 } from 'three';
+import { Environment, Lightformer, OrbitControls } from '@react-three/drei';
+import { BufferGeometry, Float32BufferAttribute, Group, Matrix4, Mesh, Quaternion, Vector3 } from 'three';
 import { customKind, type CustomDie } from '../dice/custom';
 import { askOrder, checkValue, checkValues, formatOf, importModel, ImportError, LIMITS, normaliseValues, renumbered, suggestOpposite, type Imported } from '../dice/importer';
 import { slugOf, slugProblem } from '../dice/notation';
@@ -26,9 +26,34 @@ function orientation(normal: [number, number, number], up: [number, number, numb
   return new Quaternion().setFromRotationMatrix(new Matrix4().makeBasis(new Vector3().crossVectors(u, n), u, n)).invert();
 }
 
-function Preview({ loaded, color, orient }: { loaded: Loaded; color: string; orient: Quaternion | null }) {
+// The face being asked, painted over the model (in the ideal solid's space): its polygon, or the corner of a d4.
+function Marker({ poly, face }: { poly: Polyhedron; face: number }) {
+  const { geometry, outline } = useMemo(() => {
+    const g = new BufferGeometry(), line = new BufferGeometry();
+    if (poly.shape === 'd4') return { geometry: g, outline: line };
+    const f = poly.faces[face], n = new Vector3(...f.normal), d = n.dot(new Vector3(...f.center)), c = new Vector3(...f.center);
+    const u = new Vector3().crossVectors(n, Math.abs(n.y) < 0.9 ? new Vector3(0, 1, 0) : new Vector3(1, 0, 0)).normalize(), w = new Vector3().crossVectors(n, u);
+    const ring = poly.points.map((p) => new Vector3(...p)).filter((p) => Math.abs(n.dot(p) - d) < 1e-4)
+      .sort((a, b) => Math.atan2(w.dot(a.clone().sub(c)), u.dot(a.clone().sub(c))) - Math.atan2(w.dot(b.clone().sub(c)), u.dot(b.clone().sub(c))));
+    const lift = n.clone().multiplyScalar(0.006), v: number[] = [];
+    for (let k = 1; k < ring.length - 1; k++) for (const p of [ring[0], ring[k], ring[k + 1]]) v.push(...p.clone().add(lift).toArray());
+    g.setAttribute('position', new Float32BufferAttribute(v, 3));
+    line.setAttribute('position', new Float32BufferAttribute(ring.flatMap((p) => p.clone().add(lift).toArray()), 3));
+    return { geometry: g, outline: line };
+  }, [poly, face]);
+  useEffect(() => () => { geometry.dispose(); outline.dispose(); }, [geometry, outline]);
+  if (poly.shape === 'd4') return <mesh position={poly.points[face]}><sphereGeometry args={[0.07, 16, 12]} /><meshBasicMaterial color="#ffb000" depthTest={false} /></mesh>;
+  return (
+    <>
+      <mesh geometry={geometry}><meshBasicMaterial color="#ffb000" transparent opacity={0.18} depthWrite={false} side={2} /></mesh>
+      <lineLoop geometry={outline}><lineBasicMaterial color="#ff8a00" /></lineLoop>
+    </>
+  );
+}
+
+function Preview({ loaded, color, orient, face, plain }: { loaded: Loaded; color: string; orient: Quaternion | null; face: number | null; plain: boolean }) {
   const group = useRef<Group>(null);
-  const { imported: { fit, object }, format } = loaded;
+  const { imported: { fit, object, poly }, format } = loaded;
   useFrame((_, dt) => {
     const g = group.current;
     if (!g) return;
@@ -39,9 +64,12 @@ function Preview({ loaded, color, orient }: { loaded: Loaded; color: string; ori
     <group ref={group}>
       {format === 'stl'
         ? <mesh geometry={(object as Mesh).geometry} position={at} scale={fit.scale}>
-          <meshPhysicalMaterial color={color} roughness={0.08} clearcoat={1} clearcoatRoughness={0.04} ior={1.6} />
+          {/* While reading the numbers the model is matte and light, so the relief shows; otherwise the gem it will become. */}
+          {plain ? <meshStandardMaterial color="#d9d4c7" roughness={0.9} metalness={0} />
+            : <meshPhysicalMaterial color={color} roughness={0.08} clearcoat={1} clearcoatRoughness={0.04} ior={1.6} />}
         </mesh>
         : <primitive object={object} position={at} scale={fit.scale} />}
+      {face !== null && <Marker poly={poly} face={face} />}
     </group>
   );
 }
@@ -64,6 +92,7 @@ export function ImportDie({ open, onClose }: { open: boolean; onClose: () => voi
   const [slug, setSlug] = useState('');
   const [slugEdited, setSlugEdited] = useState(false);
   const panel = useRef<HTMLElement>(null);
+  const orbit = useRef<ElementRef<typeof OrbitControls>>(null);
 
   const imp = loaded?.imported;
   const order = useMemo(() => (imp ? askOrder(imp.poly) : []), [imp]);
@@ -110,6 +139,8 @@ export function ImportDie({ open, onClose }: { open: boolean; onClose: () => voi
     const turned = renumbered(imp.poly, { turns: imp.poly.faces.map((_, i) => (i === face ? turns[face] ?? 0 : 0)) });
     return isD4 ? orientation(imp.poly.tops[face].dir, [0, 1, 0.001]) : orientation(imp.poly.faces[face].normal, turned.labelList[face].up);
   }, [imp, step, asking, face, turns, isD4]);
+
+  useEffect(() => { orbit.current?.reset(); }, [preview]); // a new face (or turn) looks at the player again
 
   const askNext = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -184,14 +215,17 @@ export function ImportDie({ open, onClose }: { open: boolean; onClose: () => voi
         )}
         {loaded && imp && step !== 'file' && (
           <div className="import-preview" aria-label="Prévia do dado">
-            <Canvas camera={{ position: [0, 0, 3.4], fov: 35 }} dpr={1}>
-              <ambientLight intensity={0.6} />
-              <directionalLight position={[2, 3, 4]} intensity={2.2} />
+            <Canvas key={step === 'numbers' ? 'read' : 'look'} camera={{ position: [0, 0, step === 'numbers' ? 2.6 : 3.4], fov: 35 }} dpr={1}>
+              <ambientLight intensity={step === 'numbers' ? 1.1 : 0.6} />
+              {/* A low light from the side throws shadows into engraved numbers. */}
+              <directionalLight position={[3, 0.6, 2]} intensity={step === 'numbers' ? 2.6 : 2.2} />
               <Environment resolution={64}>
                 <Lightformer position={[0, 4, 3]} scale={[6, 3, 1]} intensity={3} color="#fff4dd" />
                 <Lightformer position={[-4, 1, 3]} scale={[2, 5, 1]} intensity={3} color="#dceaff" />
               </Environment>
-              <Preview loaded={loaded} color={color} orient={step === 'numbers' && asking ? preview : null} />
+              <Preview loaded={loaded} color={color} orient={step === 'numbers' && asking ? preview : null}
+                face={step === 'numbers' && asking && face !== undefined ? face : null} plain={step === 'numbers'} />
+              <OrbitControls ref={orbit} enableZoom={false} enablePan={false} />
             </Canvas>
           </div>
         )}
@@ -207,11 +241,15 @@ export function ImportDie({ open, onClose }: { open: boolean; onClose: () => voi
           <>
             {!asking ? (
               <>
-                <p>Esse modelo já tem números?</p>
-                <div className="import-row">
-                  <button onClick={() => { setPrinted(false); setStep('save'); }}>Não, numerar para mim</button>
-                  <button onClick={() => { setPrinted(true); setAsking(true); setPos(0); }}>Sim, calibrar</button>
+                <p><strong>Esse modelo já vem com números gravados nas faces?</strong></p>
+                {imp.hasNumbers && <p className="import-note" data-testid="import-hint">Parece que esse modelo já tem números.</p>}
+                <div className="import-choice">
+                  <button className={imp.hasNumbers ? 'primary' : undefined} onClick={() => { setPrinted(true); setAsking(true); setPos(0); }}>
+                    Sim, calibrar<small>Sim — você me diz o número de cada face</small></button>
+                  <button onClick={() => { setPrinted(false); setStep('save'); }}>
+                    Não, numerar para mim<small>Não — o dado é liso, eu escrevo os números</small></button>
                 </div>
+                <small>Se escolher “Não” num modelo numerado, os nossos números vão por cima dos dele. Arraste a prévia para girar o dado.</small>
               </>
             ) : (
               <form onSubmit={askNext} className="import-ask">

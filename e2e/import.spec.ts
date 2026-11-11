@@ -44,6 +44,8 @@ test('import a plain d20 STL → roll → top face is the result → reload keep
   await open(page, d20());
   await expect(page.getByTestId('import-shape')).toContainText('d20');
   await page.getByRole('button', { name: 'Continuar' }).click();
+  await expect(page.getByText('Esse modelo já vem com números gravados nas faces?')).toBeVisible();
+  await expect(page.getByTestId('import-hint')).toHaveCount(0); // a smooth model gets no suggestion
   await page.getByRole('button', { name: 'Não, numerar para mim' }).click();
   await save(page, 'Caveira');
   await expect(page.getByRole('button', { name: 'Adicionar d20 Caveira' })).toBeVisible();
@@ -73,9 +75,10 @@ test('import a plain d20 STL → roll → top face is the result → reload keep
 });
 
 test('a model with its own numbers is calibrated face by face', async ({ page }) => {
-  await open(page, file('d6.stl', stl(modelTriangles(polyhedron('d6'), { bevel: 0.04 }))));
+  await open(page, file('d6.stl', stl(modelTriangles(polyhedron('d6'), { bevel: 0.04, engrave: 0.04 }))));
   await expect(page.getByTestId('import-shape')).toContainText('d6');
   await page.getByRole('button', { name: 'Continuar' }).click();
+  await expect(page.getByTestId('import-hint')).toHaveText('Parece que esse modelo já tem números.');
   await page.getByRole('button', { name: 'Sim, calibrar' }).click();
   const ask = page.getByLabel('Que número está nesta face?');
   await ask.fill('1'); await ask.press('Enter');
