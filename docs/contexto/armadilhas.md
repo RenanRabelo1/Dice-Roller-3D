@@ -46,6 +46,6 @@ Coisas que já morderam ou que quebram em silêncio. Ler antes de mexer em físi
 | timeout de 480 passos (8 s) | `SETTLE.timeoutSteps = 240` (4 s) |
 | refração por dado com buffer compartilhado | gema por `meshPhysicalMaterial` sem passe de refração |
 | "fora de escopo: misturar tipos num arremesso" | seleção mista é suportada |
-| error boundaries para WebGL/física (R10) | não implementadas; `store.error` existe mas nada o define (backlog: tasks 11–12 do plano) |
+| error boundaries para WebGL/renderer/física (R10) | implementadas: `App` sonda WebGL (`failure.ts`) e põe `store.error = 'webgl'`; `Guard` (`ui/Safeguard.tsx`) fora do `<Canvas>` = `'graphics'` e em volta de `<Physics>` = `'physics'`; `Failure` mostra a mensagem em pt-BR. O primeiro erro registrado vale |
 
 Em conflito, o código e estes arquivos de `docs/contexto/` valem; atualize-os junto com a mudança.

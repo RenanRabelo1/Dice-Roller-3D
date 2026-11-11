@@ -1,4 +1,5 @@
 import type { DieKind } from './dice/polyhedra';
+import type { DiceError } from './store';
 import type { Omen, OmenKind } from './dice/omen';
 import type { Quat, Vec3 } from './physics/world';
 import type { Phase } from './throw/gesture';
@@ -6,7 +7,7 @@ import type { Phase } from './throw/gesture';
 export interface DiceHook {
   state(): {
     dice: DieKind[]; phase: Phase; throwId: number;
-    results: number[] | null; ready: boolean; error: 'graphics' | 'physics' | null; aim: Vec3; showcased: number;
+    results: number[] | null; ready: boolean; error: DiceError; aim: Vec3; showcased: number;
     omen: OmenKind | null; omenDone: number; // omen: this throw's
     omenTime: number; trayBroken: boolean;
   };

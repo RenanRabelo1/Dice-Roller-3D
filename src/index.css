@@ -149,3 +149,6 @@ canvas { display: block; }
 .table-list li { display: flex; gap: 6px; }
 .table-list li button:first-child { flex: 1; text-align: left; }
 .table-panel .import-error ul { margin: 6px 0; padding-left: 18px; }
+
+/* The 3D could not start (no WebGL, renderer or physics failure): a plain message in the play area. */
+.failure { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; padding: 24px; text-align: center; font-size: 20px; line-height: 1.4; color: var(--chalk); }

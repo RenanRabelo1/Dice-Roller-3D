@@ -8,7 +8,7 @@ import { HAND, type Vec3 } from './physics/world';
 import { initialGesture, reduce, type Effect, type GestureEvent, type GestureState } from './throw/gesture';
 
 type HandMotion = { center: Vec3; omega: Vec3 };
-type DiceError = 'graphics' | 'physics' | null;
+export type DiceError = 'webgl' | 'graphics' | 'physics' | null;
 
 interface DiceState {
   dice: DieKind[]; // the selection, one entry per die

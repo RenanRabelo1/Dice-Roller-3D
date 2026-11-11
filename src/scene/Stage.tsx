@@ -19,6 +19,7 @@ import { omenKind } from '../dice/omen';
 import { customKind } from '../dice/custom';
 import { customsOf } from '../dice/polyhedra';
 import { useTable } from './tableState';
+import { Guard } from '../ui/Safeguard';
 
 // The test-only surface preview checks numeral pixels, so it keeps the real resolution (no SwiftShader or adaptive DPR drop).
 const isPreview = () => import.meta.env.MODE === 'test' && new URLSearchParams(location.search).has('surface-preview');
@@ -256,6 +257,7 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
         <Lightformer position={[-8, 3, 4]} target={[0, 0, 0]} scale={[3, 8, 1]} intensity={4} color="#dceaff" />
         <Lightformer position={[6, -2, 6]} target={[0, 0, 0]} scale={[5, 9, 1]} intensity={3} color="#ffdab0" />
       </Environment>
+      <Guard kind="physics">
       <Physics gravity={GRAVITY} timeStep={STEP} interpolate={false}>
         <Tray />
         <Hand gameArea={gameArea} bodies={bodies} />
@@ -267,6 +269,7 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
           ))}
         </group>
       </Physics>
+      </Guard>
       <Omens bodies={bodies} />
     </>
   );

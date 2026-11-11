@@ -1,15 +1,19 @@
-import { Suspense, useEffect, useRef } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Stage } from './scene/Stage';
 import { Controls } from './ui/Controls';
 import { OmenOverlay } from './ui/OmenOverlay';
 import { useDice } from './store';
 import { Backdrop } from './scene/Backdrop';
+import { hasWebGL } from './failure';
+import { Failure, Guard } from './ui/Safeguard';
 import { useTable } from './scene/tableState';
 import { warmImageDecoder } from './scene/tableImages';
 
 export default function App() {
   const gameArea = useRef<HTMLDivElement>(null);
+  const error = useDice((s) => s.error);
+  useState(() => { if (!hasWebGL()) useDice.getState().setError('webgl'); }); // before the first Canvas render
   useEffect(() => { void useDice.getState().loadCustoms(); void useTable.getState().load(); warmImageDecoder(); }, []);
   useEffect(() => {
     const media = matchMedia('(prefers-reduced-motion: reduce)');
@@ -22,12 +26,17 @@ export default function App() {
     <Controls />
     <div ref={gameArea} className="game-area" tabIndex={0} aria-label="Área de arremesso">
       <Backdrop />
-      <Canvas shadows camera={{ position: [0, 14, 10], fov: 40 }}
-        gl={{ preserveDrawingBuffer: import.meta.env.MODE === 'test' }}>
-        <Suspense fallback={null}>
-          <Stage gameArea={gameArea} />
-        </Suspense>
-      </Canvas>
+      {!error && (
+        <Guard kind="graphics">
+          <Canvas shadows camera={{ position: [0, 14, 10], fov: 40 }}
+            gl={{ preserveDrawingBuffer: import.meta.env.MODE === 'test' }}>
+            <Suspense fallback={null}>
+              <Stage gameArea={gameArea} />
+            </Suspense>
+          </Canvas>
+        </Guard>
+      )}
+      <Failure />
       <OmenOverlay gameArea={gameArea} />
     </div>
     </main>

@@ -12,7 +12,7 @@ Este documento registra o design original e foi mantido como histórico. O códi
 | 2, 4.3–4.5 | resultado lido ao vivo após cada passo, com empurrãozinho em dado encostado (até 3) e timeout de 480 passos | o arremesso inteiro é **pré-simulado** no lançamento (num worker) e reproduzido na tela; `stepSettle` só espera, recupera ou revela, sem empurrão; timeout de **240 passos** (4 s) | `docs/contexto/arremesso.md` |
 | 2, 4.7 | refração por dado com `MeshTransmissionMaterial` e FBO compartilhado | gema com `meshPhysicalMaterial` (clearcoat + translucidez), **sem** passe de refração; numerais em `BatchedText` do troika (um objeto por dado) | `docs/contexto/dados.md` |
 | 3.4 | painel mostra o resultado quando para | os dados voam até a câmera mostrando a face sorteada (showcase) e o número sobe e brilha; d20/d100 podem tocar presságios antes | `docs/contexto/apresentacao.md` |
-| 5 | error boundaries para WebGL, renderer e física (R10) | **não implementadas**; `store.error` existe, mas nada o preenche | `docs/contexto/armadilhas.md` |
+| 5 | error boundaries para WebGL, renderer e física (R10) | **implementadas** (`src/failure.ts`, `src/ui/Safeguard.tsx`, `store.error` = `webgl`/`graphics`/`physics`); coberto por `e2e/failure.spec.ts` | `docs/contexto/armadilhas.md` |
 | 10 | fora de escopo: misturar tipos | misturar tipos é suportado; também existem d10 de Vampiro e Fome, d6 de Fogo, moeda, chat com notação e **dados importados** (STL/GLB) | `docs/contexto/dados.md` |
 | 2, 4.1 | repositório local, sem remoto; Node 25.9 | repositório no GitHub (`RenanRabelo1/Dice-Roller-3D`), com PRs para a `main`; Node local 24.x | `docs/contexto/visao-geral.md` |
 
