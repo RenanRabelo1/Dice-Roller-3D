@@ -1,8 +1,8 @@
-import { Box3, Camera, Group, Light, Mesh, MeshBasicMaterial, Scene, Texture, Vector3, type BufferGeometry, type Object3D } from 'three';
+import { Box3, Camera, Group, Light, Mesh, MeshBasicMaterial, MeshStandardMaterial, Scene, Texture, Vector3, type BufferGeometry, type Object3D } from 'three';
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js';
 import { parseGlb } from '../dice/importer';
 import { TRAY } from '../physics/world';
-import { backdrop, buildDefault, find, GUIDE, roleOf, shade, SURFACE } from './tableBuild';
+import { backdrop, buildDefault, find, GUIDE, isPlaceholder, roleOf, shade, SURFACE } from './tableBuild';
 import { blobOfImage, TableError } from './tableImages';
 import { EXTRAS_KEY, extrasOf, LIMITS, readExtras, type TableTheme, type ThemeExtras } from './tableTheme';
 
@@ -34,9 +34,15 @@ export async function exportTable(group: Group, theme: TableTheme, backgroundMap
   const scene = new Scene();
   scene.userData[EXTRAS_KEY] = extrasOf(theme);
   scene.add(group);
+  // The plain felt's white pixel is not part of the player's table.
+  const blanked: MeshStandardMaterial[] = [];
+  group.traverse((o) => { if (o instanceof Mesh) for (const m of ([] as MeshStandardMaterial[]).concat(o.material)) if (isPlaceholder(m.map)) { blanked.push(m); } });
+  const maps = blanked.map((m) => m.map);
+  blanked.forEach((m) => { m.map = null; });
   try {
     return (await new GLTFExporter().parseAsync(scene, { binary: true, onlyVisible: false })) as ArrayBuffer;
   } finally {
+    blanked.forEach((m, i) => { m.map = maps[i]; });
     scene.remove(group);
     renamed.reverse().forEach(([o, n]) => { o.name = n; });
     group.userData[EXTRAS_KEY] = previous;

@@ -1,4 +1,4 @@
-import { BoxGeometry, Group, Material, Mesh, MeshBasicMaterial, MeshStandardMaterial, PlaneGeometry, type Object3D, type Texture } from 'three';
+import { BoxGeometry, DataTexture, Group, Material, Mesh, MeshBasicMaterial, MeshStandardMaterial, PlaneGeometry, SRGBColorSpace, type Object3D, type Texture } from 'three';
 import { TRAY, trayColliders } from '../physics/world';
 import { feltMap } from './tableTextures';
 import { EXTRAS_KEY, extrasOf, type TableTheme } from './tableTheme';
@@ -9,6 +9,12 @@ import { EXTRAS_KEY, extrasOf, type TableTheme } from './tableTheme';
 
 export const GUIDE = { size: [2 * TRAY.halfWidth, TRAY.wallHeight, 2 * TRAY.halfDepth] as const, center: [0, TRAY.wallHeight / 2, 0] as const };
 const BASE = { size: [15, 0.42, 10] as const, y: -0.29 }, FELT = { size: [14, 0.08, 9] as const, y: -0.04 };
+
+// The felt always has a map (a white pixel when plain), so switching between plain and textured never changes the
+// shader program: a program change is a compile stall that can freeze a frame for seconds on some GPUs.
+export const PLACEHOLDER = new DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1);
+PLACEHOLDER.colorSpace = SRGBColorSpace; PLACEHOLDER.needsUpdate = true; PLACEHOLDER.userData.placeholder = true;
+export const isPlaceholder = (t: unknown) => !!(t as Texture | null)?.userData?.placeholder;
 
 export const SURFACE = 'tray-surface'; // what the kraken hides and the test hook looks for; exported as `piso`
 
@@ -24,7 +30,7 @@ function box(name: string, size: readonly number[], at: readonly number[], mater
 // play-area guide and, for a photo backdrop, the `fundo` plane (never drawn by the app: the photo is CSS behind the canvas).
 export function defaultTable(theme: TableTheme, feltMap: Texture | null, backgroundMap: Texture | null): Group {
   const wood = new MeshStandardMaterial({ name: 'madeira', color: theme.wood.color, roughness: 0.7 });
-  const felt = new MeshStandardMaterial({ name: 'feltro', color: theme.felt.color, roughness: 1, map: feltMap });
+  const felt = new MeshStandardMaterial({ name: 'feltro', color: theme.felt.color, roughness: 1, map: feltMap ?? PLACEHOLDER });
   const group = new Group(), surface = new Group(), frame = new Group();
   group.name = 'mesa'; surface.name = SURFACE; frame.name = 'moldura';
   surface.add(box('base', BASE.size, [0, BASE.y, 0], wood), box('feltro', FELT.size, [0, FELT.y, 0], felt));
@@ -74,7 +80,7 @@ export function disposeTable(root: Object3D) {
     if (!(o instanceof Mesh)) return;
     o.geometry.dispose();
     for (const m of ([] as Material[]).concat(o.material)) {
-      for (const t of Object.values(m)) if (t && (t as Texture).isTexture) (t as Texture).dispose();
+      for (const t of Object.values(m)) if (t && (t as Texture).isTexture && !isPlaceholder(t)) (t as Texture).dispose();
       m.dispose();
     }
   });

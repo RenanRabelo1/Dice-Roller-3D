@@ -1,6 +1,6 @@
 # Mesa e fundo personalizados: design (fases 1 e 2)
 
-Data: 2026-11-11 · Status: proposta, aguardando aprovação · Branch: `dev-jg`
+Data: 2026-11-11 · Status: implementada (fases 1 e 2; ver §12) · Branch: `dev-jg`
 
 ## 1. Objetivo
 
@@ -221,3 +221,29 @@ Nenhum caso abaixo muda resultados ou a física. O pior que acontece é a mesa f
 5. Exportar (`GLTFExporter`).
 6. Importar: leitura, limpeza, encaixe, conferências, avisos.
 7. Testes, medição de desempenho e atualização de `docs/contexto/` (apresentação: kraken; visão geral: novos arquivos; testes: test hook).
+
+## 12. Implementação e medições (2026-11-11)
+
+Implementada na ordem da seção 11, com os padrões da seção 10 (temas Taverna/Pôquer/Cosmos; foto 15 MB → 4096 px; mesa 20 MB, 100 mil triângulos, texturas 2048 px; atalho `M`). Guia de uso do código: `docs/contexto/mesa.md`.
+
+**Diferenças em relação ao desenho**
+- O módulo de montagem da mesa padrão (`scene/tableBuild.ts`) fica separado do de arquivo (`scene/tableFile.ts`) para o GLTFLoader/Exporter não entrar no chunk principal.
+- O feltro sempre tem um `map` (um pixel branco quando liso): trocar liso/textura não troca o programa de shader. O pixel branco não vai para o `.glb` exportado.
+- O tema ativo é sempre um registro salvo (editar a mesa padrão cria "Minha mesa"); a gravação tem atraso de 300 ms e é forçada no `pagehide`.
+- Mesa importada com modelo: cores e textura do painel ficam travadas (vêm do arquivo); o fundo continua editável.
+- Aviso novo sem equivalente na seção 7: a foto de fundo pedida pelo tema mas ausente do arquivo.
+
+**Verificação do guia (seção 6)**
+- Feito: ida e volta pelo `GLTFExporter` e pelo parse do app (M13, E2E), arquivos montados à mão com escala 100×, Z para cima, deslocamento e moldura invadindo (E2E e Vitest), nomes no estilo Blender (`piso.001`).
+- **Não feito:** abrir o arquivo no editor do three.js e no Blender 4.x (nada foi instalado nem baixado). Segue como risco aberto: a ida e volta das Custom Properties pelo Blender e a aparência exata dos passos da seção 6. Se o tema se perder, o app avisa e mantém as cores do modelo.
+
+**Desempenho (M14)** — Chrome 1440×900 com Intel Iris Xe / D3D11, tempo real, `requestAnimationFrame` durante o crítico do d100 forçado por `rigOmen` (do lançamento até o fim da apresentação), três rodadas por caso (`screens/table-performance.json`, `temp/measure-table.mjs`, local):
+
+| Mesa | FPS | p95 | pior quadro |
+|---|---|---|---|
+| Padrão | 60,0 / 60,1 / 60,1 | 16,9 / 16,9 / 17,0 ms | 33,4 / 17,2 / 17,1 ms |
+| Importada no limite (12,6 MB, 96 062 triângulos, textura 2048² de ruído, ornamento de 96 mil triângulos) | 57,9 / 60,1 / 60,0 | 16,9 / 16,9 / 16,9 ms | 233 / 17,1 / 17,1 ms |
+
+p95 ≤ 20 ms nos dois casos. **Custo à parte, uma vez só:** aplicar a mesa pesada congela a página por 1 a 5 s, e a causa está na decodificação do PNG 2048² de ruído pelo navegador (um `createImageBitmap` isolado também deixa a página parada); com textura de 16 px ou ornamento de 64 triângulos o congelamento some ou cai para ~1 s. Texturas reais comprimem melhor, mas a decodificação custa por pixel; fica registrado como limitação conhecida.
+
+**Testes:** `tests/table.test.ts` (15), `e2e/table.spec.ts` (6, incluindo M13 e o upgrade do IndexedDB v1→v2), `e2e/table-kraken.spec.ts` (2).

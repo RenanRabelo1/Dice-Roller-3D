@@ -205,7 +205,7 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
       table: () => {
         const t = useTable.getState().theme, mesh = (name: string) => scene.getObjectByName(name), hex = (o?: Object3D) => {
           const m = o instanceof Mesh ? (Array.isArray(o.material) ? o.material[0] : o.material) as { color?: Color; map?: unknown } : null;
-          return m?.color ? { color: `#${m.color.getHexString()}`, textured: !!m.map } : null;
+          return m?.color ? { color: `#${m.color.getHexString()}`, textured: !!m.map && !(m.map as { userData?: { placeholder?: boolean } }).userData?.placeholder } : null;
         };
         const guide = mesh('guia-area-de-jogo'), box = guide ? new Box3().setFromObject(guide, true) : null;
         const felt = hex(mesh('feltro') ?? undefined), wood = hex(mesh('base') ?? mesh('madeira') ?? undefined);

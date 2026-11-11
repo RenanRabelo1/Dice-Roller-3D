@@ -1,7 +1,7 @@
 import { CuboidCollider, RigidBody } from '@react-three/rapier';
 import { MATERIAL, trayColliders } from '../physics/world';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import type { Group, Object3D } from 'three';
 import { useDice } from '../store';
 import { krakenAt, krakenIndices } from './krakenMotion';
@@ -12,6 +12,7 @@ import { useTable } from './tableState';
 // build, or an imported .glb fitted to the same play area).
 export function Tray() {
   const theme = useTable((s) => s.theme);
+  const { gl, camera, scene } = useThree();
   const texture = typeof theme.felt.texture === 'string' ? theme.felt.texture : 'liso';
   const slow = !!theme.model || typeof theme.felt.texture === 'object'; // needs decoding before it can show
   // The default table shows at once (also while a slower one loads, and if that one fails).
@@ -21,9 +22,10 @@ export function Tray() {
   useEffect(() => {
     if (!slow) return;
     let alive = true;
-    import('./tableFile').then((m) => m.buildFor(theme)).then((group) => { if (alive) setLoaded({ theme, group }); else disposeTable(group); }, () => { if (alive) setLoaded(null); });
+    // Compile its shaders off the main thread before it replaces the table, so the swap never stalls a frame.
+    import('./tableFile').then((m) => m.buildFor(theme)).then(async (group) => { await gl.compileAsync(group, camera, scene).catch(() => {}); return group; }).then((group) => { if (alive) setLoaded({ theme, group }); else disposeTable(group); }, () => { if (alive) setLoaded(null); });
     return () => { alive = false; };
-  }, [theme, slow]);
+  }, [theme, slow, gl, camera, scene]);
   useEffect(() => () => { if (loaded) disposeTable(loaded.group); }, [loaded]);
   const table: Object3D = slow && loaded?.theme === theme ? loaded.group : quick;
   useEffect(() => { useTable.getState().setColors(colorsOf(table) ?? { felt: theme.felt.color, wood: theme.wood.color }); }, [table, theme]);
