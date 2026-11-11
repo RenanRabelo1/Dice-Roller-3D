@@ -61,6 +61,10 @@ progress { width: 100%; height: 12px; accent-color: var(--brass); }
   .status p { font-size: 12px; }
 }
 canvas { display: block; }
+/* Backdrop behind the transparent canvas (photo or ready-made theme); the canvas wrapper comes later, so it stacks above. */
+.backdrop { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.backdrop-art { position: absolute; inset: 0; background-size: cover; background-position: center; }
+.backdrop-dim { position: absolute; inset: 0; background: #000; }
 
 /* Dice chat: a side sheet that slides in from the right (drawer curve, interruptible CSS transition). */
 .chat-toggle kbd { font: inherit; font-size: 12px; border: 1px solid #786958; border-radius: 3px; padding: 0 5px; margin-left: 4px; }
@@ -134,3 +138,14 @@ canvas { display: block; }
 .import-choice button small { opacity: 0.8; font-size: 13px; }
 .import-choice button.primary { background: var(--brass); color: var(--ink); border-color: var(--brass); font-weight: 800; }
 .import-choice button.primary small { opacity: 1; font-weight: 400; }
+
+/* Table panel: reuses the import sheet. */
+.table-panel fieldset { border: 1px solid #49332E; border-radius: 3px; display: flex; flex-direction: column; gap: 10px; margin: 0; min-width: 0; }
+.table-panel legend { padding: 0 6px; color: var(--brass); }
+.table-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.table-row input[type="range"], .table-row select, .table-row input:not([type]) { flex: 1; max-width: 200px; }
+.table-row select { font: inherit; color: var(--chalk); background: #1E1517; border: 1px solid #786958; border-radius: 3px; padding: 6px; }
+.table-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.table-list li { display: flex; gap: 6px; }
+.table-list li button:first-child { flex: 1; text-align: left; }
+.table-panel .import-error ul { margin: 6px 0; padding-left: 18px; }

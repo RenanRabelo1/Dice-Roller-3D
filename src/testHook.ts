@@ -20,6 +20,8 @@ export interface DiceHook {
   camera(): Vec3;
   launches(): { count: number; last: { before: { p: Vec3; q: Quat }[]; after: { p: Vec3; q: Quat }[] } | null };
   customs(): { kind: DieKind; id: string; name: string; slug: string; base: string; printed: boolean }[]; // the imported dice
+  table(): { id: string; name: string; background: 'color' | 'preset' | 'image'; backgroundColor: string | null; felt: string | null; feltTextured: boolean; wood: string | null; model: boolean; guide: { size: Vec3; center: Vec3 } | null; saved: number }; // the active table, read off the scene
+  shards(): { felt: string; wood: string } | null; // colours of the kraken's first floor shard
   previewSurface(index: number, position: Vec3, quaternion: Quat): void;
 }
 

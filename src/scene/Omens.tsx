@@ -10,6 +10,7 @@ import { MAX_DICE, type DieKind } from '../dice/polyhedra';
 import { DUALITY_HIT, isD20, omenKind, omenMs } from '../dice/omen';
 import { useDice } from '../store';
 import { Kraken } from './Kraken';
+import { useTable } from './tableState';
 
 // The 3D side of an omen, played after the dice settle and before the result shows:
 // lightning on a critical d20, a kraken under a critical d100, the yin-yang fish for duality (the fumble's
@@ -193,7 +194,7 @@ class Show {
       const kind = omenKind(o), on = (is: (die: DieKind) => boolean) => (kind === 'crit' ? o.crits.filter((i) => is(s.dice[i])).map(at).filter((p): p is Vector3 => !!p) : []);
       const lit = on(isD20), deep = on((die) => die === 'd100');
       lit.forEach((p, i) => this.bolts[i].start(p));
-      if (deep.length) this.kraken.start(deep, o.crits.filter((i) => s.dice[i] === 'd100'));
+      if (deep.length) this.kraken.start(deep, o.crits.filter((i) => s.dice[i] === 'd100'), useTable.getState().colors);
       if (lit[0]) this.light.position.copy(lit[0]).y += 1.2;
       this.run = { throwId: o.throwId, at: s.omenAt, ms: omenMs(o, s.dice), bolts: lit.length, krakens: deep.length, duality: kind === 'duality' };
     }

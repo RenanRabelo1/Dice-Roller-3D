@@ -4,6 +4,7 @@ import { customKind } from '../dice/custom';
 import { KINDS, MAX_DICE, type DieKind } from '../dice/polyhedra';
 import { dieName, formatDice, resultText } from '../dice/notation';
 import { Chat } from './Chat';
+import { TablePanel } from './TablePanel';
 
 // The importer (and the model loaders) only load when the player opens it.
 const ImportDie = lazy(() => import('./ImportDie').then((m) => ({ default: m.ImportDie })));
@@ -48,6 +49,7 @@ export function Controls() {
         </div>
         <p className="pool" aria-live="polite">{formatDice(dice)}</p>
         <Chat />
+        <TablePanel />
         {mounted && <Suspense fallback={null}><ImportDie open={importing} onClose={closeImport} /></Suspense>}
       </header>
       <footer className="status panel">

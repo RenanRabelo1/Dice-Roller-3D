@@ -45,7 +45,8 @@ function collect(root: Object3D): { positions: Float32Array; triangles: number }
 
 const refuse = (what: string) => new ImportError(`O arquivo ${what}.`);
 
-async function parseGlb(bytes: ArrayBuffer): Promise<Object3D> {
+// `textureMax` lets another caller (the table importer) allow a bigger texture on some meshes.
+export async function parseGlb(bytes: ArrayBuffer, textureMax: (mesh: Mesh) => number = () => LIMITS.texture): Promise<Object3D> {
   // Nothing may come from the network: only data:/blob: URLs load, anything else fails the parse.
   const manager = new LoadingManager();
   manager.setURLModifier((url) => {
@@ -58,7 +59,7 @@ async function parseGlb(bytes: ArrayBuffer): Promise<Object3D> {
     for (const m of Array.isArray(o.material) ? o.material : [o.material]) {
       for (const t of Object.values(m as Material & Record<string, unknown>)) {
         const img = t && (t as Texture).isTexture ? ((t as Texture).image as { width?: number; height?: number } | null) : null;
-        if (img && Math.max(img.width ?? 0, img.height ?? 0) > LIMITS.texture) throw new ImportError(`Textura maior que ${LIMITS.texture} px no modelo.`);
+        if (img && Math.max(img.width ?? 0, img.height ?? 0) > textureMax(o)) throw new ImportError(`Textura maior que ${textureMax(o)} px no modelo.`);
       }
     }
   });

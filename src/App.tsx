@@ -4,10 +4,12 @@ import { Stage } from './scene/Stage';
 import { Controls } from './ui/Controls';
 import { OmenOverlay } from './ui/OmenOverlay';
 import { useDice } from './store';
+import { Backdrop } from './scene/Backdrop';
+import { useTable } from './scene/tableState';
 
 export default function App() {
   const gameArea = useRef<HTMLDivElement>(null);
-  useEffect(() => { void useDice.getState().loadCustoms(); }, []);
+  useEffect(() => { void useDice.getState().loadCustoms(); void useTable.getState().load(); }, []);
   useEffect(() => {
     const media = matchMedia('(prefers-reduced-motion: reduce)');
     const update = () => useDice.getState().setReducedMotion(media.matches);
@@ -18,6 +20,7 @@ export default function App() {
     <main className="app">
     <Controls />
     <div ref={gameArea} className="game-area" tabIndex={0} aria-label="Área de arremesso">
+      <Backdrop />
       <Canvas shadows camera={{ position: [0, 14, 10], fov: 40 }}
         gl={{ preserveDrawingBuffer: import.meta.env.MODE === 'test' }}>
         <Suspense fallback={null}>

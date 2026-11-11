@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, type RefObject } from 
 import { useFrame, useThree } from '@react-three/fiber';
 import { Environment, Lightformer, PerformanceMonitor } from '@react-three/drei';
 import { Physics, useBeforePhysicsStep, type RapierRigidBody } from '@react-three/rapier';
-import { Group, Matrix4, Quaternion, Vector3, type Object3D } from 'three';
+import { Box3, Color, Group, Matrix4, Mesh, Quaternion, Vector3, type BufferGeometry, type Object3D } from 'three';
 import { Text } from 'troika-three-text';
 
 import { bodyStates } from '../physics/apply';
@@ -18,6 +18,7 @@ import { Omens } from './Omens';
 import { omenKind } from '../dice/omen';
 import { customKind } from '../dice/custom';
 import { customsOf } from '../dice/polyhedra';
+import { useTable } from './tableState';
 
 function ThrowLoop({ bodies, recordLaunch }: {
   bodies: RefObject<(RapierRigidBody | null)[]>;
@@ -85,6 +86,7 @@ function ThrowLoop({ bodies, recordLaunch }: {
 
 export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> }) {
   const selected = useDice((state) => state.dice);
+  const background = useTable((state) => state.theme.background);
   const key = selected.join(',');
   const { camera, size, scene, gl, setDpr, viewport: { initialDpr, dpr } } = useThree();
   const desiredDpr = useRef(initialDpr);
@@ -200,6 +202,26 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
       })),
       launches: () => launches.current,
       customs: () => useDice.getState().customs.map((d) => ({ kind: customKind(d.id), id: d.id, name: d.name, slug: d.slug, base: d.base, printed: d.printed })),
+      table: () => {
+        const t = useTable.getState().theme, mesh = (name: string) => scene.getObjectByName(name), hex = (o?: Object3D) => {
+          const m = o instanceof Mesh ? (Array.isArray(o.material) ? o.material[0] : o.material) as { color?: Color; map?: unknown } : null;
+          return m?.color ? { color: `#${m.color.getHexString()}`, textured: !!m.map } : null;
+        };
+        const guide = mesh('guia-area-de-jogo'), box = guide ? new Box3().setFromObject(guide, true) : null;
+        const felt = hex(mesh('feltro') ?? undefined), wood = hex(mesh('base') ?? mesh('madeira') ?? undefined);
+        return {
+          id: t.id, name: t.name, background: t.background.kind, backgroundColor: t.background.kind === 'color' ? t.background.color : null,
+          felt: felt?.color ?? null, feltTextured: felt?.textured ?? false, wood: wood?.color ?? null, model: !!t.model,
+          guide: box ? { size: box.getSize(new Vector3()).toArray(), center: box.getCenter(new Vector3()).toArray() } : null,
+          saved: useTable.getState().tables.length,
+        };
+      },
+      shards: () => {
+        const piece = scene.getObjectByName('kraken-fragments')?.children[0] as Mesh | undefined;
+        const c = (piece?.geometry as BufferGeometry | undefined)?.getAttribute('color');
+        const hex = (i: number) => (c ? `#${new Color(c.getX(i), c.getY(i), c.getZ(i)).getHexString()}` : null);
+        return c ? { felt: hex(0)!, wood: hex(3)! } : null;
+      },
       previewSurface: (index, p, q) => {
         if (import.meta.env.MODE !== 'test' || !new URLSearchParams(location.search).has('surface-preview') || useDice.getState().gesture.phase !== 'hand') throw new Error('Surface preview is only available in the test preview scene');
         const body = bodies.current[index];
@@ -219,7 +241,8 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
       {/* Slow GPUs need fewer pixels during tosses and pickup; restore detail when there is headroom. */}
       <PerformanceMonitor ms={200} iterations={3} bounds={() => [28, 55]}
         onDecline={() => adjustDpr(0.75)} onIncline={() => adjustDpr(1.1)} />
-      <color attach="background" args={['#140E10']} />
+      {/* A colour is the scene's background; a photo or ready-made theme sits behind the transparent canvas (see App). */}
+      {background.kind === 'color' && <color attach="background" args={[background.color]} />}
       <ambientLight intensity={0.35} />
       <directionalLight position={[-4, 10, 5]} intensity={2.5} castShadow
         shadow-mapSize={[1024, 1024]} shadow-camera-left={-9} shadow-camera-right={9}
