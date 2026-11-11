@@ -139,8 +139,11 @@ function rawTriangles(shape: Shape): Vec3[] {
 }
 
 function build(shape: Shape): Polyhedron {
-  if (shape === 'coin') return coin();
-  const verts = rawTriangles(shape);
+  return shape === 'coin' ? coin() : fromTriangles(shape, rawTriangles(shape));
+}
+
+// Faces, values and labels for a convex solid given as loose triangles (3 points each), centred on the origin.
+export function fromTriangles(shape: Shape, verts: Vec3[]): Polyhedron {
   const points: Vec3[] = [];
   const indexOf = (v: Vec3) => {
     let i = points.findIndex((p) => Math.hypot(p[0] - v[0], p[1] - v[1], p[2] - v[2]) < 1e-6);
