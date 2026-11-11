@@ -76,3 +76,17 @@ export function customDieOf(base: CustomBase, name: string, slug: string, { omen
   registerCustom(die);
   return die;
 }
+
+// Every triangle cut into n² coplanar ones: the same die, but heavy (a printed die's engraving, in effect).
+export function subdivided(positions: Float32Array, n: number): Float32Array {
+  const out: number[] = [];
+  for (let t = 0; t < positions.length; t += 9) {
+    const [a, b, c] = [0, 3, 6].map((k) => new Vector3(positions[t + k], positions[t + k + 1], positions[t + k + 2]));
+    const at = (i: number, j: number) => a.clone().addScaledVector(b.clone().sub(a), i / n).addScaledVector(c.clone().sub(a), j / n);
+    for (let i = 0; i < n; i++) for (let j = 0; j < n - i; j++) {
+      for (const p of [at(i, j), at(i + 1, j), at(i, j + 1)]) out.push(p.x, p.y, p.z);
+      if (i + j < n - 1) for (const p of [at(i + 1, j), at(i + 1, j + 1), at(i, j + 1)]) out.push(p.x, p.y, p.z);
+    }
+  }
+  return Float32Array.from(out);
+}

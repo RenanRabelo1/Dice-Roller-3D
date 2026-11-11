@@ -38,7 +38,10 @@ src/
   store.ts                 zustand: seleção, fase, throwId, launch, results, omen  → arremesso.md
   testHook.ts              window.__dice (só em mode=test)                          → testes.md
   dice/                    domínio puro dos dados (sem React)                       → dados.md
-    polyhedra.ts             tipos, geometria, numeração, rótulos
+    polyhedra.ts             tipos, geometria, numeração, rótulos, `fromTriangles`
+    custom.ts                tipo `CustomDie` + registro em memória dos dados importados
+    customStore.ts           IndexedDB (`dice-roller`/`customDice`)
+    importer.ts              .stl/.glb → poliedro (detecção, sólido ideal, calibração)
     read.ts                  face de cima → valor; raw → resultado
     notation.ts              parser/formatador "2d10 + d100", texto do painel
     omen.ts                  regra de crítico/falha e duração dos presságios
@@ -58,7 +61,7 @@ src/
     Die.tsx, Tray.tsx        corpo+malha de cada dado; bandeja
     showcase.ts, highlight.ts poses e linha do tempo do "voo até a câmera"         → apresentacao.md
     Omens.tsx, Kraken.ts, krakenMotion.ts  presságios 3D                            → apresentacao.md
-  ui/                      HTML: Controls (seleção + painel), Chat, OmenOverlay
+  ui/                      HTML: Controls (seleção + painel), Chat, OmenOverlay, ImportDie (assistente, carregado sob demanda)
 tests/                     Vitest (unidades puras + física Node); helpers/sim.ts
 e2e/                       Playwright; usa window.__dice
 references/threejs/        exemplos oficiais do three.js (só leitura, ver CLAUDE.md)
@@ -70,8 +73,8 @@ docs/performance-coins.md  diagnóstico de desempenho com várias moedas
 
 | Termo | Significado |
 |---|---|
-| `DieKind` | tipo escolhível: `d4 d6 d8 d10 d12 d20 d100 vtm hunger fire coin` |
-| `Shape` | corpo físico real; `BASE` mapeia kind → shape (`vtm`/`hunger` → d10, `fire` → d6) |
+| `DieKind` | tipo escolhível: `BuiltinKind` (`d4 d6 d8 d10 d12 d20 d100 vtm hunger fire coin`) ou `custom:<uuid>` (dado importado) |
+| `Shape` | corpo físico real; `baseOf(kind)` mapeia kind → shape (`vtm`/`hunger` → d10, `fire` → d6, importado → a base reconhecida) |
 | fase | `hand → charging → rolling → settled → returning → hand` (`throw/gesture.ts`) |
 | `throwId` | contador que invalida tudo que é de um arremesso/seleção anterior |
 | `Launch` | snapshot imutável do arremesso (semente, alvo, força, pose/giro da mão) |

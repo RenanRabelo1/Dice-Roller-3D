@@ -37,7 +37,7 @@ Regras:
 1. **Mira** — `Hand.tsx` faz raycast do ponteiro no plano y=0 e grava `clampTarget(hit)`. Setas movem 0,5. A mão (dados cinemáticos) segue `aim.x` com suavização; balança e gira conforme a velocidade da mira (`omega`).
 2. **Carga** — `pointerdown`/Espaço → `press`. A cada quadro `force = charge(agora - chargeStart)` (onda triangular 0→1→0, ciclo 1400 ms). A seta (`ArrowHelper`) muda de cor/tamanho com a força.
 3. **Soltura** — `release` → store cria `Launch` com `handCenter`/`handOmega` reais.
-4. **Pré-simulação** — `ThrowLoop` (em `Stage.tsx`, dentro de `useBeforePhysicsStep`) detecta `throwId` novo, captura as poses atuais dos corpos e manda `RollRequest { dice, start, launch }` ao worker (`presim.worker.ts`). Sem worker → `presimulate` síncrono na thread principal (fallback).
+4. **Pré-simulação** — `ThrowLoop` (em `Stage.tsx`, dentro de `useBeforePhysicsStep`) detecta `throwId` novo, captura as poses atuais dos corpos e manda `RollRequest { dice, start, launch, customs }` ao worker (`presim.worker.ts`). Sem worker → `presimulate` síncrono na thread principal (fallback).
 5. **Replay** — a cada passo físico aplica `rec.frames[at]` via `setNextKinematicTranslation/Rotation`. Os corpos da cena continuam **cinemáticos** o tempo todo; quem simula dinâmica é só o mundo offline.
 6. **Publicação** — no último quadro, fixa a pose final com `setTranslation/setRotation` **antes** de `publish(throwId, rec.results, rec.raw)`.
 7. **Settled** → apresentação (presságio, voo, números). Clique/Espaço → `returning`.
@@ -90,4 +90,4 @@ Ajuste de "sensação" do arremesso = mexer aqui. Os testes de física usam os m
 
 ## Worker
 
-`new Worker(new URL('../physics/presim.worker.ts', import.meta.url), { type: 'module' })`. Inicializa o Rapier assim que a cena monta (aquece enquanto o jogador mira). Erro de init, `onerror` ou `onmessageerror` → `fallback()` termina o worker e simula na thread principal. Acrescenta ~2,4 MB ao build (WASM do Rapier).
+`new Worker(new URL('../physics/presim.worker.ts', import.meta.url), { type: 'module' })`. `customs` (`customsOf(dice)`) leva o poliedro de cada dado importado da seleção; o worker os registra com `registerPoly` antes de `presimulate` (ele não tem o registro do app; o fallback síncrono tem). Inicializa o Rapier assim que a cena monta (aquece enquanto o jogador mira). Erro de init, `onerror` ou `onmessageerror` → `fallback()` termina o worker e simula na thread principal. Acrescenta ~2,4 MB ao build (WASM do Rapier).

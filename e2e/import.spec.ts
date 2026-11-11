@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { polyhedron } from '../src/dice/polyhedra';
-import { glb, modelTriangles, stl } from '../tests/helpers/models';
+import { glb, modelTriangles, stl, subdivided } from '../tests/helpers/models';
 
 // Dice models made from the app's own solids (see tests/helpers/models.ts), chamfered and off-centre like a slicer export.
 const file = (name: string, buffer: ArrayBuffer, mimeType = 'application/octet-stream') => ({ name, mimeType, buffer: Buffer.from(buffer) });
@@ -112,4 +112,20 @@ test('files that are not dice are refused in Portuguese and nothing is saved', a
   await page.getByTestId('import-file').setInputFiles(file('caixa.stl', stl(box)));
   await expect(page.getByRole('alert')).toContainText('Não reconheci um d4–d20');
   expect(await page.evaluate(() => window.__dice.customs())).toEqual([]);
+});
+
+test('ten imported dice at the triangle limit still roll and settle', async ({ page }) => {
+  const heavy = subdivided(modelTriangles(polyhedron('d20')), 49); // 20 faces × 49² = 48 020 triangles
+  expect(heavy.length / 9).toBeLessThanOrEqual(50_000);
+  await open(page, file('pesado.stl', stl(heavy)));
+  await expect(page.getByTestId('import-shape')).toContainText('48.020');
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Não, numerar para mim' }).click();
+  await save(page, 'Pesado');
+  const [custom] = await page.evaluate(() => window.__dice.customs());
+  await page.evaluate((kind) => window.__dice.select(Array(10).fill(kind)), custom.kind); await ready(page, 10);
+  const start = Date.now();
+  const results = await rollAndCheck(page);
+  expect(results).toHaveLength(10);
+  console.log(`10 imported dice at 48k triangles: rolled and showcased in ${Date.now() - start} ms`);
 });

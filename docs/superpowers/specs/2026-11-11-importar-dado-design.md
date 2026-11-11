@@ -1,6 +1,6 @@
 # Importar um dado 3D: design (caminho A)
 
-Data: 2026-11-11 · Status: proposta, aguardando aprovação · Branch: `dev-jg`
+Data: 2026-11-11 · Status: aprovada e implementada (MVP) · Branch: `dev-jg`
 
 ## 1. Objetivo
 
@@ -164,3 +164,11 @@ interface CustomDie {
 6. Renderização em `Die.tsx` (STL e GLB) + sombras por `traverse`.
 7. Painel do assistente + "Meus dados" + notação.
 8. E2E, medição de desempenho, atualização de `docs/contexto/dados.md` e `arremesso.md`.
+
+## 12. Notas da implementação
+
+- **Tolerâncias (6.1.5).** Valem as da spec (3° para agrupar, ≥ 60% da área, próximo grupo < 25% da menor face) mais uma regra que faltava: as N faces precisam ser parecidas (a menor tem ≥ 50% da área da maior); sem ela uma caixa achatada passava por d6. Com sólidos nossos chanfrados (cada canto de cada face puxado para dentro), a detecção acerta d4–d20 até ~12% de chanfro.
+- **Calibração por índice, não por normal.** `fromTriangles` é determinística: refazê-la sobre os mesmos triângulos mantém a ordem das faces, então a calibração é um vetor de valores/giros indexado pela face (d4: pelo vértice) em `renumbered`.
+- **Opostas.** O sólido ideal torna cada par de planos opostos exato e simétrico (a numeração precisa de opostas); o centro do modelo sai de um ajuste por mínimos quadrados dos pares.
+- **d4 na calibração.** A pergunta é "Que número você lê no vértice voltado para você?" (o vértice vem para a câmera, em vez de para cima).
+- **Fixtures.** Em vez de um `.stl` binário versionado, o E2E gera os modelos a partir dos nossos sólidos (`tests/helpers/models.ts`): STL/GLB chanfrados, girados e deslocados como um export de fatiador, e um d20 de ~48 mil triângulos para o caso pesado (10 dados rolam e mostram em ~11 s no SwiftShader).
