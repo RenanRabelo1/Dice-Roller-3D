@@ -3,7 +3,7 @@
 ## Unitários — Vitest (`npm test`)
 
 - Só `tests/**/*.test.ts`, ambiente **Node**, timeout 10 s (`vite.config.ts`).
-- Cobrem os módulos puros e a física real: `aim`, `gesture`, `settle`, `world`, `polyhedra`, `read`, `notation`, `omen`, `symbols`, `highlight`, `showcase`, `kraken`, `store`, `physics`, `importer`, `custom`.
+- Cobrem os módulos puros e a física real: `aim`, `gesture`, `settle`, `world`, `polyhedra`, `read`, `notation`, `omen`, `symbols`, `highlight`, `showcase`, `kraken`, `store`, `physics`, `importer`, `custom`, `table`.
 - `tests/helpers/sim.ts`:
   - `initRapier()` — inicializa `rapier3d-compat` uma vez e silencia o aviso de depreciação conhecido do wasm-bindgen.
   - `models.ts`: `modelTriangles` (sólido nosso, chanfrado, girado e deslocado como um export de fatiador), `stl`, `glb`, `subdivided`, `customDieOf` (dado importado registrado).
@@ -20,6 +20,8 @@
 
 | Método | Para quê |
 |---|---|
+| `table()` | mesa ativa lida da cena: id, nome, fundo, cores do feltro/madeira, textura, se há modelo, caixa da guia, nº de mesas salvas |
+| `shards()` | cores (feltro/madeira) do primeiro caco do kraken |
 | `state()` | dice, phase, throwId, results, ready, error, aim, showcased, omen, omenDone, omenTime, trayBroken |
 | `select(dice)` | troca a seleção sem clicar |
 | `rigOmen(omen \| null)` | força o presságio dos próximos arremessos (a física e o resultado continuam reais) |
@@ -39,6 +41,8 @@ Padrão dos specs: esperar `state().ready`, interagir pelo teclado/ponteiro na `
 | `smoke` | contexto WebGL, canvas pinta, toda seleção cria corpos e numerais |
 | `roll` | face de cima = resultado publicado, Espaço, d100×10, seleção mista, captura de ponteiro, blur, reduced motion, moeda |
 | `chat` | tecla C, notação, Vampiro, bola de fogo, erro, moedas |
+| `table` | fundo (tema/foto/cor), cores no pixel, ida-e-volta exportar→importar (M13), arquivo com escala/Z para cima/moldura invadindo, recusas, upgrade do IndexedDB v1→v2 |
+| `table-kraken` | cacos com a cor do feltro da mesa; modelo sem piso some inteiro na quebra |
 | `omen` / `kraken` | presságios forçados, reduced motion, recolher durante presságio, bandeja quebrada/restaurada |
 | `import` | importar STL/GLB (gerados por `tests/helpers/models.ts` a partir dos nossos sólidos), calibrar, rolar, recarregar, excluir, recusas, 10 dados de ~48 mil triângulos |
 | `coin` | repetição de jogadas da moeda, mobile |

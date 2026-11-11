@@ -48,7 +48,7 @@ Desempenho (não quebrar):
 - `krakenMotion.ts` (puro, testado): `KRAKEN` = marcos da linha do tempo (rupture 450, launch 1450, reveal 2600, repair 4200, restored 5400, duration 5600). `krakenAt(t)` dá `broken/spread/arms/halo/hero`; `krakenFlightAt` dá a pose do d100 (arco até a câmera, segura, volta à pose final do showcase); `krakenHeroPoses` amplia o showcase para o "close"; `fractureCells` quebra o piso em cacos radiais que cobrem o retângulo todo.
 - `krakenIndices(omen, dice)`: só d100 críticos, e só se **não** houver falha (dualidade vence).
 - `Kraken.ts`: geometria (10 braços, ventosas e lascas instanciadas, cacos do piso, rachaduras, abismo, asas, raios).
-- `Tray.tsx` esconde `tray-surface` enquanto `krakenAt(t).broken`; o `Kraken` desenha os cacos no lugar.
+- `Tray.tsx` esconde `tray-surface` enquanto `krakenAt(t).broken`; o `Kraken` desenha os cacos no lugar, com as cores da mesa ativa (`Kraken.start(..., useTable.colors)`; ver mesa.md). Mesa importada sem piso: o modelo inteiro some.
 - O d100 crítico **não** faz o voo comum do showcase; o voo dele é o da ascensão.
 
 ## Lado HTML (`ui/OmenOverlay.tsx`)

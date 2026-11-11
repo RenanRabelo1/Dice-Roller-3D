@@ -37,7 +37,7 @@ Coisas que já morderam ou que quebram em silêncio. Ler antes de mexer em físi
 
 ## Documentação histórica ≠ código atual
 
-`docs/superpowers/` (specs, plano, revisão) e `.superpowers/sdd/` registram o processo, não o estado atual. A spec 3D (`2026-11-08`) e a de moeda/presságios (`2026-11-10`) têm no topo uma seção **"Estado atual"** com o que mudou; o plano e a revisão não foram atualizados. Specs ativas: `2026-11-11-importar-dado-design.md` (implementada) e `2026-11-11-mesa-e-fundo-design.md` (proposta, não implementada). Divergências conhecidas:
+`docs/superpowers/` (specs, plano, revisão) e `.superpowers/sdd/` registram o processo, não o estado atual. A spec 3D (`2026-11-08`) e a de moeda/presságios (`2026-11-10`) têm no topo uma seção **"Estado atual"** com o que mudou; o plano e a revisão não foram atualizados. Specs ativas: `2026-11-11-importar-dado-design.md` (implementada) e `2026-11-11-mesa-e-fundo-design.md` (implementada; ver mesa.md). Divergências conhecidas:
 
 | A spec/plano diz | O código faz hoje |
 |---|---|
