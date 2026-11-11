@@ -3,7 +3,7 @@ import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js';
 import { parseGlb } from '../dice/importer';
 import { TRAY } from '../physics/world';
 import { backdrop, buildDefault, find, GUIDE, isPlaceholder, roleOf, shade, SURFACE } from './tableBuild';
-import { blobOfImage, TableError } from './tableImages';
+import { blobOfImage, isOpaque, TableError } from './tableImages';
 import { EXTRAS_KEY, extrasOf, LIMITS, readExtras, type TableTheme, type ThemeExtras } from './tableTheme';
 
 // Exporting, importing (cleaned, fitted, checked) and building any theme's table. Loaded on demand: it carries the
@@ -38,11 +38,21 @@ export async function exportTable(group: Group, theme: TableTheme, backgroundMap
   const blanked: MeshStandardMaterial[] = [];
   group.traverse((o) => { if (o instanceof Mesh) for (const m of ([] as MeshStandardMaterial[]).concat(o.material)) if (isPlaceholder(m.map)) { blanked.push(m); } });
   const maps = blanked.map((m) => m.map);
+  // Opaque pictures (felt image, backdrop photo) go in as JPEG; only what has alpha stays PNG.
+  const jpeg: Texture[] = [];
+  group.traverse((o) => {
+    if (!(o instanceof Mesh)) return;
+    for (const m of ([] as MeshStandardMaterial[]).concat(o.material)) {
+      const t = m.map;
+      if (t && !isPlaceholder(t) && !t.userData.mimeType && t.image && !jpeg.includes(t) && isOpaque(t.image as HTMLImageElement)) { t.userData.mimeType = 'image/jpeg'; jpeg.push(t); }
+    }
+  });
   blanked.forEach((m) => { m.map = null; });
   try {
     return (await new GLTFExporter().parseAsync(scene, { binary: true, onlyVisible: false })) as ArrayBuffer;
   } finally {
     blanked.forEach((m, i) => { m.map = maps[i]; });
+    jpeg.forEach((t) => { delete t.userData.mimeType; });
     scene.remove(group);
     renamed.reverse().forEach(([o, n]) => { o.name = n; });
     group.userData[EXTRAS_KEY] = previous;

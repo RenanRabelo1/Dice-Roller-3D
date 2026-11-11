@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { test, expect, type Page } from '@playwright/test';
+import { noisePng } from '../tests/helpers/noisePng';
 import { tableGlb } from '../tests/helpers/tableGlb';
 
 // 1x1 PNG: enough for a backdrop / texture fixture.
@@ -97,6 +98,23 @@ test('a felt image shows in its own colours: the felt colour turns white, and ca
   await panel(page).getByLabel('Textura do feltro').selectOption('veludo');
   await expect.poll(async () => (await table(page)).feltTextured).toBe(true);
   expect((await table(page)).felt).toBe('#2a6f3a');
+});
+
+test('opaque textures are exported as JPEG, so a big photo does not balloon the file', async ({ page }) => {
+  const big = noisePng(1600); // ~7 MB as PNG
+  await openPanel(page);
+  await page.getByTestId('table-felt-image').setInputFiles({ name: 'ruido.png', mimeType: 'image/png', buffer: big });
+  await expect.poll(async () => (await table(page)).feltTextured).toBe(true);
+  const [download] = await Promise.all([page.waitForEvent('download'), panel(page).getByRole('button', { name: 'Exportar mesa' }).click()]);
+  const file = readFileSync((await download.path())!);
+  expect(file.includes(Buffer.from([0xff, 0xd8, 0xff]))).toBe(true); // a JPEG inside
+  expect(file.includes(Buffer.from([0x89, 0x50, 0x4e, 0x47]))).toBe(false); // and no PNG
+  expect(file.length).toBeLessThan(big.length * 0.6);
+  // The file still comes back as the same table.
+  await panel(page).getByRole('button', { name: 'Restaurar mesa padrão' }).click();
+  await page.getByTestId('table-import').setInputFiles(glbFile('ruido.glb', file));
+  await expect.poll(async () => (await table(page)).model).toBe(true);
+  expect((await table(page)).feltTextured).toBe(true);
 });
 
 test('exporting a table and importing it back gives the same table (M13)', async ({ page }) => {
