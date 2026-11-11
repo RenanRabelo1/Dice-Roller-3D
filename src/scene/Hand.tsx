@@ -191,15 +191,16 @@ export function Hand({ gameArea, bodies }: {
           const normal = new Vector3(...label.normal), up = new Vector3(...label.up);
           const local = new Vector3(...label.position).addScaledVector(normal, 0.03);
           const turn = new Quaternion().setFromRotationMatrix(new Matrix4().makeBasis(new Vector3().crossVectors(up, normal), up, normal));
-          // A symbol face raises its symbol; a blank Vampire face raises its value, so the highlight is never empty.
-          if (label.symbol) glyphs[i].geometry = symbolGeometry(label.symbol);
+          // Coins raise their name; Vampire faces raise their symbol, or the value on a blank face.
+          const symbol = poly.shape !== 'coin' && label.symbol;
+          if (symbol) glyphs[i].geometry = symbolGeometry(symbol);
           else numbers[i].text = label.text || String(raw[i]);
-          numbers[i].visible = !label.symbol; glyphs[i].visible = !!label.symbol;
+          numbers[i].visible = !symbol; glyphs[i].visible = !!symbol;
           return {
             local, turn,
             start: new Vector3(...from[i].p).add(new Vector3(0, poly.radius + 0.35, 0)),
             face: new Vector3(...from[i].p).add(new Vector3(0, poly.radius + 0.35, 0)),
-            scale: still ? 1 : FONT[poly.shape] / HL_SIZE,
+            scale: still || poly.shape === 'coin' ? 1 : FONT[poly.shape] / HL_SIZE,
           };
         });
         showcase.current = { at: now, throwId: state.throwId, from, to, hero, kraken, omenAt: state.omenAt, marks, still, gems: current.map((_, i) => scene.getObjectByName(`gem-${i}`)) };
@@ -230,6 +231,16 @@ export function Hand({ gameArea, bodies }: {
       if (still) { marks.forEach((m, i) => draw(i, m.face)); return; }
       let done = !waiting;
       current.forEach((body, i) => {
+        if (state.dice[i] === 'coin') {
+          const t = Math.min(1, Math.max(0, (now - at - SHOW.delay - i * SHOW.stagger) / SHOW.duration));
+          if (t < 1) done = false;
+          // The coin stays on the tray; only its Cara/Coroa caption rises to the result row.
+          const p = new Vector3(...from[i].p), q = new Quaternion(...from[i].q);
+          body.setTranslation(p, false); body.setRotation(q, false);
+          body.setNextKinematicTranslation(p); body.setNextKinematicRotation(q);
+          draw(i, new Vector3(...to[i].p));
+          return;
+        }
         const critical = kraken.indexOf(i);
         if (critical >= 0) {
           const ms = now - omenAt, pose = krakenFlightAt(ms, from[i], hero[critical], to[i]);
@@ -267,7 +278,8 @@ export function Hand({ gameArea, bodies }: {
         const from = returning.current!.poses[i];
         const p = new Vector3(...from.p).lerp(new Vector3(...positions[i]), ease);
         const q = new Quaternion(...from.q).slerp(new Quaternion(), ease);
-        if (state.reducedMotion) { body.setTranslation(p, true); body.setRotation(q, true); }
+        // Publish "hand" only after Rapier has the exact final pose, even if its last step lagged a frame.
+        if (state.reducedMotion || t === 1) { body.setTranslation(p, true); body.setRotation(q, true); }
         body.setNextKinematicTranslation(p); body.setNextKinematicRotation(q);
       });
       setOpacity(state.reducedMotion ? t : 1);
@@ -308,6 +320,6 @@ export function Hand({ gameArea, bodies }: {
 
   return <>
     <arrowHelper ref={arrow} />
-    <group ref={numbersGroup} />
+    <group ref={numbersGroup} name="result-highlights" />
   </>;
 }

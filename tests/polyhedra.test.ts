@@ -102,8 +102,8 @@ describe('coin', () => {
     expect(Math.max(...ys) - Math.min(...ys)).toBeLessThan(0.25 * rim);
     expect(p.points.length).toBeGreaterThanOrEqual(48); // round enough to read as a coin
   });
-  it('says CARA and COROA on its faces', () => {
-    expect(p.labelList.map((l) => [l.value, l.text])).toEqual([[1, 'CARA'], [2, 'COROA']]);
+  it('has face and crown drawings, with text reserved for the raised result', () => {
+    expect(p.labelList.map((l) => [l.value, l.symbol, l.text])).toEqual([[1, 'heads', 'Cara'], [2, 'crown', 'Coroa']]);
   });
   it('sorts after the dice', () => expect(sortDice(['coin', 'd20', 'fire'])).toEqual(['d20', 'fire', 'coin']));
 });

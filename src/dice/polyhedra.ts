@@ -12,7 +12,7 @@ import type { Vec3 } from '../physics/world';
 
 export type Shape = 'd4' | 'd6' | 'd8' | 'd10' | 'd12' | 'd20' | 'd100' | 'coin';
 export type DieKind = Shape | 'vtm' | 'hunger' | 'fire'; // every kind is one physical die
-export type SymbolName = 'ankh' | 'crit' | 'skull' | 'fangs';
+export type SymbolName = 'ankh' | 'crit' | 'skull' | 'fangs' | 'heads' | 'crown';
 
 export const KINDS: DieKind[] = ['d4', 'd6', 'd8', 'd10', 'd12', 'd20', 'd100', 'vtm', 'hunger', 'fire', 'coin'];
 // The physical die behind each kind: geometry, collider, radius, numbering and reading.
@@ -115,7 +115,7 @@ function coin(): Polyhedron {
     }
   }
   const faces: Face[] = [{ normal: [0, 1, 0], center: up, value: 1 }, { normal: [0, -1, 0], center: down, value: 2 }];
-  const labelList: Label[] = faces.map((f) => ({ text: f.value === 1 ? 'CARA' : 'COROA', value: f.value, position: f.center, normal: f.normal, up: [0, 0, -1] }));
+  const labelList: Label[] = faces.map((f) => ({ text: f.value === 1 ? 'Cara' : 'Coroa', symbol: f.value === 1 ? 'heads' : 'crown', value: f.value, position: f.center, normal: f.normal, up: [0, 0, -1] }));
   return { shape: 'coin', radius: R, points: [...top, ...bottom], triangles, faces, tops: [], labelList };
 }
 

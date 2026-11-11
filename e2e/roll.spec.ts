@@ -183,6 +183,7 @@ test('a coin flips heads or tails: the panel names the face it shows', async ({ 
   await throwWithSpace(page); await settled(page);
   const [result] = (await page.evaluate(() => window.__dice.state().results))!;
   expect([1, 2]).toContain(result);
-  expect(await topValue(page, 0)).toBe(String(result));
+  const up = await page.evaluate(() => window.__dice.labels(0).reduce((a, b) => a.normal[1] > b.normal[1] ? a : b).value);
+  expect(up).toBe(result);
   await expect(page.getByTestId('result')).toHaveText(result === 1 ? 'Cara' : 'Coroa');
 });

@@ -3,6 +3,7 @@ import { useThree } from '@react-three/fiber';
 import { Environment, Lightformer } from '@react-three/drei';
 import { Physics, useBeforePhysicsStep, type RapierRigidBody } from '@react-three/rapier';
 import { Group, Matrix4, Quaternion, Vector3, type Object3D } from 'three';
+import { Text } from 'troika-three-text';
 
 import { bodyStates } from '../physics/apply';
 import { presimulate, type Recording } from '../physics/presim';
@@ -139,6 +140,9 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
       },
       camera: () => camera.position.toArray(),
       numbersVisible: (index) => numbersOf(index)?.visible ?? false,
+      highlights: () => (scene.getObjectByName('result-highlights')?.children ?? []).map((o) => ({
+        text: o instanceof Text ? o.text : null, visible: o.visible,
+      })),
       launches: () => launches.current,
       previewSurface: (index, p, q) => {
         if (import.meta.env.MODE !== 'test' || !new URLSearchParams(location.search).has('surface-preview') || useDice.getState().gesture.phase !== 'hand') throw new Error('Surface preview is only available in the test preview scene');

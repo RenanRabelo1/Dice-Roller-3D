@@ -44,7 +44,7 @@ function place<T extends Object3D>(o: T, label: Label): T {
 function useNumbers(model: Polyhedron, size: number, ink: Ink) {
   const batch = useMemo(() => {
     if (model.labelList.some((l) => l.symbol)) {
-      const anchors = model.labelList.map((label) => { const o = place(new Object3D(), label); o.scale.setScalar(size * SYMBOL); o.updateMatrix(); return o; });
+      const anchors = model.labelList.map((label) => { const o = place(new Object3D(), label); o.scale.setScalar(model.shape === 'coin' ? 1.02 : size * SYMBOL); o.updateMatrix(); return o; });
       const geometry = mergeGeometries(model.labelList.flatMap((l, i) => (l.symbol ? [symbolGeometry(l.symbol).clone().applyMatrix4(anchors[i].matrix)] : [])));
       const material = new MeshBasicMaterial({ color: ink.color, toneMapped: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
       const mesh = Object.assign(new Mesh(geometry, material), { dispose: () => { geometry.dispose(); material.dispose(); } });

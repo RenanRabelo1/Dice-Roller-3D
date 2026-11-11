@@ -31,7 +31,8 @@ Regras do pedido:
 
 - Novo `Shape`/`DieKind` `'coin'`. O corpo é um disco de 48 lados (raio aproximado 0,75, espessura 0,16), com aro em relevo. O colisor é um cilindro arredondado: o casco convexo fino balançava sem parar sobre as tampas. Uma moeda lenta e deitada tem a rotação travada para a fricção conseguir pará-la, inclusive em pilhas.
 - `faces` tem **só as duas tampas**: valor 1 = **Cara** (+y) e 2 = **Coroa** (−y). Assim, `readUp` sempre devolve cara ou coroa, mesmo se a moeda parar encostada.
-- Os rótulos são texto: "CARA" e "COROA", gravados nas tampas, no mesmo `BatchedText` por dado.
+- As faces mostram desenhos vetoriais próprios: um rosto de perfil e uma coroa. As duas ilustrações são mescladas numa malha por moeda; as palavras não são desenhadas nas tampas.
+- No resultado, a moeda permanece na bandeja. Apenas o texto "Cara" ou "Coroa" sobe e vai para a fila de resultados, sem subir a ilustração ou a própria moeda.
 - O material é ouro metálico e opaco (`metalness` 1).
 - Painel:
   - a moeda aparece como "Moeda: Cara";
@@ -85,7 +86,7 @@ Regras do pedido:
   - moeda pelo botão e pelo chat; o painel mostra Cara/Coroa igual à face mostrada;
   - presságio forçado por `omenRig`: durante o presságio, o painel fica vazio e `showcased` não avança; depois a apresentação acontece;
   - capturas de cada presságio para conferir o visual.
-- **Gate:** `npm run build`, `npm run lint`, `npm test`, `npx playwright test e2e/smoke.spec.ts e2e/roll.spec.ts e2e/chat.spec.ts e2e/omen.spec.ts`.
+- **Gate:** `npm run build`, `npm run lint`, `npm test`, `npx playwright test e2e/smoke.spec.ts e2e/roll.spec.ts e2e/chat.spec.ts e2e/omen.spec.ts e2e/kraken.spec.ts e2e/coin.spec.ts`.
 - **Desempenho:** 60 FPS com 10 dados parados (Chrome real). Durante o presságio, sem travada visível na primeira vez.
 
 ## Handoff (para continuar em outra sessão)
@@ -127,3 +128,12 @@ Pedido: substituir o efeito anterior por uma ruptura da bandeja com muitos tent�
 - Desempenho da revisão, Chrome/Intel Iris Xe D3D11 em 1440×900: d20×10 e d100×10 a 60,3 FPS (p95 16,8 ms); sequência completa a 59,1 FPS (p95 16,8 ms, máximo 66,8 ms), com a cena restaurada e sem erros. Registro em `screens/kraken-performance.json`, medido sem relógio simulado.
 - Para evitar recompilações durante o crítico, as luzes continuam presentes com intensidade zero fora do efeito. Depois que o mapa de reflexão fica pronto, os materiais e pipelines do ANGLE recebem um desenho de aquecimento, imediatamente substituído pela cena normal no mesmo quadro.
 - Validação da revisão: build e lint aprovados, 191 testes em 14 arquivos e 37 E2E (smoke, roll, chat, omen, kraken). O build mantém o aviso já existente de tamanho do bundle.
+
+### Revisão da moeda — 2026-11-10
+
+- Falha reproduzida na segunda jogada: a fase já era `hand`, mas o corpo ainda estava em y≈7,14, em vez de y=3. O retorno marcava a fase concluída antes de Rapier aplicar o último alvo cinemático.
+- Correção compartilhada em `Hand`: fixar translação e rotação no destino antes de emitir `returned`, inclusive com movimento normal. A mudança também protege as próximas rolagens dos outros dados.
+- Faces com rosto e coroa, sem palavras nas tampas. O destaque da moeda usa o nome correspondente ao resultado da física; a moeda continua na bandeja e somente a palavra sobe.
+- Regressão: seis jogadas da mesma moeda, alternando forças, e quatro jogadas com d6 + duas moedas em 390 px. Verifica retorno à mão, pose válida, face de cima igual ao resultado e ausência de ilustrações no destaque.
+- Capturas locais em `screens/coin-repeat-{1..6}.png` e `screens/coin-mixed-mobile.png`.
+- Validação: build e lint aprovados, 195 testes em 14 arquivos e 39 E2E. As regressões de crítico, dualidade, controles e demais dados também passaram.

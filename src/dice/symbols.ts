@@ -2,9 +2,9 @@ import { Path, Shape, ShapeGeometry, type BufferGeometry } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { SymbolName } from './polyhedra';
 
-// The Vampire dice faces, as our own plain drawings (not the game's official art).
+// Original drawings for the Vampire dice and the two sides of the coin.
 // Each is flat on the XY plane, facing +z, 1 unit tall and centred on the origin.
-export const SYMBOLS: SymbolName[] = ['ankh', 'crit', 'skull', 'fangs'];
+export const SYMBOLS: SymbolName[] = ['ankh', 'crit', 'skull', 'fangs', 'heads', 'crown'];
 const SEGMENTS = 16;
 
 function ankh(): Shape {
@@ -52,11 +52,33 @@ function fangs(): Shape[] {
   return [teeth, drop];
 }
 
+function heads(): Shape {
+  const s = new Shape().moveTo(-0.4, -0.5).lineTo(0.4, -0.5);
+  s.quadraticCurveTo(0.34, -0.3, 0.07, -0.23).lineTo(0.07, -0.12);
+  s.quadraticCurveTo(0.22, -0.12, 0.21, 0.02).lineTo(0.32, 0.04).lineTo(0.2, 0.17);
+  s.quadraticCurveTo(0.23, 0.49, -0.08, 0.5);
+  s.quadraticCurveTo(-0.35, 0.5, -0.36, 0.24);
+  s.quadraticCurveTo(-0.39, 0.02, -0.17, -0.17).lineTo(-0.17, -0.25);
+  s.quadraticCurveTo(-0.36, -0.3, -0.4, -0.5);
+  s.holes.push(new Path().absarc(0.12, 0.2, 0.026, 0, 2 * Math.PI, true));
+  s.holes.push(new Path().absellipse(-0.1, 0.12, 0.035, 0.055, 0, 2 * Math.PI, true));
+  return s;
+}
+
+function crown(): Shape[] {
+  const s = new Shape().moveTo(-0.4, -0.5).lineTo(0.4, -0.5).lineTo(0.4, -0.32);
+  s.lineTo(0.44, 0.3).lineTo(0.2, 0.02).lineTo(0, 0.46).lineTo(-0.2, 0.02).lineTo(-0.44, 0.3).lineTo(-0.4, -0.32).closePath();
+  for (const x of [-0.23, 0, 0.23]) s.holes.push(new Path().absarc(x, -0.21, 0.045, 0, 2 * Math.PI, true));
+  return [s, ...[[-0.44, 0.3], [0, 0.46], [0.44, 0.3]].map(([x, y]) => new Shape().absarc(x, y, 0.045, 0, 2 * Math.PI, false))];
+}
+
 const BUILD: Record<SymbolName, () => BufferGeometry> = {
   ankh: () => new ShapeGeometry(ankh(), SEGMENTS),
   crit: () => mergeGeometries([new ShapeGeometry(ring(), 2 * SEGMENTS), new ShapeGeometry(ankh(), SEGMENTS).scale(0.66, 0.66, 1)]),
   skull: () => new ShapeGeometry(skull(), SEGMENTS),
   fangs: () => new ShapeGeometry(fangs(), SEGMENTS),
+  heads: () => new ShapeGeometry(heads(), SEGMENTS),
+  crown: () => new ShapeGeometry(crown(), SEGMENTS),
 };
 
 const cache = new Map<SymbolName, BufferGeometry>();
