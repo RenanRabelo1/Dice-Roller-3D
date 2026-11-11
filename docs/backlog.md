@@ -1,4 +1,4 @@
-# Próximas features (a especificar)
+# Próximas features
 
 Combinado com o usuário em 2026-11-11. As três já têm spec (escrita pela sessão principal) e estão em implementação:
 
