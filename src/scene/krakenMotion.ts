@@ -3,6 +3,7 @@ import type { Omen } from '../dice/omen';
 import type { DieKind, Polyhedron } from '../dice/polyhedra';
 import { easeOut } from './highlight';
 import { showcasePoses, type Pose, type View } from './showcase';
+import type { Phase } from '../throw/gesture';
 
 // One clock drives the rupture, die, heavenly reveal and repair; interruptions restore the intact tray.
 export const KRAKEN = { rupture: 450, launch: 1450, reveal: 2600, repair: 4200, restored: 5400, duration: 5600 };
@@ -10,6 +11,15 @@ export const span = (t: number, a: number, b: number) => MathUtils.clamp((t - a)
 
 export const krakenIndices = (omen: Omen | null, dice: DieKind[]) =>
   omen && !omen.fumbles.length ? omen.crits.filter((i) => dice[i] === 'd100') : [];
+
+// Is the tray's floor out of the scene (the kraken's shards stand in for it) right now? Everything that can interrupt
+// the show (pickup, a new selection, reduced motion, the show ending) must make this false: the scene never keeps a
+// broken tray without a live omen.
+export function trayBrokenAt(s: { phase: Phase; throwId: number; omen: (Omen & { throwId: number }) | null; omenDone: number; omenAt: number; dice: DieKind[]; reducedMotion: boolean }, now: number): boolean {
+  if (s.reducedMotion) return false;
+  const live = s.phase === 'settled' && s.omen?.throwId === s.throwId && s.omenDone !== s.throwId;
+  return live && krakenIndices(s.omen, s.dice).length > 0 && krakenAt(now - s.omenAt).broken;
+}
 
 export function krakenAt(t: number) {
   return {
