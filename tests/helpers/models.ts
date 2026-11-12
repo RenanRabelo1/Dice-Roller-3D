@@ -1,5 +1,6 @@
 import { Euler, Quaternion, Vector3 } from 'three';
 import { ConvexHull } from 'three/examples/jsm/math/ConvexHull.js';
+import type { Vec3 } from '../../src/physics/world';
 import { registerCustom, type StdBase, type CustomDie } from '../../src/dice/custom';
 import { detectPlanes, idealSolid } from '../../src/dice/importer';
 import { polyhedron, type Polyhedron } from '../../src/dice/polyhedra';
@@ -97,4 +98,54 @@ export function subdivided(positions: Float32Array, n: number): Float32Array {
     }
   }
   return Float32Array.from(out);
+}
+
+// --- free-form solids ------------------------------------------------------------------------------------------
+
+// Outward triangles of the convex hull of some points.
+export function hullTriangles(pts: Vec3[]): Vec3[] {
+  const out: Vec3[] = [];
+  for (const f of new ConvexHull().setFromPoints(pts.map((p) => new Vector3(...p))).faces) {
+    const ring: Vector3[] = [];
+    let e = f.edge;
+    do { ring.push(e.head().point); e = e.next; } while (e !== f.edge);
+    for (let k = 1; k < ring.length - 1; k++) for (const p of [ring[0], ring[k], ring[k + 1]]) out.push(p.toArray() as Vec3);
+  }
+  return out;
+}
+
+// A straight prism on a regular polygon (circumradius 1) of the given height: sides + 2 faces.
+export function prismTriangles(sides: number, height: number): Vec3[] {
+  const ring = (y: number) => Array.from({ length: sides }, (_, k): Vec3 => [Math.cos((2 * Math.PI * k) / sides), y, Math.sin((2 * Math.PI * k) / sides)]);
+  return hullTriangles([...ring(height / 2), ...ring(-height / 2)]);
+}
+
+// The solid { x : n · x <= 1 for every n } (n are not normalised: the plane is 1/|n| from the origin), as triangles. Fewer than 4 planes (or an open solid) gives none.
+export function planesSolid(normals: Vec3[]): Vec3[] {
+  const pts: Vec3[] = [];
+  const n = normals.map((v) => new Vector3(...v));
+  for (let i = 0; i < n.length; i++) for (let j = i + 1; j < n.length; j++) for (let k = j + 1; k < n.length; k++) {
+    const det = n[i].dot(new Vector3().crossVectors(n[j], n[k]));
+    if (Math.abs(det) < 1e-9) continue;
+    const x = new Vector3().crossVectors(n[j], n[k]).add(new Vector3().crossVectors(n[k], n[i])).add(new Vector3().crossVectors(n[i], n[j])).divideScalar(det);
+    if (n.every((m) => m.dot(x) <= 1 + 1e-9) && !pts.some((p) => x.distanceTo(new Vector3(...p)) < 1e-7)) pts.push(x.toArray() as Vec3);
+  }
+  return pts.length < 4 ? [] : hullTriangles(pts);
+}
+
+// The 30 face normals of the rhombic triacontahedron (the vertices of the icosidodecahedron).
+export function triacontahedronNormals(): Vec3[] {
+  const phi = (1 + Math.sqrt(5)) / 2, out: Vec3[] = [];
+  for (const s of [1, -1]) out.push([0, 0, s * phi], [0, s * phi, 0], [s * phi, 0, 0]);
+  for (const a of [1, -1]) for (const b of [1, -1]) for (const c of [1, -1]) {
+    const [x, y, z] = [a / 2, (b * phi) / 2, (c * phi * phi) / 2];
+    out.push([x, y, z], [y, z, x], [z, x, y]);
+  }
+  return out;
+}
+
+// A model the way a file would hold it: turned, scaled to mm and moved off the origin.
+export function asFile(tris: Vec3[], scale = 25): Float32Array {
+  const q = new Quaternion().setFromEuler(new Euler(0.7, 1.1, -0.4));
+  return Float32Array.from(tris.flatMap((p) => new Vector3(...p).applyQuaternion(q).multiplyScalar(scale).add(new Vector3(30, -12, 7)).toArray()));
 }

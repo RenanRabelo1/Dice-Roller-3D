@@ -3,7 +3,7 @@ import { ConvexHull } from 'three/examples/jsm/math/ConvexHull.js';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import type { Vec3 } from '../physics/world';
-import { customKind, type CustomDie, type StdBase } from './custom';
+import { customKind, type CustomBase, type CustomDie, type StdBase } from './custom';
 import { fromTriangles, OPPOSITE_SUM, RADIUS, type Numbering, type Polyhedron } from './polyhedra';
 
 // Turns a die model (.stl / .glb) into a polyhedron the physics and the reader can use. Pure: tested in Node.
@@ -17,7 +17,11 @@ const GROUP = Math.cos((3 * Math.PI) / 180), OPPOSITE = -0.995, COVER = 0.6, NEX
 const SIDES: StdBase[] = ['d4', 'd6', 'd8', 'd10', 'd12', 'd20'];
 const FACES: Record<StdBase, number> = { d4: 4, d6: 6, d8: 8, d10: 10, d12: 12, d20: 20 };
 
-export class ImportError extends Error {} // the message is shown to the player, in pt-BR
+// The message is shown to the player, in pt-BR. `code` lets the wizard offer another way in.
+export class ImportError extends Error {
+  code?: 'nao-padrao';
+  constructor(message: string, code?: 'nao-padrao') { super(message); this.code = code; }
+}
 export type ModelFormat = 'stl' | 'glb';
 
 export const formatOf = (name: string): ModelFormat | null => {
@@ -137,7 +141,7 @@ export function detectPlanes(positions: Float32Array): { base: StdBase; planes: 
     if (base !== 'd4' && !top.every((f) => top.some((g) => g !== f && g.n.dot(f.n) < OPPOSITE))) continue;
     return { base, planes: top.map((f) => ({ n: f.n.toArray() as Vec3, d: f.d })) };
   }
-  throw new ImportError('Não reconheci um d4–d20 nesse modelo. Ele precisa ser um sólido com 4, 6, 8, 10, 12 ou 20 faces planas.');
+  throw new ImportError('Não reconheci um d4–d20 nesse modelo. Ele precisa ser um sólido com 4, 6, 8, 10, 12 ou 20 faces planas.', 'nao-padrao');
 }
 
 // --- the ideal solid --------------------------------------------------------------------------------------------
@@ -183,11 +187,74 @@ function corners(planes: Plane[]): Vec3[] {
   return pts;
 }
 
+// The corners of one plane, in counter-clockwise order seen from outside (so a fan of them is outward-wound).
+function facePolygon({ n, d }: Plane, pts: Vec3[]): Vec3[] {
+  const eps = Math.max(Math.abs(d), 1) * 1e-5;
+  const on = pts.filter((p) => Math.abs(dot3(n, p) - d) < eps);
+  if (on.length < 3) return on;
+  const mid = [0, 1, 2].map((k) => on.reduce((s, p) => s + p[k], 0) / on.length) as Vec3;
+  const u = new Vector3(...n).cross(Math.abs(n[1]) < 0.9 ? new Vector3(0, 1, 0) : new Vector3(1, 0, 0)).normalize();
+  const w = new Vector3(...n).cross(u);
+  const angle = (p: Vec3) => { const r = new Vector3(...sub3(p, mid)); return Math.atan2(w.dot(r), u.dot(r)); };
+  return on.sort((p, q) => angle(p) - angle(q));
+}
+const fan = (ring: Vec3[]): Vec3[] => ring.slice(2).flatMap((_, k) => [ring[0], ring[k + 1], ring[k + 2]]);
+const polygonArea = (ring: Vec3[]) => ring.slice(2).reduce((s, _, k) => s + Math.hypot(...cross3(sub3(ring[k + 1], ring[0]), sub3(ring[k + 2], ring[0]))) / 2, 0);
+
+// Centre of mass of a closed solid given as outward triangles (3 points each): tetrahedra from an inner point.
+function volumeCentroid(tris: Vec3[]): Vec3 {
+  const o = [0, 1, 2].map((k) => tris.reduce((s, p) => s + p[k], 0) / tris.length) as Vec3;
+  let vol = 0;
+  const sum: Vec3 = [0, 0, 0];
+  for (let i = 0; i < tris.length; i += 3) {
+    const [a, b, c] = [tris[i], tris[i + 1], tris[i + 2]];
+    const v = dot3(sub3(a, o), cross3(sub3(b, o), sub3(c, o))) / 6;
+    vol += v;
+    for (let k = 0; k < 3; k++) sum[k] += (v * (o[k] + a[k] + b[k] + c[k])) / 4;
+  }
+  return [0, 1, 2].map((k) => sum[k] / vol) as Vec3;
+}
+
+// Is `p`, dropped onto the plane of a convex ring (outward normal n), inside the ring?
+function insideConvex(p: Vec3, ring: Vec3[], n: Vec3): boolean {
+  return ring.every((r, i) => dot3(n, cross3(sub3(ring[(i + 1) % ring.length], r), sub3(p, r))) >= -1e-9);
+}
+
+const FREE = { minArea: 0.1, minFaces: 3, maxFaces: 60, passes: 3 };
+const noFlat = () => new ImportError('Esse modelo não tem faces planas para o dado parar.');
+
+// Free-form dice: the faces a die can rest on. Small facets (under 10% of the biggest face) and faces that
+// tip the die over (its centre of mass drops outside them) are left out, and the solid is rebuilt without them.
+export function detectFree(positions: Float32Array): { planes: Plane[]; dropped: number; uneven: boolean } {
+  const all = flatFaces(positions);
+  let keep: Plane[] = all.filter((f) => f.area >= FREE.minArea * all[0].area).map((f) => ({ n: f.n.toArray() as Vec3, d: f.d }));
+  let dropped = all.length - keep.length;
+  for (let pass = 0; pass < FREE.passes; pass++) {
+    const pts = corners(keep);
+    if (pts.length < 4) throw noFlat();
+    const rings = keep.map((pl) => facePolygon(pl, pts));
+    const c = volumeCentroid(rings.flatMap((r) => (r.length < 3 ? [] : fan(r))));
+    const stable = keep.filter((pl, i) => rings[i].length >= 3 && insideConvex(c, rings[i], pl.n));
+    if (stable.length === keep.length) break;
+    dropped += keep.length - stable.length;
+    keep = stable;
+  }
+  const pts = corners(keep);
+  const rings = pts.length < 4 ? [] : keep.map((pl) => facePolygon(pl, pts)).filter((r) => r.length >= 3);
+  if (rings.length < FREE.minFaces || rings.length > FREE.maxFaces) {
+    if (!rings.length) throw noFlat();
+    throw new ImportError(`Encontrei ${rings.length} faces de apoio; um dado de forma livre precisa de ${FREE.minFaces} a ${FREE.maxFaces}.`);
+  }
+  const areas = rings.map(polygonArea);
+  return { planes: keep, dropped, uneven: Math.max(...areas) > 2 * Math.min(...areas) };
+}
+
 export interface Solid { poly: Polyhedron; fit: { center: Vec3; scale: number } }
 
 // The polyhedron of a model's face planes, sized like the stock die of its base, plus the transform that puts
 // the model's own mesh in the same place: a model point p sits at (p - center) * scale.
-export function idealSolid(base: StdBase, found: Plane[]): Solid {
+export function idealSolid(base: CustomBase, found: Plane[]): Solid {
+  if (base === 'livre') return freeSolid(found);
   let planes = found, center: Vec3;
   if (base === 'd4') {
     const v = corners(found);
@@ -201,17 +268,35 @@ export function idealSolid(base: StdBase, found: Plane[]): Solid {
     const on = pts.filter((p) => Math.abs(dot3(n, p) - d) < eps);
     if (on.length < 3) continue;
     faces++;
-    const mid = [0, 1, 2].map((k) => on.reduce((s, p) => s + p[k], 0) / on.length) as Vec3;
-    const u = new Vector3(...n).cross(Math.abs(n[1]) < 0.9 ? new Vector3(0, 1, 0) : new Vector3(1, 0, 0)).normalize();
-    const w = new Vector3(...n).cross(u);
-    const angle = (p: Vec3) => { const r = new Vector3(...sub3(p, mid)); return Math.atan2(w.dot(r), u.dot(r)); };
-    const ring = on.sort((p, q) => angle(p) - angle(q));
-    for (let k = 1; k < ring.length - 1; k++) tris.push(ring[0], ring[k], ring[k + 1]);
+    tris.push(...fan(facePolygon({ n, d }, on)));
   }
   if (faces !== FACES[base]) throw refuse('tem faces que não fecham um sólido');
   const scale = RADIUS[base] / Math.max(...pts.map((p) => Math.hypot(...p)));
   const poly = fromTriangles(base, tris.map((p) => [p[0] * scale, p[1] * scale, p[2] * scale]));
   if (poly.faces.length !== FACES[base]) throw refuse('tem faces que não fecham um sólido');
+  return { poly, fit: { center, scale } };
+}
+
+// The solid of a free-form die: centred on its centre of mass, circumradius RADIUS.livre, read from the face it rests on.
+function freeSolid(found: Plane[]): Solid {
+  const first = corners(found);
+  if (first.length < 4) throw noFlat();
+  const rings0 = found.map((pl) => facePolygon(pl, first)).filter((r) => r.length >= 3);
+  const center = volumeCentroid(rings0.flatMap(fan));
+  const planes = found.map((pl) => ({ n: pl.n, d: pl.d - dot3(pl.n, center) }));
+  const pts = corners(planes);
+  const scale = RADIUS.livre / Math.max(...pts.map((p) => Math.hypot(...p)));
+  const rings = planes.map((pl) => facePolygon(pl, pts).map((p): Vec3 => [p[0] * scale, p[1] * scale, p[2] * scale]));
+  if (rings.some((r) => r.length < 3)) throw refuse('tem faces que não fecham um sólido');
+  const poly = fromTriangles('livre', rings.flatMap(fan));
+  if (poly.faces.length !== found.length) throw refuse('tem faces que não fecham um sólido');
+  // The numeral must fit the smallest face: a share of its smallest inradius (centre of the face to its nearest edge).
+  const inradius = (r: Vec3[]) => {
+    const c = [0, 1, 2].map((k) => r.reduce((s, p) => s + p[k], 0) / r.length) as Vec3;
+    return Math.min(...r.map((a, i) => { const e = sub3(r[(i + 1) % r.length], a); return Math.hypot(...cross3(e, sub3(c, a))) / Math.hypot(...e); }));
+  };
+  poly.readsDown = true;
+  poly.font = 0.45 * Math.min(...rings.map(inradius));
   return { poly, fit: { center, scale } };
 }
 
@@ -294,9 +379,20 @@ export function renumbered(poly: Polyhedron, numbering: Numbering): Polyhedron {
 
 // --- the whole import -------------------------------------------------------------------------------------------
 
-export interface Imported extends Solid { base: StdBase; triangles: number; object: Object3D; hasNumbers: boolean }
-export async function importModel(bytes: ArrayBuffer, format: ModelFormat): Promise<Imported> {
+export interface Imported<B extends CustomBase = StdBase> extends Solid {
+  base: B; triangles: number; object: Object3D; hasNumbers: boolean;
+  dropped?: number; uneven?: boolean; // free-form only: faces left out, and whether the faces are very unequal
+}
+// 'padrao' recognises a d4–d20; 'livre' takes any convex solid with 3 to 60 faces it can rest on.
+export async function importModel(bytes: ArrayBuffer, format: ModelFormat): Promise<Imported>;
+export async function importModel(bytes: ArrayBuffer, format: ModelFormat, mode: 'livre'): Promise<Imported<'livre'>>;
+export async function importModel(bytes: ArrayBuffer, format: ModelFormat, mode: 'padrao' | 'livre' = 'padrao'): Promise<Imported<CustomBase>> {
   const model = await readModel(bytes, format);
+  if (mode === 'livre') {
+    const { planes, dropped, uneven } = detectFree(model.positions);
+    const solid = idealSolid('livre', planes);
+    return { base: 'livre', ...solid, triangles: model.triangles, object: model.object, hasNumbers: looksNumbered(model.positions, solid), dropped, uneven };
+  }
   const { base, planes } = detectPlanes(model.positions);
   const solid = idealSolid(base, planes);
   return { base, ...solid, triangles: model.triangles, object: model.object, hasNumbers: looksNumbered(model.positions, solid) };
