@@ -124,6 +124,20 @@ describe('ink mask per triangle', () => {
       expect(inkTriangles(smooth, solidOf(smooth, 'd20')).some(Boolean)).toBe(false);
     }
   });
+  it('a pit 0.05 R from the second face is ink on a free-form die, not on a d20', () => {
+    const near = (solid: ReturnType<typeof idealSolid>) => { // one tiny triangle sunk 0.05 R below the edge between two faces
+      const { poly } = solid, R = RADIUS[poly.shape], on = (f: (typeof poly.faces)[number], q: Vec3) => Math.abs(f.normal[0] * q[0] + f.normal[1] * q[1] + f.normal[2] * q[2] - (f.normal[0] * f.center[0] + f.normal[1] * f.center[1] + f.normal[2] * f.center[2])) < 1e-4;
+      const a = poly.faces[0], b = poly.faces.find((f, i) => i > 0 && poly.points.filter((q) => on(a, q) && on(f, q)).length >= 2)!;
+      const [p, q] = poly.points.filter((x) => on(a, x) && on(b, x));
+      const k = (0.05 * R) / (1 + a.normal[0] * b.normal[0] + a.normal[1] * b.normal[1] + a.normal[2] * b.normal[2]);
+      const c = [0, 1, 2].map((i) => (p[i] + q[i]) / 2 - k * (a.normal[i] + b.normal[i])), e = 1e-4;
+      const tri = Float32Array.from([c[0] + e, c[1], c[2], c[0] - e, c[1] + e, c[2], c[0], c[1] - e, c[2]]);
+      return inkTriangles(tri, { ...solid, fit: { center: [0, 0, 0], scale: 1 } })[0];
+    };
+    const free = idealSolid('livre', detectFree(asFile(shardTriangles(5))).planes);
+    expect(near(free)).toBe(1);
+    expect(near({ poly: polyhedron('d20'), fit: { center: [0, 0, 0], scale: 1 } })).toBe(0);
+  });
   it('inkOf spreads the mask over the three vertices of each marked triangle', () => {
     const engraved = modelTriangles(polyhedron('d20'), { engrave: 0.04 }), solid = solidOf(engraved, 'd20');
     const ink = inkOf(engraved, solid), mask = inkTriangles(engraved, solid);

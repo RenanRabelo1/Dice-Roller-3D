@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { polyhedron } from '../src/dice/polyhedra';
+import { detectFree, idealSolid } from '../src/dice/importer';
 import { asFile, glb, modelTriangles, prismTriangles, shardTriangles, stl, subdivided } from '../tests/helpers/models';
 
 // Dice models made from the app's own solids (see tests/helpers/models.ts), chamfered and off-centre like a slicer export.
@@ -188,6 +189,14 @@ test('painted numerals: the ink shows on an engraved STL, changes in My dice wit
   await page.getByRole('button', { name: 'Sim, calibrar' }).click();
   const ask = page.getByLabel('Que número está nesta face?');
   for (const v of [1, 5, 2, 6, 3, 4]) { await ask.fill(String(v)); await ask.press('Enter'); }
+  // the wizard's preview wears the chosen ink and finish before saving
+  const preview = page.locator('.import-preview');
+  await expect(preview).toHaveAttribute('data-ink', /^#[0-9A-F]{6}$/i); // automatic: gold or dark, by the gem
+  await page.getByLabel('Branca').check();
+  await expect(preview).toHaveAttribute('data-ink', '#F2EEE4');
+  await page.getByLabel('Fosco').check();
+  await expect(preview).toHaveAttribute('data-finish', 'fosco');
+  await page.getByLabel('Automática').check(); await page.getByLabel('Gema').check(); // back to the defaults the rest of the test expects
   await save(page, 'Gravado');
   const [custom] = await page.evaluate(() => window.__dice.customs());
   await page.evaluate((kind) => window.__dice.select([kind]), custom.kind); await ready(page, 1);
@@ -229,4 +238,26 @@ test('a shard die: the wizard asks about the big faces and calibrates only those
   await throwWithSpace(page); await settled(page);
   const [result] = (await page.evaluate(() => window.__dice.state().results))!;
   expect(result).toBeGreaterThanOrEqual(1); expect(result).toBeLessThanOrEqual(5);
+  // the number floats loose only when no engraving was found to light (this synthetic shard has 6 triangles the ink mask takes for engraving)
+  const glow = await page.evaluate(() => window.__dice.inkGlow(0));
+  expect((await page.evaluate(() => window.__dice.highlights()))[0].visible).toBe(glow === null);
+});
+
+test('an engraved shard flies showing its top engraving lit', async ({ page }) => {
+  const r = detectFree(asFile(shardTriangles(5))), solid = idealSolid('livre', r.planes);
+  await open(page, file('gravado5.stl', stl(modelTriangles(solid.poly, { engrave: 0.04 }))));
+  await page.getByRole('button', { name: 'Importar como dado de forma livre' }).click();
+  await page.getByRole('button', { name: 'Sim, só as grandes' }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Sim, calibrar' }).click();
+  const ask = page.getByLabel('Que número você lê com ele apoiado assim?');
+  for (const v of [1, 2, 3, 4, 5]) { await ask.fill(String(v)); await ask.press('Enter'); }
+  await save(page, 'Gravado5');
+  const [custom] = await page.evaluate(() => window.__dice.customs());
+  await page.evaluate((kind) => window.__dice.select([kind]), custom.kind); await ready(page, 1);
+  await throwWithSpace(page); await settled(page);
+  const glow = await page.evaluate(() => window.__dice.inkGlow(0));
+  expect(glow).not.toBeNull();
+  expect(glow!.triangles).toBeGreaterThan(0); expect(glow!.visible).toBe(true); expect(glow!.opacity).toBeGreaterThan(0);
+  expect((await page.evaluate(() => window.__dice.highlights()))[0].visible).toBe(false); // the engraving is the highlight
 });

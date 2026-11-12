@@ -66,6 +66,14 @@ describe('showcasePoses', () => {
       expect(new Vector3(...label.normal).applyQuaternion(rot).dot(toCam)).toBeCloseTo(1, 5);
       expect(new Vector3(...label.up).applyQuaternion(rot).dot(up)).toBeGreaterThan(0.9);
     });
+    // Seen from above (an engraved die): the resting face looks away from the camera, the numeral still reads upright.
+    showcasePoses(polys, raw, view(c), [true, true]).forEach(({ p, q }, i) => {
+      const rot = new Quaternion(...q);
+      const label = polys[i].labelList.find((l) => l.value === raw[i])!;
+      const toCam = c.position.clone().sub(new Vector3(...p)).normalize();
+      expect(new Vector3(...label.normal).applyQuaternion(rot).dot(toCam)).toBeCloseTo(-1, 5);
+      expect(new Vector3(...label.up).applyQuaternion(rot).dot(up)).toBeGreaterThan(0.9);
+    });
     unregisterCustom(customKind(prism.id)); unregisterCustom(customKind(shard.id));
   });
 });

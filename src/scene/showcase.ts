@@ -14,7 +14,8 @@ export const CAPTION = { scale: 0.8, gap: 0.38, room: 0.45 };
 // Where each die rests in front of the camera after a roll: a row (wrapping into more rows), in result order,
 // each turned so the face that came up looks straight at the camera (centred in its own silhouette) with its number upright.
 // `raw` is each body's up value (d10 digit, d4 vertex value).
-export function showcasePoses(polys: Polyhedron[], raw: number[], view: View): Pose[] {
+// `above[i]`: that die is seen from above instead (the face it rests on looks away), as it lay on the table.
+export function showcasePoses(polys: Polyhedron[], raw: number[], view: View, above?: boolean[]): Pose[] {
   const n = polys.length;
   const cols = Math.min(n, view.aspect >= 1 ? 5 : 3);
   const rows = Math.ceil(n / cols);
@@ -34,7 +35,7 @@ export function showcasePoses(polys: Polyhedron[], raw: number[], view: View): P
       .addScaledVector(up, ((rows - 1) / 2 - row) * rowSpacing);
     const label = poly.labelList.find((l) => l.value === raw[i]);
     if (!label) throw new Error(`${poly.shape} has no number ${raw[i]}`);
-    const ln = new Vector3(...label.normal), lu = new Vector3(...label.up);
+    const ln = new Vector3(...label.normal).multiplyScalar(above?.[i] ? -1 : 1), lu = new Vector3(...label.up);
     const local = new Matrix4().makeBasis(new Vector3().crossVectors(lu, ln), lu, ln);
     const toCam = view.position.clone().sub(p).normalize();
     const r = new Vector3().crossVectors(up, toCam).normalize();

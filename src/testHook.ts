@@ -19,6 +19,7 @@ export interface DiceHook {
   numbersVisible(index: number): boolean;
   gemLook(index: number): { shown: boolean; material: string; opaque: boolean; painted: boolean; ink: number[] | null }[]; // the visible meshes of a die: material type, opacity, vertex-painted, and the colour of its first inked vertex
   highlights(): { text: string | null; visible: boolean; position: Vec3 }[];
+  inkGlow(index: number): { visible: boolean; triangles: number; opacity: number } | null; // the lit engraving of an engraved free-form die in the showcase
   camera(): Vec3;
   launches(): { count: number; last: { before: { p: Vec3; q: Quat }[]; after: { p: Vec3; q: Quat }[] } | null };
   customs(): { kind: DieKind; id: string; name: string; slug: string; base: string; printed: boolean }[]; // the imported dice
