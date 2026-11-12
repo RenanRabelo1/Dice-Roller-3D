@@ -3,6 +3,8 @@ import { PerspectiveCamera, Quaternion, Vector3 } from 'three';
 import { polyhedron, type DieKind } from '../src/dice/polyhedra';
 import { CAPTION, showcasePoses } from '../src/scene/showcase';
 import { HL_SIZE } from '../src/scene/highlight';
+import { customKind, unregisterCustom } from '../src/dice/custom';
+import { freeDieOf, prismTriangles, shardTriangles } from './helpers/models';
 
 const camera = (aspect: number) => {
   const c = new PerspectiveCamera(40, aspect);
@@ -48,5 +50,22 @@ describe('showcasePoses', () => {
     const polys = [1, 2, 3].map(() => polyhedron('d6'));
     const xs = showcasePoses(polys, [1, 2, 3], view(camera(1.6))).map(({ p }) => p[0]);
     expect(xs[0]).toBeLessThan(xs[1]); expect(xs[1]).toBeLessThan(xs[2]);
+  });
+  it('free-form dice (a prism and a shard) fly with the rolled face to the camera, upright', () => {
+    const c = camera(1.6);
+    const prism = freeDieOf(prismTriangles(5, 1.4), 'Prisma', 'prisma');
+    const shard = freeDieOf(shardTriangles(5), 'Shard', 'shard');
+    const polys = [prism, shard].map((d) => polyhedron(customKind(d.id)));
+    const raw = polys.map((p) => p.labelList[p.labelList.length - 1].value); // the last readable face
+    const poses = showcasePoses(polys, raw, view(c));
+    const up = new Vector3(0, 1, 0).applyQuaternion(c.quaternion);
+    poses.forEach(({ p, q }, i) => {
+      const rot = new Quaternion(...q);
+      const label = polys[i].labelList.find((l) => l.value === raw[i])!;
+      const toCam = c.position.clone().sub(new Vector3(...p)).normalize();
+      expect(new Vector3(...label.normal).applyQuaternion(rot).dot(toCam)).toBeCloseTo(1, 5);
+      expect(new Vector3(...label.up).applyQuaternion(rot).dot(up)).toBeGreaterThan(0.9);
+    });
+    unregisterCustom(customKind(prism.id)); unregisterCustom(customKind(shard.id));
   });
 });
