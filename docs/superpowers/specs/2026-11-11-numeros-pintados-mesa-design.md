@@ -159,3 +159,6 @@ Feito nas tarefas T1–T6. O que ficou **sem medir**: o desempenho com 10 dados 
 - `inkOf` (prévia) agora usa o centro do triângulo, então a borda do número fica por triângulo, como na mesa.
 - O acabamento fosco vale para qualquer STL (também sem gravação); a tinta só para `printed`. A tinta de GLB com textura é gravada como `escura` mesmo se a escolha era automática.
 - Não foi preciso mexer na física nem na leitura (P8).
+
+- **E2E (rodada final, 2026-11-12):** o teste da tinta achou um bug real: trocar a tinta em "Meus dados" não chegava ao dado (store só atualizava depois de gravar; `Die` não assinava o registro). Corrigido em `db76379`; o teste passa 3/3.
+- **Ainda não medido:** desempenho com 10 dados pintados de ~48 mil triângulos (rAF). Fica pendente.

@@ -1,6 +1,6 @@
 # Correção: duas falhas do E2E final das pendências
 
-Data: 2026-11-11 · Status: implementada (ver §4) · Branch base: `dev-jg` · Origem: rodada E2E única de 2026-11-12 00:04 (70 passaram, 2 falharam), JSON em `temp/e2e-final.json` da worktree `importar-dado-146984`
+Data: 2026-11-11 · Status: F2 resolvida; F1 em aberto (ver §4) · Branch base: `dev-jg` · Origem: rodada E2E única de 2026-11-12 00:04 (70 passaram, 2 falharam), JSON em `temp/e2e-final.json` da worktree `importar-dado-146984`
 
 ## 1. As falhas
 
@@ -49,5 +49,12 @@ Depois de achar o commit, corrija a causa nele, sem afrouxar os testes. Junto, f
 - **F2** não reproduz isolado: o teste passa 5/5 em `2b0a413` (antes das correções) e 3/3 na ponta. Causa provável: corrida entre o evento do `matchMedia` (`emulateMedia`) e o relógio simulado; o teste passa a esperar `state().reducedMotion === true` (campo novo, aditivo, no test hook) antes de avançar o relógio. Não há commit culpado a registrar (sem bom/ruim estável). Os outros usos de `emulateMedia` (`omen.spec.ts`, `roll.spec.ts`) rodam em tempo real e já esperam por `expect`, então não mudaram.
 - A lógica da T2 (`trayBrokenAt`, superfície no `useLayoutEffect`, retorno só com todos os corpos) fica: é correta e coberta por Vitest.
 - Na rodada de verificação (`--repeat-each=3` das três variantes de `kraken.spec.ts` com a máquina muito carregada, 26 min), "reduced motion" passou 3/3; "pickup" e "selection" falharam em `launch`, dentro de `clock.pauseAt` (infraestrutura do relógio simulado sob carga), antes de qualquer código tocado por esta correção.
-- **F1** (verificado pela sessão principal em 2026-11-12, máquina ociosa, porta 5190): o teste "ten coins…" **falha 3/3** em `2b0a413` (antes das correções) e **passa 3/3** na ponta com `afbbf14`. `git bisect` entre `fddb011` (bom) e `2b0a413` (ruim) aponta **`24bb197`** ("share one IndexedDB between imported dice and tables (v2)") como primeiro commit ruim. Causa provável (inferida do commit e da correção, não instrumentada): a abertura do banco v2 mudou o momento em que dados importados e mesa são hidratados no início; a re-renderização resultante pode deixar um corpo fora da lista de registrados durante o retorno à mão, e o `returned` saía assim mesmo. A correção da T2.3 (só emitir `returned` com todos os corpos registrados) faz o teste passar 3/3, contra 0/3 antes.
+- **F1** (sessão principal, 2026-11-12) **não reproduz isolado num checkout normal**: o teste "ten coins…" passa 2/2 em `2b0a413` (antes das correções) e 3/3 na ponta, e passou na rodada E2E final completa da `dev-jg` (máquina ociosa). Ele só falhou na rodada de 2026-11-12 00:04, com três sessões rodando Playwright ao mesmo tempo. **Correção desta seção:** uma versão anterior dizia que o commit culpado era `24bb197` e que a correção era o guarda de `afbbf14`; isso estava errado. Aquelas medições foram feitas num worktree temporário fora do projeto (`node_modules` por junction), onde o worker da pré-simulação não carrega e o teste falha por outro motivo (timeout esperando o worker), em qualquer commit. E o guarda de `afbbf14` (`current.length < state.dice.length`) nunca dispara, porque `live()` já devolve `null` quando falta corpo registrado. **Estado:** falha intermitente sob carga, sem causa confirmada; para investigar, reproduzir com a CPU ocupada (duas rodadas em paralelo) e instrumentar o retorno à mão.
 - **Reteste das variantes "pickup" e "selection"** do kraken com a máquina ociosa: ficam para a rodada E2E única final na `dev-jg`.
+
+## 5. Rodada E2E final na `dev-jg` (2026-11-12, máquina ociosa, todas as features juntas)
+
+- 77 testes em 12,7 min: **75 passaram, 2 falharam**.
+- `coin-software.spec.ts` ("reduces pixel load…"): orçamento de quadros no SwiftShader; **passou isolado** logo depois. Teste de desempenho sensível à carga, não bug.
+- `import.spec.ts` (números pintados): **bug real**, corrigido em `db76379`. A troca de tinta em "Meus dados" só entrava no store depois de gravar no IndexedDB (os rádios controlados voltavam ao valor antigo) e o `Die` não assinava o registro do dado. Agora o store aplica antes de gravar e o `Die` assina o registro. Verificado: o teste passa 3/3, e `import` + `smoke` (14 testes) passam.
+- F1 e F2 não falharam nessa rodada.
