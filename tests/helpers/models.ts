@@ -2,7 +2,7 @@ import { Euler, Quaternion, Vector3 } from 'three';
 import { ConvexHull } from 'three/examples/jsm/math/ConvexHull.js';
 import type { Vec3 } from '../../src/physics/world';
 import { registerCustom, type StdBase, type CustomDie } from '../../src/dice/custom';
-import { detectPlanes, idealSolid } from '../../src/dice/importer';
+import { detectFree, detectPlanes, idealSolid, renumbered } from '../../src/dice/importer';
 import { polyhedron, type Polyhedron } from '../../src/dice/polyhedra';
 
 // Die models made from the app's own solids, standing in for files a player would import.
@@ -148,4 +148,17 @@ export function triacontahedronNormals(): Vec3[] {
 export function asFile(tris: Vec3[], scale = 25): Float32Array {
   const q = new Quaternion().setFromEuler(new Euler(0.7, 1.1, -0.4));
   return Float32Array.from(tris.flatMap((p) => new Vector3(...p).applyQuaternion(q).multiplyScalar(scale).add(new Vector3(30, -12, 7)).toArray()));
+}
+
+// A registered free-form die from loose triangles (as a file), its faces numbered `values` (default 1..N).
+export function freeDieOf(tris: Vec3[], name: string, slug: string, values?: number[]): CustomDie {
+  const positions = asFile(tris);
+  const { planes } = detectFree(positions), solid = idealSolid('livre', planes);
+  const poly = values ? renumbered(solid.poly, { values }) : solid.poly;
+  const die: CustomDie = {
+    version: 1, id: `test-${slug}`, createdAt: Date.now(), name, slug, base: 'livre', omens: false,
+    file: { format: 'stl', name: `${slug}.stl`, bytes: stl(positions) }, fit: solid.fit, poly, printed: false, color: null,
+  };
+  registerCustom(die);
+  return die;
 }

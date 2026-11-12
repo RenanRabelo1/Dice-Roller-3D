@@ -353,6 +353,12 @@ export function checkValues(base: StdBase, values: number[]): string | null {
   for (const v of got) { if (seen.has(v)) return `O número ${v} apareceu mais de uma vez.`; seen.add(v); }
   return got.length === n ? null : 'Faltam números.';
 }
+// Free-form dice: any whole number from -99 to 999, repeats allowed (an average die has two 3s).
+export const checkFreeValue = (v: number): string | null => (Number.isInteger(v) && v >= -99 && v <= 999 ? null : 'Use um número inteiro de -99 a 999.');
+export function checkFreeValues(values: number[], count: number): string | null {
+  if (values.length < count || values.some((v) => v === undefined || Number.isNaN(v))) return 'Faltam números.';
+  return values.map(checkFreeValue).find(Boolean) ?? null;
+}
 // The opposite face's value on a standard layout: only a suggestion (balanced and spindown dice differ).
 export const suggestOpposite = (base: StdBase, value: number): number | null => {
   const sum = OPPOSITE_SUM[base];
@@ -361,6 +367,13 @@ export const suggestOpposite = (base: StdBase, value: number): number | null => 
 // Opposite faces side by side, so the answer for one suggests the next.
 export function askOrder(poly: Polyhedron): number[] {
   if (poly.shape === 'd4') return poly.tops.map((_, i) => i);
+  if (poly.readsDown) { // no opposite pairs: the biggest faces first
+    const area = (i: number) => {
+      const f = poly.faces[i], on = poly.points.filter((p) => Math.abs(dot3(f.normal, p) - dot3(f.normal, f.center)) < 1e-4);
+      return polygonArea(facePolygon({ n: f.normal, d: dot3(f.normal, f.center) }, on));
+    };
+    return poly.faces.map((_, i) => i).sort((a, b) => area(b) - area(a));
+  }
   const order: number[] = [], done = new Set<number>();
   poly.faces.forEach((f, i) => {
     if (done.has(i)) return;
@@ -374,7 +387,9 @@ export function askOrder(poly: Polyhedron): number[] {
 export function renumbered(poly: Polyhedron, numbering: Numbering): Polyhedron {
   const tris: Vec3[] = [];
   for (let i = 0; i < poly.triangles.length; i += 3) tris.push([poly.triangles[i], poly.triangles[i + 1], poly.triangles[i + 2]]);
-  return fromTriangles(poly.shape, tris, numbering);
+  const out = fromTriangles(poly.shape, tris, numbering);
+  if (poly.readsDown) { out.readsDown = true; out.font = poly.font; } // free-form: keep how it is read and drawn
+  return out;
 }
 
 // --- the whole import -------------------------------------------------------------------------------------------

@@ -5,8 +5,9 @@ import { formatDice, parseDice, resultText, slugOf, slugProblem } from '../src/d
 import { isD20, omenOf } from '../src/dice/omen';
 import { baseOf, polyhedron, sortDice } from '../src/dice/polyhedra';
 import { readUp, toResults } from '../src/dice/read';
-import { customDieOf } from './helpers/models';
+import { customDieOf, freeDieOf, prismTriangles } from './helpers/models';
 import { simulate } from './helpers/sim';
+import { checkFreeValue, checkFreeValues } from '../src/dice/importer';
 
 const skull = () => customDieOf('d20', 'Caveira', 'caveira');
 afterEach(() => { for (const id of ['caveira', 'cav', 'osso']) unregisterCustom(customKind(`test-${id}`)); });
@@ -72,5 +73,27 @@ describe('the worker', () => {
     const rec = await simulate({ kind, count: 2, force: 0.6, target: [1, 0, -1], seed: 5 });
     expect(rec.escaped).toBe(false);
     expect(rec.results).toHaveLength(2);
+  });
+});
+
+describe('a free-form die', () => {
+  const seven = () => freeDieOf(prismTriangles(5, 1.4), 'Sete', 'sete', [1, 2, 3, 4, 5, 6, 7]);
+  it('rolls in the tray: stays inside, reads one of its values, deterministic', async () => {
+    const kind = customKind(seven().id);
+    for (const seed of [3, 11, 29]) {
+      const a = await simulate({ kind, count: 2, force: 0.8, target: [0, 0, -1], seed });
+      const b = await simulate({ kind, count: 2, force: 0.8, target: [0, 0, -1], seed });
+      expect(a.escaped).toBe(false);
+      expect(a.results).toEqual(b.results);
+      a.results.forEach((v) => { expect(v).toBeGreaterThanOrEqual(1); expect(v).toBeLessThanOrEqual(7); });
+    }
+  });
+  it('checks free values: whole numbers from -99 to 999, repeats allowed', () => {
+    expect(checkFreeValue(-99)).toBeNull();
+    expect(checkFreeValue(999)).toBeNull();
+    expect(checkFreeValue(1000)).toMatch(/-99 a 999/);
+    expect(checkFreeValue(1.5)).not.toBeNull();
+    expect(checkFreeValues([2, 2, 3, 3, 4, 4], 6)).toBeNull();
+    expect(checkFreeValues([2, 2], 3)).toBe('Faltam números.');
   });
 });

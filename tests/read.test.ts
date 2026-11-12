@@ -3,6 +3,7 @@ import { Quaternion, Vector3 } from 'three';
 import { polyhedron, type BuiltinKind } from '../src/dice/polyhedra';
 import { readUp, toResults } from '../src/dice/read';
 import type { Quat, Vec3 } from '../src/physics/world';
+import { freeDieOf, prismTriangles } from './helpers/models';
 
 const toUp = (n: Vec3): Quat => new Quaternion().setFromUnitVectors(new Vector3(...n), new Vector3(0, 1, 0)).toArray() as Quat;
 const tiltBy = (q: Quat, deg: number): Quat =>
@@ -39,5 +40,23 @@ describe('results', () => {
     expect(readUp(coin, toUp([0, -1, 0])).value).toBe(2);
     expect(readUp(coin, tiltBy([0, 0, 0, 1], 80)).value).toBe(1);
     expect(toResults(['coin', 'coin'], [1, 2])).toEqual([1, 2]);
+  });
+});
+
+describe('readUp on a free-form die', () => {
+  it('reads the face it rests on (pointing down), for every face', () => {
+    const die = freeDieOf(prismTriangles(3, 1.4), 'Prisma', 'prisma', [7, 8, 9, 10, 11]);
+    const p = die.poly;
+    expect(p.faces).toHaveLength(5);
+    p.faces.forEach((f) => {
+      const down = new Quaternion().setFromUnitVectors(new Vector3(...f.normal), new Vector3(0, -1, 0)).toArray() as Quat;
+      const r = readUp(p, down);
+      expect(r.value).toBe(f.value);
+      expect(r.tilt).toBeLessThan(1e-4);
+    });
+    expect(p.faces.map((f) => f.value).sort((a, b) => a - b)).toEqual([7, 8, 9, 10, 11]);
+  });
+  it('does not turn 0 into 10 and keeps repeated values', () => {
+    expect(toResults(['d6'], [0])).toEqual([0]);
   });
 });

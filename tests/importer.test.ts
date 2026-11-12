@@ -163,6 +163,13 @@ describe('free-form dice (detectFree)', () => {
     }
     sum.forEach((x) => expect(x / vol).toBeCloseTo(0, 5));
   });
+  it('asks the biggest faces first (no opposite pairs)', () => {
+    const { poly } = idealSolid('livre', detectFree(asFile(prismTriangles(3, 2.5))).planes);
+    const order = askOrder(poly);
+    expect([...order].sort()).toEqual([0, 1, 2, 3, 4]);
+    // a tall prism: the two caps are the smallest faces, so they come last, facing opposite ways
+    expect(dot(poly.faces[order[3]].normal, poly.faces[order[4]].normal)).toBeLessThan(-0.99);
+  });
   it('imports through importModel in free mode', async () => {
     const out = await importModel(stl(asFile(prismTriangles(5, 1.4))), 'stl', 'livre');
     expect(out.base).toBe('livre');

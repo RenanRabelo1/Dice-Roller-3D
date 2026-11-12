@@ -8,12 +8,14 @@ const UP = new Vector3(0, 1, 0);
 const marks = (poly: Polyhedron) =>
   poly.shape === 'd4' ? poly.tops.map((t) => ({ v: t.dir, value: t.value })) : poly.faces.map((f) => ({ v: f.normal, value: f.value }));
 
-// Up value and tilt (degrees) of a die. d4 reads the top vertex; others the top face.
+// Up value and tilt (degrees) of a die. d4 reads the top vertex; others the top face; a free-form die (readsDown)
+// reads the face it rests on, the one pointing down.
 export function readUp(poly: Polyhedron, q: Quat): { value: number; tilt: number } {
   const rot = new Quaternion(...q);
+  const s = poly.readsDown ? -1 : 1;
   let best = { value: 0, y: -Infinity };
   for (const c of marks(poly)) {
-    const y = new Vector3(...c.v).applyQuaternion(rot).dot(UP);
+    const y = s * new Vector3(...c.v).applyQuaternion(rot).dot(UP);
     if (y > best.y) best = { value: c.value, y };
   }
   return { value: best.value, tilt: (Math.acos(Math.min(1, best.y)) * 180) / Math.PI };
