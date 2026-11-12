@@ -2,12 +2,13 @@ import { useEffect, useMemo, useRef, useState, type ElementRef } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Environment, Lightformer, OrbitControls } from '@react-three/drei';
 import { BufferGeometry, Color, Float32BufferAttribute, Group, Matrix4, Mesh, Quaternion, Vector3 } from 'three';
-import { customKind, type CustomBase, type CustomDie, type StdBase } from '../dice/custom';
-import { askOrder, checkFreeValue, checkFreeValues, checkValue, checkValues, formatOf, importModel, ImportError, inkOf, LIMITS, normaliseValues, renumbered, suggestOpposite, type Imported } from '../dice/importer';
+import { customKind, type CustomBase, type CustomDie, type Finish, type Ink, type StdBase } from '../dice/custom';
+import { askOrder, checkFreeValue, checkFreeValues, checkValue, checkValues, formatOf, hasTexture, importModel, ImportError, inkOf, LIMITS, normaliseValues, renumbered, suggestOpposite, type Imported } from '../dice/importer';
 import { slugOf, slugProblem } from '../dice/notation';
 import { MAX_DICE, type Polyhedron } from '../dice/polyhedra';
 import { GEM } from '../scene/Die';
 import { useDice } from '../store';
+import { InkChoice } from './InkChoice';
 
 type Step = 'file' | 'shape' | 'numbers' | 'save';
 type Loaded = { imported: Imported<CustomBase>; bytes: ArrayBuffer; fileName: string; format: 'stl' | 'glb' };
@@ -102,6 +103,8 @@ export function ImportDie({ open, onClose }: { open: boolean; onClose: () => voi
   const [notStandard, setNotStandard] = useState<{ bytes: ArrayBuffer; fileName: string; format: 'stl' | 'glb' } | null>(null); // offer the free-form way
   const [omens, setOmens] = useState(true);
   const [color, setColor] = useState(GEM.d20);
+  const [ink, setInk] = useState<Ink>('auto');
+  const [surface, setSurface] = useState<Finish>('gema');
   const [printed, setPrinted] = useState(false); // the model has its own numerals: calibrate
   const [asking, setAsking] = useState(false);
   const [pos, setPos] = useState(0); // which face is being asked
@@ -115,6 +118,7 @@ export function ImportDie({ open, onClose }: { open: boolean; onClose: () => voi
   const orbit = useRef<ElementRef<typeof OrbitControls>>(null);
 
   const imp = loaded?.imported;
+  const textured = !!imp && loaded.format === 'glb' && hasTexture(imp.object); // a GLB with its own texture: dark ink only
   const order = useMemo(() => (imp ? askOrder(imp.poly) : []), [imp]);
   const faceCount = order.length;
   const face = order[pos];
@@ -134,7 +138,7 @@ export function ImportDie({ open, onClose }: { open: boolean; onClose: () => voi
 
   const reset = () => {
     setStep('file'); setLoaded(null); setError(''); setPrinted(false); setAsking(false); setPos(0); setValues({}); setConfirmed([]); setTurns({}); setNotStandard(null);
-    setName(''); setSlug(''); setSlugEdited(false); setOmens(true);
+    setName(''); setSlug(''); setSlugEdited(false); setOmens(true); setInk('auto'); setSurface('gema');
   };
   const close = () => { onClose(); reset(); };
 
@@ -246,6 +250,7 @@ export function ImportDie({ open, onClose }: { open: boolean; onClose: () => voi
       omens: imp.base === 'd20' && omens, // a free-form die never raises an omen
       file: { format: loaded.format, name: loaded.fileName, bytes: loaded.bytes },
       fit: imp.fit, poly, printed, color: loaded.format === 'stl' ? color : null,
+      ...(printed ? { ink: textured && ink !== 'nenhuma' ? 'escura' as const : ink } : {}), ...(loaded.format === 'stl' ? { finish: surface } : {}),
     };
     setBusy(true);
     const failure = await useDice.getState().addCustom(die);
@@ -344,6 +349,9 @@ export function ImportDie({ open, onClose }: { open: boolean; onClose: () => voi
             <label>Nome <input value={name} maxLength={24} onChange={(e) => { setName(e.target.value); if (!slugEdited) setSlug(slugOf(e.target.value)); }} /></label>
             <label>Apelido no chat <input value={slug} spellCheck={false} onChange={(e) => { setSlug(e.target.value.toLowerCase()); setSlugEdited(true); }} aria-describedby="slug-hint" /></label>
             <small id="slug-hint">Ex.: {free ? '2' : `2d${imp.base.slice(1)}`}{slug || 'apelido'}</small>
+            {(printed || loaded?.format === 'stl') && (
+              <InkChoice ink={ink} finish={surface} engraved={printed} stl={loaded?.format === 'stl'} textured={textured} onInk={setInk} onFinish={setSurface} />
+            )}
             <button type="submit" disabled={busy}>Salvar</button>
           </form>
         )}

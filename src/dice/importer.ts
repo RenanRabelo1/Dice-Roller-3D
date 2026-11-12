@@ -450,4 +450,12 @@ function withInkMask(root: Object3D, die: CustomDie): Object3D {
   });
   return root;
 }
+// Does any material of the model carry a texture of its own? (Then only dark ink or none suits it.)
+export const hasTexture = (root: Object3D): boolean => {
+  let found = false;
+  root.traverse((o) => {
+    if (o instanceof Mesh) for (const m of Array.isArray(o.material) ? o.material : [o.material]) if ((m as Material & { map?: Texture | null }).map) found = true;
+  });
+  return found;
+};
 export const forgetModel = (kind: string) => { loaded.delete(kind); };
