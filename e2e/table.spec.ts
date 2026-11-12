@@ -226,3 +226,69 @@ test('upgrading IndexedDB v1 to v2 keeps the imported dice store', async ({ brow
   expect(db.kept).toEqual({ id: 'legado', version: 0, name: 'guardado' });
   await context.close();
 });
+
+// A small equirectangular picture: four colour bands, so turning it changes what is behind the table.
+const bands = (p: Page, w: number, h: number) => p.evaluate(async ([w, h]) => {
+  const c = document.createElement('canvas'); c.width = w!; c.height = h!;
+  const g = c.getContext('2d')!;
+  ['#e03030', '#30c030', '#3050e0', '#e0d030'].forEach((col, i) => { g.fillStyle = col; g.fillRect(i * w! / 4, 0, w! / 4, h!); });
+  return c.toDataURL('image/png').split(',')[1]!;
+}, [w, h]).then((b64) => ({ name: 'pano.png', mimeType: 'image/png', buffer: Buffer.from(b64, 'base64') }));
+// Mean colour of a w x h patch at (fx, fy) of the canvas.
+const patch = (p: Page, fx: number, fy: number, size = 12) => p.evaluate(([fx, fy, size]) => {
+  const src = document.querySelector('canvas')!, c = document.createElement('canvas');
+  c.width = src.width; c.height = src.height;
+  const g = c.getContext('2d')!;
+  g.drawImage(src, 0, 0);
+  const d = g.getImageData(Math.floor(c.width * fx!), Math.floor(c.height * fy!), size!, size!).data, sum = [0, 0, 0];
+  for (let i = 0; i < d.length; i += 4) { sum[0]! += d[i]!; sum[1]! += d[i + 1]!; sum[2]! += d[i + 2]!; }
+  return sum.map((v) => v / (d.length / 4));
+}, [fx, fy, size] as const);
+const far = (a: number[], b: number[]) => Math.hypot(a[0]! - b[0]!, a[1]! - b[1]!, a[2]! - b[2]!) > 8;
+
+test('360 background: shows behind the table, reflect and rotation work without recompiling shaders, wrong ratio is refused', async ({ page }) => {
+  await openPanel(page);
+  await page.getByTestId('table-panorama').setInputFiles(await bands(page, 1000, 1000));
+  await expect(panel(page).getByText('proporção 2:1')).toBeVisible();
+  expect((await table(page)).background).toBe('color');
+
+  await page.getByTestId('table-panorama').setInputFiles(await bands(page, 512, 256));
+  await expect.poll(async () => (await table(page)).background).toBe('panorama');
+  await page.waitForTimeout(1500); // applied between animations; let the first compile settle
+  const first = await table(page);
+  expect(first.reflect).toBe(true);
+  const bg0 = await patch(page, 0.03, 0.04), die0 = await patch(page, 0.5, 0.5, 60);
+
+  await panel(page).getByLabel('Refletir nos dados').uncheck();
+  await expect.poll(async () => (await table(page)).reflect).toBe(false);
+  await expect.poll(async () => far(await patch(page, 0.5, 0.5, 60), die0), { timeout: 20_000 }).toBe(true);
+  expect((await table(page)).programs).toBe(first.programs); // the reflected panorama lit the die / felt
+  await panel(page).getByLabel('Refletir nos dados').check();
+
+  await panel(page).getByLabel('Girar').fill('180');
+  await expect.poll(async () => far(await patch(page, 0.03, 0.04), bg0), { timeout: 20_000 }).toBe(true);
+  expect((await table(page)).programs).toBe(first.programs);
+});
+
+test('a 360 background survives export and import with its settings', async ({ page }) => {
+  await openPanel(page);
+  await page.getByTestId('table-panorama').setInputFiles(await bands(page, 512, 256));
+  await expect.poll(async () => (await table(page)).background).toBe('panorama');
+  await panel(page).getByLabel('Girar').fill('120');
+  await panel(page).getByLabel('Brilho').fill('0.7');
+  await panel(page).getByLabel('Desfoque').fill('0.2');
+  await panel(page).getByLabel('Refletir nos dados').uncheck();
+  await page.waitForTimeout(600);
+
+  const [download] = await Promise.all([page.waitForEvent('download'), panel(page).getByRole('button', { name: 'Exportar mesa' }).click()]);
+  const file = readFileSync((await download.path())!);
+  await panel(page).getByRole('button', { name: 'Restaurar mesa padrão' }).click();
+  expect((await table(page)).background).toBe('color');
+  await page.getByTestId('table-import').setInputFiles(glbFile('mesa.glb', file));
+  await expect.poll(async () => (await table(page)).imported).toBe(true);
+  expect((await table(page)).background).toBe('panorama');
+  expect((await table(page)).reflect).toBe(false);
+  await expect(panel(page).getByLabel('Girar')).toHaveValue('120');
+  await expect(panel(page).getByLabel('Brilho')).toHaveValue('0.7');
+  await expect(panel(page).getByLabel('Desfoque')).toHaveValue('0.2');
+});
