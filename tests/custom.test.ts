@@ -97,3 +97,27 @@ describe('a free-form die', () => {
     expect(checkFreeValues([2, 2], 3)).toBe('Faltam números.');
   });
 });
+
+describe('a free-form die in the chat', () => {
+  const cav = () => customKind(freeDieOf(prismTriangles(5, 1.4), 'Caveira', 'caveira', [1, 2, 3, 4, 5, 6, 7]).id);
+  it('answers to its nickname alone, with or without a count', () => {
+    const k = cav();
+    expect(parseDice('caveira')).toEqual({ dice: [k] });
+    expect(parseDice('2caveira')).toEqual({ dice: [k, k] });
+    expect(parseDice('2 caveira')).toEqual({ dice: [k, k] });
+    expect(parseDice('caveira + d20')).toEqual({ dice: ['d20', k] });
+    expect(parseDice('2d6caveira')).toEqual({ dice: ['d6', 'd6', k] }); // compact: 2d6 then the die
+    expect(parseDice('0caveira')).toHaveProperty('error');
+  });
+  it('is named by itself and sums like a normal die', () => {
+    const k = cav();
+    expect(formatDice([k, k, 'd20'])).toBe('1d20 + 2 Caveira');
+    expect(resultText([k, k], [3, 4]).total).toBe('7');
+  });
+  it('never raises an omen', () => {
+    expect(isD20(cav())).toBe(false);
+  });
+  it('refuses the words the chat already reads as a nickname', () => {
+    for (const s of ['moeda', 'boladefogo']) expect(slugProblem(s)).toBeTruthy();
+  });
+});
