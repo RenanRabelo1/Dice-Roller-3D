@@ -1,6 +1,6 @@
 # Correção: duas falhas do E2E final das pendências
 
-Data: 2026-11-11 · Status: aprovado para implementar · Branch base: `dev-jg` · Origem: rodada E2E única de 2026-11-12 00:04 (70 passaram, 2 falharam), JSON em `temp/e2e-final.json` da worktree `importar-dado-146984`
+Data: 2026-11-11 · Status: implementada (ver §4) · Branch base: `dev-jg` · Origem: rodada E2E única de 2026-11-12 00:04 (70 passaram, 2 falharam), JSON em `temp/e2e-final.json` da worktree `importar-dado-146984`
 
 ## 1. As falhas
 

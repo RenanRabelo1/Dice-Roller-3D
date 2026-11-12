@@ -36,6 +36,7 @@ Gate de entrega usado no projeto: build → lint → test → e2e, todos verdes.
 src/
   indexedDb.ts             abre o IndexedDB `dice-roller` v2 (dados importados + mesas)
   main.tsx, App.tsx        casca: <Controls/> + <Canvas><Stage/></Canvas> + <OmenOverlay/>
+  failure.ts               sonda WebGL e falhas de renderer/física → `store.error`  → armadilhas.md
   store.ts                 zustand: seleção, fase, throwId, launch, results, omen  → arremesso.md
   testHook.ts              window.__dice (só em mode=test)                          → testes.md
   dice/                    domínio puro dos dados (sem React)                       → dados.md
@@ -63,11 +64,13 @@ src/
     table*.ts, Backdrop.tsx  mesa e fundo personalizados, .glb                      → mesa.md
     showcase.ts, highlight.ts poses e linha do tempo do "voo até a câmera"         → apresentacao.md
     Omens.tsx, Kraken.ts, krakenMotion.ts  presságios 3D                            → apresentacao.md
-  ui/                      HTML: Controls (seleção + painel), Chat, OmenOverlay, ImportDie (assistente, carregado sob demanda)
+  ui/                      HTML: Controls (seleção + painel), Chat, OmenOverlay, ImportDie (assistente, carregado sob demanda),
+                           TablePanel (mesa e fundo), Safeguard (mensagens de falha de WebGL/renderer/física)
 tests/                     Vitest (unidades puras + física Node); helpers/sim.ts
 e2e/                       Playwright; usa window.__dice
 references/threejs/        exemplos oficiais do three.js (só leitura, ver CLAUDE.md)
-docs/superpowers/          specs/planos/revisões HISTÓRICOS (ver armadilhas.md)
+docs/superpowers/          specs (as de 2026-11-11 são as atuais) e planos/revisões HISTÓRICOS (ver armadilhas.md)
+docs/backlog.md            features combinadas e o link para a spec de cada uma
 docs/performance-coins.md  diagnóstico de desempenho com várias moedas
 ```
 
