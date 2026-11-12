@@ -1,10 +1,10 @@
-import { charge } from './aim';
+import { charge, type ChargeMode } from './aim';
 
 export type Phase = 'hand' | 'charging' | 'rolling' | 'settled' | 'returning';
 export type Source = { kind: 'pointer'; id: number } | { kind: 'key' };
 export type GestureEvent =
   | { type: 'press'; source: Source; at: number; repeat: boolean }
-  | { type: 'release'; source: Source; at: number }
+  | { type: 'release'; source: Source; at: number; mode?: ChargeMode } // mode: how the charge moved (relative by default)
   | { type: 'cancel' }
   | { type: 'published' }
   | { type: 'returned' }
@@ -32,7 +32,7 @@ export function reduce(s: GestureState, e: GestureEvent): { state: GestureState;
       return keep;
     case 'release':
       if (s.phase !== 'charging' || !sameSource(s.source, e.source)) return keep;
-      return { state: { ...s, phase: 'rolling' }, effect: { type: 'throw', force: charge(e.at - s.chargeStart) } };
+      return { state: { ...s, phase: 'rolling' }, effect: { type: 'throw', force: charge(e.at - s.chargeStart, e.mode) } };
     case 'cancel':
       return s.phase === 'charging' ? { state: initialGesture, effect: NONE } : keep;
     case 'published':

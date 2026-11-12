@@ -175,7 +175,7 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
           error: state.error, aim: state.aim, showcased: state.showcased,
           omen: state.omen?.throwId === state.throwId ? omenKind(state.omen) : null, omenDone: state.omenDone,
           omenTime: performance.now() - state.omenAt, trayBroken: scene.getObjectByName('tray-surface')?.visible === false,
-          burning: scene.getObjectByName('fire')?.visible === true,
+          burning: scene.getObjectByName('fire')?.visible === true, force: state.force,
         };
       },
       select: (next) => useDice.getState().setDice(next),

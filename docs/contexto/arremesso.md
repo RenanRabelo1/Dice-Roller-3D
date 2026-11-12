@@ -14,7 +14,7 @@ hand --press--> charging --release(mesma origem)--> rolling --published--> settl
 ```
 
 - `Source` = ponteiro (`pointerId`) ou tecla. Só a mesma origem solta; `repeat` de tecla é ignorado.
-- `release` devolve `Effect { type: 'throw', force: charge(ms) }`; `press` em `settled` devolve `{ type: 'return' }`.
+- `release` devolve `Effect { type: 'throw', force: charge(ms, mode) }` (o store põe no evento o modo escolhido); `press` em `settled` devolve `{ type: 'return' }`.
 - Gestos em `rolling`/`returning` são ignorados.
 
 ## Store (`store.ts`)
@@ -23,6 +23,7 @@ Um store zustand `useDice`. Campos que importam:
 
 - `dice: DieKind[]` — seleção, um item por dado, sempre ordenada por `KINDS` (`sortDice`), 1..`MAX_DICE` (10).
 - `gesture`, `throwId`, `aim`, `force`, `launch`, `results`, `raw`.
+- `chargeMode` — `'relative'` (padrão) ou `'static'`, escolhido no canto inferior esquerdo (`RollMode` em `Controls.tsx`) e lembrado no `localStorage` (`diceroller.rolagem`).
 - `omen`, `omenAt`, `omenDone`, `showcased` — sincronizam apresentação (ver apresentacao.md); `omenPlaying(s)` diz se o presságio deste arremesso está na tela.
 - `error` — `'physics'` quando nem o worker nem o cálculo local conseguem simular (os dados voltam à mão e o painel avisa).
 - `reducedMotion` — vem de `prefers-reduced-motion` em `App.tsx`; desliga presságios e voo.
@@ -36,7 +37,7 @@ Regras:
 ## Linha do tempo de um arremesso
 
 1. **Mira** — `Hand.tsx` faz raycast do ponteiro no plano y=0 e grava `clampTarget(hit)`. Setas movem 0,5. Os dados na mão (cinemáticos) giram num redemoinho (`throw/vortex.ts`): cada um numa órbita inclinada (planos de Fibonacci, `ORBITS`) e girando no próprio eixo, separados entre si; o centro segue `aim.x` e a velocidade cresce com a carga. A mão balança conforme a velocidade da mira (`omega`).
-2. **Carga** — `pointerdown`/Espaço → `press`. A cada quadro `force = charge(agora - chargeStart)` (onda triangular 0→1→0, ciclo 1400 ms). A seta (`ArrowHelper`) muda de cor/tamanho com a força.
+2. **Carga** — `pointerdown`/Espaço → `press`. A cada quadro `force = charge(agora - chargeStart, chargeMode)`: **relativa** = onda triangular 0→1→0, ciclo 1400 ms; **estática** = sobe até 1 em 700 ms e fica em 1 (o máximo de `LAUNCH`, com o redemoinho na velocidade máxima) até soltar. A seta (`ArrowHelper`) muda de cor/tamanho com a força.
 3. **Soltura** — `release` → store cria `Launch` com `handCenter`/`handOmega` reais.
 4. **Pré-simulação** — `ThrowLoop` (em `Stage.tsx`, dentro de `useBeforePhysicsStep`) detecta `throwId` novo, captura as poses atuais dos corpos e manda `RollRequest { dice, start, launch, customs }` ao worker (`presim.worker.ts`). Sem worker, ou sem resposta em 2 s (`WORKER_TIMEOUT`) → `presimulate` síncrono na thread principal (fallback); se ele também falhar, os dados voltam à mão com `error: 'physics'`.
 5. **Replay** — a cada passo físico aplica `rec.frames[at]` via `setNextKinematicTranslation/Rotation`. Os corpos da cena continuam **cinemáticos** o tempo todo; quem simula dinâmica é só o mundo offline.

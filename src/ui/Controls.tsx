@@ -9,6 +9,26 @@ import { Chat } from './Chat';
 const ImportDie = lazy(() => import('./ImportDie').then((m) => ({ default: m.ImportDie })));
 
 
+// Bottom left: how the charge moves while you hold (see throw/aim.ts).
+const MODES = [
+  ['relative', 'Relativa', 'A força sobe e desce enquanto você segura: solte na hora certa.'],
+  ['static', 'Estática', 'A força só sobe, até o máximo, e fica no máximo até você soltar.'],
+] as const;
+function RollMode() {
+  const mode = useDice((s) => s.chargeMode);
+  return (
+    <div className="roll-mode" role="radiogroup" aria-label="Rolagem">
+      <span aria-hidden="true">Rolagem</span>
+      {MODES.map(([value, name, hint]) => (
+        <label key={value} title={hint}>
+          <input type="radio" name="roll-mode" value={value} checked={mode === value} onChange={() => useDice.getState().setChargeMode(value)} />
+          {name}
+        </label>
+      ))}
+    </div>
+  );
+}
+
 function Force() {
   const force = useDice((s) => s.force);
   return <progress aria-label="Força" max={1} value={force} />;
@@ -51,6 +71,7 @@ export function Controls() {
         {mounted && <Suspense fallback={null}><ImportDie open={importing} onClose={closeImport} /></Suspense>}
       </header>
       <footer className="status panel">
+        <RollMode />
         <div className="feedback">
           <output data-testid="result" aria-live="polite">
             {text && <><strong>{text.total}</strong>{text.detail && <span>{text.detail}</span>}</>}

@@ -21,7 +21,7 @@
 
 | Método | Para quê |
 |---|---|
-| `state()` | dice, phase, throwId, results, ready, error, aim, showcased, omen, omenDone, omenTime, trayBroken, burning (fogo do d20 visível) |
+| `state()` | dice, phase, throwId, results, ready, error, aim, showcased, omen, omenDone, omenTime, trayBroken, burning (fogo do d20 visível), force (carga agora ou do último arremesso) |
 | `select(dice)` | troca a seleção sem clicar |
 | `rigOmen(omen \| null)` | força o presságio dos próximos arremessos (a física e o resultado continuam reais) |
 | `bodies()` / `meshes()` | poses dos corpos Rapier / quaternions das malhas `gem-i` |

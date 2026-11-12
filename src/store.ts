@@ -6,6 +6,7 @@ import { omenOf, type Omen } from './dice/omen';
 import type { Launch } from './physics/apply';
 import { HAND, type Vec3 } from './physics/world';
 import { initialGesture, reduce, type Effect, type GestureEvent, type GestureState } from './throw/gesture';
+import type { ChargeMode } from './throw/aim';
 
 type HandMotion = { center: Vec3; omega: Vec3 };
 type DiceError = 'graphics' | 'physics' | null;
@@ -16,6 +17,7 @@ interface DiceState {
   throwId: number;
   aim: Vec3;
   force: number;
+  chargeMode: ChargeMode; // how the charge moves while held (the player's choice, remembered by the browser)
   launch: Launch | null;
   results: number[] | null;
   raw: number[] | null; // per-body up value behind `results` (d10 digit, d4 vertex)
@@ -37,6 +39,7 @@ interface DiceState {
   setDice: (dice: DieKind[]) => void;
   setAim: (aim: Vec3) => void;
   setForce: (force: number) => void;
+  setChargeMode: (mode: ChargeMode) => void;
   setReady: () => void;
   setError: (error: DiceError) => void;
   setReducedMotion: (reducedMotion: boolean) => void;
@@ -46,6 +49,9 @@ interface DiceState {
   input: (event: GestureEvent, hand?: HandMotion) => Effect;
   publish: (throwId: number, results: number[], raw?: number[]) => void;
 }
+
+const MODE_KEY = 'diceroller.rolagem';
+const savedMode = (): ChargeMode => { try { return localStorage.getItem(MODE_KEY) === 'static' ? 'static' : 'relative'; } catch { return 'relative'; } };
 
 const selection = (s: DiceState) => ({
   gesture: reduce(s.gesture, { type: 'selection' }).state,
@@ -62,7 +68,7 @@ export const omenPlaying = (s: Pick<DiceState, 'gesture' | 'omen' | 'omenDone' |
 
 export const useDice = create<DiceState>((set, get) => ({
   dice: ['d20'], gesture: initialGesture, throwId: 0,
-  aim: [0, 0, -1], force: 0, launch: null, results: null, raw: null,
+  aim: [0, 0, -1], force: 0, chargeMode: savedMode(), launch: null, results: null, raw: null,
   error: null, ready: false, reducedMotion: false, showcased: 0, omen: null, omenDone: 0, omenAt: 0, omenRig: null, customs: [], sessionOnly: false,
   addDie: (kind) => set((s) => (s.dice.length >= MAX_DICE ? s : { ...selection(s), dice: sortDice([...s.dice, kind]) })),
   removeDie: (kind) => set((s) => {
@@ -103,6 +109,10 @@ export const useDice = create<DiceState>((set, get) => ({
   },
   setAim: (aim) => set({ aim: [...aim] }),
   setForce: (force) => set({ force }),
+  setChargeMode: (chargeMode) => {
+    set({ chargeMode });
+    try { localStorage.setItem(MODE_KEY, chargeMode); } catch { /* a private window: the choice lasts this visit */ }
+  },
   setReady: () => set({ ready: true }),
   setError: (error) => set({ error }),
   setReducedMotion: (reducedMotion) => set((s) => ({ reducedMotion, omen: reducedMotion ? null : s.omen })),
@@ -112,7 +122,7 @@ export const useDice = create<DiceState>((set, get) => ({
   input: (event, hand) => {
     let effect: Effect = { type: 'none' };
     set((s) => {
-      const next = reduce(s.gesture, event);
+      const next = reduce(s.gesture, event.type === 'release' ? { ...event, mode: s.chargeMode } : event);
       effect = next.effect;
       if (effect.type !== 'throw') return { gesture: next.state };
       const throwId = s.throwId + 1;

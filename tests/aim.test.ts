@@ -5,8 +5,12 @@ const len = (v: number[]) => Math.hypot(...v);
 
 describe('aim', () => {
   it('charge is a 0→1→0 triangle wave with a 1400 ms cycle', () => {
-    expect([0, 350, 700, 1050, 1400, 2100].map(charge)).toEqual([0, 0.5, 1, 0.5, 0, 1]);
+    expect([0, 350, 700, 1050, 1400, 2100].map((t) => charge(t))).toEqual([0, 0.5, 1, 0.5, 0, 1]);
     for (let t = 0; t < 5000; t += 37) { expect(charge(t)).toBeGreaterThanOrEqual(0); expect(charge(t)).toBeLessThanOrEqual(1); }
+  });
+  it('static charge only rises: to the top in 700 ms, then holds there however long it is held', () => {
+    expect([0, 350, 700, 1050, 1400, 2100, 60_000].map((t) => charge(t, 'static'))).toEqual([0, 0.5, 1, 1, 1, 1, 1]);
+    for (let t = 37; t < 5000; t += 37) expect(charge(t, 'static')).toBeGreaterThanOrEqual(charge(t - 37, 'static'));
   });
   it('clampTarget keeps the target inside the tray at floor level', () => {
     expect(clampTarget([100, 5, -100]).map((v) => +v.toFixed(6))).toEqual([6.1, 0, -3.6]);

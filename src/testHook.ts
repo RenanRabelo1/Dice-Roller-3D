@@ -8,7 +8,7 @@ export interface DiceHook {
     dice: DieKind[]; phase: Phase; throwId: number;
     results: number[] | null; ready: boolean; error: 'graphics' | 'physics' | null; aim: Vec3; showcased: number;
     omen: OmenKind | null; omenDone: number; // omen: this throw's
-    omenTime: number; trayBroken: boolean; burning: boolean;
+    omenTime: number; trayBroken: boolean; burning: boolean; force: number; // force: the charge now, or the last throw's
   };
   rigOmen(omen: Omen | null): void; // the next throws play this omen whatever they roll
   select(dice: DieKind[]): void;

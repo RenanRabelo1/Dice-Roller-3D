@@ -17,6 +17,12 @@ describe('gesture', () => {
     expect(reduce(charging, release(KEY, 700)).state.phase).toBe('charging');
     expect(reduce(charging, release(P1, 700))).toEqual({ state: { ...charging, phase: 'rolling' }, effect: { type: 'throw', force: 1 } });
   });
+  it('throws with the charge mode it is given: relative swings back down, static stays at the top', () => {
+    const charging = reduce(initialGesture, press(P1, 0)).state;
+    expect(reduce(charging, { ...release(P1, 1400), mode: 'relative' }).effect).toEqual({ type: 'throw', force: 0 });
+    expect(reduce(charging, { ...release(P1, 1400), mode: 'static' }).effect).toEqual({ type: 'throw', force: 1 });
+    expect(reduce(charging, release(P1, 1400)).effect).toEqual({ type: 'throw', force: 0 }); // relative by default
+  });
   it('ignores key repeat', () => expect(reduce(initialGesture, press(KEY, 0, true)).state.phase).toBe('hand'));
   it('cancel during charging returns to hand without throwing', () => {
     const charging = reduce(initialGesture, press(KEY, 0)).state;
