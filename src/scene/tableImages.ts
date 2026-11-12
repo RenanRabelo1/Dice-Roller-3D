@@ -1,3 +1,4 @@
+import { CanvasTexture, DataTexture, DataUtils, EquirectangularReflectionMapping, FloatType, HalfFloatType, RGBAFormat, SRGBColorSpace, Texture } from 'three';
 import { LIMITS } from './tableTheme';
 
 // Browser-only image helpers (canvas / createImageBitmap). Photos and textures are re-encoded smaller before saving.
@@ -47,3 +48,66 @@ export function warmImageDecoder() {
   const bytes = Uint8Array.from(atob(ONE_PIXEL), (c) => c.charCodeAt(0));
   createImageBitmap(new Blob([bytes], { type: 'image/png' })).then((b) => b.close(), () => {});
 }
+
+// --- 360° panorama ---------------------------------------------------------------------------------------------------
+let softwareGl = false; // Stage sets this when the renderer is SwiftShader: half-size panoramas keep the first frame affordable
+export const markSoftwareGl = () => { softwareGl = true; };
+
+export async function preparePanorama(file: Blob, name: string): Promise<{ image: Blob; format: 'ldr' | 'hdr' }> {
+  if (/\.hdr$/i.test(name) || file.type === 'image/vnd.radiance') {
+    if (file.size > LIMITS.panoramaHdrBytes) throw new TableError(`O arquivo .hdr passa de ${LIMITS.panoramaHdrBytes / 1024 / 1024} MB.`);
+    return { image: file, format: 'hdr' };
+  }
+  if (!/^image\/(jpeg|png|webp)$/.test(file.type) && !/\.(jpe?g|png|webp)$/i.test(name)) throw new TableError('Use .hdr, .jpg, .png ou .webp.');
+  return { image: await reduceImage(file, LIMITS.panoramaPx, LIMITS.panoramaBytes), format: 'ldr' };
+}
+
+const BAD_RATIO = 'A foto 360° precisa ter proporção 2:1 (ex.: 4096 × 2048).';
+const panoramas = new WeakMap<Blob, Promise<Texture>>();
+
+// The equirectangular texture of a panorama background (cached per blob). Throws TableError when it is not 2:1.
+export function panoramaTexture(bg: { image: Blob; format: 'ldr' | 'hdr' }): Promise<Texture> {
+  let p = panoramas.get(bg.image);
+  if (!p) { p = loadPanorama(bg); panoramas.set(bg.image, p); p.catch(() => panoramas.delete(bg.image)); }
+  return p;
+}
+
+async function loadPanorama(bg: { image: Blob; format: 'ldr' | 'hdr' }): Promise<Texture> {
+  const maxPx = softwareGl ? LIMITS.panoramaPx / 2 : LIMITS.panoramaPx;
+  let tex: Texture, w: number, h: number;
+  if (bg.format === 'ldr') {
+    const bitmap = await createImageBitmap(bg.image);
+    w = bitmap.width; h = bitmap.height;
+    if (!isTwoToOne(w, h)) { bitmap.close(); throw new TableError(BAD_RATIO); }
+    const k = Math.min(1, maxPx / w);
+    if (k < 1) { // only the software-renderer cap lands here: stored panoramas are already <= 4096
+      const c = document.createElement('canvas'); c.width = Math.round(w * k); c.height = Math.round(h * k);
+      c.getContext('2d')!.drawImage(bitmap, 0, 0, c.width, c.height);
+      tex = new CanvasTexture(c);
+    } else tex = new Texture(bitmap);
+    tex.colorSpace = SRGBColorSpace;
+    tex.needsUpdate = true;
+  } else {
+    const { HDRLoader } = await import('three/examples/jsm/loaders/HDRLoader.js'); // dynamic: keeps the first load light
+    const loader = new HDRLoader(); loader.setDataType(FloatType);
+    const hdr = loader.parse(await bg.image.arrayBuffer());
+    w = hdr.width!; h = hdr.height!;
+    if (!isTwoToOne(w, h)) throw new TableError(BAD_RATIO);
+    let data = hdr.data as Float32Array;
+    while (w > maxPx) { // average 2x2 blocks until it fits
+      const nw = w >> 1, nh = h >> 1, out = new Float32Array(nw * nh * 4);
+      for (let y = 0; y < nh; y++) for (let x = 0; x < nw; x++) for (let c = 0; c < 4; c++) {
+        const i = ((2 * y) * w + 2 * x) * 4 + c;
+        out[(y * nw + x) * 4 + c] = (data[i] + data[i + 4] + data[i + w * 4] + data[i + w * 4 + 4]) / 4;
+      }
+      data = out; w = nw; h = nh;
+    }
+    const half = new Uint16Array(data.length);
+    for (let i = 0; i < data.length; i++) half[i] = DataUtils.toHalfFloat(data[i]); // half floats filter on every GPU
+    tex = new DataTexture(half, w, h, RGBAFormat, HalfFloatType);
+    tex.needsUpdate = true;
+  }
+  tex.mapping = EquirectangularReflectionMapping;
+  return tex;
+}
+const isTwoToOne = (w: number, h: number) => w / h >= 1.9 && w / h <= 2.1;

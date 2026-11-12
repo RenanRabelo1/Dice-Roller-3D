@@ -67,7 +67,7 @@ export function TablePanel() {
     const colors = colorsOf(read.group) ?? { felt: DEFAULT_THEME.felt.color, wood: DEFAULT_THEME.wood.color };
     disposeTable(read.group);
     const x = read.extras;
-    const background: Background = x ? (x.background.kind === 'image' ? (read.backdrop ? { kind: 'image', image: read.backdrop, blur: x.background.blur, dim: x.background.dim } : bg) : x.background) : bg;
+    const background: Background = x ? (x.background.kind === 'image' ? (read.backdrop ? { kind: 'image', image: read.backdrop, blur: x.background.blur, dim: x.background.dim } : bg) : x.background.kind === 'panorama' ? bg : x.background) : bg; // ponytail: T5 reads the panorama from the file
     const next: TableTheme = {
       version: 1, id: crypto.randomUUID(), name: (x?.name ?? file.name.replace(/\.glb$/i, '')).slice(0, 40), createdAt: Date.now(),
       background, felt: { color: colors.felt, texture: 'liso' }, wood: { color: colors.wood }, model: { name: file.name, bytes },
