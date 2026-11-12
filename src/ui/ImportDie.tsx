@@ -2,11 +2,11 @@ import { useEffect, useMemo, useRef, useState, type ElementRef } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Environment, Lightformer, OrbitControls } from '@react-three/drei';
 import { BufferGeometry, Color, Float32BufferAttribute, Group, Matrix4, Mesh, Quaternion, Vector3 } from 'three';
-import { customKind, type CustomBase, type CustomDie, type Finish, type Ink, type StdBase } from '../dice/custom';
-import { askOrder, unevenOf, withReadable, checkFreeValue, checkFreeValues, checkValue, checkValues, formatOf, hasTexture, importModel, ImportError, inkOf, LIMITS, normaliseValues, renumbered, suggestOpposite, type Imported } from '../dice/importer';
+import { customKind, inkColorOf, type CustomBase, type CustomDie, type Finish, type Ink, type StdBase } from '../dice/custom';
+import { askOrder, unevenOf, withReadable, checkFreeValue, checkFreeValues, checkValue, checkValues, formatOf, hasTexture, importModel, ImportError, inkOf, inkTriangles, markInk, LIMITS, normaliseValues, renumbered, suggestOpposite, type Imported } from '../dice/importer';
 import { slugOf, slugProblem } from '../dice/notation';
 import { MAX_DICE, type Polyhedron } from '../dice/polyhedra';
-import { GEM } from '../scene/Die';
+import { GEM, GemMaterial, paintGlb, usePainted } from '../scene/Die';
 import { useDice } from '../store';
 import { InkChoice } from './InkChoice';
 
@@ -62,7 +62,8 @@ function Rig({ distance, nonce, pose, controls }: { distance: number; nonce: num
   return null;
 }
 
-function Preview({ loaded, color, orient, face, plain }: { loaded: Loaded; color: string; orient: Quaternion | null; face: number | null; plain: boolean }) {
+// `dressed` (the save step): the engraving wears the chosen `ink` (a colour, or null) and the STL its `finish`, as on the table.
+function Preview({ loaded, color, orient, face, plain, dressed, ink, finish, printed }: { loaded: Loaded; color: string; orient: Quaternion | null; face: number | null; plain: boolean; dressed: boolean; ink: string | null; finish: Finish; printed: boolean }) {
   const group = useRef<Group>(null);
   const { imported: { fit, object, poly }, format } = loaded;
   useFrame((_, dt) => {
@@ -81,12 +82,18 @@ function Preview({ loaded, color, orient, face, plain }: { loaded: Loaded; color
     return g;
   }, [plain, format, object, loaded.imported]);
   useEffect(() => () => painted?.dispose(), [painted]);
+  const stl = format === 'stl' ? (object as Mesh).geometry : undefined;
+  const masked = useMemo(() => !!stl && printed && !!(stl.userData.ink ??= inkTriangles(stl.getAttribute('position').array, loaded.imported)), [stl, printed, loaded.imported]);
+  const inked = usePainted(dressed && masked ? stl : undefined, color, ink);
+  const glb = useMemo(() => (format === 'glb' && dressed && printed ? markInk(object, loaded.imported) : null), [format, dressed, printed, object, loaded.imported]);
+  useEffect(() => { if (glb) paintGlb(glb, ink); }, [glb, ink]);
   return (
     <group ref={group}>
       {format === 'stl'
-        ? <mesh geometry={painted ?? (object as Mesh).geometry} position={at} scale={fit.scale}>
+        ? <mesh geometry={painted ?? inked ?? (object as Mesh).geometry} position={at} scale={fit.scale}>
           {plain ? <meshStandardMaterial vertexColors roughness={0.95} metalness={0} />
-            : <meshPhysicalMaterial color={color} roughness={0.08} clearcoat={1} clearcoatRoughness={0.04} ior={1.6} />}
+            : dressed ? <GemMaterial kind={'custom:preview'} color={color} finish={finish} painted={!!inked} />
+              : <meshPhysicalMaterial color={color} roughness={0.08} clearcoat={1} clearcoatRoughness={0.04} ior={1.6} />}
         </mesh>
         : <primitive object={object} position={at} scale={fit.scale} />}
       {face !== null && <Marker poly={poly} face={face} through={!!poly.readsDown} />}
@@ -119,6 +126,9 @@ export function ImportDie({ open, onClose }: { open: boolean; onClose: () => voi
 
   const imp = loaded?.imported;
   const textured = !!imp && loaded.format === 'glb' && hasTexture(imp.object); // a GLB with its own texture: dark ink only
+  const dressed = step === 'save';
+  // The colour the engraving will wear, worked out as `save` does.
+  const inkColor = imp ? inkColorOf({ printed, ink: textured && ink !== 'nenhuma' ? 'escura' : ink }, loaded.format === 'stl' ? color : GEM[imp.base === 'livre' ? 'd20' : imp.base]) : null;
   const [bigOnly, setBigOnly] = useState<boolean | null>(null); // shard: only the big faces count as a result? (null = not asked yet)
   // The solid as it will be read: with size layers and the player's answer, only the big faces are results.
   const asked = useMemo(() => {
@@ -293,7 +303,7 @@ export function ImportDie({ open, onClose }: { open: boolean; onClose: () => voi
           </div>
         )}
         {loaded && imp && step !== 'file' && (
-          <div className="import-preview" aria-label="Prévia do dado">
+          <div className="import-preview" aria-label="Prévia do dado" data-ink={dressed ? inkColor ?? 'nenhuma' : undefined} data-finish={dressed ? surface : undefined}>
             <Canvas key={step === 'numbers' ? 'read' : 'look'} camera={{ position: [0, 0, step === 'numbers' ? 2.6 : 3.4], fov: 35 }} dpr={1}>
               <ambientLight intensity={step === 'numbers' ? 1.1 : 0.6} />
               {/* A low light from the side throws shadows into engraved numbers. */}
@@ -303,7 +313,8 @@ export function ImportDie({ open, onClose }: { open: boolean; onClose: () => voi
                 <Lightformer position={[-4, 1, 3]} scale={[2, 5, 1]} intensity={3} color="#dceaff" />
               </Environment>
               <Preview loaded={loaded} color={color} orient={step === 'numbers' && asking ? preview : null}
-                face={step === 'numbers' && asking && face !== undefined ? face : null} plain={step === 'numbers'} />
+                face={step === 'numbers' && asking && face !== undefined ? face : null} plain={step === 'numbers'}
+                dressed={dressed} ink={inkColor} finish={surface} printed={printed} />
               <OrbitControls ref={orbit} enableZoom={false} enablePan={false} />
               {step === 'numbers' && asking && <Rig distance={distance} nonce={look} pose={preview} controls={orbit} />}
             </Canvas>
