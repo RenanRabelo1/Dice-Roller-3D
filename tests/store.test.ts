@@ -40,6 +40,12 @@ describe('store', () => {
     expect(s().input({ type: 'release', source: P, at: 5000 })).toEqual({ type: 'throw', force: 1 });
     expect(s().launch!.force).toBe(1);
   });
+  it('choosing an animation test puts its dice in the hand; turning it off keeps them', () => {
+    s().setOmenTest('kraken');
+    expect(s()).toMatchObject({ omenTest: 'kraken', dice: ['d20', 'd100'] });
+    s().setOmenTest(null);
+    expect(s()).toMatchObject({ omenTest: null, dice: ['d20', 'd100'] });
+  });
   it('publish only lands for the current throw while rolling', () => {
     s().input({ type: 'press', source: P, at: 0, repeat: false });
     s().input({ type: 'release', source: P, at: 700 }, { center: [0, 3, 3], omega: [0, 0, 0] });

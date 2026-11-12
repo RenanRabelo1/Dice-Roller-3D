@@ -83,7 +83,8 @@ export function Hand({ gameArea, bodies }: {
       if (phase === 'charging' && source?.kind === 'pointer' && source.id === e.pointerId) cancel();
     };
     const down = (e: PointerEvent) => {
-      if (e.button !== 0 || !live()) return;
+      // Only the table starts a throw: a press on a panel laid over it (the animation tests) belongs to that panel.
+      if (e.button !== 0 || !live() || (e.target !== area && !(e.target instanceof HTMLCanvasElement))) return;
       const state = useDice.getState();
       if (state.gesture.phase !== 'hand' && state.gesture.phase !== 'settled') return;
       area.focus({ preventScroll: true });

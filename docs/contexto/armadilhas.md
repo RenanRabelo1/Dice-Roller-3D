@@ -6,6 +6,7 @@ Coisas que já morderam ou que quebram em silêncio. Ler antes de mexer em físi
 
 - **O resultado vem da gravação.** Nunca reler a face na cena para decidir o valor; `results`/`raw` saem de `presimulate`. O showcase usa `raw`.
 - **Fixar a pose antes de anunciar.** Antes de `publish` (ThrowLoop) e antes de `returned` (Hand) aplicar `setTranslation/setRotation` com a pose final. Sem isso, assinantes viam a pose do passo anterior e moedas trocavam de lado no último passo; a 2ª jogada da moeda começava no ar (y≈7).
+- **Só a mesa começa um arremesso.** O `pointerdown` da `.game-area` é um listener nativo: o `stopPropagation` do React chega tarde. Por isso `Hand.tsx` ignora toques que não começam no canvas; painel novo sobre a mesa não precisa de mais nada.
 - **`throwId` guarda tudo.** Qualquer callback assíncrono (worker, publish, fim de presságio, showcase) compara com o `throwId` atual e com a fase. Código novo assíncrono deve fazer o mesmo.
 - **Os corpos da cena são cinemáticos.** Dinâmica só existe no mundo offline. Não trocar a cena para dinâmica "ao vivo".
 - **`physics/apply.ts` é o único lugar** que muda tipo, velocidade ou pose de corpo na simulação (cena e testes compartilham).

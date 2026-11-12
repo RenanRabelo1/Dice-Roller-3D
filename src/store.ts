@@ -7,6 +7,7 @@ import type { Launch } from './physics/apply';
 import { HAND, type Vec3 } from './physics/world';
 import { initialGesture, reduce, type Effect, type GestureEvent, type GestureState } from './throw/gesture';
 import type { ChargeMode } from './throw/aim';
+import { withDiceFor, type OmenTest } from './dice/omenTest';
 
 type HandMotion = { center: Vec3; omega: Vec3 };
 type DiceError = 'graphics' | 'physics' | null;
@@ -29,6 +30,7 @@ interface DiceState {
   omenDone: number; // throwId whose omen finished playing
   omenAt: number; // shared animation clock, starting when the physical result is published
   omenRig: Omen | null; // test mode only: forces the omen of the next throws
+  omenTest: OmenTest | null; // dev test buttons: the next throws land on faces that play this omen (real physics)
   customs: CustomDie[]; // the player's imported dice, in creation order
   sessionOnly: boolean; // IndexedDB is unavailable: imported dice last until the page closes
   loadCustoms: () => Promise<void>;
@@ -46,6 +48,7 @@ interface DiceState {
   setShowcased: (throwId: number) => void;
   setOmenDone: (throwId: number) => void;
   rigOmen: (omen: Omen | null) => void;
+  setOmenTest: (test: OmenTest | null) => void;
   input: (event: GestureEvent, hand?: HandMotion) => Effect;
   publish: (throwId: number, results: number[], raw?: number[]) => void;
 }
@@ -69,7 +72,7 @@ export const omenPlaying = (s: Pick<DiceState, 'gesture' | 'omen' | 'omenDone' |
 export const useDice = create<DiceState>((set, get) => ({
   dice: ['d20'], gesture: initialGesture, throwId: 0,
   aim: [0, 0, -1], force: 0, chargeMode: savedMode(), launch: null, results: null, raw: null,
-  error: null, ready: false, reducedMotion: false, showcased: 0, omen: null, omenDone: 0, omenAt: 0, omenRig: null, customs: [], sessionOnly: false,
+  error: null, ready: false, reducedMotion: false, showcased: 0, omen: null, omenDone: 0, omenAt: 0, omenRig: null, omenTest: null, customs: [], sessionOnly: false,
   addDie: (kind) => set((s) => (s.dice.length >= MAX_DICE ? s : { ...selection(s), dice: sortDice([...s.dice, kind]) })),
   removeDie: (kind) => set((s) => {
     const i = s.dice.lastIndexOf(kind);
@@ -119,6 +122,11 @@ export const useDice = create<DiceState>((set, get) => ({
   setShowcased: (showcased) => set({ showcased }),
   setOmenDone: (omenDone) => set({ omenDone }),
   rigOmen: (omenRig) => set({ omenRig }),
+  // Choosing a test also puts the dice it needs in the hand (a d20, a d100, or two for duality).
+  setOmenTest: (omenTest) => set((s) => {
+    const dice = omenTest ? withDiceFor(omenTest, s.dice) : s.dice;
+    return dice === s.dice ? { omenTest } : { ...selection(s), omenTest, dice };
+  }),
   input: (event, hand) => {
     let effect: Effect = { type: 'none' };
     set((s) => {

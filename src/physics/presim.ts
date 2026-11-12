@@ -1,5 +1,6 @@
 import RAPIER from '@dimforge/rapier3d-compat';
 import type { CustomKind } from '../dice/custom';
+import { plays, type OmenTest } from '../dice/omenTest';
 import { polyhedron, type DieKind, type Polyhedron } from '../dice/polyhedra';
 import { readUp, toResults } from '../dice/read';
 import { initSettle, stepSettle } from '../throw/settle';
@@ -9,7 +10,8 @@ import { DAMPING, GRAVITY, isOutside, MATERIAL, SETTLE, STEP, trayColliders, typ
 export type Pose = { p: Vec3; q: Quat };
 export interface Recording { frames: Pose[][]; raw: number[]; results: number[]; timedOut: boolean; escaped: boolean; recovered: boolean }
 // `customs`: the imported dice of the selection, because the worker has no registry of its own.
-export interface RollRequest { dice: DieKind[]; start: Pose[]; launch: Launch; customs: Record<CustomKind, Polyhedron> }
+// `bias` (dev test buttons only): look for a roll that plays this omen; `kinds` from omenKinds.
+export interface RollRequest { dice: DieKind[]; start: Pose[]; launch: Launch; customs: Record<CustomKind, Polyhedron>; bias?: { test: OmenTest; kinds: DieKind[] } }
 export type RollResponse = { throwId: number } & ({ rec: Recording } | { error: string });
 
 // Runs the whole throw offline with the real engine and the real inputs (hand poses, aim, force, spin),
@@ -78,4 +80,21 @@ export function presimulate(
   } finally {
     world.free();
   }
+}
+
+// How long (ms) a test throw may look for its omen: in the worker, and on the main thread if the worker failed
+// (there the screen waits; it is a dev tool). A roll takes ~3-8 ms, and a d100 face is 1 in 100.
+export const BIAS_BUDGET = { worker: 6000, local: 3000 };
+
+// The roll a request asks for. With a `bias`, the first of the following seeds whose real roll plays that omen,
+// tried for up to `budgetMs`: the dice still leave the hand with the same aim, force and motion, only the random
+// spin differs. If none is found in time, the last roll is kept (an ordinary throw).
+export function presimulateFor({ dice, start, launch, bias }: RollRequest, budgetMs: number): Recording {
+  let rec = presimulate(dice, start, launch);
+  const end = performance.now() + budgetMs;
+  for (let k = 1; bias && !plays(bias.test, bias.kinds, rec.results) && performance.now() < end; k++) {
+    rec = presimulate(dice, start, { ...launch, seed: (launch.seed + Math.imul(k, 0x9e3779b1)) >>> 0 });
+  }
+  if (bias && !plays(bias.test, bias.kinds, rec.results)) console.warn(`Teste de animação: nenhum arremesso com ${bias.test} em ${budgetMs} ms; este saiu comum.`);
+  return rec;
 }

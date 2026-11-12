@@ -40,7 +40,7 @@ Padrão dos specs: esperar `state().ready`, interagir pelo teclado/ponteiro na `
 | `smoke` | contexto WebGL, canvas pinta, toda seleção cria corpos e numerais |
 | `roll` | face de cima = resultado publicado, Espaço, d100×10, seleção mista, captura de ponteiro, blur, reduced motion, moeda |
 | `chat` | tecla C, notação, Vampiro, bola de fogo, erro, moedas |
-| `omen` / `kraken` | presságios forçados (raio, kraken que arremessa e busca o d100, fogo do d20, tempestade do d100), reduced motion, recolher durante presságio, bandeja quebrada/restaurada |
+| `omen` / `kraken` | presságios forçados (raio, kraken que arremessa e busca o d100, fogo do d20, tempestade do d100), reduced motion, recolher durante presságio, bandeja quebrada/restaurada; os 5 botões de teste (dois arremessos reais caindo no presságio, e desligar com os dados na mão) |
 | `import` | importar STL/GLB (gerados por `tests/helpers/models.ts` a partir dos nossos sólidos), calibrar, rolar, recarregar, excluir, recusas, 10 dados de ~48 mil triângulos |
 | `coin` | repetição de jogadas da moeda, mobile; a moeda sobe e "Cara"/"Coroa" fica embaixo |
 | `coin-performance` / `coin-software` | orçamento de quadros com 10 moedas, worker atrasado/falho, DPR no SwiftShader |

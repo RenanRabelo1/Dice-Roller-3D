@@ -6,7 +6,8 @@ import { Group, Matrix4, Quaternion, Vector3, type Object3D } from 'three';
 import { Text } from 'troika-three-text';
 
 import { bodyStates } from '../physics/apply';
-import { presimulate, type Recording, type RollRequest, type RollResponse } from '../physics/presim';
+import { BIAS_BUDGET, presimulateFor, type Recording, type RollRequest, type RollResponse } from '../physics/presim';
+import { omenKinds } from '../dice/omenTest';
 import type { DiceHook } from '../testHook';
 import { GRAVITY, HAND, MAX_RADIUS, STEP, TRAY, handPositions, type Vec3 } from '../physics/world';
 import { useDice } from '../store';
@@ -31,11 +32,11 @@ function ThrowLoop({ bodies, recordLaunch }: {
   // A blocked, failed or silent worker still gets a real roll, here; discard cancelled selections.
   // If the engine itself fails, the throw is dropped and the dice go back to the hand.
   const fallback = useCallback(() => {
+    if (worker.current) console.warn('Worker da física indisponível: simulando na thread principal.');
     worker.current?.terminate(); worker.current = null;
     const pending = play.current, state = useDice.getState();
     if (pending && !pending.rec && pending.throwId === state.throwId && state.gesture.phase === 'rolling') {
-      const { dice, start, launch } = pending.request;
-      try { pending.rec = presimulate(dice, start, launch); } catch (error) {
+      try { pending.rec = presimulateFor(pending.request, BIAS_BUDGET.local); } catch (error) {
         console.error(error);
         state.setDice(state.dice);
         state.setError('physics');
@@ -61,21 +62,21 @@ function ThrowLoop({ bodies, recordLaunch }: {
   // On release the whole roll is simulated offline from the dice's current poses, then replayed one recorded
   // step per physics step: a real roll in real time, whose result is published the moment it ends.
   useBeforePhysicsStep(() => {
-    const { gesture, throwId, launch, dice, publish } = useDice.getState();
+    const { gesture, throwId, launch, dice, publish, omenTest } = useDice.getState();
     if (gesture.phase !== 'rolling' || !launch) return;
     const current = live();
     if (play.current?.throwId !== throwId) {
       if (current.length !== dice.length) return;
       const start = bodyStates(current).map(({ p, q }) => ({ p, q }));
-      const request: RollRequest = { dice, start, launch, customs: customsOf(dice) };
+      const request: RollRequest = { dice, start, launch, customs: customsOf(dice), ...(omenTest && { bias: { test: omenTest, kinds: omenKinds(dice) } }) };
       play.current = { throwId, request, rec: null, at: 0, sent: performance.now() };
       useDice.getState().setError(null);
       if (worker.current) worker.current.postMessage(request);
-      else play.current.rec = presimulate(dice, start, launch);
+      else play.current.rec = presimulateFor(request, BIAS_BUDGET.local);
       recordLaunch({ before: start, after: bodyStates(current).map(({ p, q }) => ({ p, q })) });
     }
     const { rec } = play.current;
-    if (!rec) { if (performance.now() - play.current.sent > WORKER_TIMEOUT) fallback(); return; }
+    if (!rec) { if (performance.now() - play.current.sent > WORKER_TIMEOUT + (play.current.request.bias ? BIAS_BUDGET.worker : 0)) fallback(); return; }
     rec.frames[play.current.at].forEach(({ p, q }, i) => {
       current[i].setNextKinematicTranslation({ x: p[0], y: p[1], z: p[2] });
       current[i].setNextKinematicRotation({ x: q[0], y: q[1], z: q[2], w: q[3] });
