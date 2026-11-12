@@ -183,4 +183,6 @@ Brilho reforçado a pedido do João (aditivo, cor puxada para #FFE38A, pulso che
 
 Brilho por face (a pedido da sessão principal, após o D5Shard real acender só metade de cada número): `upInk` decide pela face do sólido de menor folga sob o centro de cada triângulo de tinta, não pela normal do triângulo, então a gravação acende inteira ou não acende. Nenhum caso de aresta entre duas faces errou nos testes; não foi visto no D5Shard real.
 
+Máscara de tinta na forma livre: no D5Shard real (R=0,85), ~58% dos ~8.000 triângulos afundados das 5 faces das pontas caíam só por `INTERIOR` (folga da 2ª face de 0,046 a 0,08 R), enquanto os chanfros ficam até 0,021 R. Decisão (sessão principal): `INTERIOR_FREE = 0.03` só para a base `livre`; d4–d20 seguem em 0,08.
+
 **Gate:** `npm run build && npm run lint && npm test` verde em todas as tarefas (322 testes). **E2E** (`import`, `coin`, `smoke`): 17 testes, 16 passaram na rodada única e 1 falhou (o do shard, pelo item acima, erro do teste); depois de ajustar, esse teste foi rodado sozinho e passou.

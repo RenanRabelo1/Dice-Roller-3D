@@ -331,14 +331,17 @@ export function withReadable(poly: Polyhedron, readable: Vec3[] | null): Polyhed
 // Does the model have numerals cut into (or raised from) its faces? A numeral leaves vertices well below the plane
 // of a face, in the middle of it. An edge chamfer also sits below the planes, but near an edge, so it does not count.
 const DENT = 0.01, INTERIOR = 0.08, MIN_DENTS = 8;
+// A free-form die's numerals often sit on narrow faces, close to an edge. Measured on a real D5 shard: edge chamfers stay
+// within 0.021 R of the second face, numerals start at 0.046 R. (d4–d20 keep INTERIOR.)
+const INTERIOR_FREE = 0.03;
 // Is this model point sunk into the middle of a face (a numeral), by the rule above? `at(k)` is its coordinate k.
 function dentTester({ poly, fit }: Solid): (at: (k: number) => number) => boolean {
-  const R = RADIUS[poly.shape];
+  const R = RADIUS[poly.shape], interior = poly.shape === 'livre' ? INTERIOR_FREE : INTERIOR;
   const planes = poly.faces.map((f) => ({ n: f.normal, d: dot3(f.normal, f.center) }));
   return (at) => {
     const p: Vec3 = [0, 1, 2].map((k) => (at(k) - fit.center[k]) * fit.scale) as Vec3;
     const slack = planes.map((pl) => pl.d - dot3(pl.n, p)).sort((a, b) => a - b);
-    return slack[0] > DENT * R && slack[1] > INTERIOR * R;
+    return slack[0] > DENT * R && slack[1] > interior * R;
   };
 }
 
