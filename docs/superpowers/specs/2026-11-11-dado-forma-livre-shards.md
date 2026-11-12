@@ -29,7 +29,7 @@ Separar **faces de apoio** (onde o dado pode parar; formam o sólido) de **faces
 | ID | Requisito |
 |---|---|
 | S1 | `detectFree` informa `tier`: o número de faces grandes quando há camadas, ou `null` |
-| S2 | Há camada quando, com as áreas das faces de apoio em ordem decrescente, existe o menor `k ≥ 3` com `area[k] < 0,65 × area[k−1]`, as `k` primeiras estão a no máximo 1,3× umas das outras (`area[0] ≤ 1,3 × area[k−1]`) e sobra pelo menos uma face depois delas |
+| S2 | Há camada quando, com as áreas das faces de apoio em ordem decrescente, existe o menor `k ≥ 3` com `area[k] < 0,70 × area[k−1]` (constante `TIER_DROP`), as `k` primeiras estão a no máximo 1,3× umas das outras (`area[0] ≤ 1,3 × area[k−1]`) e **sobram pelo menos `k` faces** depois delas (as pontas de um shard vêm em camadas de `k`; um prisma de 7 faces com tampas pequenas sobra só 2 e não é camada). Áreas medidas nos polígonos do sólido ideal. Revisado em 2026-11-12: 0,65 não pegava o D7Shard real (razão 0,657) |
 | S3 | Com camada, o assistente mostra "Encontrei K faces grandes e M menores (pontas). Usar só as grandes como resultado?" com **Sim, só as grandes** (principal) e **Não, todas** |
 | S4 | Só as faces de leitura entram na calibração, na numeração automática, nos rótulos (`labelList`) e no tamanho do numeral |
 | S5 | `readUp` com `readsDown` escolhe entre as faces de leitura |
