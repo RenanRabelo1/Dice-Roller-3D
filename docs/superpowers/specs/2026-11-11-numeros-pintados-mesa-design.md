@@ -98,3 +98,54 @@ Resultado: num STL, o número é só relevo numa gema translúcida e some com a 
 4. Assistente e botão Tinta em "Meus dados".
 5. Docs: `docs/contexto/dados.md`.
 6. **E2E só no fim**, uma rodada, depois de pedir horário à sessão principal.
+
+## 11. Tarefas (guia de implementação)
+
+Cada tarefa é um commit. Faça na ordem e não pule a verificação. Comece **depois** que a spec de forma livre estiver commitada: o `dentTester` usa `RADIUS[poly.shape]`, e a forma `'livre'` precisa existir.
+
+### T1 · Máscara de tinta por triângulo
+**Arquivo:** `src/dice/importer.ts`; teste em `tests/importer.test.ts`.
+1. `export function inkTriangles(positions: ArrayLike<number>, solid: Solid): Uint8Array` — 9 números por triângulo em `positions`; para cada triângulo, teste o **centro** dele (média dos 3 vértices) com o `dentTester(solid)` que já existe; `1` se for gravação, `0` se não.
+2. Reescreva `inkOf` em cima dela: para cada triângulo marcado, preencha `1` nos 9 valores dele (a prévia do assistente continua igual).
+
+**Verificar:** helper em `tests/helpers/models.ts` que grava um "número" (afunda um quadradinho no meio de uma face do d20 sintético) → `inkTriangles` marca só os triângulos do quadradinho; d20 liso → nenhum; d20 só chanfrado → nenhum.
+
+### T2 · Campos de tinta e acabamento
+**Arquivos:** `src/dice/custom.ts`; teste em `tests/custom.test.ts`.
+1. `CustomDie` ganha `ink?: 'auto' | 'ouro' | 'escura' | 'branca' | 'nenhuma'` e `finish?: 'gema' | 'fosco'`. Sem mudar `version`.
+2. `export const INK_COLORS = { ouro: '#D4A93F', escura: '#1B1A16', branca: '#F2EEE4' } as const;`
+3. `export function inkColorOf(die: CustomDie, gem: string): string | null` — `null` se `!die.printed` ou `ink === 'nenhuma'`; `'auto'` ou ausente → luminância relativa da cor da gema (`new Color(gem).getHSL` ou a fórmula `0.2126 r + 0.7152 g + 0.0722 b` em linear) > 0,5 → escura, senão ouro; os demais → `INK_COLORS[ink]`.
+4. `export const finishOf = (die: CustomDie) => die.finish ?? 'gema';`
+
+**Verificar:** registro sem os campos → tinta automática quando `printed`, nada quando não; gema clara (`#E8F1F8`) → escura; gema escura (`#231C20`) → ouro.
+
+### T3 · Máscara calculada uma vez por dado
+**Arquivo:** `src/dice/importer.ts` → `modelObject(die)`.
+1. Depois do `readModel`, percorra as malhas do objeto (`traverse`); se a geometria for indexada, troque por `geometry.toNonIndexed()`; monte as posições **no espaço do modelo** aplicando `mesh.matrixWorld` (como `collect` faz) e guarde `mesh.userData.ink = inkTriangles(posições, { poly: die.poly, fit: die.fit })`.
+2. Isso fica no cache que `modelObject` já tem (uma vez por dado).
+
+**Verificar:** `npm test` verde (sem teste novo: coberto por T1 e pelo E2E).
+
+### T4 · Material e cores na mesa
+**Arquivo:** `src/scene/Die.tsx` → `useModel`, `GemMaterial`.
+1. Leia `tinta = inkColorOf(custom, color)` e `acabamento = finishOf(custom)`.
+2. **STL:** clone a geometria do modelo por dado (hoje ela é compartilhada) e crie o atributo `color` (3 floats por vértice): cor da gema fora da gravação, cor da tinta dentro (use `mesh.userData.ink` da T3). Material: `color` branco + `vertexColors`. `acabamento === 'gema'` → o `meshPhysicalMaterial` de hoje com `vertexColors`; `'fosco'` → `meshStandardMaterial` com `vertexColors`, `roughness 0.8`, `metalness 0`, `transparent` ligado e `opacity 1` (o retorno à mão mexe na opacidade). Sem tinta: sem atributo `color` e o material de hoje.
+3. **GLB:** nos clones que já existem, crie `color` = branco fora da gravação e cor da tinta dentro; `material.vertexColors = true; material.needsUpdate = true`. Acabamento não se aplica.
+4. Trocar só a tinta → reescreva o array do atributo e `needsUpdate = true` (sem recriar material). Trocar acabamento → troca o material.
+5. **Shaders:** sempre que criar material novo ou ligar `vertexColors`, compile antes de mostrar: `const { gl, camera, scene } = useThree(); await gl.compileAsync(objeto, camera, scene);` e só então torne visível (veja como `src/scene/Tray.tsx` faz com a mesa importada).
+
+**Verificar:** `npm run build && npm run lint && npm test`; no `npm run dev`, importar um d20 com números gravados e conferir a tinta na mesa.
+
+### T5 · Interface
+**Arquivos:** `src/ui/ImportDie.tsx`, `src/ui/Controls.tsx`, `src/store.ts`.
+1. Assistente, passo Salvar (`step === 'save'`), só quando `printed`: grupo "Tinta dos números" com Automática · Dourada · Escura · Branca · Sem tinta; para STL, grupo "Acabamento" com Gema · Fosco. Para GLB cujo material tem `map`, mostre só Escura e Sem tinta.
+2. `store.ts`: `updateCustom: (die: CustomDie) => Promise<string | null>`, igual ao `addCustom` (salva com `saveCustomDie`, chama `registerCustom`, atualiza `customs`), sem mexer na seleção.
+3. `Controls.tsx`, grupo "Meus dados": ao lado do botão de excluir de cada importado com `printed`, um botão **Tinta** que abre as mesmas opções (um `details`/`popover` simples) e chama `updateCustom({ ...die, ink, finish })`. O dado na mesa muda na hora (o `Die` relê `customDie(kind)`).
+
+**Verificar:** `npm run build && npm run lint`; manual no `npm run dev`.
+
+### T6 · Documentação
+`docs/contexto/dados.md`: parágrafo "Tinta e acabamento do dado importado". Seção "Implementação e medições" no fim desta spec (inclua a medição de desempenho com 10 dados pintados, feita com o método rAF do `docs/performance-coins.md`, depois de pedir horário à sessão principal).
+
+### T7 · E2E (só no fim, junto com a rodada da forma livre)
+Em `e2e/import.spec.ts`: importar o d20 gravado sintético → na mesa, a cor de um pixel no centro de um número é a da tinta; trocar a tinta em "Meus dados" muda o pixel sem recarregar; fosco → `__dice` informa material opaco. Esses testes entram na rodada única do fim.

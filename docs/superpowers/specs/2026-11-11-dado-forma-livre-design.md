@@ -100,7 +100,7 @@ Importar dados que **não** são d4–d20: d3, d5, d7, d30, dado-caveira, crista
 | Faces muito diferentes | aviso L7; importa se o jogador confirmar |
 | Faces instáveis (o dado não para nelas) | ignoradas na calibração; o assistente mostra quantas ignorou |
 | Valor fora de −99..999 ou vazio | não avança a calibração, com a mensagem |
-| Forma côncava (estrela, caveira com cavidades) | física pelo casco convexo; aviso "a física usa o contorno externo do modelo" |
+| Forma côncava (estrela, caveira com cavidades) | física pelo casco convexo; a tela de forma livre sempre mostra a nota "A física usa o contorno externo do modelo." (sem tentar detectar concavidade) |
 | Dado para numa face ignorada (raro, instável) | a física resolve: a face instável não é posição final de parada; se mesmo assim acontecer no timeout, vale a face mais próxima de baixo |
 
 ## 7. Testes
@@ -137,3 +137,79 @@ Importar dados que **não** são d4–d20: d3, d5, d7, d30, dado-caveira, crista
 5. Notação por apelido.
 6. Docs: `docs/contexto/dados.md` (forma livre) e `arremesso.md` (leitura por baixo).
 7. **E2E só no fim**, uma rodada, depois de pedir horário à sessão principal (a porta 5179 é única).
+
+## 11. Tarefas (guia de implementação)
+
+Cada tarefa é um commit. Faça na ordem e não pule a verificação. Nomes de função e de arquivo são os do código atual (`dev-jg`).
+
+### T1 · Forma `'livre'` sem mudar nada do que existe
+**Arquivos:** `src/dice/polyhedra.ts`, `src/dice/custom.ts`, `src/scene/Die.tsx`, `src/scene/Hand.tsx`, `src/physics/presim.ts`.
+1. `polyhedra.ts`: `Shape` ganha `'livre'`; `RADIUS.livre = 0.85`. `interface Polyhedron` ganha `readsDown?: boolean` e `font?: number`.
+2. `fromTriangles(shape, verts, numbering)`: quando `shape === 'livre'`, **não** rode o laço de opostas (hoje ele usa `OPPOSITE_SUM[shape] ?? 0` e daria valores negativos). Valores = `numbering?.values?.[i] ?? i + 1`. `marked` (ponto no 6/9) fica falso. Os rótulos seguem o ramo das faces (não o do d4).
+3. Nova `export const staysOnTray = (kind: DieKind) => kind === 'coin' || baseOf(kind) === 'livre';` em `polyhedra.ts`. Em `Hand.tsx`, troque `if (state.dice[i] === 'coin')` (showcase, perto da linha 237) por `if (staysOnTray(state.dice[i]))`. As outras comparações com `'coin'` (símbolo perto da linha 198, colisor em `presim.ts`, soma em `notation.ts`) **não mudam**.
+4. `custom.ts`: `CustomBase` ganha `'livre'`.
+5. `Die.tsx`: `FONT` ganha `livre: 0.3` (só fallback). Onde usa `FONT[model.shape]`, use `model.font ?? FONT[model.shape]`. Em `Hand.tsx` (perto da linha 206), `FONT[poly.shape] / HL_SIZE` vira `(poly.font ?? FONT[poly.shape]) / HL_SIZE`.
+6. `presim.ts`: `const damp = poly.shape === 'livre' ? (poly.faces.length > 20 ? DAMPING.d100 : undefined) : DAMPING[poly.shape];` e use `damp?.linear ?? 0` / `damp?.angular ?? 0`.
+
+**Verificar:** `npm run build && npm run lint && npm test`; todos os testes atuais passam sem alteração. Acrescente em `tests/polyhedra.test.ts`: `staysOnTray('coin')` é `true` e `staysOnTray('d20')` é `false`.
+
+### T2 · Detecção de forma livre e sólido ideal
+**Arquivo:** `src/dice/importer.ts`; testes em `tests/importer.test.ts` e helpers em `tests/helpers/models.ts`.
+1. `ImportError` ganha código opcional: `export class ImportError extends Error { constructor(message: string, readonly code?: 'nao-padrao') { super(message); } }`. `detectPlanes` lança com `code` `'nao-padrao'` (mesma mensagem de hoje).
+2. Helpers internos novos:
+   - `facePolygon(plane, pts): Vec3[]`: os cantos (`corners`) que estão no plano, ordenados por ângulo (mesmo código que `idealSolid` já usa para montar o anel).
+   - `volumeCentroid(tris: Vec3[]): Vec3`: escolha `o` = média dos cantos; para cada triângulo `(a, b, c)`, volume `v = dot(a−o, cross(b−o, c−o)) / 6` e centroide `(o+a+b+c)/4`; resultado = `Σ v·centroide / Σ v`.
+   - `insideConvex(p, ring, n): boolean`: `p` projetado no plano está dentro do polígono convexo `ring` se, para todas as arestas `(r_i, r_{i+1})`, `dot(n, cross(r_{i+1}−r_i, p−r_i)) >= −1e-9`.
+3. `export function detectFree(positions: Float32Array): { planes: Plane[]; dropped: number; uneven: boolean }`:
+   ```
+   faces = flatFaces(positions)                     // já vêm ordenadas por área
+   keep  = faces com area >= 0.10 * faces[0].area
+   dropped = 0
+   repetir até 3 vezes:
+     pts = corners(keep); se pts.length < 4 → ImportError("Esse modelo não tem faces planas para o dado parar.")
+     tris = anel de cada plano (facePolygon) triangulado em leque
+     c = volumeCentroid(tris)
+     instaveis = planos de keep em que insideConvex(c, facePolygon(plano, pts), plano.n) é falso
+     se nenhum → parar; senão tirar de keep e somar em dropped
+   se keep.length < 3 ou > 60 → ImportError("Encontrei N faces de apoio; um dado de forma livre precisa de 3 a 60.")
+   areas = área de cada facePolygon; uneven = max(areas) > 2 * min(areas)
+   ```
+4. `idealSolid(base, found)`: ramo novo no início para `base === 'livre'`: `pts = corners(found)`; `center = volumeCentroid(tris)`; desloque os planos (`d − dot(n, center)`); recalcule `pts`; `scale = RADIUS.livre / max(|p|)`; triângulos em leque escalados; `poly = fromTriangles('livre', tris)`; depois `poly.readsDown = true` e `poly.font = 0.45 * menorInraio`, onde o inraio de uma face é a menor distância do centro da face (já escalada) às arestas dela. Retorne `{ poly, fit: { center, scale } }`. **Não** chame `symmetrise` nesse ramo. A checagem `faces !== FACES[base]` vira `poly.faces.length !== found.length` para `'livre'`.
+5. `importModel(bytes, format, mode: 'padrao' | 'livre' = 'padrao')`: `'padrao'` faz como hoje; `'livre'` usa `detectFree` + `idealSolid('livre', planes)`; `Imported` ganha `dropped?: number` e `uneven?: boolean`. `looksNumbered` continua valendo (usa `RADIUS[poly.shape]`, que agora tem `livre`).
+6. `tests/helpers/models.ts`: `prismTriangles(sides: number, height: number): Vec3[]` (prisma reto de base regular) e `planesSolid(normals: Vec3[]): Vec3[]` (sólido pelos planos `n·x = 1`, triangulado). Triacontaedro rômbico: as normais são as 30 direções dos vértices do icosidodecaedro (permutações cíclicas de `(0, 0, ±φ)` e de `(±1/2, ±φ/2, ±φ²/2)`, normalizadas).
+
+**Verificar:** testes novos: prisma de 3 lados (5 faces), de 5 lados (7 faces), triacontaedro (30); prisma alto e fino com tampas pequenas → tampas descartadas por área ou estabilidade (`dropped > 0`); `planesSolid` com 2 e com 61 planos → erro; centroide em 0 (±1e-6) e circunraio 0,85 (±1e-6); `detectPlanes` num prisma de 5 faces lança com `code === 'nao-padrao'`. `npm test` verde.
+
+### T3 · Leitura pela face de baixo e valores livres
+**Arquivos:** `src/dice/read.ts`, `src/dice/importer.ts`, `tests/read.test.ts`, `tests/physics.test.ts`.
+1. `readUp(poly, q)`: `const s = poly.readsDown ? -1 : 1;` e no laço `const y = s * new Vector3(...c.v).applyQuaternion(rot).dot(UP);`. O `tilt` continua `Math.acos(Math.min(1, best.y))`. Nada mais muda.
+2. `importer.ts`: `export function checkFreeValue(v: number): string | null` → inteiro entre −99 e 999, senão "Use um número inteiro de -99 a 999."; `export function checkFreeValues(values: number[], count: number): string | null` → todos presentes e válidos, **repetição permitida**; faltando → "Faltam números.".
+3. `askOrder(poly)`: se `poly.readsDown`, devolva os índices das faces ordenados por área decrescente (sem pares).
+4. Teste de leitura: para cada face de um prisma de 5 faces, o quaternion que leva a normal da face para `(0, −1, 0)` lê o valor dela.
+5. Teste de física: `customDieOf` (helper existente) com um prisma de 7 faces calibrado 1..7 → `simulate` com 3 sementes → dentro da bandeja, resultado entre 1 e 7, mesma semente dá o mesmo resultado.
+
+**Verificar:** `npm test` verde.
+
+### T4 · Assistente
+**Arquivo:** `src/ui/ImportDie.tsx` (passos `'file' | 'shape' | 'numbers' | 'save'`).
+1. No `catch` do import (perto da linha 153), se `e instanceof ImportError && e.code === 'nao-padrao'`, guarde os bytes e mostre no passo `'shape'`: "Esse modelo não é um d4–d20." + botão **Importar como dado de forma livre**, que chama `importModel(bytes, format, 'livre')`.
+2. Tela de forma livre: "Encontrei N faces de apoio" (+ "Ignorei K faces onde o dado não para" se `dropped > 0`), o aviso L7 se `uneven`, e a nota fixa "A física usa o contorno externo do modelo.".
+3. Numeração com `readsDown`: pergunta "Que número você lê com ele apoiado assim?"; sem sugestão de oposta (`suggested` falso); validação com `checkFreeValue`/`checkFreeValues`; a orientação da prévia usa a normal **negada** (`orientation(neg(normal), up)`), para a face perguntada ficar de costas para a câmera, como se o dado estivesse apoiado nela e você olhasse de cima. "Não, numerar para mim" continua (valores 1..N na ordem por área).
+4. Passo Salvar: sem a opção de presságio; `base: 'livre'`, `omens: false`.
+
+**Verificar:** `npm run build && npm run lint`; teste manual no `npm run dev` (sem Playwright) com um prisma gerado pelo helper salvo em `temp/`.
+
+### T5 · Chat e nomes
+**Arquivo:** `src/dice/notation.ts`, `tests/notation.test.ts`.
+1. `parseDice`: a lista `words` hoje monta `${d.poly.shape.slice(1)}${d.slug}` para todo importado. Exclua dela os que têm `poly.shape === 'livre'` e trate-os como a moeda: antes do ramo `^(\d*)d`, teste `^(\d*)<apelido>` para cada livre (do apelido mais longo ao mais curto).
+2. `dieName(kind)`: livre → só o `name` ("Caveira"), sem prefixo de forma.
+3. `formatDice`: livre → `${n} ${name}` ("2 Caveira").
+4. `resultText`: livre soma no total como dado normal.
+
+**Verificar:** testes: `2caveira` e `2 caveira` dão dois dados; `caveira + d20` funciona; apelido `moeda` é recusado por `slugProblem` (inclua `moeda` e `boladefogo` na lista de reservados se faltar).
+
+### T6 · Documentação
+`docs/contexto/dados.md`: seção "Dado de forma livre" (detecção, leitura por baixo, valores livres, fica na mesa). `docs/contexto/arremesso.md`: uma linha sobre `readsDown` em `readUp`. Acrescente a seção "Implementação e medições" no fim desta spec.
+
+### T7 · E2E (só no fim, depois de pedir horário à sessão principal)
+Em `e2e/import.spec.ts`, um teste: gerar um prisma de 5 faces com o helper → importar → **Importar como dado de forma livre** → **Não, numerar para mim** → rolar com Espaço → o valor publicado é o da face cuja normal girada tem o menor `y` (via `__dice.bodies()` + `labels`) → `showcased` avança sem o dado sair do lugar → recarregar mantém. Depois, uma rodada da suíte inteira, coletando as falhas sem corrigir, e o relatório para a sessão principal.
