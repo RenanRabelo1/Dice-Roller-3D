@@ -2,7 +2,7 @@
 
 Cobre `src/dice/*`, `scene/Die.tsx` e `ui/Chat.tsx`/`ui/Controls.tsx`. Tudo em `dice/` é puro (sem React) e testado em Node.
 
-## Tipos (`dice/polyhedra.ts`)
+## Tipos (`dice/kinds.ts`, reexportados por `dice/polyhedra.ts`)
 
 ```ts
 Shape       = 'd4'|'d6'|'d8'|'d10'|'d12'|'d20'|'d100'|'coin'  // corpo físico
@@ -11,6 +11,8 @@ DieKind     = BuiltinKind | `custom:${string}`                 // o que o jogado
 KINDS       = os embutidos em ordem canônica; allKinds() = KINDS + importados (ordem de criação)
 BASE        = só os embutidos (vtm, hunger → d10; fire → d6); use baseOf(kind), que também cobre importados
 ```
+
+`kinds.ts` não tem código 3D porque a API (`server/`) também o importa, junto com `omen.ts`. Por isso esses dois arquivos importam com extensão `.ts` e não podem depender de `three` nem do registro de importados (`custom.ts`).
 
 Dado personalizado = mesmo corpo/numeração/leitura do `BASE`; muda só a aparência (cor, tinta, símbolos).
 
@@ -92,11 +94,13 @@ Assistente (`ImportDie.tsx`): na pergunta de numeração a prévia fica fosca e 
 
 Cena: `Die.tsx` mostra o sólido ideal até o arquivo ser lido (import dinâmico de `importer`, chunk separado) e então a malha: STL com o material de gema na `color`; GLB com os próprios materiais, clonados e `transparent` (o retorno anima a opacidade). `printed: true` não desenha numerais, só âncoras invisíveis em `userData.labels` (test hook e showcase acham a face pelo valor).
 
-Presságios: `isD20(kind)` (`omen.ts`) = d20 embutido ou importado de base d20 com `omens: true` (padrão ligado). d100 e moeda continuam só embutidos.
+Presságios: `isD20(kind)` (`omen.ts`) = d20 embutido ou importado de base d20 com `omens: true` (padrão ligado). `registerCustom` mantém esse conjunto (`omenD20s` em `kinds.ts`). d100 e moeda continuam só embutidos.
+
+Histórico: um dado importado vai para a API como `{ kind: 'custom:<id>', base, omens, value }`; o servidor valida o valor pela `base` e só conta presságio se `base === 'd20' && omens`.
 
 ## Receita: adicionar um dado novo
 
-1. `polyhedra.ts`: incluir em `DieKind` e `KINDS` (posição = ordem na UI); `BASE`; se for shape novo, `Shape`, `RADIUS`, `rawTriangles`/construtor e `OPPOSITE_SUM`. Símbolos → `SYMBOL` + `SymbolName` + desenho em `symbols.ts`.
+1. `kinds.ts`: incluir em `BuiltinKind` e `KINDS` (posição = ordem na UI); `BASE`; se for shape novo, `Shape` e `SIDES`. `polyhedra.ts`: se for shape novo, `RADIUS`, `rawTriangles`/construtor e `OPPOSITE_SUM`. Símbolos → `SYMBOL` + `SymbolName` + desenho em `symbols.ts`.
 2. `Die.tsx`: `GEM` (obrigatório, é `Record`), `FONT` se shape novo, `INK`/`EMBER` se preciso.
 3. `notation.ts`: sufixo em `AFTER_D` (mantendo do mais longo ao mais curto) e nome em `CUSTOM`; atualizar a mensagem de erro e a dica do `Chat.tsx`.
 4. `read.ts`: só se a regra de valor mudar.

@@ -17,24 +17,32 @@ import { Hand } from './Hand';
 import { Omens } from './Omens';
 import { omenKind } from '../dice/omen';
 import { customKind } from '../dice/custom';
-import { customsOf } from '../dice/polyhedra';
+import { customsOf, MAX_DICE } from '../dice/polyhedra';
+import { VORTEX, vortexCenter, vortexRadius } from '../throw/vortex';
+
+const WORKER_TIMEOUT = 2000; // ms; a ten-dice recording takes well under 200 ms
 
 function ThrowLoop({ bodies, recordLaunch }: {
   bodies: RefObject<(RapierRigidBody | null)[]>;
   recordLaunch: (last: NonNullable<ReturnType<DiceHook['launches']>['last']>) => void;
 }) {
-  const play = useRef<{ throwId: number; request: RollRequest; rec: Recording | null; at: number } | null>(null);
+  const play = useRef<{ throwId: number; request: RollRequest; rec: Recording | null; at: number; sent: number } | null>(null);
   const worker = useRef<Worker | null>(null);
-  useEffect(() => {
-    const fallback = () => {
-      worker.current?.terminate(); worker.current = null;
-      const pending = play.current, state = useDice.getState();
-      // A blocked/unsupported worker still gets a real roll. Discard cancelled selections.
-      if (pending && !pending.rec && pending.throwId === state.throwId && state.gesture.phase === 'rolling') {
-        const { dice, start, launch } = pending.request;
-        pending.rec = presimulate(dice, start, launch);
+  // A blocked, failed or silent worker still gets a real roll, here; discard cancelled selections.
+  // If the engine itself fails, the throw is dropped and the dice go back to the hand.
+  const fallback = useCallback(() => {
+    worker.current?.terminate(); worker.current = null;
+    const pending = play.current, state = useDice.getState();
+    if (pending && !pending.rec && pending.throwId === state.throwId && state.gesture.phase === 'rolling') {
+      const { dice, start, launch } = pending.request;
+      try { pending.rec = presimulate(dice, start, launch); } catch (error) {
+        console.error(error);
+        state.setDice(state.dice);
+        state.setError('physics');
       }
-    };
+    }
+  }, []);
+  useEffect(() => {
     try {
       const w = new Worker(new URL('../physics/presim.worker.ts', import.meta.url), { type: 'module' });
       worker.current = w;
@@ -48,7 +56,7 @@ function ThrowLoop({ bodies, recordLaunch }: {
       w.onmessageerror = fallback;
     } catch { fallback(); }
     return () => { worker.current?.terminate(); worker.current = null; };
-  }, []);
+  }, [fallback]);
   const live = () => bodies.current.filter((b): b is RapierRigidBody => b !== null && b.isValid());
   // On release the whole roll is simulated offline from the dice's current poses, then replayed one recorded
   // step per physics step: a real roll in real time, whose result is published the moment it ends.
@@ -60,13 +68,14 @@ function ThrowLoop({ bodies, recordLaunch }: {
       if (current.length !== dice.length) return;
       const start = bodyStates(current).map(({ p, q }) => ({ p, q }));
       const request: RollRequest = { dice, start, launch, customs: customsOf(dice) };
-      play.current = { throwId, request, rec: null, at: 0 };
+      play.current = { throwId, request, rec: null, at: 0, sent: performance.now() };
+      useDice.getState().setError(null);
       if (worker.current) worker.current.postMessage(request);
       else play.current.rec = presimulate(dice, start, launch);
       recordLaunch({ before: start, after: bodyStates(current).map(({ p, q }) => ({ p, q })) });
     }
     const { rec } = play.current;
-    if (!rec) return;
+    if (!rec) { if (performance.now() - play.current.sent > WORKER_TIMEOUT) fallback(); return; }
     rec.frames[play.current.at].forEach(({ p, q }, i) => {
       current[i].setNextKinematicTranslation({ x: p[0], y: p[1], z: p[2] });
       current[i].setNextKinematicRotation({ x: q[0], y: q[1], z: q[2], w: q[3] });
@@ -87,12 +96,12 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
   const selected = useDice((state) => state.dice);
   const key = selected.join(',');
   const { camera, size, scene, gl, setDpr, viewport: { initialDpr, dpr } } = useThree();
-  const desiredDpr = useRef(initialDpr);
+  const desiredDpr = useRef(initialDpr), maxDpr = useRef(initialDpr);
   useLayoutEffect(() => {
     const context = gl.getContext(), debug = context.getExtension('WEBGL_debug_renderer_info');
     const renderer = context.getParameter(debug ? debug.UNMASKED_RENDERER_WEBGL : context.RENDERER) as string;
     // SwiftShader cannot afford a full-resolution first throw or a late buffer resize on pickup.
-    if (/swiftshader/i.test(renderer)) { desiredDpr.current = 0.35; setDpr(0.35); }
+    if (/swiftshader/i.test(renderer)) { desiredDpr.current = maxDpr.current = 0.35; setDpr(0.35); }
   }, [gl, setDpr]);
   const bodies = useRef<(RapierRigidBody | null)[]>([]);
   const launches = useRef<ReturnType<DiceHook['launches']>>({ count: 0, last: null });
@@ -101,7 +110,7 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
     launches.current = { count: launches.current.count + 1, last };
   }, []);
   const adjustDpr = (scale: number) => {
-    desiredDpr.current = Math.min(initialDpr, Math.max(0.35, desiredDpr.current * scale));
+    desiredDpr.current = Math.min(maxDpr.current, Math.max(0.35, desiredDpr.current * scale));
   };
   useFrame(() => {
     if (desiredDpr.current === dpr) return;
@@ -134,6 +143,13 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
           }
         }
       }
+      // ...and the widest whirl, aimed to either side.
+      for (const side of [-1, 1]) {
+        const c = vortexCenter(MAX_DICE, side * TRAY.halfWidth), R = vortexRadius(MAX_DICE);
+        for (const x of [-1, 1]) for (const y of [-1, 1]) for (const z of [-1, 1]) {
+          corners.push(c.map((v, k) => v + [x, y, z][k] * (R * VORTEX.squash[k] + MAX_RADIUS)) as Vec3);
+        }
+      }
       const halfFov = Math.tan(20 * Math.PI / 180) * 0.94;
       for (const [x, y, z] of corners) {
         const depth = (14 * y + 10 * z) / distance;
@@ -159,6 +175,7 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
           error: state.error, aim: state.aim, showcased: state.showcased,
           omen: state.omen?.throwId === state.throwId ? omenKind(state.omen) : null, omenDone: state.omenDone,
           omenTime: performance.now() - state.omenAt, trayBroken: scene.getObjectByName('tray-surface')?.visible === false,
+          burning: scene.getObjectByName('fire')?.visible === true,
         };
       },
       select: (next) => useDice.getState().setDice(next),
@@ -196,7 +213,7 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
       camera: () => camera.position.toArray(),
       numbersVisible: (index) => numbersOf(index)?.visible ?? false,
       highlights: () => (scene.getObjectByName('result-highlights')?.children ?? []).map((o) => ({
-        text: o instanceof Text ? o.text : null, visible: o.visible,
+        text: o instanceof Text ? o.text : null, visible: o.visible, position: o.position.toArray(),
       })),
       launches: () => launches.current,
       customs: () => useDice.getState().customs.map((d) => ({ kind: customKind(d.id), id: d.id, name: d.name, slug: d.slug, base: d.base, printed: d.printed })),

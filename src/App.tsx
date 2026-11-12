@@ -4,6 +4,7 @@ import { Stage } from './scene/Stage';
 import { Controls } from './ui/Controls';
 import { OmenOverlay } from './ui/OmenOverlay';
 import { useDice } from './store';
+import { saveRoll } from './api/history';
 
 export default function App() {
   const gameArea = useRef<HTMLDivElement>(null);
@@ -14,6 +15,10 @@ export default function App() {
     update(); media.addEventListener('change', update);
     return () => media.removeEventListener('change', update);
   }, []);
+  // Every published result goes to the roll history (when the app has an API address; see src/api/history).
+  useEffect(() => useDice.subscribe((s, prev) => {
+    if (s.results && s.results !== prev.results) saveRoll(s.dice, s.results, s.force);
+  }), []);
   return (
     <main className="app">
     <Controls />

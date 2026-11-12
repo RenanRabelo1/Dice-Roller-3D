@@ -4,20 +4,22 @@ import type { RapierRigidBody } from '@react-three/rapier';
 import {
   AdditiveBlending, BufferAttribute, BufferGeometry, CanvasTexture, CylinderGeometry, DoubleSide,
   ExtrudeGeometry, Group, LineSegments, Mesh, MeshBasicMaterial, MeshStandardMaterial, Path, PointLight,
-  Shape, Sprite, SpriteMaterial, Vector3, type Camera, type Material, type Scene, type WebGLRenderer,
+  Points, Shape, Sprite, SpriteMaterial, Vector3, type Camera, type Material, type PerspectiveCamera, type Scene, type WebGLRenderer,
 } from 'three';
-import { MAX_DICE, type DieKind } from '../dice/polyhedra';
+import { MAX_DICE } from '../dice/polyhedra';
 import { DUALITY_HIT, isD20, omenKind, omenMs } from '../dice/omen';
-import { useDice } from '../store';
+import { omenPlaying, useDice } from '../store';
+import { krakenIndices, span, stormIndices } from './krakenMotion';
 import { Kraken } from './Kraken';
+import { Fire } from './Fire';
+import { fireAt, fireIndices } from './fireMotion';
 
-// The 3D side of an omen, played after the dice settle and before the result shows:
-// lightning on a critical d20, a kraken under a critical d100, the yin-yang fish for duality (the fumble's
-// blood is a screen overlay, see OmenOverlay). Effect materials are compiled at mount and hidden
-// (0 draw calls) outside an omen. When the show ends it marks the omen done, and the result goes on.
+// The 3D side of an omen, played after the dice settle and before the result shows: lightning on a d20 20,
+// the kraken grabbing a d100 1, fire on a d20 1, the kraken's storm on a d100 100, the yin-yang fish for
+// duality (the rain, heat and shakes are screen overlays, see OmenOverlay). Effect materials are compiled at
+// mount and hidden (0 draw calls) outside an omen. When the show ends it marks the omen done, and the result goes on.
 
 const clamp01 = (t: number) => Math.min(1, Math.max(0, t));
-const span = (t: number, a: number, b: number) => clamp01((t - a) / (b - a));
 const easeOut = (t: number) => 1 - (1 - clamp01(t)) ** 3;
 const easeIn = (t: number) => clamp01(t) ** 3;
 
@@ -154,27 +156,29 @@ class TaiJi {
   hide() { this.group.visible = false; }
 }
 
-// `frame` plays the current omen and reports when it is over.
+// `frame` plays the current omen and reports when it is over. Fire outlives it: a die that rolled a 1 on a
+// d20 keeps burning at the front until it is picked up.
 class Show {
   readonly root = new Group();
   private map = glowTexture();
   private bolts = Array.from({ length: MAX_DICE }, () => new Bolt(this.map));
-  private kraken = new Kraken(this.map);
+  private kraken = new Kraken();
+  private fire = new Fire();
   private taiji = new TaiJi(this.map);
-  private light = new PointLight('#CFE6FF', 0, 10, 2);
-  private run: { throwId: number; at: number; ms: number; bolts: number; krakens: number; duality: boolean } | null = null;
+  private light = new PointLight('#CFE6FF', 0, 10, 2); // the one omen light (lightning or fire never play together)
+  private run: { throwId: number; at: number; ms: number; bolts: number; kraken: 'grab' | 'storm' | null; fire: number[]; duality: boolean; over: boolean } | null = null;
   constructor() {
     for (const b of this.bolts) this.root.add(b.glow, b.core, b.flash);
-    // Keep the light count constant: hiding the rupture must not recompile every die's shader.
-    this.root.add(this.kraken.root, this.kraken.light, this.taiji.group, this.light);
+    // Keep the light count constant: hiding an effect must not recompile every die's shader.
+    this.root.add(this.kraken.root, this.fire.root, this.taiji.group, this.light);
   }
   // Compile every effect's shader up front, so the first omen does not stall a frame.
   compile(gl: WebGLRenderer, scene: Scene, camera: Camera, draw = false) {
     if (draw) {
-      const target = new Vector3(0, 1, 0);
+      const target = new Vector3(0, 1, 0), here = () => target;
       this.bolts.forEach((b) => { b.start(target); b.update(70, camera.position); });
-      this.kraken.update(900, camera, () => target);
-      this.kraken.update(3300, camera, () => target);
+      this.kraken.start('grab', [target], 0); this.kraken.update(900, camera, here);
+      this.fire.start([0], [target]); this.fire.update(1500, here, 1000);
       this.taiji.update(1300, camera);
     }
     this.root.traverse((o) => { o.visible = true; });
@@ -184,33 +188,49 @@ class Show {
     // ANGLE finishes some pipelines on their first draw. Replace the warm-up before the browser paints.
     if (draw) gl.render(scene, camera);
   }
-  hide() { this.bolts.forEach((b) => b.hide()); this.kraken.hide(); this.taiji.hide(); this.light.intensity = 0; this.run = null; }
-  frame(now: number, camera: Camera, at: (i: number) => Vector3 | null): number | null {
+  hide() { this.bolts.forEach((b) => b.hide()); this.kraken.hide(); this.fire.hide(); this.taiji.hide(); this.light.intensity = 0; this.run = null; }
+  frame(now: number, camera: Camera, at: (i: number) => Vector3 | null, pixels: number): number | null {
     const s = useDice.getState(), o = s.omen;
-    if (!o || o.throwId !== s.throwId || s.gesture.phase !== 'settled' || s.omenDone === o.throwId) { if (this.run) this.hide(); return null; }
+    // This throw's omen, while its dice lie settled (after the show only the fire is left).
+    if (!o || o.throwId !== s.throwId || s.gesture.phase !== 'settled') { if (this.run) this.hide(); return null; }
     if (this.run?.throwId !== o.throwId) {
       this.hide();
-      const kind = omenKind(o), on = (is: (die: DieKind) => boolean) => (kind === 'crit' ? o.crits.filter((i) => is(s.dice[i])).map(at).filter((p): p is Vector3 => !!p) : []);
-      const lit = on(isD20), deep = on((die) => die === 'd100');
-      lit.forEach((p, i) => this.bolts[i].start(p));
-      if (deep.length) this.kraken.start(deep, o.crits.filter((i) => s.dice[i] === 'd100'));
-      if (lit[0]) this.light.position.copy(lit[0]).y += 1.2;
-      this.run = { throwId: o.throwId, at: s.omenAt, ms: omenMs(o, s.dice), bolts: lit.length, krakens: deep.length, duality: kind === 'duality' };
+      const kind = omenKind(o), positions = (indices: number[]) => indices.map(at).filter((p): p is Vector3 => !!p);
+      const lit = kind === 'crit' ? o.crits.filter((i) => isD20(s.dice[i])) : [];
+      const grab = krakenIndices(o, s.dice), storm = stormIndices(o, s.dice), fire = fireIndices(o, s.dice);
+      positions(lit).forEach((p, i) => this.bolts[i].start(p));
+      if (grab.length) this.kraken.start('grab', positions(grab), grab[0]);
+      else if (storm.length) this.kraken.start('storm', [], storm[0]);
+      if (fire.length) this.fire.start(fire, positions(fire));
+      const first = positions(lit)[0] ?? positions(fire)[0];
+      if (first) this.light.position.copy(first).y += 1.2;
+      this.light.color.set(fire.length ? '#FF7A2A' : '#CFE6FF');
+      this.run = { throwId: o.throwId, at: s.omenAt, ms: omenMs(o, s.dice), bolts: lit.length, kraken: grab.length ? 'grab' : storm.length ? 'storm' : null, fire, duality: kind === 'duality', over: false };
     }
     const r = this.run, t = now - r.at;
+    if (r.fire.length) { // burns on after the show, on the dice now at the front
+      this.fire.update(t, at, pixels);
+      const p = at(r.fire[0]);
+      if (p) this.light.position.copy(p).y += 1.2;
+      const flicker = 0.75 + 0.25 * Math.sin(t / 45) * Math.sin(t / 73);
+      this.light.intensity = (6 + 18 * fireAt(t, 1).tray) * fireAt(t, 1).die * flicker;
+    }
+    if (r.over || !omenPlaying(s)) return null;
     let striking = false;
     for (let i = 0; i < r.bolts; i++) striking = this.bolts[i].update(t, camera.position) || striking;
-    if (r.krakens) this.kraken.update(t, camera, at);
+    if (r.kraken) this.kraken.update(t, camera, at);
     if (r.duality) this.taiji.update(t, camera);
-    this.light.intensity = r.bolts ? (striking ? 30 : 0) + 10 * (1 - span(t, 0, 900)) : 0;
+    if (r.bolts) this.light.intensity = (striking ? 30 : 0) + 10 * (1 - span(t, 0, 900));
     if (t < r.ms) return null;
-    this.hide();
+    this.bolts.forEach((b) => b.hide()); this.kraken.hide(); this.taiji.hide();
+    if (!r.fire.length) this.light.intensity = 0;
+    r.over = true;
     return o.throwId;
   }
   dispose() {
     this.root.traverse((o) => {
-      if (o instanceof Mesh || o instanceof Sprite || o instanceof LineSegments) {
-        o.dispose();
+      if (o instanceof Mesh || o instanceof Sprite || o instanceof LineSegments || o instanceof Points) {
+        if ('dispose' in o && typeof o.dispose === 'function') o.dispose();
         o.geometry.dispose();
         for (const m of ([] as Material[]).concat(o.material)) m.dispose();
       }
@@ -229,7 +249,8 @@ export function Omens({ bodies }: { bodies: RefObject<(RapierRigidBody | null)[]
     if (!warmed.current && scene.environment && gl.info.render.frame > 5 && !useDice.getState().omen) {
       show.compile(gl, scene, camera, true); warmed.current = true;
     }
-    const done = show.frame(performance.now(), camera, (i) => { const b = bodies.current[i]; const p = b?.isValid() ? b.translation() : null; return p ? new Vector3(p.x, p.y, p.z) : null; });
+    const pixels = gl.domElement.height / (2 * Math.tan(((camera as PerspectiveCamera).fov * Math.PI) / 360));
+    const done = show.frame(performance.now(), camera, (i) => { const b = bodies.current[i]; const p = b?.isValid() ? b.translation() : null; return p ? new Vector3(p.x, p.y, p.z) : null; }, pixels);
     if (done !== null) useDice.getState().setOmenDone(done);
   });
   return <primitive object={show.root} />;

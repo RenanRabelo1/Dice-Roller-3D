@@ -23,7 +23,8 @@ Um store zustand `useDice`. Campos que importam:
 
 - `dice: DieKind[]` — seleção, um item por dado, sempre ordenada por `KINDS` (`sortDice`), 1..`MAX_DICE` (10).
 - `gesture`, `throwId`, `aim`, `force`, `launch`, `results`, `raw`.
-- `omen`, `omenAt`, `omenDone`, `showcased` — sincronizam apresentação (ver apresentacao.md).
+- `omen`, `omenAt`, `omenDone`, `showcased` — sincronizam apresentação (ver apresentacao.md); `omenPlaying(s)` diz se o presságio deste arremesso está na tela.
+- `error` — `'physics'` quando nem o worker nem o cálculo local conseguem simular (os dados voltam à mão e o painel avisa).
 - `reducedMotion` — vem de `prefers-reduced-motion` em `App.tsx`; desliga presságios e voo.
 
 Regras:
@@ -34,14 +35,14 @@ Regras:
 
 ## Linha do tempo de um arremesso
 
-1. **Mira** — `Hand.tsx` faz raycast do ponteiro no plano y=0 e grava `clampTarget(hit)`. Setas movem 0,5. A mão (dados cinemáticos) segue `aim.x` com suavização; balança e gira conforme a velocidade da mira (`omega`).
+1. **Mira** — `Hand.tsx` faz raycast do ponteiro no plano y=0 e grava `clampTarget(hit)`. Setas movem 0,5. Os dados na mão (cinemáticos) giram num redemoinho (`throw/vortex.ts`): cada um numa órbita inclinada (planos de Fibonacci, `ORBITS`) e girando no próprio eixo, separados entre si; o centro segue `aim.x` e a velocidade cresce com a carga. A mão balança conforme a velocidade da mira (`omega`).
 2. **Carga** — `pointerdown`/Espaço → `press`. A cada quadro `force = charge(agora - chargeStart)` (onda triangular 0→1→0, ciclo 1400 ms). A seta (`ArrowHelper`) muda de cor/tamanho com a força.
 3. **Soltura** — `release` → store cria `Launch` com `handCenter`/`handOmega` reais.
-4. **Pré-simulação** — `ThrowLoop` (em `Stage.tsx`, dentro de `useBeforePhysicsStep`) detecta `throwId` novo, captura as poses atuais dos corpos e manda `RollRequest { dice, start, launch, customs }` ao worker (`presim.worker.ts`). Sem worker → `presimulate` síncrono na thread principal (fallback).
+4. **Pré-simulação** — `ThrowLoop` (em `Stage.tsx`, dentro de `useBeforePhysicsStep`) detecta `throwId` novo, captura as poses atuais dos corpos e manda `RollRequest { dice, start, launch, customs }` ao worker (`presim.worker.ts`). Sem worker, ou sem resposta em 2 s (`WORKER_TIMEOUT`) → `presimulate` síncrono na thread principal (fallback); se ele também falhar, os dados voltam à mão com `error: 'physics'`.
 5. **Replay** — a cada passo físico aplica `rec.frames[at]` via `setNextKinematicTranslation/Rotation`. Os corpos da cena continuam **cinemáticos** o tempo todo; quem simula dinâmica é só o mundo offline.
 6. **Publicação** — no último quadro, fixa a pose final com `setTranslation/setRotation` **antes** de `publish(throwId, rec.results, rec.raw)`.
 7. **Settled** → apresentação (presságio, voo, números). Clique/Espaço → `returning`.
-8. **Retorno** — `Hand.tsx` interpola as poses até `handPositions(...)` em 400 ms (150 ms com reduced motion), fixa a pose final e só então emite `returned`.
+8. **Retorno** — `Hand.tsx` interpola as poses até os lugares do redemoinho (`restingPlaces`) em 400 ms (150 ms com reduced motion), fixa a pose final e só então emite `returned`.
 
 Descartes por `throwId`: resposta do worker de arremesso antigo, publish atrasado, seleção trocada no meio — tudo comparado com `useDice.getState().throwId` e fase `rolling`.
 
@@ -82,7 +83,8 @@ Não lê faces: o valor sai das poses do `reveal`.
 | `LAUNCH` | velocidade 6–22, lift 0,35 | `launchVelocity` |
 | `SPIN` | 10–25 rad/s | `spin` |
 | `SETTLE` | 240 passos, 12 calmos, 0,08 / 0,15 | `stepSettle` |
-| `HAND` | y 3, z 3, espaçamento 1,9, 5 colunas | `handPositions`, `clampHandX` |
+| `HAND` | y 3, z 3, espaçamento 1,9, 5 colunas | `handPositions` (testes de física), `clampHandX` |
+| `VORTEX` (`throw/vortex.ts`) | raio, ritmo, ganho com a carga | redemoinho da mão (`stepWhirl`, `spinAngle`) |
 | `DAMPING` | d100 e moeda | rolam demais sem amortecimento |
 | `MAX_RADIUS` | 0,9 | precisa bater com `max(RADIUS)` (há teste) |
 

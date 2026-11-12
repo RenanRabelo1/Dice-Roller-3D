@@ -3,16 +3,17 @@ import { useFrame, useThree } from '@react-three/fiber';
 import type { RapierRigidBody } from '@react-three/rapier';
 import { ArrowHelper, Color, Group, Matrix4, Mesh, MeshBasicMaterial, Plane, Quaternion, Raycaster, Vector2, Vector3, type BufferGeometry, type Object3D, type PerspectiveCamera } from 'three';
 import { Text } from 'troika-three-text';
-import { MAX_DICE, polyhedron } from '../dice/polyhedra';
+import { MAX_DICE, polyhedron, RADIUS } from '../dice/polyhedra';
 import { toKinematic } from '../physics/apply';
-import { clampHandX, HAND, handPositions, type Quat, type Vec3 } from '../physics/world';
-import { useDice } from '../store';
+import { HAND, type Quat, type Vec3 } from '../physics/world';
+import { omenPlaying, useDice } from '../store';
 import { charge, clampTarget } from '../throw/aim';
-import { showcasePoses } from './showcase';
+import { newWhirl, ORBITS, restingPlaces, spinAngle, stepWhirl, vortexCenter } from '../throw/vortex';
+import { CAPTION, showcasePoses } from './showcase';
 import { easeOut, highlightAt, HL_SIZE, SHOW } from './highlight';
 import { symbolGeometry } from '../dice/symbols';
 import { FONT, FONT_URL, SYMBOL } from './Die';
-import { KRAKEN, krakenAt, krakenFlightAt, krakenHeroPoses, krakenIndices, span } from './krakenMotion';
+import { KRAKEN, krakenAt, krakenDieAt, krakenIndices, STORM, stormAt, stormDieAt, stormIndices } from './krakenMotion';
 import type { Pose } from './showcase';
 
 type Mark = { local: Vector3; turn: Quaternion; start: Vector3; face: Vector3; scale: number }; // local, turn: the rolled numeral's place and turn in die space
@@ -27,10 +28,13 @@ export function Hand({ gameArea, bodies }: {
   const motion = useRef<{ center: Vec3; omega: Vec3 }>({ center: [0, HAND.y, HAND.z], omega: [0, 0, 0] });
   const previousAim = useRef<Vec3>([...useDice.getState().aim]);
   const handX = useRef(0);
+  // The dice in the hand swirl as one whirlwind (see throw/vortex); it outlives a selection change.
+  const whirl = useRef(newWhirl(vortexCenter(1, 0)));
+  const whirled = useRef({ identity: '', count: 0 });
   const rotations = useRef<Quaternion[]>([]);
   const mode = useRef('');
   const returning = useRef<{ at: number; poses: { p: Vec3; q: Quat }[] } | null>(null);
-  const showcase = useRef<{ at: number; throwId: number; from: Pose[]; to: Pose[]; hero: Pose[]; kraken: number[]; omenAt: number; gems: (Object3D | undefined)[]; marks: Mark[]; still?: boolean; landed?: boolean } | null>(null);
+  const showcase = useRef<{ at: number; throwId: number; from: Pose[]; to: Pose[]; kraken: number[]; storm: number[]; omenAt: number; gems: (Object3D | undefined)[]; marks: Mark[]; still?: boolean; landed?: boolean } | null>(null);
   // The rolled numbers that rise over the settled dice, ride to their faces and glow (one per die, drawn on top).
   const numbersGroup = useRef<Group>(null);
   const numbersRef = useRef<Text[]>([]);
@@ -154,6 +158,14 @@ export function Hand({ gameArea, bodies }: {
     if (active && mode.current !== nextMode) {
       shadows(true);
       toKinematic(current);
+      // A new selection keeps each slot's place in the whirl (the new dice fly out of its middle, where they
+      // appear); back from a pickup, the whirl goes on from where the dice are.
+      const w = whirl.current, kept = whirled.current.identity === identity ? 0 : Math.min(whirled.current.count, current.length);
+      current.forEach((body, i) => {
+        if (i < kept) body.setTranslation(new Vector3(...w.pos[i]), true);
+        else { const p = body.translation(); w.pos[i] = [p.x, p.y, p.z]; }
+      });
+      whirled.current = { identity, count: current.length };
       rotations.current = current.map((body) => {
         const q = body.rotation();
         return new Quaternion(q.x, q.y, q.z, q.w);
@@ -171,12 +183,14 @@ export function Hand({ gameArea, bodies }: {
     }
     if (phase !== 'settled') for (const o of [...numbers, ...glyphs]) o.visible = false;
     if (phase === 'settled' && (mode.current !== nextMode || (state.reducedMotion && showcase.current?.still === false))) {
+      // Reduced motion switched on mid-show: the dice go back to where they landed instead of hanging mid-flight.
+      const landed = mode.current === nextMode ? showcase.current?.from : undefined;
       showcase.current = null;
       if (!state.raw) state.setShowcased(state.throwId);
       else {
         const raw = state.raw;
         const polys = state.dice.map((d) => polyhedron(d));
-        const from = current.map((body) => {
+        const from = landed ?? current.map((body) => {
           const p = body.translation(), q = body.rotation();
           return { p: [p.x, p.y, p.z] as Vec3, q: [q.x, q.y, q.z, q.w] as Quat };
         });
@@ -186,15 +200,15 @@ export function Hand({ gameArea, bodies }: {
         const still = state.reducedMotion;
         const to = still ? from : showcasePoses(polys, raw,
           { position: cam.position, quaternion: cam.quaternion, fov: cam.fov, aspect: cam.aspect });
-        const kraken = krakenIndices(state.omen?.throwId === state.throwId ? state.omen : null, state.dice);
-        const hero = kraken.length ? krakenHeroPoses(kraken.map((i) => polys[i]), kraken.map((i) => raw[i]),
-          { position: cam.position, quaternion: cam.quaternion, fov: cam.fov, aspect: cam.aspect }) : [];
+        // A d100 1 is carried off and brought back by the kraken; a d100 100 drifts to you in the storm.
+        const omenNow = state.omen?.throwId === state.throwId ? state.omen : null;
+        const kraken = krakenIndices(omenNow, state.dice), storm = stormIndices(omenNow, state.dice);
         const marks = polys.map((poly, i) => {
           const label = poly.labelList.find((l) => l.value === raw[i])!;
           const normal = new Vector3(...label.normal), up = new Vector3(...label.up);
           const local = new Vector3(...label.position).addScaledVector(normal, 0.03);
           const turn = new Quaternion().setFromRotationMatrix(new Matrix4().makeBasis(new Vector3().crossVectors(up, normal), up, normal));
-          // Coins raise their name; Vampire faces raise their symbol, or the value on a blank face.
+          // Coins show their name (under the coin); Vampire faces raise their symbol, or the value on a blank face.
           const symbol = poly.shape !== 'coin' && label.symbol;
           if (symbol) glyphs[i].geometry = symbolGeometry(symbol);
           else numbers[i].text = label.text || String(raw[i]);
@@ -203,26 +217,24 @@ export function Hand({ gameArea, bodies }: {
             local, turn,
             start: new Vector3(...from[i].p).add(new Vector3(0, poly.radius + 0.35, 0)),
             face: new Vector3(...from[i].p).add(new Vector3(0, poly.radius + 0.35, 0)),
-            scale: still || poly.shape === 'coin' ? 1 : FONT[poly.shape] / HL_SIZE,
+            scale: still ? 1 : poly.shape === 'coin' ? CAPTION.scale : FONT[poly.shape] / HL_SIZE,
           };
         });
-        showcase.current = { at: now, throwId: state.throwId, from, to, hero, kraken, omenAt: state.omenAt, marks, still, gems: current.map((_, i) => scene.getObjectByName(`gem-${i}`)) };
+        showcase.current = { at: now, throwId: state.throwId, from, to, kraken, storm, omenAt: state.omenAt, marks, still, gems: current.map((_, i) => scene.getObjectByName(`gem-${i}`)) };
         if (still) state.setShowcased(state.throwId);
       }
     }
     mode.current = nextMode;
     if (phase === 'settled' && showcase.current) {
       // An omen plays first: the numbers wait, unrisen, and the dice stay where they landed until it is over.
-      const waiting = state.omen?.throwId === state.throwId && state.omenDone !== state.throwId;
+      const waiting = omenPlaying(state);
       if (waiting) showcase.current.at = now;
-      const { at, from, to, throwId, gems, marks, still, hero, kraken, omenAt } = showcase.current;
-      const draw = (i: number, face: Vector3, q?: Quaternion, ride = 0, ascension?: number) => {
+      const { at, from, to, throwId, gems, marks, still, kraken, storm, omenAt } = showcase.current;
+      const draw = (i: number, face: Vector3, q?: Quaternion, ride = 0, reveal?: number) => {
         const n = numbers[i], g = glyphs[i], m = marks[i];
         const h = still ? { p: m.start, opacity: Math.min(1, (now - at) / 150), glow: 0.6, scale: 1 } : highlightAt(now - at, i, m.start, face, m.scale);
-        if (ascension !== undefined) {
-          h.p = face; h.opacity = easeOut(span(ascension, KRAKEN.launch + 200, KRAKEN.reveal));
-          h.scale = m.scale + (1.6 - m.scale) * krakenAt(ascension).hero;
-          h.glow = h.opacity * 0.85;
+        if (reveal !== undefined) { // carried in by the kraken: the number lights up on the face as it arrives
+          h.p = face; h.opacity = reveal; h.scale = m.scale + (1.4 - m.scale) * reveal; h.glow = reveal * 0.85;
         }
         Object.assign(n, { fillOpacity: h.opacity, outlineOpacity: h.glow });
         g.material.opacity = h.opacity;
@@ -231,28 +243,25 @@ export function Hand({ gameArea, bodies }: {
         const facing = q ? camera.quaternion.clone().slerp(q.clone().multiply(m.turn), ride) : camera.quaternion;
         for (const o of [n, g]) { o.position.copy(h.p); o.quaternion.copy(facing); }
       };
-      if (still) { marks.forEach((m, i) => draw(i, m.face)); return; }
+      const pin = (body: RapierRigidBody, p: Vector3, q: Quaternion) => {
+        body.setTranslation(p, false); body.setRotation(q, false); body.setNextKinematicTranslation(p); body.setNextKinematicRotation(q);
+      };
+      if (still) {
+        current.forEach((body, i) => { pin(body, new Vector3(...from[i].p), new Quaternion(...from[i].q)); shade(gems[i], true); });
+        marks.forEach((m, i) => draw(i, m.face));
+        return;
+      }
       let done = !waiting;
+      const under = new Vector3(0, -1, 0).applyQuaternion(camera.quaternion); // straight down the screen
       current.forEach((body, i) => {
-        if (state.dice[i] === 'coin') {
-          const t = Math.min(1, Math.max(0, (now - at - SHOW.delay - i * SHOW.stagger) / SHOW.duration));
-          if (t < 1) done = false;
-          // The coin stays on the tray; only its Cara/Coroa caption rises to the result row.
-          const p = new Vector3(...from[i].p), q = new Quaternion(...from[i].q);
-          body.setTranslation(p, false); body.setRotation(q, false);
-          body.setNextKinematicTranslation(p); body.setNextKinematicRotation(q);
-          draw(i, new Vector3(...to[i].p));
-          return;
-        }
-        const critical = kraken.indexOf(i);
-        if (critical >= 0) {
-          const ms = now - omenAt, pose = krakenFlightAt(ms, from[i], hero[critical], to[i]);
+        const grabbed = kraken.includes(i), adrift = storm.includes(i);
+        if (grabbed || adrift) { // the omen moves this die, and leaves it at its result pose
+          const ms = now - omenAt, pose = grabbed ? krakenDieAt(ms, from[i], to[i]) : stormDieAt(ms, from[i], to[i]);
           const p = new Vector3(...pose.p), q = new Quaternion(...pose.q);
-          shade(gems[i], ms <= KRAKEN.launch);
-          body.setTranslation(p, false); body.setRotation(q, false);
-          body.setNextKinematicTranslation(p); body.setNextKinematicRotation(q);
-          draw(i, marks[i].local.clone().applyQuaternion(q).add(p), q, 1, ms);
-          if (ms < KRAKEN.restored) done = false;
+          shade(gems[i], ms <= (grabbed ? KRAKEN.grab : STORM.approach));
+          pin(body, p, q);
+          draw(i, marks[i].local.clone().applyQuaternion(q).add(p), q, 1, grabbed ? krakenAt(ms).reveal : stormAt(ms).reveal);
+          if (ms < (grabbed ? KRAKEN.duration : STORM.duration)) done = false;
           return;
         }
         const t = Math.min(1, Math.max(0, (now - at - SHOW.delay - i * SHOW.stagger) / SHOW.duration));
@@ -266,7 +275,9 @@ export function Hand({ gameArea, bodies }: {
         if (t === 1) { body.setTranslation(p, false); body.setRotation(q, false); }
         body.setNextKinematicTranslation(p);
         body.setNextKinematicRotation(q);
-        draw(i, marks[i].local.clone().applyQuaternion(q).add(p), q, Math.min(1, t / 0.35)); // the rolled numeral where the die is now
+        // A coin comes up showing its drawing, and its Cara/Coroa stays under it, facing you.
+        if (state.dice[i] === 'coin') draw(i, p.clone().addScaledVector(under, RADIUS.coin + CAPTION.gap));
+        else draw(i, marks[i].local.clone().applyQuaternion(q).add(p), q, Math.min(1, t / 0.35)); // the rolled numeral where the die is now
       });
       // Report "shown" one frame after landing, once the scene has rendered the pinned poses.
       if (done && showcase.current.landed && state.showcased !== throwId) state.setShowcased(throwId);
@@ -276,7 +287,8 @@ export function Hand({ gameArea, bodies }: {
     if (phase === 'returning' && returning.current) {
       const t = Math.min(1, (now - returning.current.at) / (state.reducedMotion ? 150 : 400));
       const ease = state.reducedMotion ? 1 : 1 - (1 - t) ** 3;
-      const positions = handPositions(current.length, clampHandX(state.aim[0], current.length));
+      const x = vortexCenter(current.length, state.aim[0])[0];
+      const positions = restingPlaces(whirl.current, x, state.dice.map((d) => polyhedron(d).radius));
       current.forEach((body, i) => {
         const from = returning.current!.poses[i];
         const p = new Vector3(...from.p).lerp(new Vector3(...positions[i]), ease);
@@ -287,7 +299,7 @@ export function Hand({ gameArea, bodies }: {
       });
       setOpacity(state.reducedMotion ? t : 1);
       if (t === 1) {
-        handX.current = clampHandX(state.aim[0], current.length);
+        handX.current = x;
         state.input({ type: 'returned' });
       }
       return;
@@ -295,22 +307,18 @@ export function Hand({ gameArea, bodies }: {
     if (!active || preview) return;
     const force = phase === 'charging' ? charge(now - state.gesture.chargeStart) : 0;
     if (phase === 'charging') state.setForce(force);
-    handX.current += (clampHandX(state.aim[0], current.length) - handX.current) * (1 - Math.exp(-12 * dt));
+    handX.current += (vortexCenter(current.length, state.aim[0])[0] - handX.current) * (1 - Math.exp(-12 * dt));
     const vx = (state.aim[0] - previousAim.current[0]) / dt, vz = (state.aim[2] - previousAim.current[2]) / dt;
-    const omega: Vec3 = state.reducedMotion ? [0, 0, 0] : [vz * 1.2 + 0.6, 0.4, -vx * 1.2];
+    const omega: Vec3 = state.reducedMotion ? [0, 0, 0] : [vz * 1.2 + 0.6, 0.4, -vx * 1.2]; // the hand's swing, handed on to the throw
     previousAim.current = [...state.aim];
-    const w = new Vector3(...omega), speed = w.length();
-    const turn = speed ? new Quaternion().setFromAxisAngle(w.normalize(), speed * dt) : new Quaternion();
-    const positions = handPositions(current.length, handX.current);
+    // The whirl: every die on its own orbit and spinning about its own axis, all faster as the charge builds.
+    const places = stepWhirl(whirl.current, { x: handX.current, force, dt, radii: state.dice.map((d) => polyhedron(d).radius), still: state.reducedMotion });
     const center: Vec3 = [0, 0, 0];
     current.forEach((body, i) => {
-      const p = positions[i];
-      p[1] += state.reducedMotion ? 0 : 0.08 * Math.sin(2 * Math.PI * now / 1600);
-      p[2] += HAND.pull * force;
-      const q = rotations.current[i].premultiply(turn).normalize();
-      body.setNextKinematicTranslation(new Vector3(...p)); body.setNextKinematicRotation(q);
-      const actual = body.translation();
-      center[0] += actual.x / current.length; center[1] += actual.y / current.length; center[2] += actual.z / current.length;
+      const spin = new Quaternion().setFromAxisAngle(new Vector3(...ORBITS[i].axis), spinAngle(i, force, dt, state.reducedMotion));
+      body.setNextKinematicTranslation(new Vector3(...places[i]));
+      body.setNextKinematicRotation(rotations.current[i].premultiply(spin).normalize());
+      for (let k = 0; k < 3; k++) center[k] += places[i][k] / current.length;
     });
     motion.current = { center, omega };
     const origin = new Vector3(center[0], 0.01, center[2]);

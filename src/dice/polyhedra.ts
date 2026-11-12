@@ -11,17 +11,12 @@ import { ConvexHull } from 'three/examples/jsm/math/ConvexHull.js';
 import type { Vec3 } from '../physics/world';
 import { customBase, customKind, customList, customOrder, customPoly, isCustom, type CustomKind } from './custom';
 
-export type Shape = 'd4' | 'd6' | 'd8' | 'd10' | 'd12' | 'd20' | 'd100' | 'coin';
-export type BuiltinKind = Shape | 'vtm' | 'hunger' | 'fire';
-export type DieKind = BuiltinKind | CustomKind; // every kind is one physical die
+import { BASE, KINDS, type BuiltinKind, type DieKind, type Shape } from './kinds';
+
+// The kinds themselves live in kinds.ts (no 3D code), shared with the API server.
+export { BASE, KINDS, type BuiltinKind, type DieKind, type Shape } from './kinds';
 export type SymbolName = 'ankh' | 'crit' | 'skull' | 'fangs' | 'heads' | 'crown';
 
-export const KINDS: BuiltinKind[] = ['d4', 'd6', 'd8', 'd10', 'd12', 'd20', 'd100', 'vtm', 'hunger', 'fire', 'coin'];
-// The physical die behind each kind: geometry, collider, radius, numbering and reading.
-// Custom dice (Vampire: The Masquerade d10s, Fireball d6) only change how that die looks.
-export const BASE: Record<BuiltinKind, Shape> = {
-  d4: 'd4', d6: 'd6', d8: 'd8', d10: 'd10', d12: 'd12', d20: 'd20', d100: 'd100', vtm: 'd10', hunger: 'd10', fire: 'd6', coin: 'coin',
-};
 // Vampire d10s show symbols instead of digits, by d10 digit (0 is the 10); the other faces are blank.
 const SYMBOL: Partial<Record<BuiltinKind, (digit: number) => SymbolName | undefined>> = {
   vtm: (v) => (v === 0 ? 'crit' : v >= 6 ? 'ankh' : undefined),

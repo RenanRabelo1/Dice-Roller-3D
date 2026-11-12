@@ -8,7 +8,7 @@ export interface DiceHook {
     dice: DieKind[]; phase: Phase; throwId: number;
     results: number[] | null; ready: boolean; error: 'graphics' | 'physics' | null; aim: Vec3; showcased: number;
     omen: OmenKind | null; omenDone: number; // omen: this throw's
-    omenTime: number; trayBroken: boolean;
+    omenTime: number; trayBroken: boolean; burning: boolean;
   };
   rigOmen(omen: Omen | null): void; // the next throws play this omen whatever they roll
   select(dice: DieKind[]): void;
@@ -16,7 +16,7 @@ export interface DiceHook {
   meshes(): { q: Quat }[];
   labels(index: number): { text: string; value: number; position: Vec3; normal: Vec3 }[]; // text: the numeral, the symbol's name, or '' on a blank face
   numbersVisible(index: number): boolean;
-  highlights(): { text: string | null; visible: boolean }[];
+  highlights(): { text: string | null; visible: boolean; position: Vec3 }[];
   camera(): Vec3;
   launches(): { count: number; last: { before: { p: Vec3; q: Quat }[]; after: { p: Vec3; q: Quat }[] } | null };
   customs(): { kind: DieKind; id: string; name: string; slug: string; base: string; printed: boolean }[]; // the imported dice

@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { PerspectiveCamera, Quaternion, Vector3 } from 'three';
 import { polyhedron, type DieKind } from '../src/dice/polyhedra';
-import { showcasePoses } from '../src/scene/showcase';
+import { CAPTION, showcasePoses } from '../src/scene/showcase';
+import { HL_SIZE } from '../src/scene/highlight';
 
 const camera = (aspect: number) => {
   const c = new PerspectiveCamera(40, aspect);
@@ -11,6 +12,18 @@ const camera = (aspect: number) => {
 const view = (c: PerspectiveCamera) => ({ position: c.position, quaternion: c.quaternion, fov: c.fov, aspect: c.aspect });
 
 describe('showcasePoses', () => {
+  it.each([1.6, 0.46])('coins in rows (aspect %s): each Cara/Coroa under its coin clears the die below', (aspect) => {
+    const c = camera(aspect), kinds: DieKind[] = ['d100', 'd100', 'd100', ...Array<DieKind>(7).fill('coin')];
+    const polys = kinds.map((k) => polyhedron(k)), poses = showcasePoses(polys, polys.map((p) => p.faces[0].value), view(c));
+    const up = new Vector3(0, 1, 0).applyQuaternion(c.quaternion), height = (i: number) => new Vector3(...poses[i].p).dot(up);
+    const cols = aspect >= 1 ? 5 : 3;
+    polys.forEach((poly, i) => {
+      if (poly.shape !== 'coin' || i + cols >= polys.length) return;
+      const captionBottom = height(i) - poly.radius - CAPTION.gap - (HL_SIZE * CAPTION.scale) / 2;
+      expect(captionBottom).toBeGreaterThan(height(i + cols) + polys[i + cols].radius);
+    });
+  });
+
   it.each<[DieKind, number, number]>([['d4', 4, 1.6], ['d6', 1, 1.6], ['d20', 10, 1.6], ['d20', 10, 0.46], ['d100', 10, 1.6], ['d10', 3, 0.46]])(
     '%s × %i (aspect %s): the rolled number faces the camera upright, every die on screen',
     (kind, count, aspect) => {

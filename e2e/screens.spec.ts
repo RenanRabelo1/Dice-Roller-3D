@@ -35,12 +35,10 @@ for (const width of [1440, 390]) {
           const context = copy.getContext('2d')!;
           context.drawImage(canvas, 0, 0);
           const data = context.getImageData(0, 0, copy.width, copy.height).data;
-          let gold = 0;
           let left = copy.width, right = 0, top = copy.height, bottom = 0;
           const colors = new Set<number>();
           for (let i = 0; i < data.length; i += 4) {
             const [r, g, b] = [data[i], data[i + 1], data[i + 2]];
-            if (r > 120 && g > 90 && b < 120 && r > g * 1.05 && g > b * 1.25) gold++;
             colors.add((r << 16) | (g << 8) | b);
             if (Math.max(Math.abs(r - data[0]), Math.abs(g - data[1]), Math.abs(b - data[2])) > 8) {
               const x = (i / 4) % copy.width, y = Math.floor(i / 4 / copy.width);
@@ -48,14 +46,16 @@ for (const width of [1440, 390]) {
               top = Math.min(top, y); bottom = Math.max(bottom, y);
             }
           }
-          return { gold, colors: colors.size, left, right, top, bottom, width: copy.width, height: copy.height };
+          return { colors: colors.size, left, right, top, bottom, width: copy.width, height: copy.height, dpr: canvas.width / canvas.clientWidth };
         });
         expect(pixels.colors).toBeGreaterThan(50);
-        expect(pixels.gold).toBeGreaterThan(0);
-        expect(pixels.left).toBeGreaterThan(4);
-        expect(pixels.right).toBeLessThan(pixels.width - 5);
-        expect(pixels.top).toBeGreaterThan(4);
-        expect(pixels.bottom).toBeLessThan(pixels.height - 5);
+        // No colour check: numeral ink varies by gem (dark on light gems since af88d47) and blurs at 0.35 DPR; see the screenshots.
+        // Nothing touches the edges: 4 CSS px, whatever the pixel density (software rendering runs at 0.35).
+        const m = 4 * pixels.dpr;
+        expect(pixels.left).toBeGreaterThan(m);
+        expect(pixels.right).toBeLessThan(pixels.width - m - 1);
+        expect(pixels.top).toBeGreaterThan(m);
+        expect(pixels.bottom).toBeLessThan(pixels.height - m - 1);
         await page.screenshot({ path: `screens/one-${shape}-${name}-${width}.png` });
       }
       expect(errors).toEqual([]);
