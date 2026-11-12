@@ -8,7 +8,7 @@ Combinado com o usuário em 2026-11-11. As três foram especificadas pela sessã
 | Fundo 360° (fase 3 da mesa) | [2026-11-11-fundo-360-design.md](superpowers/specs/2026-11-11-fundo-360-design.md) |
 | Números pintados na mesa | [2026-11-11-numeros-pintados-mesa-design.md](superpowers/specs/2026-11-11-numeros-pintados-mesa-design.md) |
 
-Especificado, a implementar: **dado de forma livre voa até a frente no resultado** — [2026-11-12-forma-livre-voa-design.md](superpowers/specs/2026-11-12-forma-livre-voa-design.md).
+Implementado (2026-11-12): **dado de forma livre voa até a frente no resultado** — [2026-11-12-forma-livre-voa-design.md](superpowers/specs/2026-11-12-forma-livre-voa-design.md).
 
 A ideia do "abraço de tentáculos no 100 do d100" foi coberta pelo PR #4 do Renan: o 100 agora é a tempestade, com tentáculos saindo do mar em volta da bandeja (ver apresentacao.md).
 
