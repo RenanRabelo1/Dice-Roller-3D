@@ -119,7 +119,8 @@ function paintInto(attr: BufferAttribute, mask: Uint8Array, outside: string, ink
 
 // An STL with painted numerals: its own colour attribute (sharing the model's positions and normals), rewritten when the
 // ink or the gem colour changes. Null when there is nothing to paint.
-function usePainted(source: BufferGeometry | undefined, outside: string, ink: string | null) {
+// oxlint-disable-next-line react/only-export-components
+export function usePainted(source: BufferGeometry | undefined, outside: string, ink: string | null) {
   const mask = source?.userData.ink as Uint8Array | undefined, inked = !!ink;
   const geometry = useMemo(() => {
     if (!source || !mask || !inked) return null;
@@ -136,7 +137,8 @@ function usePainted(source: BufferGeometry | undefined, outside: string, ink: st
 
 // A GLB with painted numerals: white outside them (the material's own colour shows), the ink inside, as a colour attribute
 // on the geometry (the clones share it). A model that already has vertex colours of its own is left alone.
-function paintGlb(root: Object3D, ink: string | null) {
+// oxlint-disable-next-line react/only-export-components
+export function paintGlb(root: Object3D, ink: string | null) {
   root.traverse((o) => {
     if (!(o instanceof Mesh)) return;
     const g = o.geometry as BufferGeometry, mask = g.userData.ink as Uint8Array | undefined, own = g.getAttribute('color');
@@ -151,7 +153,7 @@ function paintGlb(root: Object3D, ink: string | null) {
   });
 }
 
-const GemMaterial = ({ kind, color, finish = 'gema', painted = false }: { kind: DieKind; color: string; finish?: Finish; painted?: boolean }) => {
+export const GemMaterial = ({ kind, color, finish = 'gema', painted = false }: { kind: DieKind; color: string; finish?: Finish; painted?: boolean }) => {
   // With painted numerals the colour lives in the vertices (white here), so the paint is not tinted.
   const tone = painted ? '#ffffff' : color, key = `${finish}${painted}`;
   // Gem look without a refraction pass: clearcoat + env reflections + slight translucency. The coin is solid gold.
@@ -201,9 +203,11 @@ export function Die({ index, kind, selection, count, color, register }: {
   useEffect(() => { if (file?.object) paintGlb(file.object, ink); }, [file, ink]);
   const shown = !!file && (!needsWarm || warm === variant);
   const numbers = useNumbers(model, model.font ?? FONT[model.shape], INK[kind] ?? INK[model.shape] ?? GOLD, !!custom?.printed);
+  // No CCD: the scene's dice are always kinematic (the throw is simulated offline, presim.ts has its own CCD). With CCD a
+  // kinematic die stops at the tray's invisible walls on its way back from the result row and then snaps to the hand.
   return (
     <RigidBody ref={registerBody} type="kinematicPosition" colliders={false}
-      userData={{ selection }} ccd position={vortexCenter(count, 0)}>
+      userData={{ selection }} position={vortexCenter(count, 0)}>
       <ConvexHullCollider args={[points]} {...MATERIAL.die} />
       <group name={`die-${index}`}>
         {custom ? (

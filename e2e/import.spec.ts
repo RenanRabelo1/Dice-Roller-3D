@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { polyhedron } from '../src/dice/polyhedra';
+import { detectFree, idealSolid } from '../src/dice/importer';
 import { asFile, glb, modelTriangles, prismTriangles, shardTriangles, stl, subdivided } from '../tests/helpers/models';
 
 // Dice models made from the app's own solids (see tests/helpers/models.ts), chamfered and off-centre like a slicer export.
@@ -137,7 +138,7 @@ test('ten imported dice at the triangle limit still roll and settle', async ({ p
   console.log(`10 imported dice at 48k triangles: rolled and showcased in ${Date.now() - start} ms`);
 });
 
-test('a free-form prism imports, rolls, reads from below, stays on the tray and survives a reload', async ({ page }) => {
+test('a free-form prism imports, rolls, reads from below, flies to the front and survives a reload', async ({ page }) => {
   await open(page, file('prisma.stl', stl(asFile(prismTriangles(5, 1.4)))));
   await expect(page.getByRole('alert')).toContainText('Não reconheci um d4–d20');
   await page.getByRole('button', { name: 'Importar como dado de forma livre' }).click();
@@ -151,18 +152,28 @@ test('a free-form prism imports, rolls, reads from below, stays on the tray and 
   expect(custom).toMatchObject({ name: 'Prisma', slug: 'prisma', base: 'livre' });
 
   await page.evaluate((kind) => window.__dice.select([kind]), custom.kind); await ready(page, 1);
-  await throwWithSpace(page); await settled(page);
+  await throwWithSpace(page);
+  await page.waitForFunction(() => window.__dice.state().phase === 'settled', null, { timeout: 90_000 }); // read before the flight starts (1 s later)
+  const { p: landed, q: landedQ } = (await page.evaluate(() => window.__dice.bodies()))[0];
   const [result] = (await page.evaluate(() => window.__dice.state().results))!;
   expect(result).toBeGreaterThanOrEqual(1); expect(result).toBeLessThanOrEqual(7);
   // read from below: the face whose normal points most downwards
   const labels = await page.evaluate(() => window.__dice.labels(0));
   expect(labels.reduce((a, b) => (b.normal[1] < a.normal[1] ? b : a)).value).toBe(result);
-  // it does not fly to the camera: it stays where it stopped
-  const before = (await page.evaluate(() => window.__dice.bodies()))[0].p;
-  await page.waitForTimeout(600);
-  const after = (await page.evaluate(() => window.__dice.bodies()))[0].p;
-  expect(Math.hypot(...after.map((v, k) => v - before[k]))).toBeLessThan(0.01);
-  expect(after[1]).toBeLessThan(1.5);
+  // it flies to the front like any die, the rolled face (the one it rested on) towards the camera
+  const throwId = await page.evaluate(() => window.__dice.state().throwId);
+  await expect.poll(() => page.evaluate(() => window.__dice.state().showcased)).toBe(throwId);
+  const [{ p, q }] = await page.evaluate(() => window.__dice.bodies());
+  expect(Math.hypot(...p.map((v, k) => v - landed[k]))).toBeGreaterThan(2);
+  const camera = await page.evaluate(() => window.__dice.camera());
+  const worldFace = labels.find((l) => l.value === result)!.normal; // labels() are in world space, at rest
+  // rotate by a quaternion (v' = v + 2w(u×v) + 2u×(u×v), u = q.xyz, w = q.w)
+  const cross = (a: number[], b: number[]) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+  const rotate = ([x, y, z, w]: number[], v: number[]) => { const t = cross([x, y, z], v).map((c) => 2 * c); return v.map((c, k) => c + w * t[k] + cross([x, y, z], t)[k]); };
+  const face = rotate([-landedQ[0], -landedQ[1], -landedQ[2], landedQ[3]], worldFace); // back to the die's own frame
+  const turned = rotate(q, face);
+  const toCam = camera.map((v, k) => v - p[k]), length = Math.hypot(...toCam);
+  expect(turned.reduce((s, v, k) => s + v * toCam[k] / length, 0)).toBeGreaterThan(0.99);
 
   await page.reload(); await ready(page);
   await expect(page.getByRole('button', { name: 'Adicionar Prisma' })).toBeVisible();
@@ -178,6 +189,14 @@ test('painted numerals: the ink shows on an engraved STL, changes in My dice wit
   await page.getByRole('button', { name: 'Sim, calibrar' }).click();
   const ask = page.getByLabel('Que número está nesta face?');
   for (const v of [1, 5, 2, 6, 3, 4]) { await ask.fill(String(v)); await ask.press('Enter'); }
+  // the wizard's preview wears the chosen ink and finish before saving
+  const preview = page.locator('.import-preview');
+  await expect(preview).toHaveAttribute('data-ink', /^#[0-9A-F]{6}$/i); // automatic: gold or dark, by the gem
+  await page.getByLabel('Branca').check();
+  await expect(preview).toHaveAttribute('data-ink', '#F2EEE4');
+  await page.getByLabel('Fosco').check();
+  await expect(preview).toHaveAttribute('data-finish', 'fosco');
+  await page.getByLabel('Automática').check(); await page.getByLabel('Gema').check(); // back to the defaults the rest of the test expects
   await save(page, 'Gravado');
   const [custom] = await page.evaluate(() => window.__dice.customs());
   await page.evaluate((kind) => window.__dice.select([kind]), custom.kind); await ready(page, 1);
@@ -219,4 +238,26 @@ test('a shard die: the wizard asks about the big faces and calibrates only those
   await throwWithSpace(page); await settled(page);
   const [result] = (await page.evaluate(() => window.__dice.state().results))!;
   expect(result).toBeGreaterThanOrEqual(1); expect(result).toBeLessThanOrEqual(5);
+  // the number floats loose only when no engraving was found to light (this synthetic shard has 6 triangles the ink mask takes for engraving)
+  const glow = await page.evaluate(() => window.__dice.inkGlow(0));
+  expect((await page.evaluate(() => window.__dice.highlights()))[0].visible).toBe(glow === null);
+});
+
+test('an engraved shard flies showing its top engraving lit', async ({ page }) => {
+  const r = detectFree(asFile(shardTriangles(5))), solid = idealSolid('livre', r.planes);
+  await open(page, file('gravado5.stl', stl(modelTriangles(solid.poly, { engrave: 0.04 }))));
+  await page.getByRole('button', { name: 'Importar como dado de forma livre' }).click();
+  await page.getByRole('button', { name: 'Sim, só as grandes' }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Sim, calibrar' }).click();
+  const ask = page.getByLabel('Que número você lê com ele apoiado assim?');
+  for (const v of [1, 2, 3, 4, 5]) { await ask.fill(String(v)); await ask.press('Enter'); }
+  await save(page, 'Gravado5');
+  const [custom] = await page.evaluate(() => window.__dice.customs());
+  await page.evaluate((kind) => window.__dice.select([kind]), custom.kind); await ready(page, 1);
+  await throwWithSpace(page); await settled(page);
+  const glow = await page.evaluate(() => window.__dice.inkGlow(0));
+  expect(glow).not.toBeNull();
+  expect(glow!.triangles).toBeGreaterThan(0); expect(glow!.visible).toBe(true); expect(glow!.opacity).toBeGreaterThan(0);
+  expect((await page.evaluate(() => window.__dice.highlights()))[0].visible).toBe(false); // the engraving is the highlight
 });

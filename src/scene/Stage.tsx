@@ -255,6 +255,10 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
       highlights: () => (scene.getObjectByName('result-highlights')?.children ?? []).map((o) => ({
         text: o instanceof Text ? o.text : null, visible: o.visible, position: o.position.toArray(),
       })),
+      inkGlow: (index) => {
+        const glow = scene.getObjectByName(`ink-glow-${index}`) as Mesh | undefined;
+        return glow ? { visible: glow.visible, triangles: glow.geometry.getAttribute('position').count / 3, opacity: (glow.material as Material).opacity } : null;
+      },
       launches: () => launches.current,
       customs: () => useDice.getState().customs.map((d) => ({ kind: customKind(d.id), id: d.id, name: d.name, slug: d.slug, base: d.base, printed: d.printed })),
       table: () => {
