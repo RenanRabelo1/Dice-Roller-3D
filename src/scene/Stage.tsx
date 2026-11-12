@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, type RefObject } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { Environment, Lightformer, PerformanceMonitor } from '@react-three/drei';
+import { EnvironmentPortal, Lightformer, PerformanceMonitor } from '@react-three/drei';
 import { Physics, useBeforePhysicsStep, type RapierRigidBody } from '@react-three/rapier';
-import { Box3, Color, Group, Matrix4, Mesh, Quaternion, Vector3, type BufferGeometry, type Object3D } from 'three';
+import { Box3, Color, Group, Matrix4, Mesh, Quaternion, Texture, Vector3, type BufferGeometry, type Object3D } from 'three';
 import { Text } from 'troika-three-text';
 
 import { bodyStates } from '../physics/apply';
@@ -19,6 +19,7 @@ import { omenKind } from '../dice/omen';
 import { customKind } from '../dice/custom';
 import { customsOf } from '../dice/polyhedra';
 import { useTable } from './tableState';
+import { markSoftwareGl, panoramaTexture } from './tableImages';
 import { Guard } from '../ui/Safeguard';
 
 // The test-only surface preview checks numeral pixels, so it keeps the real resolution (no SwiftShader or adaptive DPR drop).
@@ -88,6 +89,8 @@ function ThrowLoop({ bodies, recordLaunch }: {
   return null;
 }
 
+interface Pano { tex: Texture; rotation: number; intensity: number; blur: number; reflect: boolean }
+
 export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> }) {
   const selected = useDice((state) => state.dice);
   const background = useTable((state) => state.theme.background);
@@ -98,8 +101,28 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
     const context = gl.getContext(), debug = context.getExtension('WEBGL_debug_renderer_info');
     const renderer = context.getParameter(debug ? debug.UNMASKED_RENDERER_WEBGL : context.RENDERER) as string;
     // SwiftShader cannot afford a full-resolution first throw or a late buffer resize on pickup.
-    if (!isPreview() && /swiftshader/i.test(renderer)) { desiredDpr.current = 0.35; setDpr(0.35); }
+    if (!isPreview() && /swiftshader/i.test(renderer)) { desiredDpr.current = 0.35; setDpr(0.35); markSoftwareGl(); }
   }, [gl, setDpr]);
+  // The 360° panorama (background + reflections). It is applied only between animations, like the DPR: re-capturing the
+  // environment cubemap mid-throw would cost a frame.
+  const [pano, setPano] = useState<Pano | null>(null);
+  const wanted = useRef<Pano | null>(null);
+  useEffect(() => {
+    if (background.kind !== 'panorama') { wanted.current = null; return; }
+    let live = true;
+    const { rotation, intensity, blur, reflect } = background;
+    panoramaTexture(background).then((tex) => { if (live) wanted.current = { tex, rotation: rotation * Math.PI / 180, intensity, blur, reflect }; }, () => {});
+    return () => { live = false; };
+  }, [background]);
+  useFrame((state) => {
+    if (wanted.current === pano) return;
+    const { gesture, showcased, throwId } = useDice.getState();
+    if (gesture.phase !== 'hand' && !(gesture.phase === 'settled' && showcased === throwId)) return;
+    if (wanted.current) state.scene.background = wanted.current.tex;
+    else if (pano && state.scene.background === pano.tex) state.scene.background = null; // a colour background attaches itself
+    setPano(wanted.current);
+  });
+  const info = useRef(gl.info);
   const bodies = useRef<(RapierRigidBody | null)[]>([]);
   const launches = useRef<ReturnType<DiceHook['launches']>>({ count: 0, last: null });
   const dice = useRef<Group>(null);
@@ -215,6 +238,7 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
         const guide = mesh('guia-area-de-jogo'), box = guide ? new Box3().setFromObject(guide, true) : null;
         const felt = hex(mesh('feltro') ?? undefined), wood = hex(mesh('base') ?? mesh('madeira') ?? undefined);
         return {
+          reflect: t.background.kind === 'panorama' ? t.background.reflect : null, programs: info.current.programs?.length ?? 0,
           id: t.id, name: t.name, background: t.background.kind, backgroundColor: t.background.kind === 'color' ? t.background.color : null,
           felt: felt?.color ?? null, feltTextured: felt?.textured ?? false, wood: wood?.color ?? null, model: !!t.model,
           guide: box ? { size: box.getSize(new Vector3()).toArray(), center: box.getCenter(new Vector3()).toArray() } : null,
@@ -253,11 +277,15 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
       <directionalLight position={[-4, 10, 5]} intensity={2.5} castShadow
         shadow-mapSize={[1024, 1024]} shadow-camera-left={-9} shadow-camera-right={9}
         shadow-camera-top={8} shadow-camera-bottom={-8} shadow-normalBias={0.03} />
-      <Environment resolution={256}>
+      {/* Same cubemap target for every panorama, so the dice materials do not recompile when it changes. The rotation, intensity and blur props are
+          re-applied by drei each time it re-captures, so they have to be passed here rather than set on the scene. */}
+      <EnvironmentPortal resolution={256} map={pano?.reflect ? pano.tex : undefined}
+        backgroundRotation={[0, pano?.rotation ?? 0, 0]} backgroundIntensity={pano?.intensity ?? 1} backgroundBlurriness={pano?.blur ?? 0}
+        environmentRotation={[0, pano?.rotation ?? 0, 0]}>
         <Lightformer position={[0, 8, -5]} target={[0, 0, 0]} scale={[10, 6, 1]} intensity={3} color="#fff4dd" />
         <Lightformer position={[-8, 3, 4]} target={[0, 0, 0]} scale={[3, 8, 1]} intensity={4} color="#dceaff" />
         <Lightformer position={[6, -2, 6]} target={[0, 0, 0]} scale={[5, 9, 1]} intensity={3} color="#ffdab0" />
-      </Environment>
+      </EnvironmentPortal>
       <Guard kind="physics">
       <Physics gravity={GRAVITY} timeStep={STEP} interpolate={false}>
         <Tray />

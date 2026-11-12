@@ -50,10 +50,10 @@ function guide(): Mesh {
 }
 
 // A vertical plane behind the table carrying the photo, so a 3D editor shows what the backdrop looks like.
-export function backdrop(map: Texture): Mesh {
+export function backdrop(map: Texture, name = 'fundo'): Mesh {
   const img = map.image as { width: number; height: number }, aspect = img.width / img.height;
-  const m = new Mesh(new PlaneGeometry(40 * aspect, 40), new MeshBasicMaterial({ map, name: 'fundo' }));
-  m.name = 'fundo'; m.position.set(0, 10, -30); m.visible = false;
+  const m = new Mesh(new PlaneGeometry(40 * aspect, 40), new MeshBasicMaterial({ map, name }));
+  m.name = name; m.position.set(0, 10, -30); m.visible = false;
   return m;
 }
 
@@ -63,7 +63,7 @@ export function shade(root: Object3D) {
     if (!(o instanceof Mesh)) return;
     const role = roleOf(o);
     o.receiveShadow = true;
-    o.castShadow = role !== 'piso' && role !== 'guia-area-de-jogo' && role !== 'fundo';
+    o.castShadow = role !== 'piso' && role !== 'guia-area-de-jogo' && role !== 'fundo' && role !== 'fundo-';
   });
 }
 

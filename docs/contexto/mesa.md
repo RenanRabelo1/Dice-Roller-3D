@@ -41,3 +41,14 @@ O jogador muda o fundo e a aparência da bandeja, salva no navegador e exporta/i
 - O `GLTFExporter` binário usa `FileReader`: só roda no navegador (o ida-e-volta é E2E, não Vitest). Vitest cobre o encaixe, os avisos e a limpeza com objetos montados à mão.
 - `Tray` só tem estado de React; o objeto 3D da mesa é recriado a cada mudança de cor/textura/modelo (descartado com `disposeTable`). Colisores não mudam.
 - Testes de pixel (`smoke`, `screens`) assumem o tema padrão (fundo de cor, canvas opaco).
+
+## Fundo 360°
+
+Spec: `docs/superpowers/specs/2026-11-11-fundo-360-design.md`. Quarto tipo de fundo (`panorama` em `tableTheme.ts`): foto equirretangular 2:1 que vira `scene.background` **e** reflexo nos dados.
+
+- **Tema:** `{ kind: 'panorama', image, format: 'ldr' | 'hdr', rotation (0–359), intensity (0,3–1,5), blur (0–0,4), reflect }`. `intensity` age só no fundo (`backgroundIntensity`); a força do reflexo nos dados não muda.
+- **Carregar** (`tableImages.ts`): `preparePanorama` (JPG/PNG/WebP reduzidos a 4096 px; `.hdr` guardado como veio, até 25 MB; `.exr` é erro) e `panoramaTexture` (cache por blob; checa 2:1 com tolerância 1,9–2,1; HDR por `HDRLoader` em import dinâmico, reduzido por média 2×2 e guardado em half float). Com SwiftShader (`markSoftwareGl`, chamado em `Stage`) o teto cai para 2048 px.
+- **Cena** (`Stage.tsx`): `<EnvironmentPortal resolution={256} map={reflect ? tex : undefined}>` com os mesmos três `Lightformer`s (o panorama **soma**; os `Lightformer`s seguem acesos). O alvo do cubemap é o mesmo para qualquer panorama, então trocar de panorama, ligar/desligar o reflexo ou girar **não** recompila shader de dado: `gl.info.programs` sobe de 40 para 42 uma vez (fundo do panorama), depois fica fixo. Rotação, brilho e desfoque vão como props do portal (o drei os reaplica a cada recaptura; setar na cena à mão seria desfeito).
+- **Quando aplica:** `Stage` guarda o panorama pedido numa ref e só o aplica (estado + `scene.background`) com a fase `hand` ou com o showcase do arremesso atual encerrado, a mesma regra do DPR. Backdrop CSS não desenha nada para `panorama`.
+- **Painel:** botão **360°** (`data-testid="table-panorama"`), sliders Girar/Brilho/Desfoque, checkbox "Refletir nos dados". A proporção é checada ao escolher o arquivo.
+- **Arquivo:** nó oculto `fundo-360` (plano 2:1, como o `fundo`) + `extras`. HDR vai como JPEG tonemapeado (`c/(1+c)`, gama 2,2; o painel avisa) e volta como `ldr`. Armadilha: `roleOf('fundo-360')` dá `fundo-` (a regex do sufixo do Blender come os três dígitos), então esse nó é achado por `o.name`, não por `roleOf`. `fundo-360` sem `extras` panorama importa com os ajustes padrão e avisa.

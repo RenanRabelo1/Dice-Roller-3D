@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { colorsOf, disposeTable } from '../scene/tableBuild';
-import { reduceImage, TableError } from '../scene/tableImages';
+import { panoramaPicture, panoramaTexture, preparePanorama, reduceImage, TableError } from '../scene/tableImages';
 import { useTable } from '../scene/tableState';
-import { clampBlur, clampDim, clampTile, DEFAULT_THEME, fileSafe, LIMITS, PRESETS, type Background, type PresetName, type TableTheme } from '../scene/tableTheme';
+import { clampBlur, clampDim, clampIntensity, clampPanoramaBlur, clampRotation, clampTile, DEFAULT_THEME, fileSafe, LIMITS, PRESETS, type Background, type PresetName, type TableTheme } from '../scene/tableTheme';
 
 const typing = (el: EventTarget | null) =>
   el instanceof HTMLElement && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName));
@@ -15,6 +15,7 @@ export function TablePanel() {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
+  const [note, setNote] = useState('');
   const [pending, setPending] = useState<Pending | null>(null);
   const toggle = useRef<HTMLButtonElement>(null);
   const bg = theme.background, model = !!theme.model;
@@ -31,12 +32,17 @@ export function TablePanel() {
 
   // Runs `work` with a status line; a TableError becomes the message, anything else a generic one.
   const task = async (label: string, work: () => Promise<void>) => {
-    setError(''); setBusy(label);
+    setError(''); setNote(''); setBusy(label);
     try { await work(); } catch (e) { setError(e instanceof TableError ? e.message : 'Não consegui fazer isso. Tente de novo.'); } finally { setBusy(''); }
   };
   const photo = (file: File | undefined) => file && task('Preparando imagem…', async () => {
     const image = await reduceImage(file, LIMITS.photoPx);
     edit({ background: { kind: 'image', image, blur: bg.kind === 'image' ? bg.blur : 0, dim: bg.kind === 'image' ? bg.dim : 25 } });
+  });
+  const panorama = (file: File | undefined) => file && task('Preparando panorama…', async () => {
+    const { image, format } = await preparePanorama(file, file.name);
+    await panoramaTexture({ image, format }); // decodes it, which checks the 2:1 ratio before anything is saved
+    setBackground({ kind: 'panorama', image, format, rotation: 0, intensity: 1, blur: 0, reflect: true });
   });
   const feltImage = (file: File | undefined) => file && task('Preparando imagem…', async () => {
     // White, so the picture shows in its own colours; the colour can still be changed afterwards to tint it on purpose.
@@ -48,7 +54,8 @@ export function TablePanel() {
     const { buildFor, exportTable } = await import('../scene/tableFile');
     const { CanvasTexture } = await import('three');
     const group = await buildFor(theme);
-    const map = bg.kind === 'image' ? new CanvasTexture(await createImageBitmap(bg.image)) : null;
+    const map = bg.kind === 'image' ? new CanvasTexture(await createImageBitmap(bg.image)) : bg.kind === 'panorama' ? new CanvasTexture(await panoramaPicture(bg)) : null;
+    if (bg.kind === 'panorama' && bg.format === 'hdr') setNote('O fundo HDR vai no arquivo como JPEG.');
     try {
       const bytes = await exportTable(group, theme, map);
       const a = document.createElement('a');
@@ -67,7 +74,7 @@ export function TablePanel() {
     const colors = colorsOf(read.group) ?? { felt: DEFAULT_THEME.felt.color, wood: DEFAULT_THEME.wood.color };
     disposeTable(read.group);
     const x = read.extras;
-    const background: Background = x ? (x.background.kind === 'image' ? (read.backdrop ? { kind: 'image', image: read.backdrop, blur: x.background.blur, dim: x.background.dim } : bg) : x.background) : bg;
+    const background: Background = x ? (x.background.kind === 'image' ? (read.backdrop ? { kind: 'image', image: read.backdrop, blur: x.background.blur, dim: x.background.dim } : bg) : x.background.kind === 'panorama' ? (read.backdrop ? { ...x.background, image: read.backdrop, format: 'ldr' } : bg) : x.background) : read.defaultPanorama && read.backdrop ? { kind: 'panorama', image: read.backdrop, format: 'ldr', rotation: 0, intensity: 1, blur: 0, reflect: true } : bg;
     const next: TableTheme = {
       version: 1, id: crypto.randomUUID(), name: (x?.name ?? file.name.replace(/\.glb$/i, '')).slice(0, 40), createdAt: Date.now(),
       background, felt: { color: colors.felt, texture: 'liso' }, wood: { color: colors.wood }, model: { name: file.name, bytes },
@@ -96,7 +103,10 @@ export function TablePanel() {
             <div className="import-row" role="group" aria-label="Tipo de fundo">
               <button aria-pressed={bg.kind === 'color'} onClick={() => setBackground({ kind: 'color', color: DEFAULT_THEME.background.kind === 'color' ? DEFAULT_THEME.background.color : '#140E10' })}>Cor</button>
               <button aria-pressed={bg.kind === 'image'} onClick={() => document.getElementById('table-photo')?.click()}>Foto</button>
+              <button aria-pressed={bg.kind === 'panorama'} onClick={() => document.getElementById('table-panorama')?.click()}>360°</button>
               <button aria-pressed={bg.kind === 'preset'} onClick={() => bg.kind !== 'preset' && setBackground({ kind: 'preset', preset: 'taverna' })}>Tema</button>
+              <input id="table-panorama" data-testid="table-panorama" type="file" hidden
+                accept=".jpg,.jpeg,.png,.webp,.hdr,image/jpeg,image/png,image/webp" onChange={(e) => { panorama(e.target.files?.[0]); e.target.value = ''; }} />
               <input id="table-photo" data-testid="table-photo" type="file" accept="image/png,image/jpeg,image/webp" hidden
                 onChange={(e) => { photo(e.target.files?.[0]); e.target.value = ''; }} />
             </div>
@@ -111,6 +121,13 @@ export function TablePanel() {
             {bg.kind === 'image' && <>
               <label className="table-row">Desfoque <input type="range" min={0} max={LIMITS.blur} value={bg.blur} onChange={(e) => setBackground({ ...bg, blur: clampBlur(+e.target.value) })} /></label>
               <label className="table-row">Escurecer <input type="range" min={0} max={LIMITS.dim} value={bg.dim} onChange={(e) => setBackground({ ...bg, dim: clampDim(+e.target.value) })} /></label>
+            </>}
+            {bg.kind === 'panorama' && <>
+              <label className="table-row">Girar <input type="range" min={0} max={359} step={1} value={bg.rotation} onChange={(e) => setBackground({ ...bg, rotation: clampRotation(+e.target.value) })} /></label>
+              <label className="table-row">Brilho <input type="range" min={LIMITS.intensity[0]} max={LIMITS.intensity[1]} step={0.05} value={bg.intensity} onChange={(e) => setBackground({ ...bg, intensity: clampIntensity(+e.target.value) })} /></label>
+              <label className="table-row">Desfoque <input type="range" min={0} max={LIMITS.panoramaBlur} step={0.02} value={bg.blur} onChange={(e) => setBackground({ ...bg, blur: clampPanoramaBlur(+e.target.value) })} /></label>
+              <label className="table-row">Refletir nos dados <input type="checkbox" checked={bg.reflect} onChange={(e) => setBackground({ ...bg, reflect: e.target.checked })} /></label>
+              <small>Use uma foto panorâmica 2:1. O Poly Haven tem HDRIs grátis.</small>
             </>}
           </fieldset>
           <fieldset disabled={model}>
@@ -149,6 +166,7 @@ export function TablePanel() {
             <small>Só .glb (até 20 MB, 100 mil triângulos, texturas de 2048 px). A mesa só muda o visual: a física e os resultados não mudam.</small>
           </fieldset>
           {busy && <p role="status">{busy}</p>}
+          {note && <p role="status">{note}</p>}
           {error && <p className="import-error" role="alert">{error}</p>}
           {pending && (
             <div className="import-error" role="alertdialog" aria-label="Avisos da mesa" data-testid="table-warnings">

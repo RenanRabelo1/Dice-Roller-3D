@@ -3,7 +3,7 @@ import { useTable } from './tableState';
 import { PRESETS } from './tableTheme';
 
 // A photo or ready-made backdrop lives behind the (transparent) canvas as plain CSS: blur and dimming cost the GPU nothing.
-// A plain colour is the scene's own background (Stage), so nothing renders here for it.
+// A plain colour or a 360° panorama is the scene's own background (Stage), so nothing renders here for them.
 export function Backdrop() {
   const bg = useTable((s) => s.theme.background);
   const image = bg.kind === 'image' ? bg.image : null;
@@ -16,7 +16,7 @@ export function Backdrop() {
     reader.readAsDataURL(image);
     return () => { alive = false; };
   }, [image]);
-  if (bg.kind === 'color') return null;
+  if (bg.kind === 'color' || bg.kind === 'panorama') return null;
   const style: CSSProperties = bg.kind === 'preset'
     ? { background: PRESETS[bg.preset].css }
     : { backgroundImage: image && url ? `url(${url})` : undefined, filter: `blur(${bg.blur}px)`, inset: `${-2 * bg.blur}px` };
