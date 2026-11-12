@@ -1,7 +1,12 @@
+import { lazy, Suspense, useCallback, useState } from 'react';
 import { omenPlaying, useDice } from '../store';
-import { KINDS, MAX_DICE } from '../dice/polyhedra';
+import { customKind } from '../dice/custom';
+import { KINDS, MAX_DICE, type DieKind } from '../dice/polyhedra';
 import { dieName, formatDice, resultText } from '../dice/notation';
 import { Chat } from './Chat';
+
+// The importer (and the model loaders) only load when the player opens it.
+const ImportDie = lazy(() => import('./ImportDie').then((m) => ({ default: m.ImportDie })));
 
 
 function Force() {
@@ -10,7 +15,22 @@ function Force() {
 }
 
 export function Controls() {
-  const dice = useDice((s) => s.dice);
+  const dice = useDice((s) => s.dice), customs = useDice((s) => s.customs);
+  const [importing, setImporting] = useState(false), [mounted, setMounted] = useState(false);
+  const closeImport = useCallback(() => setImporting(false), []);
+  const pick = (type: DieKind, mine = false) => {
+    const n = dice.filter((d) => d === type).length, name = dieName(type);
+    return (
+      <div className="pick" key={type}>
+        <button aria-label={`Adicionar ${name}`} aria-pressed={n > 0} disabled={dice.length >= MAX_DICE}
+          onClick={() => useDice.getState().addDie(type)}>{n ? formatDice(dice.filter((d) => d === type)) : name}</button>
+        {n > 0 && <button className="remove" aria-label={`Remover ${name}`} disabled={dice.length === 1}
+          onClick={() => useDice.getState().removeDie(type)}>−</button>}
+        {mine && <button className="remove" aria-label={`Excluir ${name}`}
+          onClick={() => { if (confirm(`Excluir ${name} deste navegador? Isso não pode ser desfeito.`)) void useDice.getState().removeCustom(type as `custom:${string}`); }}>🗑</button>}
+      </div>
+    );
+  };
   const phase = useDice((s) => s.gesture.phase), results = useDice((s) => s.results);
   const waiting = useDice(omenPlaying); // the result shows once its omen has played (or the dice are picked up)
   const failed = useDice((s) => s.error === 'physics');
@@ -20,20 +40,15 @@ export function Controls() {
       <header className="controls panel">
         <h1>Rolador de dados</h1>
         <div className="selection" role="group" aria-label="Dados">
-          {KINDS.map((type) => {
-            const n = dice.filter((d) => d === type).length, name = dieName(type);
-            return (
-              <div className="pick" key={type}>
-                <button aria-label={`Adicionar ${name}`} aria-pressed={n > 0} disabled={dice.length >= MAX_DICE}
-                  onClick={() => useDice.getState().addDie(type)}>{n ? formatDice(dice.filter((d) => d === type)) : name}</button>
-                {n > 0 && <button className="remove" aria-label={`Remover ${name}`} disabled={dice.length === 1}
-                  onClick={() => useDice.getState().removeDie(type)}>−</button>}
-              </div>
-            );
-          })}
+          {KINDS.map((type) => pick(type))}
+        </div>
+        <div className="selection" role="group" aria-label="Meus dados">
+          {customs.map((d) => pick(customKind(d.id), true))}
+          <button aria-expanded={importing} aria-controls="import-die" onClick={() => { setMounted(true); setImporting((o) => !o); }}>Importar dado</button>
         </div>
         <p className="pool" aria-live="polite">{formatDice(dice)}</p>
         <Chat />
+        {mounted && <Suspense fallback={null}><ImportDie open={importing} onClose={closeImport} /></Suspense>}
       </header>
       <footer className="status panel">
         <div className="feedback">

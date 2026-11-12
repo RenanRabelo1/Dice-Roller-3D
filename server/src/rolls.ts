@@ -1,7 +1,7 @@
 import { ObjectId, type Collection, type Db } from 'mongodb';
-import { KINDS } from '../../src/dice/kinds.ts';
+import { CUSTOM_BASES, KINDS } from '../../src/dice/kinds.ts';
 import type { OmenKind } from '../../src/dice/omen.ts';
-import type { Die } from './rules.ts';
+import { CUSTOM, type Die } from './rules.ts';
 
 // One document per throw. The dice are embedded: at most 10, always read with their throw.
 // History is read per player, newest first, so the one index is (playerId, _id desc): an ObjectId grows
@@ -21,7 +21,10 @@ const VALIDATOR = {
         bsonType: 'array', minItems: 1, maxItems: 10,
         items: {
           bsonType: 'object', required: ['kind', 'value'], additionalProperties: false,
-          properties: { kind: { enum: KINDS }, value: { bsonType: 'int', minimum: 1, maximum: 100 } },
+          properties: {
+            kind: { anyOf: [{ enum: KINDS }, { bsonType: 'string', pattern: CUSTOM }] }, value: { bsonType: 'int', minimum: 1, maximum: 100 },
+            base: { enum: [...CUSTOM_BASES] }, omens: { bsonType: 'bool' }, // imported dice only
+          },
         },
       },
       total: { bsonType: 'int', minimum: 0 },

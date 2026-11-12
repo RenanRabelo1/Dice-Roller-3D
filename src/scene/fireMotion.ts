@@ -1,5 +1,5 @@
 import { MathUtils } from 'three';
-import type { Omen } from '../dice/omen';
+import { isD20, type Omen } from '../dice/omen';
 import type { DieKind } from '../dice/polyhedra';
 import { TRAY } from '../physics/world';
 import { easeOut } from './highlight';
@@ -10,7 +10,7 @@ import { span } from './krakenMotion';
 export const FIRE = { ignite: 500, spread: [300, 2200], trayOut: [2700, 3900] } as const;
 
 export const fireIndices = (omen: Omen | null, dice: DieKind[]) =>
-  omen && !omen.crits.length ? omen.fumbles.filter((i) => dice[i] === 'd20') : [];
+  omen && !omen.crits.length ? omen.fumbles.filter((i) => isD20(dice[i])) : [];
 
 // How far the fire must run from the burning dice to reach the last corner of the felt.
 export const fireReach = (lit: { x: number; z: number }[]) =>

@@ -11,12 +11,13 @@ import type { DiceHook } from '../testHook';
 import { GRAVITY, HAND, MAX_RADIUS, STEP, TRAY, handPositions, type Vec3 } from '../physics/world';
 import { useDice } from '../store';
 import { installTestHook } from '../testHook';
-import { Die, GEM } from './Die';
+import { Die, gemColor } from './Die';
 import { Tray } from './Tray';
 import { Hand } from './Hand';
 import { Omens } from './Omens';
 import { omenKind } from '../dice/omen';
-import { MAX_DICE } from '../dice/polyhedra';
+import { customKind } from '../dice/custom';
+import { customsOf, MAX_DICE } from '../dice/polyhedra';
 import { VORTEX, vortexCenter, vortexRadius } from '../throw/vortex';
 
 const WORKER_TIMEOUT = 2000; // ms; a ten-dice recording takes well under 200 ms
@@ -66,7 +67,7 @@ function ThrowLoop({ bodies, recordLaunch }: {
     if (play.current?.throwId !== throwId) {
       if (current.length !== dice.length) return;
       const start = bodyStates(current).map(({ p, q }) => ({ p, q }));
-      const request: RollRequest = { dice, start, launch };
+      const request: RollRequest = { dice, start, launch, customs: customsOf(dice) };
       play.current = { throwId, request, rec: null, at: 0, sent: performance.now() };
       useDice.getState().setError(null);
       if (worker.current) worker.current.postMessage(request);
@@ -215,6 +216,7 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
         text: o instanceof Text ? o.text : null, visible: o.visible, position: o.position.toArray(),
       })),
       launches: () => launches.current,
+      customs: () => useDice.getState().customs.map((d) => ({ kind: customKind(d.id), id: d.id, name: d.name, slug: d.slug, base: d.base, printed: d.printed })),
       previewSurface: (index, p, q) => {
         if (import.meta.env.MODE !== 'test' || !new URLSearchParams(location.search).has('surface-preview') || useDice.getState().gesture.phase !== 'hand') throw new Error('Surface preview is only available in the test preview scene');
         const body = bodies.current[index];
@@ -250,7 +252,7 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
         <ThrowLoop bodies={bodies} recordLaunch={recordLaunch} />
         <group ref={dice}>
           {selected.map((kind, i) => (
-            <Die key={`${key}-${i}`} index={i} kind={kind} selection={key} count={selected.length} color={GEM[kind]}
+            <Die key={`${key}-${i}`} index={i} kind={kind} selection={key} count={selected.length} color={gemColor(kind)}
               register={register} />
           ))}
         </group>

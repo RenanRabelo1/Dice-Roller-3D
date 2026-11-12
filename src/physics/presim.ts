@@ -1,5 +1,6 @@
 import RAPIER from '@dimforge/rapier3d-compat';
-import { polyhedron, type DieKind } from '../dice/polyhedra';
+import type { CustomKind } from '../dice/custom';
+import { polyhedron, type DieKind, type Polyhedron } from '../dice/polyhedra';
 import { readUp, toResults } from '../dice/read';
 import { initSettle, stepSettle } from '../throw/settle';
 import { applyLaunch, applySettle, bodyStates, type Launch } from './apply';
@@ -7,7 +8,8 @@ import { DAMPING, GRAVITY, isOutside, MATERIAL, SETTLE, STEP, trayColliders, typ
 
 export type Pose = { p: Vec3; q: Quat };
 export interface Recording { frames: Pose[][]; raw: number[]; results: number[]; timedOut: boolean; escaped: boolean; recovered: boolean }
-export interface RollRequest { dice: DieKind[]; start: Pose[]; launch: Launch }
+// `customs`: the imported dice of the selection, because the worker has no registry of its own.
+export interface RollRequest { dice: DieKind[]; start: Pose[]; launch: Launch; customs: Record<CustomKind, Polyhedron> }
 export type RollResponse = { throwId: number } & ({ rec: Recording } | { error: string });
 
 // Runs the whole throw offline with the real engine and the real inputs (hand poses, aim, force, spin),

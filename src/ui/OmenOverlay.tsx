@@ -1,5 +1,6 @@
 import { useEffect, type CSSProperties, type RefObject } from 'react';
-import { omenKind, omenMs, type OmenKind } from '../dice/omen';
+import { isD20, omenKind, omenMs, type OmenKind } from '../dice/omen';
+import type { DieKind } from '../dice/polyhedra';
 import { omenPlaying, useDice } from '../store';
 
 // The screen side of an omen: a white flash as the lightning strikes, the deep dark while the kraken is up,
@@ -21,8 +22,9 @@ export function OmenOverlay({ gameArea }: { gameArea: RefObject<HTMLDivElement |
   const playing = useDice(omenPlaying), omen = useDice((s) => s.omen), dice = useDice((s) => s.dice);
   const live = playing ? omen : null;
   const kind = live && omenKind(live);
-  const has = (list: number[] | undefined, die: string) => !!list?.some((i) => dice[i] === die);
-  const kraken = kind === 'crit' && has(live?.crits, 'd100'), storm = kind === 'fumble' && has(live?.fumbles, 'd100');
+  const has = (list: number[] | undefined, is: (die: DieKind) => boolean) => !!list?.some((i) => is(dice[i]));
+  const d100 = (die: DieKind) => die === 'd100';
+  const kraken = kind === 'crit' && has(live?.crits, d100), storm = kind === 'fumble' && has(live?.fumbles, d100);
   useEffect(() => {
     const area = gameArea.current;
     if (!area) return;
@@ -35,9 +37,9 @@ export function OmenOverlay({ gameArea }: { gameArea: RefObject<HTMLDivElement |
   return (
     <>
       <div key={live.throwId} className="omen" style={{ '--ms': `${omenMs(live, dice)}ms` } as CSSProperties} aria-hidden="true">
-        {kind === 'crit' && has(live.crits, 'd20') && <div className="omen-flash" />}
+        {kind === 'crit' && has(live.crits, isD20) && <div className="omen-flash" />}
         {kraken && <div className="omen-deep" />}
-        {kind === 'fumble' && has(live.fumbles, 'd20') && <div className="omen-heat" />}
+        {kind === 'fumble' && has(live.fumbles, isD20) && <div className="omen-heat" />}
         {storm && <>
           <div className="omen-sea" />
           <div className="omen-rain">

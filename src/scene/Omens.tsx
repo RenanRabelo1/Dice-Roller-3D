@@ -7,7 +7,7 @@ import {
   Points, Shape, Sprite, SpriteMaterial, Vector3, type Camera, type Material, type PerspectiveCamera, type Scene, type WebGLRenderer,
 } from 'three';
 import { MAX_DICE } from '../dice/polyhedra';
-import { DUALITY_HIT, omenKind, omenMs } from '../dice/omen';
+import { DUALITY_HIT, isD20, omenKind, omenMs } from '../dice/omen';
 import { omenPlaying, useDice } from '../store';
 import { krakenIndices, span, stormIndices } from './krakenMotion';
 import { Kraken } from './Kraken';
@@ -196,7 +196,7 @@ class Show {
     if (this.run?.throwId !== o.throwId) {
       this.hide();
       const kind = omenKind(o), positions = (indices: number[]) => indices.map(at).filter((p): p is Vector3 => !!p);
-      const lit = kind === 'crit' ? o.crits.filter((i) => s.dice[i] === 'd20') : [];
+      const lit = kind === 'crit' ? o.crits.filter((i) => isD20(s.dice[i])) : [];
       const grab = krakenIndices(o, s.dice), storm = stormIndices(o, s.dice), fire = fireIndices(o, s.dice);
       positions(lit).forEach((p, i) => this.bolts[i].start(p));
       if (grab.length) this.kraken.start('grab', positions(grab), grab[0]);

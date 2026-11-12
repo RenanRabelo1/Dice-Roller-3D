@@ -1,11 +1,19 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { playerId, rollBody, saveRoll } from '../src/api/history';
+import { customKind, unregisterCustom } from '../src/dice/custom';
+import { customDieOf } from './helpers/models';
 
 afterEach(() => vi.unstubAllGlobals());
 
 describe('saving throws to the history API', () => {
   it('sends each die with its result, and the throw force', () => {
     expect(rollBody('p', ['d20', 'coin'], [20, 2], 0.73)).toEqual({ playerId: 'p', dice: [{ kind: 'd20', value: 20 }, { kind: 'coin', value: 2 }], force: 0.73 });
+  });
+  it('an imported die also says its solid and whether it counts as a d20, so the server can score it', () => {
+    const kind = customKind(customDieOf('d20', 'Caveira', 'caveira').id);
+    try {
+      expect(rollBody('p', [kind, 'd6'], [20, 3], 0.5).dice).toEqual([{ kind, value: 20, base: 'd20', omens: true }, { kind: 'd6', value: 3 }]);
+    } finally { unregisterCustom(kind); }
   });
   it('without an API address nothing is sent (the table works offline)', () => {
     const fetch = vi.fn(); vi.stubGlobal('fetch', fetch);

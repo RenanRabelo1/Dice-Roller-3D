@@ -35,7 +35,20 @@ describe('roll history API', () => {
     expect((await post({ playerId: bia, dice: [{ kind: 'vtm', value: 10 }, { kind: 'fire', value: 6 }] })).json()).toMatchObject({ omen: null, total: 16 });
   });
 
+  it('keeps an imported die with its solid, and counts it as a d20 for omens only when the player asked', async () => {
+    const skull = 'custom:4f1d9e8b-1a2b-4c3d-8e5f-0a1b2c3d4e5f';
+    const on = (await post({ playerId: ana, dice: [{ kind: skull, value: 20, base: 'd20', omens: true }, { kind: 'd6', value: 2 }] })).json();
+    expect(on).toMatchObject({ total: 22, omen: 'crit', dice: [{ kind: skull, value: 20, base: 'd20', omens: true }, { kind: 'd6', value: 2 }] });
+    expect((await post({ playerId: ana, dice: [{ kind: skull, value: 20, base: 'd20', omens: false }] })).json().omen).toBeNull();
+    expect((await post({ playerId: ana, dice: [{ kind: skull, value: 20, base: 'd20' }] })).json()).toMatchObject({ omen: null, dice: [{ omens: false }] });
+    expect((await post({ playerId: ana, dice: [{ kind: 'd20', value: 20, base: 'd4' }] })).json().dice).toEqual([{ kind: 'd20', value: 20 }]); // a built-in die keeps no base
+  });
+
   it.each([
+    ['an imported die with no solid', { playerId: ana, dice: [{ kind: 'custom:abc', value: 3 }] }],
+    ['an imported die past its solid', { playerId: ana, dice: [{ kind: 'custom:abc', value: 7, base: 'd6' }] }],
+    ['an imported die of a solid it cannot be', { playerId: ana, dice: [{ kind: 'custom:abc', value: 1, base: 'd100' }] }],
+    ['a malformed imported id', { playerId: ana, dice: [{ kind: 'custom:', value: 1, base: 'd6' }] }],
     ['a face the die does not have', { playerId: ana, dice: [{ kind: 'd6', value: 7 }] }],
     ['a coin side that does not exist', { playerId: ana, dice: [{ kind: 'coin', value: 3 }] }],
     ['an unknown die', { playerId: ana, dice: [{ kind: 'd7', value: 1 }] }],
@@ -66,6 +79,7 @@ describe('roll history API', () => {
 
   it('the collection itself refuses a malformed throw, and history is served by its index', async () => {
     await expect(db.collection('rolls').insertOne({ playerId: ana, createdAt: new Date(), dice: [], total: 0, omen: null, force: null })).rejects.toThrow(/validation/i);
+    await expect(db.collection('rolls').insertOne({ playerId: ana, createdAt: new Date(), dice: [{ kind: 'custom:x', value: 1, base: 'd7' }], total: 1, omen: null, force: null })).rejects.toThrow(/validation/i);
     const plan = await db.collection('rolls').find({ playerId: ana }).sort({ _id: -1 }).explain('queryPlanner');
     expect(JSON.stringify(plan.queryPlanner.winningPlan)).toContain('player_history');
   });

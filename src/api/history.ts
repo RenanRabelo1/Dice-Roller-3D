@@ -1,4 +1,5 @@
-import type { DieKind } from '../dice/kinds';
+import { customDie } from '../dice/custom';
+import { isCustom, type DieKind } from '../dice/kinds';
 
 // Sends each throw to the history API (server/) when the app runs with VITE_API_URL set. Fire and forget:
 // the table never waits on the network, and with no backend configured nothing is sent.
@@ -17,8 +18,14 @@ export function playerId(): string {
   }
 }
 
+// An imported die also says which solid it is and whether it counts as a d20, so the server can check and score it.
+const dieBody = (kind: DieKind, value: number) => {
+  const die = isCustom(kind) ? customDie(kind) : undefined;
+  return die ? { kind, value, base: die.base, omens: die.omens } : { kind, value };
+};
+
 export const rollBody = (player: string, dice: DieKind[], results: number[], force: number) =>
-  ({ playerId: player, dice: dice.map((kind, i) => ({ kind, value: results[i] })), force: Math.min(1, Math.max(0, force)) });
+  ({ playerId: player, dice: dice.map((kind, i) => dieBody(kind, results[i])), force: Math.min(1, Math.max(0, force)) });
 
 export function saveRoll(dice: DieKind[], results: number[], force: number, api = API): void {
   if (!api) return;

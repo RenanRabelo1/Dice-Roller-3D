@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import { customDie, customList, isCustom, registerCustom, unregisterCustom, type CustomDie, type CustomKind } from './dice/custom';
+import { deleteCustomDie, listCustomDice, saveCustomDie } from './dice/customStore';
 import { MAX_DICE, sortDice, type DieKind } from './dice/polyhedra';
 import { omenOf, type Omen } from './dice/omen';
 import type { Launch } from './physics/apply';
@@ -25,6 +27,11 @@ interface DiceState {
   omenDone: number; // throwId whose omen finished playing
   omenAt: number; // shared animation clock, starting when the physical result is published
   omenRig: Omen | null; // test mode only: forces the omen of the next throws
+  customs: CustomDie[]; // the player's imported dice, in creation order
+  sessionOnly: boolean; // IndexedDB is unavailable: imported dice last until the page closes
+  loadCustoms: () => Promise<void>;
+  addCustom: (die: CustomDie) => Promise<string | null>; // null, or why it could not be saved
+  removeCustom: (kind: CustomKind) => Promise<void>;
   addDie: (kind: DieKind) => void;
   removeDie: (kind: DieKind) => void;
   setDice: (dice: DieKind[]) => void;
@@ -53,16 +60,47 @@ const selection = (s: DiceState) => ({
 export const omenPlaying = (s: Pick<DiceState, 'gesture' | 'omen' | 'omenDone' | 'throwId'>) =>
   s.gesture.phase === 'settled' && s.omen?.throwId === s.throwId && s.omenDone !== s.throwId;
 
-export const useDice = create<DiceState>((set) => ({
+export const useDice = create<DiceState>((set, get) => ({
   dice: ['d20'], gesture: initialGesture, throwId: 0,
   aim: [0, 0, -1], force: 0, launch: null, results: null, raw: null,
-  error: null, ready: false, reducedMotion: false, showcased: 0, omen: null, omenDone: 0, omenAt: 0, omenRig: null,
+  error: null, ready: false, reducedMotion: false, showcased: 0, omen: null, omenDone: 0, omenAt: 0, omenRig: null, customs: [], sessionOnly: false,
   addDie: (kind) => set((s) => (s.dice.length >= MAX_DICE ? s : { ...selection(s), dice: sortDice([...s.dice, kind]) })),
   removeDie: (kind) => set((s) => {
     const i = s.dice.lastIndexOf(kind);
     return i < 0 || s.dice.length === 1 ? s : { ...selection(s), dice: s.dice.filter((_, j) => j !== i) };
   }),
-  setDice: (dice) => set((s) => ({ ...selection(s), dice: sortDice(dice.slice(0, MAX_DICE)) })),
+  setDice: (dice) => set((s) => {
+    const known = dice.filter((k) => !isCustom(k) || customDie(k)).slice(0, MAX_DICE);
+    return known.length ? { ...selection(s), dice: sortDice(known) } : s;
+  }),
+  loadCustoms: async () => {
+    try {
+      const saved = await listCustomDice();
+      saved.forEach(registerCustom);
+      set({ customs: customList(), sessionOnly: false });
+    } catch { set({ sessionOnly: true }); }
+  },
+  addCustom: async (die) => {
+    let failure: string | null = null;
+    try { await saveCustomDie(die); } catch (e) {
+      // A full disk loses the die; no IndexedDB at all just keeps it for this session.
+      if (e instanceof DOMException && e.name === 'QuotaExceededError') return 'Não coube no armazenamento do navegador. Libere espaço ou use um modelo menor.';
+      failure = 'session';
+    }
+    registerCustom(die);
+    set({ customs: customList(), sessionOnly: failure !== null || get().sessionOnly });
+    return null;
+  },
+  removeCustom: async (kind) => {
+    const die = customDie(kind);
+    if (!die) return;
+    try { await deleteCustomDie(die.id); } catch { /* session-only: nothing stored */ }
+    unregisterCustom(kind);
+    set((s) => {
+      const dice = s.dice.filter((k) => k !== kind);
+      return { ...selection(s), customs: customList(), dice: dice.length ? dice : ['d20'] };
+    });
+  },
   setAim: (aim) => set({ aim: [...aim] }),
   setForce: (force) => set({ force }),
   setReady: () => set({ ready: true }),

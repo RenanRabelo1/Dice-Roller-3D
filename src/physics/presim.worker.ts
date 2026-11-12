@@ -1,13 +1,15 @@
 import RAPIER from '@dimforge/rapier3d-compat';
+import { registerPoly, type CustomKind } from '../dice/custom';
 import { presimulate, type RollRequest, type RollResponse } from './presim';
 
 // Warm the engine while the user aims, and keep the full simulation off the render thread.
 const ready = RAPIER.init().then(() => null, (error: unknown) => String(error));
-self.onmessage = async ({ data: { dice, start, launch } }: MessageEvent<RollRequest>) => {
+self.onmessage = async ({ data: { dice, start, launch, customs } }: MessageEvent<RollRequest>) => {
   let response: RollResponse;
   try {
     const error = await ready;
     if (error) throw new Error(error);
+    for (const kind of Object.keys(customs) as CustomKind[]) registerPoly(kind, customs[kind]);
     response = { throwId: launch.throwId, rec: presimulate(dice, start, launch) };
   } catch (error) {
     response = { throwId: launch.throwId, error: String(error) };

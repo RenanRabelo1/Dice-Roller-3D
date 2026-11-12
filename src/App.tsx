@@ -8,6 +8,7 @@ import { saveRoll } from './api/history';
 
 export default function App() {
   const gameArea = useRef<HTMLDivElement>(null);
+  useEffect(() => { void useDice.getState().loadCustoms(); }, []);
   useEffect(() => {
     const media = matchMedia('(prefers-reduced-motion: reduce)');
     const update = () => useDice.getState().setReducedMotion(media.matches);
