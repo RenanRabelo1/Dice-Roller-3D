@@ -124,6 +124,7 @@ function usePainted(source: BufferGeometry | undefined, outside: string, ink: st
     const g = new BufferGeometry();
     for (const name of ['position', 'normal']) { const a = source.getAttribute(name); if (a) g.setAttribute(name, a); }
     g.setAttribute('color', new Float32BufferAttribute(new Float32Array(mask.length * 9), 3));
+    g.userData.ink = mask; // the same mask (tests read it)
     return g;
   }, [source, mask, inked]); // the colours are filled by the effect below
   useEffect(() => { if (geometry && mask && ink) paintInto(geometry.getAttribute('color') as BufferAttribute, mask, outside, ink); }, [geometry, mask, outside, ink]);

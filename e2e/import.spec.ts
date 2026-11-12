@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { polyhedron } from '../src/dice/polyhedra';
-import { glb, modelTriangles, stl, subdivided } from '../tests/helpers/models';
+import { asFile, glb, modelTriangles, prismTriangles, stl, subdivided } from '../tests/helpers/models';
 
 // Dice models made from the app's own solids (see tests/helpers/models.ts), chamfered and off-centre like a slicer export.
 const file = (name: string, buffer: ArrayBuffer, mimeType = 'application/octet-stream') => ({ name, mimeType, buffer: Buffer.from(buffer) });
@@ -135,4 +135,68 @@ test('ten imported dice at the triangle limit still roll and settle', async ({ p
   const results = await rollAndCheck(page);
   expect(results).toHaveLength(10);
   console.log(`10 imported dice at 48k triangles: rolled and showcased in ${Date.now() - start} ms`);
+});
+
+test('a free-form prism imports, rolls, reads from below, stays on the tray and survives a reload', async ({ page }) => {
+  await open(page, file('prisma.stl', stl(asFile(prismTriangles(5, 1.4)))));
+  await expect(page.getByRole('alert')).toContainText('Não reconheci um d4–d20');
+  await page.getByRole('button', { name: 'Importar como dado de forma livre' }).click();
+  await expect(page.getByTestId('import-shape')).toContainText('7 faces de apoio');
+  await expect(page.getByText('A física usa o contorno externo do modelo.')).toBeVisible();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Não, numerar para mim' }).click();
+  await save(page, 'Prisma');
+  await expect(page.getByRole('button', { name: 'Adicionar Prisma' })).toBeVisible();
+  const [custom] = await page.evaluate(() => window.__dice.customs());
+  expect(custom).toMatchObject({ name: 'Prisma', slug: 'prisma', base: 'livre' });
+
+  await page.evaluate((kind) => window.__dice.select([kind]), custom.kind); await ready(page, 1);
+  await throwWithSpace(page); await settled(page);
+  const [result] = (await page.evaluate(() => window.__dice.state().results))!;
+  expect(result).toBeGreaterThanOrEqual(1); expect(result).toBeLessThanOrEqual(7);
+  // read from below: the face whose normal points most downwards
+  const labels = await page.evaluate(() => window.__dice.labels(0));
+  expect(labels.reduce((a, b) => (b.normal[1] < a.normal[1] ? b : a)).value).toBe(result);
+  // it does not fly to the camera: it stays where it stopped
+  const before = (await page.evaluate(() => window.__dice.bodies()))[0].p;
+  await page.waitForTimeout(600);
+  const after = (await page.evaluate(() => window.__dice.bodies()))[0].p;
+  expect(Math.hypot(...after.map((v, k) => v - before[k]))).toBeLessThan(0.01);
+  expect(after[1]).toBeLessThan(1.5);
+
+  await page.reload(); await ready(page);
+  await expect(page.getByRole('button', { name: 'Adicionar Prisma' })).toBeVisible();
+  await page.keyboard.press('c');
+  await page.getByLabel(/^Dados, por exemplo/).fill('2prisma');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.pool')).toHaveText('2 Prisma');
+});
+
+test('painted numerals: the ink shows on an engraved STL, changes in My dice without reloading, and the matte finish is opaque', async ({ page }) => {
+  await open(page, file('d6.stl', stl(modelTriangles(polyhedron('d6'), { bevel: 0.04, engrave: 0.04 }))));
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Sim, calibrar' }).click();
+  const ask = page.getByLabel('Que número está nesta face?');
+  for (const v of [1, 5, 2, 6, 3, 4]) { await ask.fill(String(v)); await ask.press('Enter'); }
+  await save(page, 'Gravado');
+  const [custom] = await page.evaluate(() => window.__dice.customs());
+  await page.evaluate((kind) => window.__dice.select([kind]), custom.kind); await ready(page, 1);
+  const look = () => page.evaluate(() => window.__dice.gemLook(0).filter((m) => m.shown));
+  // automatic ink on a dark-red gem is gold (linear sRGB: bright red, dim blue)
+  await expect.poll(async () => (await look())[0]?.painted, { timeout: 30_000 }).toBe(true);
+  const [auto] = await look();
+  expect(auto.ink![0]).toBeGreaterThan(0.5); expect(auto.ink![2]).toBeLessThan(0.2);
+
+  await page.getByText('Tinta', { exact: true }).click();
+  await page.getByLabel('Branca').check();
+  await expect.poll(async () => (await look())[0]?.ink?.[2] ?? 0).toBeGreaterThan(0.6); // white ink, no reload
+  await page.getByLabel('Sem tinta').check();
+  await expect.poll(async () => (await look())[0]?.painted, { timeout: 30_000 }).toBe(false);
+  await page.getByLabel('Fosco').check();
+  await expect.poll(async () => (await look())[0]?.material, { timeout: 30_000 }).toBe('MeshStandardMaterial');
+  expect((await look())[0].opaque).toBe(true);
+
+  await page.reload(); await ready(page);
+  await page.evaluate((kind) => window.__dice.select([kind]), custom.kind); await ready(page, 1);
+  await expect.poll(async () => (await look())[0]?.material, { timeout: 30_000 }).toBe('MeshStandardMaterial'); // the choice was saved
 });
