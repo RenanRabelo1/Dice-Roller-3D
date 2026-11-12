@@ -164,7 +164,7 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
           results: state.results,
           ready: state.ready && state.dice.join(',') === key && bodies.current.filter((b) => b?.isValid()).length === selected.length,
           error: state.error, aim: state.aim, showcased: state.showcased,
-          omen: state.omen?.throwId === state.throwId ? omenKind(state.omen) : null, omenDone: state.omenDone,
+          omen: state.omen?.throwId === state.throwId ? omenKind(state.omen) : null, omenDone: state.omenDone, reducedMotion: state.reducedMotion,
           omenTime: performance.now() - state.omenAt, trayBroken: scene.getObjectByName('tray-surface')?.visible === false,
         };
       },

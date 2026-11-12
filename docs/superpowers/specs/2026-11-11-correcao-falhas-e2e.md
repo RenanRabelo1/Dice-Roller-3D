@@ -43,3 +43,10 @@ Depois de achar o commit, corrija a causa nele, sem afrouxar os testes. Junto, f
 - Não mude a física nem o resultado; não mude a contagem de luzes.
 - Commits atômicos (`fix:`/`test:` em inglês, com a linha de coautoria), sem push.
 - Dúvida ou bloqueio: mensagem para a sessão principal (`SendMessage`, `to: "local_b87dd7e4-6ecc-471c-8358-f5cf71a0d2bc"`), nunca pergunta direta ao usuário.
+
+## 4. Registro (implementação)
+
+- **F2** não reproduz isolado: o teste passa 5/5 em `2b0a413` (antes das correções) e 3/3 na ponta. Causa provável: corrida entre o evento do `matchMedia` (`emulateMedia`) e o relógio simulado; o teste passa a esperar `state().reducedMotion === true` (campo novo, aditivo, no test hook) antes de avançar o relógio. Não há commit culpado a registrar (sem bom/ruim estável). Os outros usos de `emulateMedia` (`omen.spec.ts`, `roll.spec.ts`) rodam em tempo real e já esperam por `expect`, então não mudaram.
+- A lógica da T2 (`trayBrokenAt`, superfície no `useLayoutEffect`, retorno só com todos os corpos) fica: é correta e coberta por Vitest.
+- Na rodada de verificação (`--repeat-each=3` das três variantes de `kraken.spec.ts` com a máquina muito carregada, 26 min), "reduced motion" passou 3/3; "pickup" e "selection" falharam em `launch`, dentro de `clock.pauseAt` (infraestrutura do relógio simulado sob carga), antes de qualquer código tocado por esta correção.
+- **F1** segue pendente (aguarda liberação da CPU).
