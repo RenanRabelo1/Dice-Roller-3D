@@ -159,4 +159,24 @@ Em `e2e/import.spec.ts`:
 
 ## 6. Implementação
 
-(preencher no passo 5 da tarefa 6)
+Branch `claude/gravacao-acesa-68ef1e` (a partir da `dev-jg`), um commit por tarefa:
+
+1. `6a59ba5` upInk e glowMesh (+ `tests/inkGlow.test.ts`)
+2. `e0a056e` showcasePoses com `above` (+ caso em `tests/showcase.test.ts`)
+3. `6c551f1` brilho no showcase + gancho `inkGlow(i)`
+4. `f8899ba` tinta e acabamento ao vivo na prévia do assistente
+5. `36bac1b` documentação
+6. E2E + esta seção
+
+**Diferenças em relação à spec**
+
+- **A3.5 (custo):** benchmark sintético em Node (10 malhas de 50 mil triângulos, 1 em cada 5 com tinta): ~223 ms no total, bem acima de 16 ms. Por isso `glowMesh` ganhou o parâmetro opcional `key` e guarda a geometria num `Map` (chave `${kind}|${raw}`); o material é novo a cada brilho, então `dropGlows` descarta só o material (a geometria é compartilhada). A primeira vez de cada `kind|valor` ainda paga a varredura; um shard real tem bem menos de 50 mil triângulos. Não medi com o `D5Shard.stl` dentro do jogo (sem como cronometrar o quadro do pouso no navegador embutido).
+- **`data-ink` no assistente:** é a cor final da tinta (`inkColor`), como a spec pede. Com a gema padrão do assistente (`GEM.d20`, clara) a tinta automática de um STL é a **escura** (`#1B1A16`), não a dourada; na mesa o dado usa a cor da gema da mesa (vermelho escuro no teste), onde sai dourada. O teste confere só que `data-ink` é uma cor hex no automático.
+- **Teste "painted numerals":** antes de salvar volto para Automática/Gema para o resto do teste (que espera a tinta automática e o brilho de gema na mesa).
+- **Teste do shard sem gravação (item 2 da tarefa 6):** não deu para afirmar `inkGlow(0) === null`. O shard sintético (`shardTriangles`) tem 6 triângulos que a máscara de tinta toma por gravação, então o brilho existe. O teste agora confere que o número solto só aparece quando não há brilho (`highlights()[0].visible === (inkGlow(0) === null)`). O caminho "gravação não achada → número na frente do dado" **não tem E2E**.
+- **Teste novo "an engraved shard…":** `modelTriangles(solid.poly, { engrave: 0.04 })` grava o sólido do shard (um furo hexagonal por face) e o brilho aparece (`triangles > 0`, visível, opacidade > 0, número solto escondido).
+- `markInk` exportado de `importer.ts` e `usePainted`/`paintGlb`/`GemMaterial` de `Die.tsx`, como na spec; no `Preview`, a máscara do STL é calculada num `useMemo` que devolve um booleano (a regra `void-use-memo` do lint recusou o `useMemo` sem retorno).
+
+**Conferência manual** (`npm run dev`, `D5Shard.stl`, forma livre, "Sim, só as grandes", 1–5): no passo de salvar, Branca → `data-ink=#F2EEE4` e Fosco → fosco opaco com a tinta escura aparecendo na prévia. Com 10 shards rolados, todos chegam à frente vistos de cima com as gravações das pontas à vista. **Não consegui confirmar a olho o brilho pulsando** (a tinta automática é escura numa gema clara e a cor do brilho, só 40% clareada, se confunde); o E2E confirma que a malha existe e acende.
+
+**Gate:** `npm run build && npm run lint && npm test` verde em todas as tarefas (322 testes). **E2E** (`import`, `coin`, `smoke`): 17 testes, 16 passaram na rodada única e 1 falhou (o do shard, pelo item acima, erro do teste); depois de ajustar, esse teste foi rodado sozinho e passou.
