@@ -88,12 +88,13 @@ export const useDice = create<DiceState>((set, get) => ({
     return null;
   },
   updateCustom: async (die) => {
-    try { await saveCustomDie(die); } catch (e) {
-      if (e instanceof DOMException && e.name === 'QuotaExceededError') return 'Não coube no armazenamento do navegador.';
-      set({ sessionOnly: true }); // kept for this session only
-    }
+    // Applied at once (the controls and the scene follow the store), saved after; a failed save keeps it for this session.
     registerCustom(die);
     set({ customs: customList() });
+    try { await saveCustomDie(die); } catch (e) {
+      set({ sessionOnly: true });
+      if (e instanceof DOMException && e.name === 'QuotaExceededError') return 'Não coube no armazenamento do navegador; a mudança vale só nesta sessão.';
+    }
     return null;
   },
   removeCustom: async (kind) => {

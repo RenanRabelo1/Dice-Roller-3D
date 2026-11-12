@@ -4,7 +4,8 @@ import { BatchedText, Text } from 'troika-three-text';
 import { ConvexHullCollider, RigidBody, type RapierRigidBody } from '@react-three/rapier';
 import { BufferGeometry, Color, Float32BufferAttribute, Matrix4, Mesh, MeshBasicMaterial, Object3D, Vector3, type BufferAttribute, type Group, type Material, type MeshStandardMaterial } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { customDie, finishOf, inkColorOf, isCustom, type CustomDie, type Finish } from '../dice/custom';
+import { customDie, customKind, finishOf, inkColorOf, isCustom, type CustomDie, type Finish } from '../dice/custom';
+import { useDice } from '../store';
 import { baseOf, polyhedron, type BuiltinKind, type DieKind, type Label, type Polyhedron, type Shape } from '../dice/polyhedra';
 import { symbolGeometry } from '../dice/symbols';
 import { handPositions, MATERIAL, type Vec3 } from '../physics/world';
@@ -178,7 +179,8 @@ export function Die({ index, kind, selection, count, color, register }: {
   }, [model]);
   useEffect(() => () => geometry.dispose(), [geometry]);
   const points = useMemo(() => model.points.flat(), [model]);
-  const custom = isCustom(kind) ? customDie(kind) : undefined;
+  // Subscribed, so a change of ink or finish in "Meus dados" reaches the die at once.
+  const custom = useDice((s) => (isCustom(kind) ? s.customs.find((d) => customKind(d.id) === kind) : undefined));
   const file = useModel(custom);
   const finish = custom ? finishOf(custom) : 'gema', ink = custom ? inkColorOf(custom, color) : null;
   const painted = usePainted(file?.geometry, color, ink);
