@@ -108,6 +108,10 @@ Quando `detectPlanes` não reconhece d4–d20, ele lança `ImportError` com `cod
 - **Física**: `presim.ts` usa o amortecimento do d100 quando há mais de 20 faces de apoio; senão nenhum.
 - **Assistente**: calibração com a face perguntada voltada para baixo (orientação com a normal negada, contorno âmbar sem teste de profundidade); "Não, numerar para mim" dá 1..N pela ordem de área.
 
+### Faces de apoio × faces de leitura (shards)
+
+Dados "shard" têm faces longas numeradas e pontas lapidadas em camadas de facetas, que também passam como faces de apoio. `detectFree` devolve `tier` (`tierOf(areas)`: o menor k ≥ 3 com a (k+1)-ésima face < `TIER_DROP` (0,70) × a k-ésima, as k primeiras a até 1,3× umas das outras, e sobrando faces) e `areas` (na ordem de `planes`). Com `tier`, o assistente pergunta "Usar só as grandes como resultado?" (padrão Sim): `withReadable(poly, normais)` marca `Face.readable = false` nas outras, zera o valor delas, tira os rótulos delas e dimensiona `font` pelas faces de leitura. O sólido e o colisor seguem inteiros. `readUp`, `askOrder` e `checkFreeValues` só contam as faces de leitura; `renumbered` preserva a marcação; registros antigos (sem `readable`) leem todas as faces. O aviso de justiça (`unevenOf`) compara só as de leitura. `dentTester`/`inkTriangles` usam todas as faces (geometria).
+
 ## Receita: adicionar um dado novo
 
 1. `polyhedra.ts`: incluir em `DieKind` e `KINDS` (posição = ordem na UI); `BASE`; se for shape novo, `Shape`, `RADIUS`, `rawTriangles`/construtor e `OPPOSITE_SUM`. Símbolos → `SYMBOL` + `SymbolName` + desenho em `symbols.ts`.

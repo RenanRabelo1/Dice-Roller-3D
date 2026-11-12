@@ -238,3 +238,17 @@ Três STLs públicos do GitHub, baixados só para leitura numa pasta fora do rep
 - O d30 rômbico real dá exatamente 30 faces, sem descarte: os limiares servem para o caso regular.
 - Os "shards" têm 5 e 7 faces numeradas, mas o casco tem camadas de facetas: 5 faces grandes (~9,5% da área do casco cada), 5 de ~4,6% e 5 de ~1,4% no d5; 7 de ~6,8% e 7 de ~3,9% no d7. Todas passam nos 10% da maior e na estabilidade, então o assistente mostra 15 e 14 faces. As camadas de baixo têm 48–57% da área das principais, então nenhum limiar de área razoável as separa sem cortar faces legítimas; **não ajustei os limiares**.
 - Consequências a conhecer: (1) num dado assim o jogador calibra todas as faces de apoio (repetição de valor é permitida, então 1-2-3-4-5 nas grandes e repetir nas outras serve); (2) o numeral dimensiona-se pela menor face de apoio, e fica minúsculo no d5 (0,019). Se isso incomodar, a saída é dimensionar `font` pela mediana (ou pelo menor inraio das faces ≥ 25% da maior) e não pela menor face: decisão de produto, não implementada.
+
+### Adendo dos shards (T8–T10): resultado com os STLs reais
+
+Depois da T9, no `npm run dev` (D5Shard e D7Shard importados pelo assistente, nada de Playwright) e num script Vitest descartável:
+
+| Arquivo | Faces de apoio | `tier` | Faces de leitura | Fonte (todas → leitura) | Justiça (todas) |
+|---|---|---|---|---|---|
+| `D5Shard.stl` | 15 | 5 | 5 | 0,019 → 0,080 | aviso (só nas 15) |
+| `D7Shard.stl` | 14 | 7 | 7 | 0,076 → 0,076 | justo |
+| `d30.stl` | 30 | null | 30 | 0,106 → 0,106 | justo |
+
+- A pergunta apareceu nos dois shards e a calibração pediu 5 e 7 faces ("1 de 5", "1 de 7"); um d5 calibrado 1–5 salvou sem erros. O d30 não muda.
+- **Desvio do adendo:** `TIER_DROP` = **0,70**, não 0,65. Pelas áreas dos polígonos do sólido ideal, a razão entre as faces longas e as pontas do D7 é 0,657 (102,81 → 67,54), e com 0,65 ele não tinha camada; o D5 (100,28 / 50,66 / 19,17) dava 5 nos dois. A sessão principal foi avisada; testes com as áreas reais dos dois shards fixam os valores.
+- A fonte só muda no d5 (0,019 → 0,080); no d7 o menor inraio das 14 faces já era o das faces grandes.

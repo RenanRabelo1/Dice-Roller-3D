@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { polyhedron } from '../src/dice/polyhedra';
-import { asFile, glb, modelTriangles, prismTriangles, stl, subdivided } from '../tests/helpers/models';
+import { asFile, glb, modelTriangles, prismTriangles, shardTriangles, stl, subdivided } from '../tests/helpers/models';
 
 // Dice models made from the app's own solids (see tests/helpers/models.ts), chamfered and off-centre like a slicer export.
 const file = (name: string, buffer: ArrayBuffer, mimeType = 'application/octet-stream') => ({ name, mimeType, buffer: Buffer.from(buffer) });
@@ -199,4 +199,24 @@ test('painted numerals: the ink shows on an engraved STL, changes in My dice wit
   await page.reload(); await ready(page);
   await page.evaluate((kind) => window.__dice.select([kind]), custom.kind); await ready(page, 1);
   await expect.poll(async () => (await look())[0]?.material, { timeout: 30_000 }).toBe('MeshStandardMaterial'); // the choice was saved
+});
+
+test('a shard die: the wizard asks about the big faces and calibrates only those', async ({ page }) => {
+  await open(page, file('shard.stl', stl(asFile(shardTriangles(5)))));
+  await page.getByRole('button', { name: 'Importar como dado de forma livre' }).click();
+  await expect(page.getByTestId('import-tier')).toContainText('Encontrei 5 faces grandes e 10 menores');
+  await page.getByRole('button', { name: 'Sim, só as grandes' }).click();
+  await expect(page.getByTestId('import-shape')).toContainText('15 faces de apoio, 5 valem como resultado');
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Sim, calibrar' }).click();
+  await expect(page.getByTestId('import-progress')).toHaveText('1 de 5');
+  const ask = page.getByLabel('Que número você lê com ele apoiado assim?');
+  for (const v of [1, 2, 3, 4, 5]) { await ask.fill(String(v)); await ask.press('Enter'); }
+  await save(page, 'Cristal5');
+  const [custom] = await page.evaluate(() => window.__dice.customs());
+  await page.evaluate((kind) => window.__dice.select([kind]), custom.kind); await ready(page, 1);
+  expect(await page.evaluate(() => window.__dice.labels(0).map((l) => l.value).sort())).toEqual([1, 2, 3, 4, 5]);
+  await throwWithSpace(page); await settled(page);
+  const [result] = (await page.evaluate(() => window.__dice.state().results))!;
+  expect(result).toBeGreaterThanOrEqual(1); expect(result).toBeLessThanOrEqual(5);
 });
