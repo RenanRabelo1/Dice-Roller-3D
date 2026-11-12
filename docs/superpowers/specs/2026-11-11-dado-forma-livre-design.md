@@ -1,5 +1,7 @@
 # Dado importado de forma livre: design (caminho B)
 
+> **Atualização 2026-11-12:** o dado de forma livre agora voa no showcase; ver 2026-11-12-forma-livre-voa-design.md.
+
 Data: 2026-11-11 · Status: implementada (ver "Implementação e medições") · Branch base: `dev-jg` · Depende de: `2026-11-11-importar-dado-design.md` (caminho A, na `main`)
 
 ## 1. Objetivo
