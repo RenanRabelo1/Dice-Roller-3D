@@ -19,7 +19,7 @@ Coisas que já morderam ou que quebram em silêncio. Ler antes de mexer em físi
 - **Não mudar o número de luzes** em tempo de execução (recompila o shader de todos os dados). Esconder com intensidade 0.
 - **Compilar shaders antes** do primeiro uso (`Show.compile`); presságio novo entra nesse aquecimento.
 - **DPR só muda entre animações** (fase `hand` ou showcase concluído). `PerformanceMonitor` acumula o alvo em `desiredDpr`; redimensionar o buffer no meio de uma animação trava renderizador por software. SwiftShader começa em DPR 0,35.
-- Pré-simulação roda no worker; o fallback síncrono existe e custa ~25–35 ms no quadro de lançamento com 10 moedas.
+- Pré-simulação roda no worker; o fallback síncrono existe e custa ~25–35 ms no quadro de lançamento com 10 moedas. Worker sem resposta em 2 s (`WORKER_TIMEOUT`) → cálculo local; se o motor falhar, os dados voltam à mão com `error: 'physics'` e aviso no painel.
 - Detalhes, experimentos revertidos e números: `docs/performance-coins.md`.
 
 ## Moeda
@@ -27,7 +27,7 @@ Coisas que já morderam ou que quebram em silêncio. Ler antes de mexer em físi
 - Colisor é `roundCylinder`, não o casco (casco fino balança para sempre).
 - Moeda lenta e deitada tem a rotação travada na pré-simulação (moedas empilhadas balançam no aro sem fim).
 - Só as tampas são faces: sempre lê Cara ou Coroa, mesmo apoiada no aro.
-- No showcase a moeda fica na bandeja; só o texto sobe. Moedas não somam no total.
+- No showcase a moeda voa como os dados; "Cara"/"Coroa" fica embaixo dela. Moedas não somam no total.
 
 ## Processo / convenções
 
@@ -48,6 +48,6 @@ Coisas que já morderam ou que quebram em silêncio. Ler antes de mexer em físi
 | timeout de 480 passos (8 s) | `SETTLE.timeoutSteps = 240` (4 s) |
 | refração por dado com buffer compartilhado | gema por `meshPhysicalMaterial` sem passe de refração |
 | "fora de escopo: misturar tipos num arremesso" | seleção mista é suportada |
-| error boundaries para WebGL/renderer/física (R10) | implementadas: `App` sonda WebGL (`failure.ts`) e põe `store.error = 'webgl'`; `Guard` (`ui/Safeguard.tsx`) fora do `<Canvas>` = `'graphics'` e em volta de `<Physics>` = `'physics'`; `Failure` mostra a mensagem em pt-BR. O primeiro erro registrado vale |
+| error boundaries para WebGL/renderer/física (R10) | implementadas: `App` sonda WebGL (`failure.ts`) e põe `store.error = 'webgl'`; `Guard` (`ui/Safeguard.tsx`) fora do `<Canvas>` = `'graphics'` e em volta de `<Physics>` = `'physics'`; `'physics'` também quando o worker e o cálculo local falham (`WORKER_TIMEOUT` em Stage.tsx). `Failure` mostra a mensagem em pt-BR. O primeiro erro registrado vale |
 
 Em conflito, o código e estes arquivos de `docs/contexto/` valem; atualize-os junto com a mudança.

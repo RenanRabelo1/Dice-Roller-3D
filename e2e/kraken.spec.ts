@@ -46,8 +46,17 @@ test.beforeEach(async ({ page }) => {
   await page.waitForFunction(() => window.__dice?.state().ready);
 });
 
+const face = (page: Page) => page.evaluate(() => {
+  const cam = window.__dice.camera(), labels = window.__dice.labels(0);
+  const toward = (l: (typeof labels)[number]) => {
+    const d = l.position.map((v, k) => cam[k] - v), n = Math.hypot(...d);
+    return l.normal.reduce((sum, v, k) => sum + v * d[k] / n, 0);
+  };
+  return labels.reduce((a, b) => toward(a) > toward(b) ? a : b).value;
+});
+
 for (const width of [1440, 390]) {
-  test(`d100=1 breaks the tray, ascends with its real face and repairs the scene at ${width}px`, async ({ page }) => {
+  test(`d100=1: the kraken grabs the die, flings it away and brings it back at ${width}px`, async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', (error) => errors.push(error.message));
     page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()); });
@@ -55,31 +64,28 @@ for (const width of [1440, 390]) {
     await launch(page, true);
     expect(await page.evaluate(() => window.__dice.state().results)).toEqual([1]);
     const start = await page.evaluate(() => window.__dice.bodies()[0].p);
-    await advance(page, 1100);
+    await advance(page, 1750); // grabbed and lifted out of the broken tray
     expect(await page.evaluate(() => window.__dice.state().trayBroken)).toBe(true);
-    await page.screenshot({ path: `screens/kraken-rupture-${width}.png` });
-    await advance(page, 3300);
-    const hero = await page.evaluate(() => {
-      const s = window.__dice.state(), p = window.__dice.bodies()[0].p, cam = window.__dice.camera();
-      const labels = window.__dice.labels(0);
-      const toward = (l: (typeof labels)[number]) => {
-        const d = l.position.map((v, k) => cam[k] - v), n = Math.hypot(...d);
-        return l.normal.reduce((sum, v, k) => sum + v * d[k] / n, 0);
-      };
-      return { state: s, p, face: labels.reduce((a, b) => toward(a) > toward(b) ? a : b).value };
-    });
-    expect(Math.hypot(...hero.p.map((v, k) => v - start[k]))).toBeGreaterThan(3);
-    expect(hero.face).toBe(1);
-    expect(hero.state.omenDone).not.toBe(hero.state.throwId);
+    expect((await page.evaluate(() => window.__dice.bodies()[0].p))[1]).toBeGreaterThan(start[1] + 2);
+    await page.screenshot({ path: `screens/kraken-grab-${width}.png` });
+    await advance(page, 3000); // flung far away, out of sight
+    const away = await page.evaluate(() => window.__dice.bodies()[0].p);
+    expect(away[1]).toBeGreaterThan(9); expect(away[2]).toBeLessThan(-10);
+    await page.screenshot({ path: `screens/kraken-thrown-${width}.png` });
+    await advance(page, 4700); // brought back to the screen, the 1 toward you, the result still held
+    expect(await face(page)).toBe(1);
+    const held = await page.evaluate(() => window.__dice.state());
+    expect(held.omenDone).not.toBe(held.throwId);
     await expect(page.getByTestId('result')).toBeEmpty();
-    await page.screenshot({ path: `screens/kraken-angel-${width}.png` });
-    await advance(page, 5700);
+    await page.screenshot({ path: `screens/kraken-caught-${width}.png` });
+    await advance(page, 6600);
     const state = await page.evaluate(() => window.__dice.state());
     expect(state.trayBroken).toBe(false);
     expect(state.omenDone).toBe(state.throwId);
     expect(state.showcased).toBe(state.throwId);
     await expect(page.getByTestId('result')).toHaveText('1');
     await expect(page.locator('.game-area')).not.toHaveAttribute('data-kraken');
+    expect(await face(page)).toBe(1);
     const final = await page.evaluate(() => window.__dice.bodies()[0].p);
     await page.clock.runFor(1200);
     expect(await page.evaluate(() => window.__dice.bodies()[0].p)).toEqual(final);

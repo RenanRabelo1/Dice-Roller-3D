@@ -8,7 +8,8 @@ import { customDie, customKind, finishOf, inkColorOf, isCustom, type CustomDie, 
 import { useDice } from '../store';
 import { baseOf, polyhedron, type BuiltinKind, type DieKind, type Label, type Polyhedron, type Shape } from '../dice/polyhedra';
 import { symbolGeometry } from '../dice/symbols';
-import { handPositions, MATERIAL, type Vec3 } from '../physics/world';
+import { MATERIAL, type Vec3 } from '../physics/world';
+import { vortexCenter } from '../throw/vortex';
 
 // Kept alongside Die as the scene's specified gem palette.
 // oxlint-disable-next-line react/only-export-components
@@ -202,7 +203,7 @@ export function Die({ index, kind, selection, count, color, register }: {
   const numbers = useNumbers(model, model.font ?? FONT[model.shape], INK[kind] ?? INK[model.shape] ?? GOLD, !!custom?.printed);
   return (
     <RigidBody ref={registerBody} type="kinematicPosition" colliders={false}
-      userData={{ selection }} ccd position={handPositions(count, 0)[index]}>
+      userData={{ selection }} ccd position={vortexCenter(count, 0)}>
       <ConvexHullCollider args={[points]} {...MATERIAL.die} />
       <group name={`die-${index}`}>
         {custom ? (

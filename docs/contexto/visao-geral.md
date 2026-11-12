@@ -1,6 +1,6 @@
 # Visão geral
 
-Rolador de dados 3D no navegador. O jogador escolhe dados (botões ou chat com notação `2d10 + d100`), mira com o mouse/setas, segura para carregar a força e solta. A física (Rapier) decide o resultado; os dados voam até a câmera e mostram a face sorteada. Críticos/falhas de d20 e d100 disparam "presságios" (animações) antes do resultado. UI em pt-BR. Sem backend, sem rede em tempo de execução.
+Rolador de dados 3D no navegador. O jogador escolhe dados (botões ou chat com notação `2d10 + d100`), mira com o mouse/setas, segura para carregar a força e solta. A física (Rapier) decide o resultado; os dados voam até a câmera e mostram a face sorteada. Críticos/falhas de d20 e d100 disparam "presságios" (animações) antes do resultado. UI em pt-BR. O jogo roda sem rede; se o build tiver `VITE_API_URL`, cada resultado é enviado (sem esperar resposta) à API de histórico em `server/`.
 
 ## Stack
 
@@ -26,6 +26,7 @@ npm run build      # tsc -b && vite build  (tsc cobre src, tests e e2e)
 npm run lint       # oxlint
 npm test           # vitest run  (tests/**/*.test.ts, ambiente Node, inclui física real)
 npm run e2e        # playwright test (sobe `npm run dev:test` em 127.0.0.1:5179)
+cd server && npm test   # API do histórico (Fastify + MongoDB em memória)
 ```
 
 Gate de entrega usado no projeto: build → lint → test → e2e, todos verdes.
@@ -38,9 +39,11 @@ src/
   main.tsx, App.tsx        casca: <Controls/> + <Canvas><Stage/></Canvas> + <OmenOverlay/>
   failure.ts               sonda WebGL e falhas de renderer/física → `store.error`  → armadilhas.md
   store.ts                 zustand: seleção, fase, throwId, launch, results, omen  → arremesso.md
+  api/history.ts           envia cada resultado à API (só com VITE_API_URL)
   testHook.ts              window.__dice (só em mode=test)                          → testes.md
   dice/                    domínio puro dos dados (sem React)                       → dados.md
-    polyhedra.ts             tipos, geometria, numeração, rótulos, `fromTriangles`
+    kinds.ts                 tipos de dado, `KINDS`, `BASE`, `SIDES` (sem 3D: compartilhado com server/)
+    polyhedra.ts             geometria, numeração, rótulos, `fromTriangles` (reexporta os tipos)
     custom.ts                tipo `CustomDie` + registro em memória dos dados importados
     customStore.ts           IndexedDB store `customDice`
     importer.ts              .stl/.glb → poliedro (detecção, sólido ideal, calibração)
@@ -52,6 +55,7 @@ src/
     gesture.ts               máquina de fases (reducer)
     aim.ts                   mira, carga, velocidade, giro com semente
     settle.ts                quando os dados "pararam"
+    vortex.ts                redemoinho dos dados na mão
   physics/                 Rapier fora da cena                                      → arremesso.md
     world.ts                 constantes (bandeja, materiais, mão) e geometria da mão
     apply.ts                 único lugar que muda tipo/velocidade/pose de corpo
@@ -63,10 +67,11 @@ src/
     Die.tsx, Tray.tsx        corpo+malha de cada dado; bandeja (visual do tema da mesa)
     table*.ts, Backdrop.tsx  mesa e fundo personalizados, .glb                      → mesa.md
     showcase.ts, highlight.ts poses e linha do tempo do "voo até a câmera"         → apresentacao.md
-    Omens.tsx, Kraken.ts, krakenMotion.ts  presságios 3D                            → apresentacao.md
+    Omens.tsx, Kraken.ts, krakenMotion.ts, Fire.ts, fireMotion.ts  presságios 3D   → apresentacao.md
   ui/                      HTML: Controls (seleção + painel), Chat, OmenOverlay, ImportDie (assistente, carregado sob demanda),
                            TablePanel (mesa e fundo), Safeguard (mensagens de falha de WebGL/renderer/física)
 tests/                     Vitest (unidades puras + física Node); helpers/sim.ts
+server/                    API do histórico (Fastify + MongoDB; usa kinds.ts e omen.ts do front, roda em Node com TS nativo)
 e2e/                       Playwright; usa window.__dice
 references/threejs/        exemplos oficiais do three.js (só leitura, ver CLAUDE.md)
 docs/superpowers/          specs (as de 2026-11-11 são as atuais) e planos/revisões HISTÓRICOS (ver armadilhas.md)

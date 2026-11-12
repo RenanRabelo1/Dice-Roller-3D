@@ -3,7 +3,8 @@
 ## Unitários — Vitest (`npm test`)
 
 - Só `tests/**/*.test.ts`, ambiente **Node**, timeout 10 s (`vite.config.ts`).
-- Cobrem os módulos puros e a física real: `aim`, `gesture`, `settle`, `world`, `polyhedra`, `read`, `notation`, `omen`, `symbols`, `highlight`, `showcase`, `kraken`, `store`, `physics`, `importer`, `custom`, `table`.
+- Cobrem os módulos puros e a física real: `aim`, `gesture`, `settle`, `world`, `polyhedra`, `read`, `notation`, `omen`, `symbols`, `highlight`, `showcase`, `kraken`, `fire`, `vortex`, `history`, `store`, `physics`, `importer`, `custom`, `table`.
+- A API tem sua própria suíte: `cd server && npm test` (Fastify de verdade num MongoDB em memória via `mongodb-memory-server`).
 - `tests/helpers/sim.ts`:
   - `initRapier()` — inicializa `rapier3d-compat` uma vez e silencia o aviso de depreciação conhecido do wasm-bindgen.
   - `models.ts`: `modelTriangles` (sólido nosso, chanfrado, girado e deslocado como um export de fatiador), `stl`, `glb`, `subdivided`, `customDieOf` (dado importado registrado).
@@ -22,12 +23,12 @@
 |---|---|
 | `table()` | mesa ativa lida da cena: id, nome, fundo (incl. `panorama`), cores do feltro/madeira, textura, se há modelo, caixa da guia, nº de mesas salvas, `reflect` (fundo 360°) e `programs` (nº de programas de shader, para checar recompilação) |
 | `shards()` | cores (feltro/madeira) do primeiro caco do kraken |
-| `state()` | dice, phase, throwId, results, ready, error, aim, showcased, omen, omenDone, reducedMotion, omenTime, trayBroken |
+| `state()` | dice, phase, throwId, results, ready, error, aim, showcased, omen, omenDone, reducedMotion, omenTime, trayBroken, burning (fogo do d20 visível) |
 | `select(dice)` | troca a seleção sem clicar |
 | `rigOmen(omen \| null)` | força o presságio dos próximos arremessos (a física e o resultado continuam reais) |
 | `bodies()` / `meshes()` | poses dos corpos Rapier / quaternions das malhas `gem-i` |
 | `labels(i)` | numerais do dado i em coordenadas de mundo (texto, valor, posição, normal) |
-| `numbersVisible(i)`, `highlights()` | visibilidade dos numerais e dos números em destaque |
+| `numbersVisible(i)`, `highlights()` | visibilidade dos numerais e dos números em destaque (texto, visível, posição) |
 | `gemLook(i)` | malhas visíveis do dado i: tipo de material, opaco, pintado por vértice e a cor da primeira tinta (números pintados) |
 | `camera()`, `launches()` | posição da câmera; contagem e poses antes/depois do último lançamento |
 | `customs()` | dados importados: kind, id, nome, apelido, base, `printed` |
@@ -47,9 +48,9 @@ Padrão dos specs: esperar `state().ready`, interagir pelo teclado/ponteiro na `
 | `failure` | sem WebGL, falha do renderer e física que não carrega (simuladas por `addInitScript`): mensagem em pt-BR, sem canvas |
 | `table` | fundo (tema/foto/cor), cores no pixel, ida-e-volta exportar→importar (M13), arquivo com escala/Z para cima/moldura invadindo, recusas, upgrade do IndexedDB v1→v2 |
 | `table-kraken` | cacos com a cor do feltro da mesa; modelo sem piso some inteiro na quebra |
-| `omen` / `kraken` | presságios forçados, reduced motion, recolher durante presságio, bandeja quebrada/restaurada |
+| `omen` / `kraken` | presságios forçados (raio, kraken que arremessa e busca o d100, fogo do d20, tempestade do d100), reduced motion, recolher durante presságio, bandeja quebrada/restaurada |
 | `import` | importar STL/GLB (gerados por `tests/helpers/models.ts` a partir dos nossos sólidos), calibrar, rolar, recarregar, excluir, recusas, 10 dados de ~48 mil triângulos |
-| `coin` | repetição de jogadas da moeda, mobile |
+| `coin` | repetição de jogadas da moeda, mobile; a moeda sobe e "Cara"/"Coroa" fica embaixo |
 | `coin-performance` / `coin-software` | orçamento de quadros com 10 moedas, worker atrasado/falho, DPR no SwiftShader |
 
 Os testes de desempenho têm orçamentos calibrados na máquina do autor (ver `docs/performance-coins.md`); falha só neles em outra máquina pode ser ambiente.

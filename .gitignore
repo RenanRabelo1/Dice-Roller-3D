@@ -26,3 +26,6 @@ dist-ssr
 test-results/
 playwright-report/
 screens/
+
+# Secrets (server/.env holds the MongoDB connection string)
+.env

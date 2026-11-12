@@ -109,8 +109,8 @@ describe('coin', () => {
 });
 
 describe('staysOnTray', () => {
-  it('is true for the coin only among the built-in dice', () => {
-    expect(staysOnTray('coin')).toBe(true);
+  it('is false for every built-in die (the coin flies too)', () => {
+    expect(staysOnTray('coin')).toBe(false);
     expect(staysOnTray('d20')).toBe(false);
   });
 });

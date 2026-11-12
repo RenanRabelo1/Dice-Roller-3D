@@ -2,7 +2,7 @@
 
 Cobre `src/dice/*`, `scene/Die.tsx` e `ui/Chat.tsx`/`ui/Controls.tsx`. Tudo em `dice/` é puro (sem React) e testado em Node.
 
-## Tipos (`dice/polyhedra.ts`)
+## Tipos (`dice/kinds.ts`, reexportados por `dice/polyhedra.ts`)
 
 ```ts
 Shape       = 'd4'|'d6'|'d8'|'d10'|'d12'|'d20'|'d100'|'coin'|'livre'  // corpo físico ('livre' só existe em importados)
@@ -11,6 +11,8 @@ DieKind     = BuiltinKind | `custom:${string}`                 // o que o jogado
 KINDS       = os embutidos em ordem canônica; allKinds() = KINDS + importados (ordem de criação)
 BASE        = só os embutidos (vtm, hunger → d10; fire → d6); use baseOf(kind), que também cobre importados
 ```
+
+`kinds.ts` não tem código 3D porque a API (`server/`) também o importa, junto com `omen.ts`. Por isso esses dois arquivos importam com extensão `.ts` e não podem depender de `three` nem do registro de importados (`custom.ts`).
 
 Dado personalizado = mesmo corpo/numeração/leitura do `BASE`; muda só a aparência (cor, tinta, símbolos).
 
@@ -94,7 +96,9 @@ Tinta e acabamento (spec `2026-11-11-numeros-pintados-mesa-design.md`): `CustomD
 
 Cena: `Die.tsx` mostra o sólido ideal até o arquivo ser lido (import dinâmico de `importer`, chunk separado) e então a malha: STL com o material de gema na `color`; GLB com os próprios materiais, clonados e `transparent` (o retorno anima a opacidade). `printed: true` não desenha numerais, só âncoras invisíveis em `userData.labels` (test hook e showcase acham a face pelo valor).
 
-Presságios: `isD20(kind)` (`omen.ts`) = d20 embutido ou importado de base d20 com `omens: true` (padrão ligado). d100 e moeda continuam só embutidos.
+Presságios: `isD20(kind)` (`omen.ts`) = d20 embutido ou importado de base d20 com `omens: true` (padrão ligado). `registerCustom` mantém esse conjunto (`omenD20s` em `kinds.ts`). d100 e moeda continuam só embutidos.
+
+Histórico: um dado importado vai para a API como `{ kind: 'custom:<id>', base, omens, value }`; o servidor valida o valor pela `base` e só conta presságio se `base === 'd20' && omens`.
 
 ## Dado de forma livre (`Shape 'livre'`, spec `2026-11-11-dado-forma-livre-design.md`)
 
@@ -103,7 +107,7 @@ Quando `detectPlanes` não reconhece d4–d20, ele lança `ImportError` com `cod
 - **Detecção** (`detectFree`): faces planas do casco com área ≥ 10% da maior; recalcula o sólido e descarta faces **instáveis** (o centroide do volume, projetado no plano, cai fora do polígono da face), até 3 passadas. Precisa de 3 a 60 faces de apoio (erro em pt-BR com o número achado). `uneven` = maior face > 2× a menor (aviso "não é justo", não erro). `dropped` = quantas faces ficaram de fora.
 - **Sólido** (`idealSolid('livre', …)`): centro no centroide do volume (não na média dos vértices), circunraio `RADIUS.livre` = 0,85; **sem `symmetrise`** (não exige faces opostas). `poly.readsDown = true` e `poly.font = 0,45 × menor inraio` (as faces variam, então `FONT[shape]` é só reserva: `poly.font ?? FONT[shape]` em `Die.tsx` e `Hand.tsx`).
 - **Leitura**: `readUp` com `readsDown` escolhe a normal que aponta mais para **baixo**; o valor é o que o jogador calibrou para "ele apoiado nessa face". Valores inteiros de −99 a 999, repetição permitida (`checkFreeValue(s)`); `toResults` não mexe neles. Sem opostas, `fromTriangles('livre')` dá 1..N e `askOrder` ordena por área decrescente. `renumbered` preserva `readsDown`/`font`.
-- **Showcase**: `staysOnTray(kind)` (moeda ou forma livre): o dado não voa até a câmera, só o número sobe. Nunca dispara presságio (`isD20` é falso).
+- **Showcase**: `staysOnTray(kind)` (só forma livre; a moeda voa como os dados): o dado não voa até a câmera, só o número sobe. Nunca dispara presságio (`isD20` é falso).
 - **Chat**: pelo apelido, como a moeda: `caveira`, `2caveira`, `2 caveira`; o nome do dado é só o `name` ("2 Caveira"). Em `parseDice` o ramo dos livres vem antes do `d`.
 - **Física**: `presim.ts` usa o amortecimento do d100 quando há mais de 20 faces de apoio; senão nenhum.
 - **Assistente**: calibração com a face perguntada voltada para baixo (orientação com a normal negada, contorno âmbar sem teste de profundidade); "Não, numerar para mim" dá 1..N pela ordem de área.
@@ -114,7 +118,7 @@ Dados "shard" têm faces longas numeradas e pontas lapidadas em camadas de facet
 
 ## Receita: adicionar um dado novo
 
-1. `polyhedra.ts`: incluir em `DieKind` e `KINDS` (posição = ordem na UI); `BASE`; se for shape novo, `Shape`, `RADIUS`, `rawTriangles`/construtor e `OPPOSITE_SUM`. Símbolos → `SYMBOL` + `SymbolName` + desenho em `symbols.ts`.
+1. `kinds.ts`: incluir em `BuiltinKind` e `KINDS` (posição = ordem na UI); `BASE`; se for shape novo, `Shape` e `SIDES`. `polyhedra.ts`: se for shape novo, `RADIUS`, `rawTriangles`/construtor e `OPPOSITE_SUM`. Símbolos → `SYMBOL` + `SymbolName` + desenho em `symbols.ts`.
 2. `Die.tsx`: `GEM` (obrigatório, é `Record`), `FONT` se shape novo, `INK`/`EMBER` se preciso.
 3. `notation.ts`: sufixo em `AFTER_D` (mantendo do mais longo ao mais curto) e nome em `CUSTOM`; atualizar a mensagem de erro e a dica do `Chat.tsx`.
 4. `read.ts`: só se a regra de valor mudar.
