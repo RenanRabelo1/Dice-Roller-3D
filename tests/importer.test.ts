@@ -209,6 +209,8 @@ describe('supporting faces and reading faces (shards)', () => {
     expect(free(prismTriangles(7, 1.4)).tier).toBeNull();
     expect(free(planesSolid(triacontahedronNormals())).tier).toBeNull();
     expect(tierOf([10, 10, 9.5, 9.5, 9.5, 4.6, 4.6])).toBe(5);
+    expect(tierOf([...Array(7).fill(102.81), ...Array(7).fill(67.54)])).toBe(7); // the real D7 shard
+    expect(tierOf([...Array(5).fill(100.28), ...Array(5).fill(50.66), ...Array(5).fill(19.17)])).toBe(5); // the real D5 shard
     expect(tierOf([10, 10, 10, 4, 4])).toBe(3);
     expect(tierOf([10, 9, 8])).toBeNull(); // nothing after the big ones
     expect(tierOf([10, 5, 5, 5])).toBeNull(); // the first k are not alike

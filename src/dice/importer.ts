@@ -226,10 +226,12 @@ const noFlat = () => new ImportError('Esse modelo não tem faces planas para o d
 // Free-form dice: the faces a die can rest on. Small facets (under 10% of the biggest face) and faces that
 // tip the die over (its centre of mass drops outside them) are left out, and the solid is rebuilt without them.
 // Do the supporting faces come in sizes? With the areas biggest first, the first k (k >= 3) are alike (within 1.3x), the next
-// is under 0.65x the k-th, and more faces follow: a long shard die with facets on its tips. Returns k, or null.
+// is under TIER_DROP x the k-th, and more faces follow: a long shard die with facets on its tips. Returns k, or null.
+// (0.70, not 0.65: the real D7 shard measures 0.657 between its long faces and its tips.)
+const TIER_DROP = 0.7;
 export function tierOf(areas: number[]): number | null {
   const a = [...areas].sort((x, y) => y - x);
-  for (let k = 3; k < a.length; k++) if (a[k] < 0.65 * a[k - 1] && a[0] <= 1.3 * a[k - 1]) return k;
+  for (let k = 3; k < a.length; k++) if (a[k] < TIER_DROP * a[k - 1] && a[0] <= 1.3 * a[k - 1]) return k;
   return null;
 }
 export const unevenOf = (areas: number[]) => Math.max(...areas) > 2 * Math.min(...areas);

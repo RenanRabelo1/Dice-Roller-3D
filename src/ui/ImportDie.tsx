@@ -3,7 +3,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Environment, Lightformer, OrbitControls } from '@react-three/drei';
 import { BufferGeometry, Color, Float32BufferAttribute, Group, Matrix4, Mesh, Quaternion, Vector3 } from 'three';
 import { customKind, type CustomBase, type CustomDie, type Finish, type Ink, type StdBase } from '../dice/custom';
-import { askOrder, checkFreeValue, checkFreeValues, checkValue, checkValues, formatOf, hasTexture, importModel, ImportError, inkOf, LIMITS, normaliseValues, renumbered, suggestOpposite, type Imported } from '../dice/importer';
+import { askOrder, unevenOf, withReadable, checkFreeValue, checkFreeValues, checkValue, checkValues, formatOf, hasTexture, importModel, ImportError, inkOf, LIMITS, normaliseValues, renumbered, suggestOpposite, type Imported } from '../dice/importer';
 import { slugOf, slugProblem } from '../dice/notation';
 import { MAX_DICE, type Polyhedron } from '../dice/polyhedra';
 import { GEM } from '../scene/Die';
@@ -119,7 +119,17 @@ export function ImportDie({ open, onClose }: { open: boolean; onClose: () => voi
 
   const imp = loaded?.imported;
   const textured = !!imp && loaded.format === 'glb' && hasTexture(imp.object); // a GLB with its own texture: dark ink only
-  const order = useMemo(() => (imp ? askOrder(imp.poly) : []), [imp]);
+  const [bigOnly, setBigOnly] = useState<boolean | null>(null); // shard: only the big faces count as a result? (null = not asked yet)
+  // The solid as it will be read: with size layers and the player's answer, only the big faces are results.
+  const asked = useMemo(() => {
+    if (!imp || imp.base !== 'livre' || !imp.tier || !bigOnly || !imp.areas) return imp?.poly;
+    const biggest = imp.areas.map((a, i) => [a, i]).sort((a, b) => b[0] - a[0]).slice(0, imp.tier).map(([, i]) => imp.poly.faces[i].normal);
+    return withReadable(imp.poly, biggest);
+  }, [imp, bigOnly]);
+  const order = useMemo(() => (asked ? askOrder(asked) : []), [asked]);
+  const reading = order.length; // faces that count as a result (free-form)
+  const readAreas = imp?.areas?.filter((_, i) => asked?.faces[i]?.readable !== false) ?? [];
+  const layers = !!imp?.tier && bigOnly === null; // the question about the size layers is still open
   const faceCount = order.length;
   const face = order[pos];
   const isD4 = imp?.base === 'd4';
@@ -137,7 +147,7 @@ export function ImportDie({ open, onClose }: { open: boolean; onClose: () => voi
   }, [open, onClose]);
 
   const reset = () => {
-    setStep('file'); setLoaded(null); setError(''); setPrinted(false); setAsking(false); setPos(0); setValues({}); setConfirmed([]); setTurns({}); setNotStandard(null);
+    setStep('file'); setLoaded(null); setError(''); setPrinted(false); setAsking(false); setPos(0); setValues({}); setConfirmed([]); setTurns({}); setNotStandard(null); setBigOnly(null);
     setName(''); setSlug(''); setSlugEdited(false); setOmens(true); setInk('auto'); setSurface('gema');
   };
   const close = () => { onClose(); reset(); };
@@ -220,8 +230,8 @@ export function ImportDie({ open, onClose }: { open: boolean; onClose: () => voi
   };
   const finish = (all: Record<number, number>) => {
     if (!imp) return;
-    const count = isD4 ? imp.poly.tops.length : imp.poly.faces.length;
-    const list = Array.from({ length: count }, (_, i) => all[i] ?? NaN);
+    const count = isD4 ? imp.poly.tops.length : free ? reading : imp.poly.faces.length;
+    const list = free ? order.map((f) => all[f] ?? NaN) : Array.from({ length: count }, (_, i) => all[i] ?? NaN);
     const problem = std ? checkValues(std, list) : checkFreeValues(list, count);
     if (problem) { setError(problem); return; }
     setStep('save');
@@ -231,11 +241,11 @@ export function ImportDie({ open, onClose }: { open: boolean; onClose: () => voi
     if (!imp || !loaded) return;
     const trimmed = name.trim(), bad = trimmed.length < 1 || trimmed.length > 24 ? 'O nome tem de 1 a 24 caracteres.' : slugProblem(slug);
     if (bad) { setError(bad); return; }
-    let poly = imp.poly;
+    let poly = asked ?? imp.poly;
     if (printed) {
       const count = isD4 ? imp.poly.tops.length : imp.poly.faces.length;
-      const typed = Array.from({ length: count }, (_, i) => values[i]);
-      poly = renumbered(imp.poly, {
+      const typed = Array.from({ length: count }, (_, i) => values[i] ?? 0); // a tip that is no result has no number
+      poly = renumbered(poly, {
         values: std ? normaliseValues(std, typed) : typed,
         turns: isD4 ? undefined : imp.poly.faces.map((_, i) => turns[i] ?? 0),
       });
@@ -243,7 +253,7 @@ export function ImportDie({ open, onClose }: { open: boolean; onClose: () => voi
       // "Number it for me": 1..N, the biggest face first.
       const byArea = Array.from({ length: imp.poly.faces.length }, () => 0);
       order.forEach((f, rank) => { byArea[f] = rank + 1; });
-      poly = renumbered(imp.poly, { values: byArea });
+      poly = renumbered(poly, { values: byArea });
     }
     const die: CustomDie = {
       version: 1, id: crypto.randomUUID(), createdAt: Date.now(), name: trimmed, slug, base: imp.base,
@@ -303,15 +313,22 @@ export function ImportDie({ open, onClose }: { open: boolean; onClose: () => voi
           <>
             {free ? (
               <>
-                <p data-testid="import-shape">Dado de forma livre: encontrei <strong>{imp.poly.faces.length} faces de apoio</strong>. {loaded.fileName}: {prettySize(loaded.bytes.byteLength)}, {imp.triangles.toLocaleString('pt-BR')} triângulos.</p>
+                <p data-testid="import-shape">Dado de forma livre: encontrei <strong>{imp.poly.faces.length} faces de apoio{!layers && reading < imp.poly.faces.length ? `, ${reading} valem como resultado` : ''}</strong>. {loaded.fileName}: {prettySize(loaded.bytes.byteLength)}, {imp.triangles.toLocaleString('pt-BR')} triângulos.</p>
                 {!!imp.dropped && <p className="import-note">Ignorei {imp.dropped} {imp.dropped === 1 ? 'face' : 'faces'} onde o dado não para.</p>}
-                {imp.uneven && <p className="import-note" role="status" data-testid="import-uneven">Esse dado não é justo: algumas faces caem mais que outras.</p>}
+                {layers && (
+                  <div className="import-choice" data-testid="import-tier">
+                    <p><strong>Encontrei {imp.tier} faces grandes e {imp.poly.faces.length - imp.tier!} menores (pontas). Usar só as grandes como resultado?</strong></p>
+                    <button className="primary" onClick={() => setBigOnly(true)}>Sim, só as grandes<small>As pontas ficam no contorno do dado, mas não valem como resultado</small></button>
+                    <button onClick={() => setBigOnly(false)}>Não, todas</button>
+                  </div>
+                )}
+                {!layers && readAreas.length > 1 && unevenOf(readAreas) && <p className="import-note" role="status" data-testid="import-uneven">Esse dado não é justo: algumas faces caem mais que outras.</p>}
                 <p className="import-note">A física usa o contorno externo do modelo.</p>
               </>
             ) : <p data-testid="import-shape">Reconheci um <strong>{imp.base}</strong>. {loaded.fileName}: {prettySize(loaded.bytes.byteLength)}, {imp.triangles.toLocaleString('pt-BR')} triângulos.</p>}
             {imp.base === 'd20' && <label className="import-row"><input type="checkbox" checked={omens} onChange={(e) => setOmens(e.target.checked)} /> Conta como d20 nos críticos</label>}
             {loaded.format === 'stl' && <label className="import-row">Cor da gema <input type="color" value={color} onChange={(e) => setColor(e.target.value)} /></label>}
-            <button onClick={() => setStep('numbers')}>Continuar</button>
+            <button disabled={layers} onClick={() => setStep('numbers')}>Continuar</button>
           </>
         )}
         {step === 'numbers' && imp && (
