@@ -72,6 +72,7 @@ Em `Hand.tsx`, ao entrar em `settled`:
 - **moeda** voa como os dados e mostra o desenho; o texto "Cara"/"Coroa" fica **embaixo** dela (`CAPTION` em showcase.ts), e as fileiras com moeda se afastam para o texto não encostar na de baixo;
 - dado com símbolo (Vampiro) sobe o símbolo (`symbolGeometry`) em vez do número;
 - ao pousar, fixa a pose exata a cada quadro; reporta `setShowcased` um quadro depois de pousar;
+- **dado de forma livre gravado** (`readsDown` + `printed`): vista de cima, como na calibração (`showcasePoses(..., above)`); a gravação de cima acende (`inkGlow.ts`: `upInk` escolhe os triângulos de tinta voltados para cima, `glowMesh` monta a malha `ink-glow-i`, que pulsa no ritmo do destaque) no lugar do número solto; sem gravação achada, o número fica na frente do dado, no tamanho `FONT.livre`. A geometria do brilho fica guardada por `kind|valor`;
 - reduced motion: sem voo, o número só aparece acima do dado.
 
 ## Destaque (`scene/highlight.ts`)

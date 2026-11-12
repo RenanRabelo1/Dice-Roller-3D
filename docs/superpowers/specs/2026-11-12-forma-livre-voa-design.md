@@ -1,5 +1,7 @@
 # Dado de forma livre voa até a frente no resultado
 
+> **Atualização 2026-11-12:** dado gravado mostra a vista de cima com a gravação acesa; ver 2026-11-12-gravacao-acesa-e-tinta-ao-vivo-design.md.
+
 Status: **aprovada para implementar** (2026-11-12). Corrige uma decisão da spec `2026-11-11-dado-forma-livre-design.md` (linha "Showcase").
 
 ## 1. Problema

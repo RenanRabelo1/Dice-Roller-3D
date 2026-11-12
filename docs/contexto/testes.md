@@ -29,6 +29,7 @@
 | `bodies()` / `meshes()` | poses dos corpos Rapier / quaternions das malhas `gem-i` |
 | `labels(i)` | numerais do dado i em coordenadas de mundo (texto, valor, posição, normal) |
 | `numbersVisible(i)`, `highlights()` | visibilidade dos numerais e dos números em destaque (texto, visível, posição) |
+| `inkGlow(i)` | brilho da gravação de um dado de forma livre gravado no showcase: visível, triângulos, opacidade (`null` sem brilho) |
 | `gemLook(i)` | malhas visíveis do dado i: tipo de material, opaco, pintado por vértice e a cor da primeira tinta (números pintados) |
 | `camera()`, `launches()` | posição da câmera; contagem e poses antes/depois do último lançamento |
 | `customs()` | dados importados: kind, id, nome, apelido, base, `printed` |

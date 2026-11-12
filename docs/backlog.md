@@ -61,6 +61,8 @@ As notas abaixo são o contexto original que gerou as specs; valem as specs.
 
 ### 5.1 Shard no resultado: mostra a face lisa com um número minúsculo
 
+**Implementado em 2026-11-12** (spec `superpowers/specs/2026-11-12-gravacao-acesa-e-tinta-ao-vivo-design.md`).
+
 - **O que acontece:** desde 2026-11-12 o dado de forma livre voa até a frente (spec `2026-11-12-forma-livre-voa-design.md`). `showcasePoses` vira para a câmera a face **de apoio** (a de baixo, que vale o resultado). Num shard importado com números gravados (D5Shard), essa face é uma face longa **lisa**: os números do modelo ficam nas pontas, do lado de cima. O jogador vê uma face azul vazia com o número em destaque minúsculo em cima dela (`poly.font` é pequeno porque as faces longas são estreitas). Visto pelo João em 10 D5 com tinta dourada na mesa da floresta.
 - **Proposta (revista com o João):** o número do resultado é o **próprio número gravado**, com a tinta preenchendo o afundado, e não um texto solto em cima da face lisa. Vale para dado de forma livre **com números gravados** (`printed: true`):
   - `showcasePoses`: com `poly.readsDown`, virar a face de apoio para **longe** da câmera (usar `-normal` do rótulo; o "para cima" continua `label.up`). É a mesma vista da prévia de calibração (`orientation(-n)` em `ImportDie.tsx`), em que o jogador leu o número.
@@ -71,6 +73,8 @@ As notas abaixo são o contexto original que gerou as specs; valem as specs.
 - **Limite:** num shard, de cima podem aparecer duas gravações (as duas faces da aresta de cima). As duas acendem; é o que o jogador veria na mesa.
 
 ### 5.2 Tinta e acabamento ao vivo no assistente de importação
+
+**Implementado em 2026-11-12** (spec `superpowers/specs/2026-11-12-gravacao-acesa-e-tinta-ao-vivo-design.md`).
 
 - **Pedido:** ver a tinta dos números e o acabamento mudarem na prévia girando enquanto configura o dado, antes de salvar. Na mesa a tinta já funciona.
 - **Hoje:** no último passo do assistente, trocar "Tinta dos números" (Automática/Dourada/Escura/Branca/Sem tinta) ou "Acabamento" (Gema/Fosco) não muda nada no dado girando. Causa: `InkChoice` só guarda `ink`/`surface` no estado do `ImportDie` (linha ~370) e eles só vão para o dado salvo (linha ~263); o `<Preview>` (linha ~305) não recebe nenhum dos dois e desenha sempre a gema com `color`. Corrigir: passar `ink` e `surface` para o `Preview` e pintar a gravação do mesmo jeito que o `Die` da mesa faz (`inkTriangles` / `userData.ink`, cores de `INK_COLORS`), com material fosco quando `surface === 'fosco'`. Conferir no jogo que a tinta e o fosco chegam ao dado na mesa depois de salvar (é o que o jogador vê de verdade).
