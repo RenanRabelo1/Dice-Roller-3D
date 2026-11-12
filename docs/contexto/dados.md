@@ -5,7 +5,7 @@ Cobre `src/dice/*`, `scene/Die.tsx` e `ui/Chat.tsx`/`ui/Controls.tsx`. Tudo em `
 ## Tipos (`dice/polyhedra.ts`)
 
 ```ts
-Shape       = 'd4'|'d6'|'d8'|'d10'|'d12'|'d20'|'d100'|'coin'  // corpo físico
+Shape       = 'd4'|'d6'|'d8'|'d10'|'d12'|'d20'|'d100'|'coin'|'livre'  // corpo físico ('livre' só existe em importados)
 BuiltinKind = Shape | 'vtm' | 'hunger' | 'fire'
 DieKind     = BuiltinKind | `custom:${string}`                 // o que o jogador escolhe
 KINDS       = os embutidos em ordem canônica; allKinds() = KINDS + importados (ordem de criação)
@@ -76,7 +76,7 @@ UI: `Controls.tsx` (um botão por kind + "−"; grupo "Meus dados" com os import
 
 ## Dados importados (`dice/custom.ts`, `importer.ts`, `customStore.ts`, `ui/ImportDie.tsx`)
 
-O jogador importa um modelo `.stl` ou `.glb` de d4/d6/d8/d10/d12/d20 (spec: `docs/superpowers/specs/2026-11-11-importar-dado-design.md`). d100, moeda e formas livres **não** entram.
+O jogador importa um modelo `.stl` ou `.glb` de d4/d6/d8/d10/d12/d20 (spec: `docs/superpowers/specs/2026-11-11-importar-dado-design.md`). d100 e moeda **não** entram; qualquer outro sólido convexo entra como **dado de forma livre** (seção abaixo).
 
 Pipeline (`importModel`, puro, testado em Node):
 1. `readModel`: limites **10 MB / 50 mil triângulos / textura 2048 px**; STL via `STLLoader` (normais recalculadas), GLB via `GLTFLoader` com `LoadingManager.setURLModifier` que só aceita `data:`/`blob:` (nada de rede).
@@ -93,6 +93,18 @@ Assistente (`ImportDie.tsx`): na pergunta de numeração a prévia fica fosca e 
 Cena: `Die.tsx` mostra o sólido ideal até o arquivo ser lido (import dinâmico de `importer`, chunk separado) e então a malha: STL com o material de gema na `color`; GLB com os próprios materiais, clonados e `transparent` (o retorno anima a opacidade). `printed: true` não desenha numerais, só âncoras invisíveis em `userData.labels` (test hook e showcase acham a face pelo valor).
 
 Presságios: `isD20(kind)` (`omen.ts`) = d20 embutido ou importado de base d20 com `omens: true` (padrão ligado). d100 e moeda continuam só embutidos.
+
+## Dado de forma livre (`Shape 'livre'`, spec `2026-11-11-dado-forma-livre-design.md`)
+
+Quando `detectPlanes` não reconhece d4–d20, ele lança `ImportError` com `code === 'nao-padrao'` e o assistente oferece "Importar como dado de forma livre" (`importModel(bytes, format, 'livre')`).
+
+- **Detecção** (`detectFree`): faces planas do casco com área ≥ 10% da maior; recalcula o sólido e descarta faces **instáveis** (o centroide do volume, projetado no plano, cai fora do polígono da face), até 3 passadas. Precisa de 3 a 60 faces de apoio (erro em pt-BR com o número achado). `uneven` = maior face > 2× a menor (aviso "não é justo", não erro). `dropped` = quantas faces ficaram de fora.
+- **Sólido** (`idealSolid('livre', …)`): centro no centroide do volume (não na média dos vértices), circunraio `RADIUS.livre` = 0,85; **sem `symmetrise`** (não exige faces opostas). `poly.readsDown = true` e `poly.font = 0,45 × menor inraio` (as faces variam, então `FONT[shape]` é só reserva: `poly.font ?? FONT[shape]` em `Die.tsx` e `Hand.tsx`).
+- **Leitura**: `readUp` com `readsDown` escolhe a normal que aponta mais para **baixo**; o valor é o que o jogador calibrou para "ele apoiado nessa face". Valores inteiros de −99 a 999, repetição permitida (`checkFreeValue(s)`); `toResults` não mexe neles. Sem opostas, `fromTriangles('livre')` dá 1..N e `askOrder` ordena por área decrescente. `renumbered` preserva `readsDown`/`font`.
+- **Showcase**: `staysOnTray(kind)` (moeda ou forma livre): o dado não voa até a câmera, só o número sobe. Nunca dispara presságio (`isD20` é falso).
+- **Chat**: pelo apelido, como a moeda: `caveira`, `2caveira`, `2 caveira`; o nome do dado é só o `name` ("2 Caveira"). Em `parseDice` o ramo dos livres vem antes do `d`.
+- **Física**: `presim.ts` usa o amortecimento do d100 quando há mais de 20 faces de apoio; senão nenhum.
+- **Assistente**: calibração com a face perguntada voltada para baixo (orientação com a normal negada, contorno âmbar sem teste de profundidade); "Não, numerar para mim" dá 1..N pela ordem de área.
 
 ## Receita: adicionar um dado novo
 

@@ -213,3 +213,14 @@ Cada tarefa é um commit. Faça na ordem e não pule a verificação. Nomes de f
 
 ### T7 · E2E (só no fim, depois de pedir horário à sessão principal)
 Em `e2e/import.spec.ts`, um teste: gerar um prisma de 5 faces com o helper → importar → **Importar como dado de forma livre** → **Não, numerar para mim** → rolar com Espaço → o valor publicado é o da face cuja normal girada tem o menor `y` (via `__dice.bodies()` + `labels`) → `showcased` avança sem o dado sair do lugar → recarregar mantém. Depois, uma rodada da suíte inteira, coletando as falhas sem corrigir, e o relatório para a sessão principal.
+
+## Implementação e medições
+
+Feito nas tarefas T1–T6 (commits `feat:` na ordem). Medido só com modelos sintéticos (`tests/helpers/models.ts`); nenhum STL real foi baixado, então os limiares de 10% de área e de estabilidade (seção 8) seguem **sem conferência em modelos reais** (d5, d7, d30).
+
+- Prismas de 3, 5 e 7 lados dão 5, 7 e 9 faces de apoio; o triacontaedro rômbico (normais do icosidodecaedro) dá 30; 2 planos e 61 planos dão erro (o de 61 diz "3 a 60").
+- Um corte pequeno num canto de cubo (plano a 1/2,77) fica de fora por área (`dropped = 1`); cubo com ponto puxado para fora de uma aresta descarta faces (`dropped > 0`). O caso "instável" puro não tem um modelo simples que o isole da regra de área; o teste só garante `dropped > 0` e ≥ 3 faces.
+- O centroide do volume do sólido reconstruído fica em 0 (5 casas) num sólido assimétrico; circunraio 0,85 (5 casas).
+- Física: um prisma de 7 faces calibrado 1..7 rola com 3 sementes (2 dados), fica na bandeja, lê entre 1 e 7 e repete com a mesma semente.
+- Ajustes sobre o guia: `StdBase` (`custom.ts`) separa os d4–d20 de `'livre'` onde só os primeiros cabem (`FACES`, `checkValue`…); `Imported<B>` é genérico e `importModel` tem sobrecarga por `mode`; `BuiltinKind` exclui `'livre'`; `renumbered` preserva `readsDown`/`font`; o contorno âmbar na calibração de baixo é desenhado sem teste de profundidade (a face fica atrás do dado). A oferta "Importar como dado de forma livre" aparece no passo do arquivo, junto da mensagem de erro de sempre.
+- Fora desta rodada: E2E (T7) e conferência com STLs reais.
