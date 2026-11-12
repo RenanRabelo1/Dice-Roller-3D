@@ -6,6 +6,8 @@ Coisas que já morderam ou que quebram em silêncio. Ler antes de mexer em físi
 
 - **O resultado vem da gravação.** Nunca reler a face na cena para decidir o valor; `results`/`raw` saem de `presimulate`. O showcase usa `raw`.
 - **Fixar a pose antes de anunciar.** Antes de `publish` (ThrowLoop) e antes de `returned` (Hand) aplicar `setTranslation/setRotation` com a pose final. Sem isso, assinantes viam a pose do passo anterior e moedas trocavam de lado no último passo; a 2ª jogada da moeda começava no ar (y≈7).
+- **Anunciar só com todos os corpos.** O `returned` (Hand) só sai quando **todos** os corpos da seleção estão registrados e com a pose final. A hidratação assíncrona do IndexedDB (dados importados e mesa, no início) pode re-renderizar a cena e deixar um corpo fora da lista por um quadro; antes da correção, uma das 10 moedas ficava na mesa (commit culpado `24bb197`, ver `docs/superpowers/specs/2026-11-11-correcao-falhas-e2e.md`).
+- **Mesa quebrada é uma regra só.** `trayBrokenAt` (`krakenMotion.ts`) decide; qualquer interrupção (recolher, trocar seleção, movimento reduzido) recompõe a mesa. Não espalhar a regra por componentes.
 - **`throwId` guarda tudo.** Qualquer callback assíncrono (worker, publish, fim de presságio, showcase) compara com o `throwId` atual e com a fase. Código novo assíncrono deve fazer o mesmo.
 - **Os corpos da cena são cinemáticos.** Dinâmica só existe no mundo offline. Não trocar a cena para dinâmica "ao vivo".
 - **`physics/apply.ts` é o único lugar** que muda tipo, velocidade ou pose de corpo na simulação (cena e testes compartilham).

@@ -1,12 +1,14 @@
 # Próximas features
 
-Combinado com o usuário em 2026-11-11. As três já têm spec (escrita pela sessão principal) e estão em implementação:
+Combinado com o usuário em 2026-11-11. As três foram especificadas pela sessão principal e **implementadas** (2026-11-12, branch `dev-jg`):
 
 | Item | Spec |
 |---|---|
-| Dado de forma livre (caminho B) | [2026-11-11-dado-forma-livre-design.md](superpowers/specs/2026-11-11-dado-forma-livre-design.md) |
+| Dado de forma livre (caminho B) | [2026-11-11-dado-forma-livre-design.md](superpowers/specs/2026-11-11-dado-forma-livre-design.md) + adendo dos shards [2026-11-11-dado-forma-livre-shards.md](superpowers/specs/2026-11-11-dado-forma-livre-shards.md) |
 | Fundo 360° (fase 3 da mesa) | [2026-11-11-fundo-360-design.md](superpowers/specs/2026-11-11-fundo-360-design.md) |
 | Números pintados na mesa | [2026-11-11-numeros-pintados-mesa-design.md](superpowers/specs/2026-11-11-numeros-pintados-mesa-design.md) |
+
+Ideia ainda sem spec: **abraço de tentáculos no 100 do d100** (hoje a falha do d100 é sangue; os tentáculos só aparecem no crítico 1).
 
 As notas abaixo são o contexto original que gerou as specs; valem as specs.
 

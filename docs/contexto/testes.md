@@ -20,17 +20,20 @@
 
 | Método | Para quê |
 |---|---|
-| `table()` | mesa ativa lida da cena: id, nome, fundo, cores do feltro/madeira, textura, se há modelo, caixa da guia, nº de mesas salvas |
+| `table()` | mesa ativa lida da cena: id, nome, fundo (incl. `panorama`), cores do feltro/madeira, textura, se há modelo, caixa da guia, nº de mesas salvas, `reflect` (fundo 360°) e `programs` (nº de programas de shader, para checar recompilação) |
 | `shards()` | cores (feltro/madeira) do primeiro caco do kraken |
-| `state()` | dice, phase, throwId, results, ready, error, aim, showcased, omen, omenDone, omenTime, trayBroken |
+| `state()` | dice, phase, throwId, results, ready, error, aim, showcased, omen, omenDone, reducedMotion, omenTime, trayBroken |
 | `select(dice)` | troca a seleção sem clicar |
 | `rigOmen(omen \| null)` | força o presságio dos próximos arremessos (a física e o resultado continuam reais) |
 | `bodies()` / `meshes()` | poses dos corpos Rapier / quaternions das malhas `gem-i` |
 | `labels(i)` | numerais do dado i em coordenadas de mundo (texto, valor, posição, normal) |
 | `numbersVisible(i)`, `highlights()` | visibilidade dos numerais e dos números em destaque |
+| `gemLook(i)` | malhas visíveis do dado i: tipo de material, opaco, pintado por vértice e a cor da primeira tinta (números pintados) |
 | `camera()`, `launches()` | posição da câmera; contagem e poses antes/depois do último lançamento |
 | `customs()` | dados importados: kind, id, nome, apelido, base, `printed` |
 | `previewSurface(i, p, q)` | posiciona um dado à mão; só com `?surface-preview` e fase `hand` |
+
+Depois de `page.emulateMedia({ reducedMotion })` com relógio simulado, **espere** `state().reducedMotion` antes de avançar o relógio: o evento do `matchMedia` chega assíncrono (ver `docs/superpowers/specs/2026-11-11-correcao-falhas-e2e.md`).
 
 Padrão dos specs: esperar `state().ready`, interagir pelo teclado/ponteiro na `.game-area`, esperar `phase === 'settled'` e `showcased === throwId`, comparar `results` com o que os corpos/labels mostram. Para testar um valor específico (ex.: d100 = 1) os specs **procuram uma semente** que tire o valor na física real; não fabricam resultado.
 
@@ -59,6 +62,10 @@ npm run lint
 npm test
 npm run e2e
 ```
+
+## Rodar E2E sem atrapalhar outra rodada
+
+O WebGL dos testes é por software (SwiftShader) e usa a CPU. Duas rodadas ao mesmo tempo dividem a máquina: os testes **funcionais** passam, só mais devagar; os de **desempenho** (`coin-performance`, `coin-software`) e qualquer medição de FPS falham ou distorcem. Rodadas completas e medições: uma por vez. Para rodar testes funcionais isolados em paralelo, use um config temporário em `temp/` (fora do git) que importa o `playwright.config.ts` e troca só a porta (`baseURL` e o `--port` do `webServer.command`), e rode com `-c temp/<arquivo>`. Com a máquina sobrecarregada aparecem falsos negativos típicos: timeout em `beforeEach` esperando `ready` e erro do `clock.pauseAt`.
 
 Artefatos locais ignorados pelo Git: `test-results/`, `playwright-report/`, `screens/` (capturas e medições).
 

@@ -1,6 +1,6 @@
 # Dado importado de forma livre: design (caminho B)
 
-Data: 2026-11-11 · Status: aprovado para implementar · Branch base: `dev-jg` · Depende de: `2026-11-11-importar-dado-design.md` (caminho A, na `main`)
+Data: 2026-11-11 · Status: implementada (ver "Implementação e medições") · Branch base: `dev-jg` · Depende de: `2026-11-11-importar-dado-design.md` (caminho A, na `main`)
 
 ## 1. Objetivo
 

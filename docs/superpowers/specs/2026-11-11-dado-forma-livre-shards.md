@@ -1,6 +1,6 @@
 # Adendo à spec do dado de forma livre: faces de leitura (shards)
 
-Data: 2026-11-11 · Status: aprovado para implementar · Complementa: `2026-11-11-dado-forma-livre-design.md` (já implementada na branch `claude/forma-livre-9c778e`)
+Data: 2026-11-11 · Status: implementada (ver "Implementação e medições") · Complementa: `2026-11-11-dado-forma-livre-design.md` (já implementada na branch `claude/forma-livre-9c778e`)
 
 ## 1. O problema
 

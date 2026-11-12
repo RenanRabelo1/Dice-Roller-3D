@@ -1,6 +1,6 @@
 # Números pintados no dado importado, na mesa: design
 
-Data: 2026-11-11 · Status: aprovado para implementar · Branch base: `dev-jg` · Depende de: caminho A (na `main`); implementar **depois** de `2026-11-11-dado-forma-livre-design.md` (mesmos arquivos)
+Data: 2026-11-11 · Status: implementada (ver "Implementação e medições") · Branch base: `dev-jg` · Depende de: caminho A (na `main`); implementar **depois** de `2026-11-11-dado-forma-livre-design.md` (mesmos arquivos)
 
 ## 1. Objetivo
 
