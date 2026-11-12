@@ -149,3 +149,13 @@ Cada tarefa é um commit. Faça na ordem e não pule a verificação. Comece **d
 
 ### T7 · E2E (só no fim, junto com a rodada da forma livre)
 Em `e2e/import.spec.ts`: importar o d20 gravado sintético → na mesa, a cor de um pixel no centro de um número é a da tinta; trocar a tinta em "Meus dados" muda o pixel sem recarregar; fosco → `__dice` informa material opaco. Esses testes entram na rodada única do fim.
+
+## Implementação e medições
+
+Feito nas tarefas T1–T6. O que ficou **sem medir**: o desempenho com 10 dados pintados de ~48 mil triângulos (precisa de horário combinado com a sessão principal) e a conferência de pixel da tinta na mesa (E2E, T7). Num teste manual no `npm run dev` (porta própria, sem Playwright) um d20 sintético gravado foi importado, calibrado e salvo; o botão **Tinta** apareceu, trocar tinta e acabamento atualizou o dado sem erros no console. A pintura ficou pequena demais na prévia de baixa resolução para conferir a cor a olho.
+
+- `inkTriangles`: nos 6 sólidos sintéticos gravados (`engrave: 0.04`) marca exatamente as paredes das cavidades (12 triângulos por face) e nada mais; d20 liso e só chanfrado: nenhum.
+- A máscara fica em `geometry.userData.ink`, não em `mesh.userData.ink` como no guia: `Object3D.clone` copia `userData` como JSON e destruiria o `Uint8Array` nos clones do GLB.
+- `inkOf` (prévia) agora usa o centro do triângulo, então a borda do número fica por triângulo, como na mesa.
+- O acabamento fosco vale para qualquer STL (também sem gravação); a tinta só para `printed`. A tinta de GLB com textura é gravada como `escura` mesmo se a escolha era automática.
+- Não foi preciso mexer na física nem na leitura (P8).
