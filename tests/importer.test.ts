@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { BoxGeometry, IcosahedronGeometry } from 'three';
-import type { CustomBase } from '../src/dice/custom';
+import type { StdBase } from '../src/dice/custom';
 import { askOrder, checkValues, detectPlanes, idealSolid, ImportError, importModel, LIMITS, looksNumbered, readModel, renumbered, suggestOpposite } from '../src/dice/importer';
 import { RADIUS, polyhedron } from '../src/dice/polyhedra';
 import { glb, modelTriangles, stl } from './helpers/models';
 
-const BASES: CustomBase[] = ['d4', 'd6', 'd8', 'd10', 'd12', 'd20'];
+const BASES: StdBase[] = ['d4', 'd6', 'd8', 'd10', 'd12', 'd20'];
 const FACES = { d4: 4, d6: 6, d8: 8, d10: 10, d12: 12, d20: 20 };
 const dot = (a: number[], b: number[]) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 const soup = (g: BoxGeometry | IcosahedronGeometry, scale = 1) => {

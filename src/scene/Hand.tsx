@@ -3,7 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import type { RapierRigidBody } from '@react-three/rapier';
 import { ArrowHelper, Color, Group, Matrix4, Mesh, MeshBasicMaterial, Plane, Quaternion, Raycaster, Vector2, Vector3, type BufferGeometry, type Object3D, type PerspectiveCamera } from 'three';
 import { Text } from 'troika-three-text';
-import { MAX_DICE, polyhedron } from '../dice/polyhedra';
+import { MAX_DICE, polyhedron, staysOnTray } from '../dice/polyhedra';
 import { toKinematic } from '../physics/apply';
 import { clampHandX, HAND, handPositions, type Quat, type Vec3 } from '../physics/world';
 import { useDice } from '../store';
@@ -203,7 +203,7 @@ export function Hand({ gameArea, bodies }: {
             local, turn,
             start: new Vector3(...from[i].p).add(new Vector3(0, poly.radius + 0.35, 0)),
             face: new Vector3(...from[i].p).add(new Vector3(0, poly.radius + 0.35, 0)),
-            scale: still || poly.shape === 'coin' ? 1 : FONT[poly.shape] / HL_SIZE,
+            scale: still || poly.shape === 'coin' ? 1 : (poly.font ?? FONT[poly.shape]) / HL_SIZE,
           };
         });
         showcase.current = { at: now, throwId: state.throwId, from, to, hero, kraken, omenAt: state.omenAt, marks, still, gems: current.map((_, i) => scene.getObjectByName(`gem-${i}`)) };
@@ -234,7 +234,7 @@ export function Hand({ gameArea, bodies }: {
       if (still) { marks.forEach((m, i) => draw(i, m.face)); return; }
       let done = !waiting;
       current.forEach((body, i) => {
-        if (state.dice[i] === 'coin') {
+        if (staysOnTray(state.dice[i])) {
           const t = Math.min(1, Math.max(0, (now - at - SHOW.delay - i * SHOW.stagger) / SHOW.duration));
           if (t < 1) done = false;
           // The coin stays on the tray; only its Cara/Coroa caption rises to the result row.

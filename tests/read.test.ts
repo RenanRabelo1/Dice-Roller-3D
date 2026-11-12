@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { Quaternion, Vector3 } from 'three';
-import { polyhedron, type Shape } from '../src/dice/polyhedra';
+import { polyhedron, type BuiltinKind } from '../src/dice/polyhedra';
 import { readUp, toResults } from '../src/dice/read';
 import type { Quat, Vec3 } from '../src/physics/world';
 
@@ -9,7 +9,7 @@ const tiltBy = (q: Quat, deg: number): Quat =>
   new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), (deg * Math.PI) / 180).multiply(new Quaternion(...q)).toArray() as Quat;
 
 describe('readUp', () => {
-  it.each(['d6', 'd8', 'd10', 'd12', 'd20'] as Shape[])('%s reads every face turned up', (shape) => {
+  it.each(['d6', 'd8', 'd10', 'd12', 'd20'] as BuiltinKind[])('%s reads every face turned up', (shape) => {
     const p = polyhedron(shape);
     p.faces.forEach((f) => { const r = readUp(p, toUp(f.normal)); expect(r.value).toBe(f.value); expect(r.tilt).toBeLessThan(1e-4); });
   });

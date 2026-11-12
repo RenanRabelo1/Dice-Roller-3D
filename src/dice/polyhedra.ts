@@ -11,15 +11,15 @@ import { ConvexHull } from 'three/examples/jsm/math/ConvexHull.js';
 import type { Vec3 } from '../physics/world';
 import { customBase, customKind, customList, customOrder, customPoly, isCustom, type CustomKind } from './custom';
 
-export type Shape = 'd4' | 'd6' | 'd8' | 'd10' | 'd12' | 'd20' | 'd100' | 'coin';
-export type BuiltinKind = Shape | 'vtm' | 'hunger' | 'fire';
+export type Shape = 'd4' | 'd6' | 'd8' | 'd10' | 'd12' | 'd20' | 'd100' | 'coin' | 'livre';
+export type BuiltinKind = Exclude<Shape, 'livre'> | 'vtm' | 'hunger' | 'fire';
 export type DieKind = BuiltinKind | CustomKind; // every kind is one physical die
 export type SymbolName = 'ankh' | 'crit' | 'skull' | 'fangs' | 'heads' | 'crown';
 
 export const KINDS: BuiltinKind[] = ['d4', 'd6', 'd8', 'd10', 'd12', 'd20', 'd100', 'vtm', 'hunger', 'fire', 'coin'];
 // The physical die behind each kind: geometry, collider, radius, numbering and reading.
 // Custom dice (Vampire: The Masquerade d10s, Fireball d6) only change how that die looks.
-export const BASE: Record<BuiltinKind, Shape> = {
+export const BASE: Record<BuiltinKind, Exclude<Shape, 'livre'>> = {
   d4: 'd4', d6: 'd6', d8: 'd8', d10: 'd10', d12: 'd12', d20: 'd20', d100: 'd100', vtm: 'd10', hunger: 'd10', fire: 'd6', coin: 'coin',
 };
 // Vampire d10s show symbols instead of digits, by d10 digit (0 is the 10); the other faces are blank.
@@ -28,7 +28,7 @@ const SYMBOL: Partial<Record<BuiltinKind, (digit: number) => SymbolName | undefi
   hunger: (v) => (v === 0 ? 'fangs' : v === 1 ? 'skull' : v >= 6 ? 'ankh' : undefined),
 };
 // Circumscribed radius of each shape.
-export const RADIUS: Record<Shape, number> = { d4: 0.9, d6: 0.75, d8: 0.7, d10: 0.7, d12: 0.7, d20: 0.7, d100: 0.9, coin: 0.76 };
+export const RADIUS: Record<Shape, number> = { d4: 0.9, d6: 0.75, d8: 0.7, d10: 0.7, d12: 0.7, d20: 0.7, d100: 0.9, coin: 0.76, livre: 0.85 };
 
 export interface Face { normal: Vec3; center: Vec3; value: number }
 export interface Top { dir: Vec3; value: number }
@@ -41,6 +41,8 @@ export interface Polyhedron {
   faces: Face[];
   tops: Top[];
   labelList: Label[];
+  readsDown?: boolean; // free-form die: read from the face it rests on
+  font?: number; // numeral size when the faces differ (free-form dice)
 }
 
 export const OPPOSITE_SUM: Partial<Record<Shape, number>> = { d6: 7, d8: 9, d10: 9, d12: 13, d20: 21 };
@@ -137,6 +139,7 @@ function rawTriangles(shape: Shape): Vec3[] {
     case 'd20': return geometryTriangles(new IcosahedronGeometry(r));
     case 'd100': return hundredTriangles(r);
     case 'coin': throw new Error('the coin is built by coin()');
+    case 'livre': throw new Error('a free-form die comes from an imported model');
   }
 }
 
@@ -175,7 +178,8 @@ export function fromTriangles(shape: Shape, verts: Vec3[], numbering?: Numbering
     return { normal: g.normal, center, value: 0 };
   });
 
-  if (shape !== 'd4') {
+  if (shape === 'livre') faces.forEach((f, i) => { f.value = numbering?.values?.[i] ?? i + 1; });
+  else if (shape !== 'd4') {
     const sum = OPPOSITE_SUM[shape] ?? 0;
     const key = (f: Face) => [-round6(f.normal[1]), Math.atan2(round6(f.normal[2]), round6(f.normal[0]))];
     const order = faces.map((_, i) => i).sort((i, j) => {
@@ -198,7 +202,7 @@ export function fromTriangles(shape: Shape, verts: Vec3[], numbering?: Numbering
   }
 
   const tops: Top[] = shape === 'd4' ? points.map((p, i) => ({ dir: unit(p), value: numbering?.values?.[i] ?? i + 1 })) : [];
-  if (numbering?.values && shape !== 'd4') faces.forEach((f, i) => { f.value = numbering.values![i]; });
+  if (numbering?.values && shape !== 'd4' && shape !== 'livre') faces.forEach((f, i) => { f.value = numbering.values![i]; });
 
   const marked = shape === 'd10' || shape === 'd12' || shape === 'd20' || shape === 'd100';
   const text = (v: number) => (marked && (v === 6 || v === 9) ? `${v}.` : String(v));
@@ -251,6 +255,8 @@ export const sortDice = (dice: DieKind[]): DieKind[] => [...dice].sort((a, b) =>
 export const allKinds = (): DieKind[] => [...KINDS, ...customList().map((d) => customKind(d.id))];
 // The physical shape behind a kind (imported dice report the base they were recognised as).
 export const baseOf = (kind: DieKind): Shape => (isCustom(kind) ? customBase(kind) ?? 'd20' : BASE[kind]);
+// A coin or a free-form die stays where it stopped: the showcase only raises its number.
+export const staysOnTray = (kind: DieKind) => kind === 'coin' || baseOf(kind) === 'livre';
 export const MAX_DICE = 10;
 // The solids of the imported dice in a selection, for the worker (which has no registry of its own).
 export const customsOf = (dice: DieKind[]): Record<CustomKind, Polyhedron> =>

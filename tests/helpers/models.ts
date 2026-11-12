@@ -1,6 +1,6 @@
 import { Euler, Quaternion, Vector3 } from 'three';
 import { ConvexHull } from 'three/examples/jsm/math/ConvexHull.js';
-import { registerCustom, type CustomBase, type CustomDie } from '../../src/dice/custom';
+import { registerCustom, type StdBase, type CustomDie } from '../../src/dice/custom';
 import { detectPlanes, idealSolid } from '../../src/dice/importer';
 import { polyhedron, type Polyhedron } from '../../src/dice/polyhedra';
 
@@ -38,7 +38,7 @@ export function modelTriangles(poly: Polyhedron, { bevel = 0, scale = 25, engrav
   return Float32Array.from(out);
 }
 
-export const stockPoly = (base: CustomBase) => polyhedron(base);
+export const stockPoly = (base: StdBase) => polyhedron(base);
 
 // Binary STL for a triangle soup.
 export function stl(positions: Float32Array): ArrayBuffer {
@@ -74,7 +74,7 @@ export function glb(positions: Float32Array, uri?: string): ArrayBuffer {
 }
 
 // A registered imported die built from the app's own solid (chamfered, off-centre, in mm), as the importer would.
-export function customDieOf(base: CustomBase, name: string, slug: string, { omens = true, bevel = 0.08 } = {}): CustomDie {
+export function customDieOf(base: StdBase, name: string, slug: string, { omens = true, bevel = 0.08 } = {}): CustomDie {
   const positions = modelTriangles(polyhedron(base), { bevel });
   const { planes } = detectPlanes(positions), { poly, fit } = idealSolid(base, planes);
   const die: CustomDie = {

@@ -22,7 +22,7 @@ const EMBER: Partial<Record<string, string>> = { fire: '#FF4D00' }; // the fire 
 export const FONT_URL = '/fonts/bricolage-grotesque-800.woff';
 // Sized to each face: d4/d6 were right; the rest were crowding their faces.
 // oxlint-disable-next-line react/only-export-components
-export const FONT: Record<Shape, number> = { d4: 0.33, d6: 0.48, d8: 0.32, d10: 0.28, d12: 0.29, d20: 0.28, d100: 0.13, coin: 0.27 };
+export const FONT: Record<Shape, number> = { d4: 0.33, d6: 0.48, d8: 0.32, d10: 0.28, d12: 0.29, d20: 0.28, d100: 0.13, coin: 0.27, livre: 0.3 };
 export const SYMBOL = 1.35; // height of a face symbol, in numeral font sizes
 // Light gems (topaz, crystal, citrine) get dark numerals; dark gems keep gold.
 type Ink = { color: string; outline?: string };
@@ -131,7 +131,7 @@ export function Die({ index, kind, selection, count, color, register }: {
   const points = useMemo(() => model.points.flat(), [model]);
   const custom = isCustom(kind) ? customDie(kind) : undefined;
   const file = useModel(custom);
-  const numbers = useNumbers(model, FONT[model.shape], INK[kind] ?? INK[model.shape] ?? GOLD, !!custom?.printed);
+  const numbers = useNumbers(model, model.font ?? FONT[model.shape], INK[kind] ?? INK[model.shape] ?? GOLD, !!custom?.printed);
   return (
     <RigidBody ref={registerBody} type="kinematicPosition" colliders={false}
       userData={{ selection }} ccd position={handPositions(count, 0)[index]}>

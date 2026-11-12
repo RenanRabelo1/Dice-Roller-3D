@@ -4,7 +4,8 @@ import type { Polyhedron, Shape } from './polyhedra';
 // Dice the player imported: a model file plus the polyhedron rebuilt from its face planes. Kept in memory here
 // (hydrated from IndexedDB by customStore.ts); polyhedra.ts and the worker read the polyhedra through this registry.
 export type CustomKind = `custom:${string}`;
-export type CustomBase = 'd4' | 'd6' | 'd8' | 'd10' | 'd12' | 'd20';
+export type CustomBase = 'd4' | 'd6' | 'd8' | 'd10' | 'd12' | 'd20' | 'livre';
+export type StdBase = Exclude<CustomBase, 'livre'>; // the d4–d20 bases
 export interface CustomDie {
   version: 1;
   id: string;

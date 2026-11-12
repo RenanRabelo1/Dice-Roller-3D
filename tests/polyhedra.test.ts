@@ -1,13 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { polyhedron, sortDice, RADIUS, KINDS, type Shape } from '../src/dice/polyhedra';
+import { polyhedron, sortDice, RADIUS, KINDS, staysOnTray, type Shape, type BuiltinKind } from '../src/dice/polyhedra';
 import { MAX_RADIUS } from '../src/physics/world';
 
-const SIDES: Record<Shape, number> = { d4: 4, d6: 6, d8: 8, d10: 10, d12: 12, d20: 20, d100: 100, coin: 2 };
+const SIDES: Record<Exclude<Shape, 'livre'>, number> = { d4: 4, d6: 6, d8: 8, d10: 10, d12: 12, d20: 20, d100: 100, coin: 2 };
 const SUM: Partial<Record<Shape, number>> = { d6: 7, d8: 9, d10: 9, d12: 13, d20: 21 };
 const dot = (a: number[], b: number[]) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 const range = (from: number, n: number) => Array.from({ length: n }, (_, i) => from + i);
 
-describe.each(Object.keys(SIDES) as Shape[])('%s', (shape) => {
+describe.each(Object.keys(SIDES) as Exclude<Shape, 'livre'>[])('%s', (shape) => {
   const p = polyhedron(shape);
   it('has one face per side and each logical value once', () => {
     expect(p.faces).toHaveLength(SIDES[shape]);
@@ -39,8 +39,8 @@ describe('labels', () => {
     expect([1, 2, 3, 4].map(count)).toEqual([3, 3, 3, 3]);
   });
   it('marks 6 and 9 only where both exist', () => {
-    const texts = (s: Shape) => polyhedron(s).labelList.map((l) => l.text);
-    for (const s of ['d10', 'd12', 'd20'] as Shape[]) expect(texts(s)).toEqual(expect.arrayContaining(['6.', '9.']));
+    const texts = (s: BuiltinKind) => polyhedron(s).labelList.map((l) => l.text);
+    for (const s of ['d10', 'd12', 'd20'] as BuiltinKind[]) expect(texts(s)).toEqual(expect.arrayContaining(['6.', '9.']));
     expect(texts('d6')).toContain('6');
     expect(texts('d8')).toContain('6');
   });
@@ -106,4 +106,11 @@ describe('coin', () => {
     expect(p.labelList.map((l) => [l.value, l.symbol, l.text])).toEqual([[1, 'heads', 'Cara'], [2, 'crown', 'Coroa']]);
   });
   it('sorts after the dice', () => expect(sortDice(['coin', 'd20', 'fire'])).toEqual(['d20', 'fire', 'coin']));
+});
+
+describe('staysOnTray', () => {
+  it('is true for the coin only among the built-in dice', () => {
+    expect(staysOnTray('coin')).toBe(true);
+    expect(staysOnTray('d20')).toBe(false);
+  });
 });

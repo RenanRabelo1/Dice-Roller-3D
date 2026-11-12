@@ -3,7 +3,7 @@ import { ConvexHull } from 'three/examples/jsm/math/ConvexHull.js';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import type { Vec3 } from '../physics/world';
-import { customKind, type CustomBase, type CustomDie } from './custom';
+import { customKind, type CustomDie, type StdBase } from './custom';
 import { fromTriangles, OPPOSITE_SUM, RADIUS, type Numbering, type Polyhedron } from './polyhedra';
 
 // Turns a die model (.stl / .glb) into a polyhedron the physics and the reader can use. Pure: tested in Node.
@@ -14,8 +14,8 @@ export const LIMITS = { bytes: 10 * 1024 * 1024, triangles: 50_000, texture: 204
 // cover COVER of the hull, the next one must be under NEXT of the smallest of them, and the N must be alike
 // within EVEN (a squashed box is no die). OPPOSITE: dot product that counts as "facing away".
 const GROUP = Math.cos((3 * Math.PI) / 180), OPPOSITE = -0.995, COVER = 0.6, NEXT = 0.25, EVEN = 0.5;
-const SIDES: CustomBase[] = ['d4', 'd6', 'd8', 'd10', 'd12', 'd20'];
-const FACES: Record<CustomBase, number> = { d4: 4, d6: 6, d8: 8, d10: 10, d12: 12, d20: 20 };
+const SIDES: StdBase[] = ['d4', 'd6', 'd8', 'd10', 'd12', 'd20'];
+const FACES: Record<StdBase, number> = { d4: 4, d6: 6, d8: 8, d10: 10, d12: 12, d20: 20 };
 
 export class ImportError extends Error {} // the message is shown to the player, in pt-BR
 export type ModelFormat = 'stl' | 'glb';
@@ -125,7 +125,7 @@ function flatFaces(positions: Float32Array): { n: Vector3; d: number; area: numb
   });
 }
 
-export function detectPlanes(positions: Float32Array): { base: CustomBase; planes: Plane[] } {
+export function detectPlanes(positions: Float32Array): { base: StdBase; planes: Plane[] } {
   const faces = flatFaces(positions), total = faces.reduce((s, f) => s + f.area, 0);
   for (const base of SIDES) {
     const N = FACES[base];
@@ -187,7 +187,7 @@ export interface Solid { poly: Polyhedron; fit: { center: Vec3; scale: number } 
 
 // The polyhedron of a model's face planes, sized like the stock die of its base, plus the transform that puts
 // the model's own mesh in the same place: a model point p sits at (p - center) * scale.
-export function idealSolid(base: CustomBase, found: Plane[]): Solid {
+export function idealSolid(base: StdBase, found: Plane[]): Solid {
   let planes = found, center: Vec3;
   if (base === 'd4') {
     const v = corners(found);
@@ -254,13 +254,13 @@ export function looksNumbered(positions: Float32Array, solid: Solid): boolean {
 // --- numbering --------------------------------------------------------------------------------------------------
 
 // The numbers allowed are 1..N (d10: 0..9, where "10" reads as 0); a d4 numbers its corners 1..4.
-export const normaliseValues = (base: CustomBase, values: number[]): number[] => values.map((v) => (base === 'd10' && v === 10 ? 0 : v));
+export const normaliseValues = (base: StdBase, values: number[]): number[] => values.map((v) => (base === 'd10' && v === 10 ? 0 : v));
 // One value on its own: is it a number this die can show?
-export function checkValue(base: CustomBase, value: number): string | null {
+export function checkValue(base: StdBase, value: number): string | null {
   const n = FACES[base], first = base === 'd10' ? 0 : 1, v = normaliseValues(base, [value])[0];
   return Number.isInteger(v) && v >= first && v < first + n ? null : `Os números vão de ${first} a ${first + n - 1}${base === 'd10' ? ' (ou 10 no lugar do 0)' : ''}.`;
 }
-export function checkValues(base: CustomBase, values: number[]): string | null {
+export function checkValues(base: StdBase, values: number[]): string | null {
   const n = FACES[base], got = normaliseValues(base, values);
   const range = values.map((v) => checkValue(base, v)).find(Boolean);
   if (range) return range;
@@ -269,7 +269,7 @@ export function checkValues(base: CustomBase, values: number[]): string | null {
   return got.length === n ? null : 'Faltam números.';
 }
 // The opposite face's value on a standard layout: only a suggestion (balanced and spindown dice differ).
-export const suggestOpposite = (base: CustomBase, value: number): number | null => {
+export const suggestOpposite = (base: StdBase, value: number): number | null => {
   const sum = OPPOSITE_SUM[base];
   return sum === undefined ? null : sum - value;
 };
@@ -294,7 +294,7 @@ export function renumbered(poly: Polyhedron, numbering: Numbering): Polyhedron {
 
 // --- the whole import -------------------------------------------------------------------------------------------
 
-export interface Imported extends Solid { base: CustomBase; triangles: number; object: Object3D; hasNumbers: boolean }
+export interface Imported extends Solid { base: StdBase; triangles: number; object: Object3D; hasNumbers: boolean }
 export async function importModel(bytes: ArrayBuffer, format: ModelFormat): Promise<Imported> {
   const model = await readModel(bytes, format);
   const { base, planes } = detectPlanes(model.positions);

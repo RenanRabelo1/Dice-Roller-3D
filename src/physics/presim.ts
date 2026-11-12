@@ -34,9 +34,10 @@ export function presimulate(
     if (start.length !== polys.length) throw new Error(`presimulate needs ${polys.length} start poses, got ${start.length}`);
     const bodies = polys.map((poly, i) => {
       const [x, y, z, w] = start[i].q;
+      const damp = poly.shape === 'livre' ? (poly.faces.length > 20 ? DAMPING.d100 : undefined) : DAMPING[poly.shape]; // many faces roll too long
       const body = world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased()
         .setTranslation(...start[i].p).setRotation({ x, y, z, w }).setCcdEnabled(true)
-        .setLinearDamping(DAMPING[poly.shape]?.linear ?? 0).setAngularDamping(DAMPING[poly.shape]?.angular ?? 0));
+        .setLinearDamping(damp?.linear ?? 0).setAngularDamping(damp?.angular ?? 0));
       // A thin hull rocks forever on its flat cap; the coin rolls as a rounded cylinder of the same size.
       const hull = poly.shape === 'coin' ? RAPIER.ColliderDesc.roundCylinder(0.08 - 0.01, poly.radius - 0.01, 0.01)
         : RAPIER.ColliderDesc.convexHull(new Float32Array(poly.points.flat()));
