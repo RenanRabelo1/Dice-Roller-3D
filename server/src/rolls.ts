@@ -1,5 +1,5 @@
 import { ObjectId, type Collection, type Db } from 'mongodb';
-import { CUSTOM_BASES, KINDS } from '../../src/dice/kinds.ts';
+import { CUSTOM_BASES, FREE_VALUES, KINDS } from '../../src/dice/kinds.ts';
 import type { OmenKind } from '../../src/dice/omen.ts';
 import { CUSTOM, type Die } from './rules.ts';
 
@@ -22,12 +22,12 @@ const VALIDATOR = {
         items: {
           bsonType: 'object', required: ['kind', 'value'], additionalProperties: false,
           properties: {
-            kind: { anyOf: [{ enum: KINDS }, { bsonType: 'string', pattern: CUSTOM }] }, value: { bsonType: 'int', minimum: 1, maximum: 100 },
+            kind: { anyOf: [{ enum: KINDS }, { bsonType: 'string', pattern: CUSTOM }] }, value: { bsonType: 'int', minimum: FREE_VALUES.min, maximum: FREE_VALUES.max },
             base: { enum: [...CUSTOM_BASES] }, omens: { bsonType: 'bool' }, // imported dice only
           },
         },
       },
-      total: { bsonType: 'int', minimum: 0 },
+      total: { bsonType: 'int' },
       omen: { enum: ['crit', 'fumble', 'duality', null] },
       force: { bsonType: ['double', 'int', 'null'], minimum: 0, maximum: 1 },
     },
@@ -38,6 +38,11 @@ const VALIDATOR = {
 export async function rollsCollection(db: Db): Promise<Collection<RollDoc>> {
   if (!(await db.listCollections({ name: 'rolls' }, { nameOnly: true }).hasNext())) {
     await db.createCollection('rolls', { validator: VALIDATOR });
+  } else {
+    // A collection made by an older version has the old validator; bring it up to date.
+    try { await db.command({ collMod: 'rolls', validator: VALIDATOR }); } catch {
+      console.warn('Não consegui atualizar o validador da coleção rolls (o usuário precisa do papel dbAdmin). Jogadas com dado de forma livre serão recusadas até atualizar: rode a API uma vez com um usuário administrador (ver server/README.md).');
+    }
   }
   const rolls = db.collection<RollDoc>('rolls');
   await rolls.createIndex({ playerId: 1, _id: -1 }, { name: 'player_history' });
