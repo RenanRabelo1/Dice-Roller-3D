@@ -236,7 +236,7 @@ export function Hand({ gameArea, bodies }: {
           const die = customDie(state.dice[i] as `custom:${string}`)!, group = scene.getObjectByName(`die-${i}`);
           const ink = inkColorOf(die, gemColor(state.dice[i]));
           const down = polys[i].labelList.find((l) => l.value === raw[i])!.normal;
-          const glow = gems[i] && group ? glowMesh(gems[i], group, down, ink ? `#${new Color(ink).lerp(new Color('#ffffff'), 0.4).getHexString()}` : '#FFF4DD', `${state.dice[i]}|${raw[i]}`) : null;
+          const glow = gems[i] && group ? glowMesh(gems[i], group, down, ink ? `#${new Color(ink).lerp(new Color('#FFE38A'), 0.6).getHexString()}` : '#FFE38A', `${state.dice[i]}|${raw[i]}`) : null;
           if (glow) { glow.name = `ink-glow-${i}`; group!.add(glow); numbers[i].visible = glyphs[i].visible = false; }
           else marks[i].scale = FONT.livre / HL_SIZE; // no engraving found: the number floats in front of the die
           return glow;
@@ -298,7 +298,7 @@ export function Hand({ gameArea, bodies }: {
         body.setNextKinematicRotation(q);
         if (above[i]) { // seen from above: its engraving glows, or (none found) the number floats in front of it
           const glow = glows[i];
-          if (glow) (glow.material as MeshBasicMaterial).opacity = t * highlightAt(now - at, i, marks[i].start, marks[i].face, marks[i].scale).glow * 0.85;
+          if (glow) (glow.material as MeshBasicMaterial).opacity = t * highlightAt(now - at, i, marks[i].start, marks[i].face, marks[i].scale).glow;
           else draw(i, p.clone().addScaledVector(camera.position.clone().sub(p).normalize(), polyhedron(state.dice[i]).radius + 0.35));
           return;
         }

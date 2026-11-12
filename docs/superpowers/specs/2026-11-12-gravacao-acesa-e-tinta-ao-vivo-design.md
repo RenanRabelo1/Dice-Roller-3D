@@ -179,4 +179,6 @@ Branch `claude/gravacao-acesa-68ef1e` (a partir da `dev-jg`), um commit por tare
 
 **Conferência manual** (`npm run dev`, `D5Shard.stl`, forma livre, "Sim, só as grandes", 1–5): no passo de salvar, Branca → `data-ink=#F2EEE4` e Fosco → fosco opaco com a tinta escura aparecendo na prévia. Com 10 shards rolados, todos chegam à frente vistos de cima com as gravações das pontas à vista. **Não consegui confirmar a olho o brilho pulsando** (a tinta automática é escura numa gema clara e a cor do brilho, só 40% clareada, se confunde); o E2E confirma que a malha existe e acende.
 
+Brilho reforçado a pedido do João (aditivo, cor puxada para #FFE38A, pulso cheio).
+
 **Gate:** `npm run build && npm run lint && npm test` verde em todas as tarefas (322 testes). **E2E** (`import`, `coin`, `smoke`): 17 testes, 16 passaram na rodada única e 1 falhou (o do shard, pelo item acima, erro do teste); depois de ajustar, esse teste foi rodado sozinho e passou.
