@@ -118,4 +118,18 @@ expect(turned.reduce((s, v, k) => s + v * toCam[k] / length, 0)).toBeGreaterThan
 
 ## 6. Implementação
 
-(preencher no passo 5 da tarefa 4: commits e resultado do E2E)
+Branch `claude/livre-voa-d0c3fc` (base `dev-jg`). Commits:
+
+- `946fc1d` fix: remove `staysOnTray` (tarefa 1)
+- `4b7ab6f` test: showcase de forma livre (tarefa 2)
+- `bbe8655` docs (tarefa 3; `apresentacao.md` não tinha nada a tirar)
+- `8e79ebf` test: E2E da forma livre (tarefa 4)
+
+Gate: `npm run build && npm run lint && npm test` verde (319 testes).
+
+E2E (`import`, `coin`, `smoke`): 15 de 16 passaram na rodada única; o teste do prisma falhou por erro do **teste** da spec, não do app. Duas diferenças em relação ao trecho da spec:
+
+1. `settled()` do `import.spec.ts` já espera `showcased === throwId`, então `landed` e `labels` seriam lidos depois do voo (distância 0). Troquei, nesse teste, por `waitForFunction(phase === 'settled')`, lendo `landed`/`labels` antes do voo (começa 1 s depois).
+2. `__dice.labels()` devolve normais em **coordenadas de mundo**, mas o trecho as rotacionava como locais (resultado −0,015). Agora a normal volta ao referencial do dado com o inverso da pose de repouso (`landedQ`) e só então é girada pela pose final.
+
+Com isso, `npx playwright test e2e/import.spec.ts -g "free-form prism"` passou (reexecutado sozinho; as outras 15 não foram repetidas).
