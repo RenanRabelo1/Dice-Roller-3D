@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { playerId, rollBody, saveRoll } from '../src/api/history';
 import { customKind, unregisterCustom } from '../src/dice/custom';
-import { customDieOf } from './helpers/models';
+import { customDieOf, freeDieOf, prismTriangles } from './helpers/models';
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -13,6 +13,12 @@ describe('saving throws to the history API', () => {
     const kind = customKind(customDieOf('d20', 'Caveira', 'caveira').id);
     try {
       expect(rollBody('p', [kind, 'd6'], [20, 3], 0.5).dice).toEqual([{ kind, value: 20, base: 'd20', omens: true }, { kind: 'd6', value: 3 }]);
+    } finally { unregisterCustom(kind); }
+  });
+  it('a free-form die goes out as base livre, with a negative value and no omens', () => {
+    const kind = customKind(freeDieOf(prismTriangles(5, 1.4), 'Sete', 'sete-hist', [-5, 2, 3, 4, 5, 6, 7]).id);
+    try {
+      expect(rollBody('p', [kind], [-5], 0.5).dice).toEqual([{ kind, value: -5, base: 'livre', omens: false }]);
     } finally { unregisterCustom(kind); }
   });
   it('without an API address nothing is sent (the table works offline)', () => {

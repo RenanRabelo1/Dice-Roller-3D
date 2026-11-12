@@ -1,6 +1,6 @@
 import Fastify, { type FastifyServerOptions } from 'fastify';
 import cors from '@fastify/cors';
-import { CUSTOM_BASES, KINDS } from '../../src/dice/kinds.ts';
+import { CUSTOM_BASES, FREE_VALUES, KINDS } from '../../src/dice/kinds.ts';
 import type { RollStore } from './rolls.ts';
 import { CUSTOM, score, type Die } from './rules.ts';
 
@@ -26,7 +26,7 @@ export function buildApp(o: { store: RollStore; ping: () => Promise<unknown>; or
             items: {
               type: 'object', required: ['kind', 'value'], additionalProperties: false,
               properties: {
-                kind: { anyOf: [{ enum: KINDS }, { type: 'string', pattern: CUSTOM }] }, value: { type: 'integer', minimum: 1, maximum: 100 },
+                kind: { anyOf: [{ enum: KINDS }, { type: 'string', pattern: CUSTOM }] }, value: { type: 'integer', minimum: FREE_VALUES.min, maximum: FREE_VALUES.max },
                 base: { enum: CUSTOM_BASES }, omens: { type: 'boolean' }, // imported dice only
               },
             },
