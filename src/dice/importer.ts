@@ -431,7 +431,23 @@ const loaded = new Map<string, Promise<Object3D>>();
 export function modelObject(die: CustomDie): Promise<Object3D> {
   const key = customKind(die.id);
   let p = loaded.get(key);
-  if (!p) { p = readModel(die.file.bytes, die.file.format).then((m) => m.object); loaded.set(key, p); }
+  if (!p) { p = readModel(die.file.bytes, die.file.format).then((m) => (die.printed ? withInkMask(m.object, die) : m.object)); loaded.set(key, p); }
   return p;
+}
+
+// Marks which triangles of each mesh are engraved numerals (`geometry.userData.ink`, 1 per triangle), once per die.
+// It lives on the geometry, which a cloned mesh shares; Object3D.clone would copy a typed array in userData as JSON.
+// The meshes are made non-indexed first, so triangle t owns vertices 3t..3t+2 and a colour attribute can follow it.
+function withInkMask(root: Object3D, die: CustomDie): Object3D {
+  root.updateWorldMatrix(true, true);
+  const solid = { poly: die.poly, fit: die.fit }, v = new Vector3();
+  root.traverse((o) => {
+    if (!(o instanceof Mesh)) return;
+    if (o.geometry.index) o.geometry = (o.geometry as BufferGeometry).toNonIndexed();
+    const pos = (o.geometry as BufferGeometry).getAttribute('position'), flat = new Float32Array(pos.count * 3);
+    for (let i = 0; i < pos.count; i++) v.fromBufferAttribute(pos, i).applyMatrix4(o.matrixWorld).toArray(flat, i * 3);
+    o.geometry.userData.ink = inkTriangles(flat, solid);
+  });
+  return root;
 }
 export const forgetModel = (kind: string) => { loaded.delete(kind); };
