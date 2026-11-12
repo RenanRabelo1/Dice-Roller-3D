@@ -4,6 +4,7 @@ import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import type { Vec3 } from '../physics/world';
 import { customKind, type CustomBase, type CustomDie, type StdBase } from './custom';
+import { FREE_VALUES } from './kinds';
 import { fromTriangles, OPPOSITE_SUM, RADIUS, type Numbering, type Polyhedron } from './polyhedra';
 
 // Turns a die model (.stl / .glb) into a polyhedron the physics and the reader can use. Pure: tested in Node.
@@ -396,7 +397,7 @@ export function checkValues(base: StdBase, values: number[]): string | null {
   return got.length === n ? null : 'Faltam números.';
 }
 // Free-form dice: any whole number from -99 to 999, repeats allowed (an average die has two 3s).
-export const checkFreeValue = (v: number): string | null => (Number.isInteger(v) && v >= -99 && v <= 999 ? null : 'Use um número inteiro de -99 a 999.');
+export const checkFreeValue = (v: number): string | null => (Number.isInteger(v) && v >= FREE_VALUES.min && v <= FREE_VALUES.max ? null : 'Use um número inteiro de -99 a 999.');
 export function checkFreeValues(values: number[], count: number): string | null {
   if (values.length < count || values.some((v) => v === undefined || Number.isNaN(v))) return 'Faltam números.';
   return values.map(checkFreeValue).find(Boolean) ?? null;

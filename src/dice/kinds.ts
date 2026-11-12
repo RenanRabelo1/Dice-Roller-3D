@@ -10,10 +10,11 @@ export const KINDS: BuiltinKind[] = ['d4', 'd6', 'd8', 'd10', 'd12', 'd20', 'd10
 export const BASE: Record<BuiltinKind, Exclude<Shape, 'livre'>> = {
   d4: 'd4', d6: 'd6', d8: 'd8', d10: 'd10', d12: 'd12', d20: 'd20', d100: 'd100', vtm: 'd10', hunger: 'd10', fire: 'd6', coin: 'coin',
 };
-// The solids an imported die can be recognised as. The history API takes only these: a free-form die ('livre',
-// any faces, values -99..999) is not recorded yet.
-export const CUSTOM_BASES = ['d4', 'd6', 'd8', 'd10', 'd12', 'd20'] as const;
-export type CustomBase = (typeof CUSTOM_BASES)[number] | 'livre';
+// The solids an imported die can be recognised as; 'livre' is a free-form die (any faces).
+export const CUSTOM_BASES = ['d4', 'd6', 'd8', 'd10', 'd12', 'd20', 'livre'] as const;
+export type CustomBase = (typeof CUSTOM_BASES)[number];
+// Values a free-form die can carry (calibration and history API).
+export const FREE_VALUES = { min: -99, max: 999 } as const;
 export const isCustom = (kind: string): kind is CustomKind => kind.startsWith('custom:');
 // Imported d20s the player asked to count as a d20 for omens. custom.ts keeps this in step with its registry;
 // it lives here so that omen.ts, which the API server runs too, needs no 3D code.
