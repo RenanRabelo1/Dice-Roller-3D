@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { BoxGeometry, IcosahedronGeometry } from 'three';
 import type { StdBase } from '../src/dice/custom';
-import { askOrder, checkValues, detectFree, detectPlanes, idealSolid, ImportError, importModel, LIMITS, looksNumbered, readModel, renumbered, suggestOpposite } from '../src/dice/importer';
+import { askOrder, checkValues, detectFree, detectPlanes, idealSolid, ImportError, importModel, inkOf, inkTriangles, LIMITS, looksNumbered, readModel, renumbered, suggestOpposite } from '../src/dice/importer';
 import { RADIUS, polyhedron } from '../src/dice/polyhedra';
 import type { Vec3 } from '../src/physics/world';
 import { asFile, glb, hullTriangles, modelTriangles, planesSolid, prismTriangles, stl, triacontahedronNormals } from './helpers/models';
@@ -105,6 +105,30 @@ describe('numerals cut into the faces', () => {
     expect(check({ bevel: 0.1 })).toBe(false);
     expect(check({ engrave: 0.04 })).toBe(true);
     expect(check({ bevel: 0.1, engrave: 0.04 })).toBe(true);
+  });
+});
+
+describe('ink mask per triangle', () => {
+  const solidOf = (positions: Float32Array, base: StdBase) => idealSolid(base, detectPlanes(positions).planes);
+  for (const base of BASES) it(`${base}: marks only the walls of the engraved numerals`, () => {
+    const engraved = modelTriangles(polyhedron(base), { engrave: 0.04 });
+    const mask = inkTriangles(engraved, solidOf(engraved, base));
+    const pits = FACES[base] * 12; // a hexagonal pit per face, 12 wall triangles each (written first)
+    expect(mask).toHaveLength(engraved.length / 9);
+    expect(Array.from(mask.slice(0, pits)).every((m) => m === 1)).toBe(true);
+    expect(Array.from(mask.slice(pits)).every((m) => m === 0)).toBe(true);
+  });
+  it('marks nothing on a smooth or only chamfered die', () => {
+    for (const bevel of [0, 0.1]) {
+      const smooth = modelTriangles(polyhedron('d20'), { bevel });
+      expect(inkTriangles(smooth, solidOf(smooth, 'd20')).some(Boolean)).toBe(false);
+    }
+  });
+  it('inkOf spreads the mask over the three vertices of each marked triangle', () => {
+    const engraved = modelTriangles(polyhedron('d20'), { engrave: 0.04 }), solid = solidOf(engraved, 'd20');
+    const ink = inkOf(engraved, solid), mask = inkTriangles(engraved, solid);
+    expect(ink).toHaveLength(engraved.length);
+    mask.forEach((m, t) => expect(ink[t * 9 + 4]).toBe(m));
   });
 });
 

@@ -314,10 +314,21 @@ function dentTester({ poly, fit }: Solid): (at: (k: number) => number) => boolea
   };
 }
 
-// Per-vertex ink for the preview: 1 where the model is cut into a face, 0 elsewhere (3 floats per vertex, grey).
+// Ink mask per triangle (9 numbers each in `positions`): 1 when the middle of the triangle is cut into a face
+// (a numeral), 0 elsewhere. Per triangle, not per vertex, so the edge of a numeral stays sharp once painted.
+export function inkTriangles(positions: ArrayLike<number>, solid: Solid): Uint8Array {
+  const dent = dentTester(solid), out = new Uint8Array(Math.floor(positions.length / 9));
+  for (let t = 0; t < out.length; t++) {
+    const i = t * 9;
+    out[t] = dent((k) => (positions[i + k] + positions[i + 3 + k] + positions[i + 6 + k]) / 3) ? 1 : 0;
+  }
+  return out;
+}
+
+// The same mask spread over the vertices of each triangle, for the preview: 3 floats (grey) per vertex.
 export function inkOf(positions: ArrayLike<number>, solid: Solid): Float32Array {
-  const dent = dentTester(solid), out = new Float32Array(positions.length);
-  for (let i = 0; i + 2 < positions.length; i += 3) if (dent((k) => positions[i + k])) out.fill(1, i, i + 3);
+  const mask = inkTriangles(positions, solid), out = new Float32Array(positions.length);
+  mask.forEach((m, t) => { if (m) out.fill(1, t * 9, t * 9 + 9); });
   return out;
 }
 
