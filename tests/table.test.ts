@@ -3,7 +3,7 @@ import { Box3, BoxGeometry, Color, DirectionalLight, Group, Mesh, MeshBasicMater
 import { shard, shardWood } from '../src/scene/Kraken';
 import { defaultTable, GUIDE, SURFACE } from '../src/scene/tableBuild';
 import { cleanTable, fitTable, readTable } from '../src/scene/tableFile';
-import { checkTheme, clampBlur, DEFAULT_THEME, EXTRAS_KEY, extrasOf, fileSafe, readExtras, type TableTheme } from '../src/scene/tableTheme';
+import { checkTheme, clampBlur, type Background, DEFAULT_THEME, EXTRAS_KEY, extrasOf, fileSafe, readExtras, type TableTheme } from '../src/scene/tableTheme';
 import { glb } from './helpers/models';
 
 const theme = (patch: Partial<TableTheme> = {}): TableTheme => ({ ...DEFAULT_THEME, ...patch });
@@ -26,6 +26,16 @@ describe('table theme', () => {
     expect(checkTheme({ ...DEFAULT_THEME, version: 2 as 1 })).toMatch(/versão/);
     expect(checkTheme(theme({ background: { kind: 'image', image: new Blob(), blur: 99, dim: 0 } }))).toMatch(/limites/);
     expect(clampBlur(99)).toBe(20);
+  });
+  it('validates and round-trips the 360° background', () => {
+    const pano = (o: object): Background => ({ kind: 'panorama', image: new Blob(), format: 'ldr', rotation: 90, intensity: 1, blur: 0.2, reflect: false, ...o });
+    expect(checkTheme(theme({ background: pano({}) }))).toBeNull();
+    for (const bad of [{ rotation: 400 }, { intensity: 2 }, { blur: 1 }, { format: 'exr' }, { reflect: 1 }])
+      expect(checkTheme(theme({ background: pano(bad) }))).toMatch(/360/);
+    const x = readExtras(JSON.parse(JSON.stringify(extrasOf(theme({ background: pano({ format: 'hdr' }) })))));
+    expect(x?.background).toEqual({ kind: 'panorama', format: 'hdr', rotation: 90, intensity: 1, blur: 0.2, reflect: false });
+    const clamped = readExtras({ ...extrasOf(theme({})), background: { kind: 'panorama', format: 'ldr', rotation: 999, intensity: 9, blur: 9, reflect: true } });
+    expect(clamped?.background).toMatchObject({ rotation: 359, intensity: 1.5, blur: 0.4 });
   });
   it('reads back what it wrote, and nothing it cannot trust', () => {
     const t = theme({ name: 'Taverna', background: { kind: 'preset', preset: 'cosmos' }, felt: { color: '#112233', texture: 'couro' } });
