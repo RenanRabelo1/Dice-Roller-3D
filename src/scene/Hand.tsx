@@ -3,7 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import type { RapierRigidBody } from '@react-three/rapier';
 import { ArrowHelper, Color, Group, Matrix4, Mesh, MeshBasicMaterial, Plane, Quaternion, Raycaster, Vector2, Vector3, type BufferGeometry, type Object3D, type PerspectiveCamera } from 'three';
 import { Text } from 'troika-three-text';
-import { MAX_DICE, polyhedron, RADIUS, staysOnTray } from '../dice/polyhedra';
+import { MAX_DICE, polyhedron, RADIUS } from '../dice/polyhedra';
 import { toKinematic } from '../physics/apply';
 import { HAND, type Quat, type Vec3 } from '../physics/world';
 import { omenPlaying, useDice } from '../store';
@@ -254,14 +254,6 @@ export function Hand({ gameArea, bodies }: {
       let done = !waiting;
       const under = new Vector3(0, -1, 0).applyQuaternion(camera.quaternion); // straight down the screen
       current.forEach((body, i) => {
-        if (staysOnTray(state.dice[i])) {
-          const t = Math.min(1, Math.max(0, (now - at - SHOW.delay - i * SHOW.stagger) / SHOW.duration));
-          if (t < 1) done = false;
-          // A free-form die stays on the tray; only its number rises to the result row.
-          pin(body, new Vector3(...from[i].p), new Quaternion(...from[i].q));
-          draw(i, new Vector3(...to[i].p));
-          return;
-        }
         const grabbed = kraken.includes(i), adrift = storm.includes(i);
         if (grabbed || adrift) { // the omen moves this die, and leaves it at its result pose
           const ms = now - omenAt, pose = grabbed ? krakenDieAt(ms, from[i], to[i]) : stormDieAt(ms, from[i], to[i]);

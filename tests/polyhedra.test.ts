@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { polyhedron, sortDice, RADIUS, KINDS, staysOnTray, type Shape, type BuiltinKind } from '../src/dice/polyhedra';
+import { polyhedron, sortDice, RADIUS, KINDS, type Shape, type BuiltinKind } from '../src/dice/polyhedra';
 import { MAX_RADIUS } from '../src/physics/world';
 
 const SIDES: Record<Exclude<Shape, 'livre'>, number> = { d4: 4, d6: 6, d8: 8, d10: 10, d12: 12, d20: 20, d100: 100, coin: 2 };
@@ -106,11 +106,4 @@ describe('coin', () => {
     expect(p.labelList.map((l) => [l.value, l.symbol, l.text])).toEqual([[1, 'heads', 'Cara'], [2, 'crown', 'Coroa']]);
   });
   it('sorts after the dice', () => expect(sortDice(['coin', 'd20', 'fire'])).toEqual(['d20', 'fire', 'coin']));
-});
-
-describe('staysOnTray', () => {
-  it('is false for every built-in die (the coin flies too)', () => {
-    expect(staysOnTray('coin')).toBe(false);
-    expect(staysOnTray('d20')).toBe(false);
-  });
 });
