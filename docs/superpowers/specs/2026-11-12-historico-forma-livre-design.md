@@ -116,4 +116,17 @@ Teste em `tests/history.test.ts`. Gate do front.
 
 ## 6. Implementação
 
-(preencher na tarefa 4)
+Branch `claude/historico-livre-cbbd39` (a partir da `dev-jg`). Commits, um por tarefa:
+
+1. `feat: one place for the free-form value range and the 'livre' base` (`kinds.ts`, `importer.ts`).
+2. `feat: history API records free-form dice (...)` (`rules.ts`, `app.ts`, `rolls.ts`, `api.test.ts`).
+3. `test: free-form die is sent to the history API as base livre` (`tests/history.test.ts`).
+4. `docs: ...` (README da API, `dados.md`, esta seção).
+
+Resultados: front `build && lint && test` verde (324 testes); API `typecheck` verde e `npm test` verde (23 testes). Sem E2E.
+
+Notas:
+- `docs/backlog.md` não tinha a pendência "API de histórico não grava forma livre"; nada a remover.
+- O teste da coleção antiga usa um validador antigo reduzido (só `value`, `base` e `total`), suficiente para provar que o `collMod` o troca.
+- O aviso do `collMod` falho não tem teste (o MongoDB em memória roda sem autenticação).
+- O worktree não tinha `node_modules`; rodei `npm install` na raiz.
