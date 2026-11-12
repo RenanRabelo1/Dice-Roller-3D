@@ -10,9 +10,11 @@ import { omenPlaying, useDice } from '../store';
 import { charge, clampTarget } from '../throw/aim';
 import { newWhirl, ORBITS, restingPlaces, spinAngle, stepWhirl, vortexCenter } from '../throw/vortex';
 import { CAPTION, showcasePoses } from './showcase';
+import { glowMesh } from './inkGlow';
+import { customDie, inkColorOf, isCustom } from '../dice/custom';
 import { easeOut, highlightAt, HL_SIZE, SHOW } from './highlight';
 import { symbolGeometry } from '../dice/symbols';
-import { FONT, FONT_URL, SYMBOL } from './Die';
+import { FONT, FONT_URL, gemColor, SYMBOL } from './Die';
 import { KRAKEN, krakenAt, krakenDieAt, krakenIndices, STORM, stormAt, stormDieAt, stormIndices } from './krakenMotion';
 import type { Pose } from './showcase';
 
@@ -34,7 +36,7 @@ export function Hand({ gameArea, bodies }: {
   const rotations = useRef<Quaternion[]>([]);
   const mode = useRef('');
   const returning = useRef<{ at: number; poses: { p: Vec3; q: Quat }[] } | null>(null);
-  const showcase = useRef<{ at: number; throwId: number; from: Pose[]; to: Pose[]; kraken: number[]; storm: number[]; omenAt: number; gems: (Object3D | undefined)[]; marks: Mark[]; still?: boolean; landed?: boolean } | null>(null);
+  const showcase = useRef<{ at: number; throwId: number; from: Pose[]; to: Pose[]; kraken: number[]; storm: number[]; omenAt: number; gems: (Object3D | undefined)[]; marks: Mark[]; above: boolean[]; glows: (Mesh | null)[]; still?: boolean; landed?: boolean } | null>(null);
   // The rolled numbers that rise over the settled dice, ride to their faces and glow (one per die, drawn on top).
   const numbersGroup = useRef<Group>(null);
   const numbersRef = useRef<Text[]>([]);
@@ -63,6 +65,11 @@ export function Hand({ gameArea, bodies }: {
       glyphs.forEach((g) => { group.remove(g); g.material.dispose(); }); glyphsRef.current = []; // symbol geometries are shared
     };
   }, []);
+  // The engraving that lights up on an engraved free-form die (see inkGlow); it lasts as long as the showcase.
+  const dropGlows = () => {
+    const glows = showcase.current?.glows;
+    glows?.forEach((g, i) => { if (g) { g.removeFromParent(); (g.material as MeshBasicMaterial).dispose(); glows[i] = null; } });
+  };
   const arrow = useRef<ArrowHelper>(null);
   const preview = import.meta.env.MODE === 'test' && new URLSearchParams(location.search).has('surface-preview');
   const live = useCallback(() => {
@@ -181,10 +188,11 @@ export function Hand({ gameArea, bodies }: {
         return { p: [p.x, p.y, p.z], q: [q.x, q.y, q.z, q.w] };
       }) };
     }
-    if (phase !== 'settled') for (const o of [...numbers, ...glyphs]) o.visible = false;
+    if (phase !== 'settled') { for (const o of [...numbers, ...glyphs]) o.visible = false; dropGlows(); }
     if (phase === 'settled' && (mode.current !== nextMode || (state.reducedMotion && showcase.current?.still === false))) {
       // Reduced motion switched on mid-show: the dice go back to where they landed instead of hanging mid-flight.
       const landed = mode.current === nextMode ? showcase.current?.from : undefined;
+      dropGlows();
       showcase.current = null;
       if (!state.raw) state.setShowcased(state.throwId);
       else {
@@ -198,8 +206,10 @@ export function Hand({ gameArea, bodies }: {
         // The values the panel shows, from the simulation: never re-read a die that stopped near an edge.
         // Reduced motion: dice stay where they landed and the number only fades in above them.
         const still = state.reducedMotion;
+        // An engraved free-form die is seen from above, as it lay, and its engraving lights up.
+        const above = state.dice.map((k, i) => !still && isCustom(k) && !!customDie(k)?.printed && !!polys[i].readsDown);
         const to = still ? from : showcasePoses(polys, raw,
-          { position: cam.position, quaternion: cam.quaternion, fov: cam.fov, aspect: cam.aspect });
+          { position: cam.position, quaternion: cam.quaternion, fov: cam.fov, aspect: cam.aspect }, above);
         // A d100 1 is carried off and brought back by the kraken; a d100 100 drifts to you in the storm.
         const omenNow = state.omen?.throwId === state.throwId ? state.omen : null;
         const kraken = krakenIndices(omenNow, state.dice), storm = stormIndices(omenNow, state.dice);
@@ -220,7 +230,18 @@ export function Hand({ gameArea, bodies }: {
             scale: still ? 1 : poly.shape === 'coin' ? CAPTION.scale : (poly.font ?? FONT[poly.shape]) / HL_SIZE,
           };
         });
-        showcase.current = { at: now, throwId: state.throwId, from, to, kraken, storm, omenAt: state.omenAt, marks, still, gems: current.map((_, i) => scene.getObjectByName(`gem-${i}`)) };
+        const gems = current.map((_, i) => scene.getObjectByName(`gem-${i}`));
+        const glows = above.map((a, i) => {
+          if (!a) return null;
+          const die = customDie(state.dice[i] as `custom:${string}`)!, group = scene.getObjectByName(`die-${i}`);
+          const ink = inkColorOf(die, gemColor(state.dice[i]));
+          const down = polys[i].labelList.find((l) => l.value === raw[i])!.normal;
+          const glow = gems[i] && group ? glowMesh(gems[i], group, down, ink ? `#${new Color(ink).lerp(new Color('#ffffff'), 0.4).getHexString()}` : '#FFF4DD', `${state.dice[i]}|${raw[i]}`) : null;
+          if (glow) { glow.name = `ink-glow-${i}`; group!.add(glow); numbers[i].visible = glyphs[i].visible = false; }
+          else marks[i].scale = FONT.livre / HL_SIZE; // no engraving found: the number floats in front of the die
+          return glow;
+        });
+        showcase.current = { at: now, throwId: state.throwId, from, to, kraken, storm, omenAt: state.omenAt, marks, above, glows, still, gems };
         if (still) state.setShowcased(state.throwId);
       }
     }
@@ -229,7 +250,7 @@ export function Hand({ gameArea, bodies }: {
       // An omen plays first: the numbers wait, unrisen, and the dice stay where they landed until it is over.
       const waiting = omenPlaying(state);
       if (waiting) showcase.current.at = now;
-      const { at, from, to, throwId, gems, marks, still, kraken, storm, omenAt } = showcase.current;
+      const { at, from, to, throwId, gems, marks, above, glows, still, kraken, storm, omenAt } = showcase.current;
       const draw = (i: number, face: Vector3, q?: Quaternion, ride = 0, reveal?: number) => {
         const n = numbers[i], g = glyphs[i], m = marks[i];
         const h = still ? { p: m.start, opacity: Math.min(1, (now - at) / 150), glow: 0.6, scale: 1 } : highlightAt(now - at, i, m.start, face, m.scale);
@@ -275,6 +296,12 @@ export function Hand({ gameArea, bodies }: {
         if (t === 1) { body.setTranslation(p, false); body.setRotation(q, false); }
         body.setNextKinematicTranslation(p);
         body.setNextKinematicRotation(q);
+        if (above[i]) { // seen from above: its engraving glows, or (none found) the number floats in front of it
+          const glow = glows[i];
+          if (glow) (glow.material as MeshBasicMaterial).opacity = t * highlightAt(now - at, i, marks[i].start, marks[i].face, marks[i].scale).glow * 0.85;
+          else draw(i, p.clone().addScaledVector(camera.position.clone().sub(p).normalize(), polyhedron(state.dice[i]).radius + 0.35));
+          return;
+        }
         // A coin comes up showing its drawing, and its Cara/Coroa stays under it, facing you.
         if (state.dice[i] === 'coin') draw(i, p.clone().addScaledVector(under, RADIUS.coin + CAPTION.gap));
         else draw(i, marks[i].local.clone().applyQuaternion(q).add(p), q, Math.min(1, t / 0.35)); // the rolled numeral where the die is now

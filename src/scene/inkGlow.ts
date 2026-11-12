@@ -15,8 +15,14 @@ export function upInk(normals: ArrayLike<number>, mask: Uint8Array, down: Vec3, 
 
 const LIFT = 0.004; // keeps the glow off the ink in the depth buffer
 
+// The geometry of a glow is kept per `key` (die kind and rolled face): building it walks every triangle of the model.
+// It is shared, so a glow's owner disposes only the material.
+const kept = new Map<string, BufferGeometry>();
+
 // One mesh in the die group's space with the up-facing inked triangles of every mesh under `model`.
-export function glowMesh(model: Object3D, group: Object3D, down: Vec3, color: string): Mesh | null {
+export function glowMesh(model: Object3D, group: Object3D, down: Vec3, color: string, key?: string): Mesh | null {
+  const cached = key ? kept.get(key) : undefined;
+  if (cached) return lit(cached, color);
   group.updateWorldMatrix(true, true);
   const inverse = new Matrix4().copy(group.matrixWorld).invert();
   const out: number[] = [];
@@ -50,6 +56,11 @@ export function glowMesh(model: Object3D, group: Object3D, down: Vec3, color: st
   if (!out.length) return null;
   const geometry = new BufferGeometry();
   geometry.setAttribute('position', new Float32BufferAttribute(out, 3));
+  if (key) kept.set(key, geometry);
+  return lit(geometry, color);
+}
+
+function lit(geometry: BufferGeometry, color: string): Mesh {
   // Same programme parameters as the symbols' material in Hand.tsx, so the compiled shader is reused.
   const material = new MeshBasicMaterial({ color, transparent: true, opacity: 0, depthWrite: false, toneMapped: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
   const mesh = new Mesh(geometry, material);
