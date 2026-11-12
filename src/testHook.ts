@@ -17,6 +17,7 @@ export interface DiceHook {
   meshes(): { q: Quat }[];
   labels(index: number): { text: string; value: number; position: Vec3; normal: Vec3 }[]; // text: the numeral, the symbol's name, or '' on a blank face
   numbersVisible(index: number): boolean;
+  gemLook(index: number): { shown: boolean; material: string; opaque: boolean; painted: boolean; ink: number[] | null }[]; // the visible meshes of a die: material type, opacity, vertex-painted, and the colour of its first inked vertex
   highlights(): { text: string | null; visible: boolean }[];
   camera(): Vec3;
   launches(): { count: number; last: { before: { p: Vec3; q: Quat }[]; after: { p: Vec3; q: Quat }[] } | null };

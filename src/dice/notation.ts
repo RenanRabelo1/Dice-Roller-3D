@@ -10,7 +10,7 @@ const FIREBALL = 'boladefogo'; // "bola de fogo": the spell's 8d6
 
 const CUSTOM: Partial<Record<DieKind, string>> = { vtm: 'd10 Vampiro', hunger: 'd10 Fome', fire: 'd6 Fogo', coin: 'Moeda' };
 export const dieName = (kind: DieKind): string => {
-  if (isCustom(kind)) return `${baseOf(kind)} ${customDie(kind)?.name ?? '?'}`; // "d20 Caveira"
+  if (isCustom(kind)) return baseOf(kind) === 'livre' ? customDie(kind)?.name ?? '?' : `${baseOf(kind)} ${customDie(kind)?.name ?? '?'}`; // "d20 Caveira", a free-form die only "Caveira"
   return CUSTOM[kind] ?? kind;
 };
 
@@ -31,7 +31,7 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 export const formatDice = (dice: DieKind[]): string =>
   allKinds().filter((k) => dice.includes(k)).map((k) => {
     const n = dice.filter((d) => d === k).length;
-    return k === 'coin' ? plural(n, 'moeda') : `${n}${dieName(k)}`;
+    return k === 'coin' ? plural(n, 'moeda') : baseOf(k) === 'livre' ? `${n} ${dieName(k)}` : `${n}${dieName(k)}`;
   }).join(' + ');
 
 // The result panel: the total sums the dice (coins never add up; a coins-only throw shows its faces),
@@ -55,7 +55,10 @@ export function resultText(dice: DieKind[], results: number[]): { total: string;
 // coins are "moeda" / "2 moedas"; imported dice answer to their nickname ("2d20caveira").
 // When compact text is ambiguous ("2d102d4"), it backtracks to the reading where every die is real (2d10 + 2d4).
 export function parseDice(text: string, customs: CustomDie[] = customList()): { dice: DieKind[] } | { error: string } {
-  const words = [...customs.map((d): [string, DieKind] => [`${d.poly.shape.slice(1)}${d.slug}`, customKind(d.id)]), ...AFTER_D].sort((a, b) => b[0].length - a[0].length);
+  const standard = customs.filter((d) => d.poly.shape !== 'livre');
+  // A free-form die has no d-number: it answers to its nickname alone, like the coin ("caveira", "2caveira").
+  const named = customs.filter((d) => d.poly.shape === 'livre').map((d): [string, DieKind] => [d.slug, customKind(d.id)]).sort((a, b) => b[0].length - a[0].length);
+  const words = [...standard.map((d): [string, DieKind] => [`${d.poly.shape.slice(1)}${d.slug}`, customKind(d.id)]), ...AFTER_D].sort((a, b) => b[0].length - a[0].length);
   const s = text.toLowerCase().replace(/[\s+]/g, '');
   if (!s) return { error: 'Escreva os dados, por exemplo 2d10 + d100.' };
   const read = (at: number): DieKind[] | null => {
@@ -68,6 +71,12 @@ export function parseDice(text: string, customs: CustomDie[] = customList()): { 
     if (coin) {
       const n = coin[1] ? Number(coin[1]) : 1, rest = n >= 1 ? read(at + coin[0].length) : null;
       return rest && [...Array<DieKind>(n).fill('coin'), ...rest];
+    }
+    const lead = /^\d*/.exec(s.slice(at))![0];
+    for (const [word, kind] of named) {
+      if (!s.startsWith(word, at + lead.length)) continue;
+      const n = lead ? Number(lead) : 1, rest = n >= 1 ? read(at + lead.length + word.length) : null;
+      if (rest) return [...Array<DieKind>(n).fill(kind), ...rest];
     }
     const m = /^(\d*)d/.exec(s.slice(at));
     if (!m) return null;
@@ -82,7 +91,7 @@ export function parseDice(text: string, customs: CustomDie[] = customList()): { 
     return null;
   };
   const dice = read(0);
-  if (!dice) return { error: `Não entendi "${text.trim()}". Use dados d4, d6, d8, d10, d12, d20 ou d100, como 2d10 + d100. Também valem 2d10v (Vampiro), 2d10fome, 8d6fogo, bola de fogo e moeda${customs.length ? ` e seus dados importados (${customs.map((d) => `2d${d.poly.shape.slice(1)}${d.slug}`).join(', ')})` : ''}.` };
+  if (!dice) return { error: `Não entendi "${text.trim()}". Use dados d4, d6, d8, d10, d12, d20 ou d100, como 2d10 + d100. Também valem 2d10v (Vampiro), 2d10fome, 8d6fogo, bola de fogo e moeda${customs.length ? ` e seus dados importados (${customs.map((d) => (d.poly.shape === 'livre' ? `2${d.slug}` : `2d${d.poly.shape.slice(1)}${d.slug}`)).join(', ')})` : ''}.` };
   if (dice.length > MAX_DICE) return { error: `São ${dice.length} dados; o máximo por arremesso é ${MAX_DICE}.` };
   return { dice: sortDice(dice) };
 }

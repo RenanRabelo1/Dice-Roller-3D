@@ -31,6 +31,7 @@ interface DiceState {
   sessionOnly: boolean; // IndexedDB is unavailable: imported dice last until the page closes
   loadCustoms: () => Promise<void>;
   addCustom: (die: CustomDie) => Promise<string | null>; // null, or why it could not be saved
+  updateCustom: (die: CustomDie) => Promise<string | null>; // save a changed die (e.g. its ink); the selection stays
   removeCustom: (kind: CustomKind) => Promise<void>;
   addDie: (kind: DieKind) => void;
   removeDie: (kind: DieKind) => void;
@@ -84,6 +85,15 @@ export const useDice = create<DiceState>((set, get) => ({
     }
     registerCustom(die);
     set({ customs: customList(), sessionOnly: failure !== null || get().sessionOnly });
+    return null;
+  },
+  updateCustom: async (die) => {
+    try { await saveCustomDie(die); } catch (e) {
+      if (e instanceof DOMException && e.name === 'QuotaExceededError') return 'Não coube no armazenamento do navegador.';
+      set({ sessionOnly: true }); // kept for this session only
+    }
+    registerCustom(die);
+    set({ customs: customList() });
     return null;
   },
   removeCustom: async (kind) => {

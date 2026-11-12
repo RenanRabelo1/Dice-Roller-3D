@@ -1,12 +1,13 @@
 import { Quaternion, Vector3 } from 'three';
 import { afterEach, describe, expect, it } from 'vitest';
-import { customKind, registerPoly, unregisterCustom } from '../src/dice/custom';
+import { customKind, finishOf, INK_COLORS, inkColorOf, registerPoly, unregisterCustom, type CustomDie } from '../src/dice/custom';
 import { formatDice, parseDice, resultText, slugOf, slugProblem } from '../src/dice/notation';
 import { isD20, omenOf } from '../src/dice/omen';
 import { baseOf, polyhedron, sortDice } from '../src/dice/polyhedra';
 import { readUp, toResults } from '../src/dice/read';
-import { customDieOf } from './helpers/models';
+import { customDieOf, freeDieOf, prismTriangles } from './helpers/models';
 import { simulate } from './helpers/sim';
+import { checkFreeValue, checkFreeValues } from '../src/dice/importer';
 
 const skull = () => customDieOf('d20', 'Caveira', 'caveira');
 afterEach(() => { for (const id of ['caveira', 'cav', 'osso']) unregisterCustom(customKind(`test-${id}`)); });
@@ -72,5 +73,66 @@ describe('the worker', () => {
     const rec = await simulate({ kind, count: 2, force: 0.6, target: [1, 0, -1], seed: 5 });
     expect(rec.escaped).toBe(false);
     expect(rec.results).toHaveLength(2);
+  });
+});
+
+describe('a free-form die', () => {
+  const seven = () => freeDieOf(prismTriangles(5, 1.4), 'Sete', 'sete', [1, 2, 3, 4, 5, 6, 7]);
+  it('rolls in the tray: stays inside, reads one of its values, deterministic', async () => {
+    const kind = customKind(seven().id);
+    for (const seed of [3, 11, 29]) {
+      const a = await simulate({ kind, count: 2, force: 0.8, target: [0, 0, -1], seed });
+      const b = await simulate({ kind, count: 2, force: 0.8, target: [0, 0, -1], seed });
+      expect(a.escaped).toBe(false);
+      expect(a.results).toEqual(b.results);
+      a.results.forEach((v) => { expect(v).toBeGreaterThanOrEqual(1); expect(v).toBeLessThanOrEqual(7); });
+    }
+  });
+  it('checks free values: whole numbers from -99 to 999, repeats allowed', () => {
+    expect(checkFreeValue(-99)).toBeNull();
+    expect(checkFreeValue(999)).toBeNull();
+    expect(checkFreeValue(1000)).toMatch(/-99 a 999/);
+    expect(checkFreeValue(1.5)).not.toBeNull();
+    expect(checkFreeValues([2, 2, 3, 3, 4, 4], 6)).toBeNull();
+    expect(checkFreeValues([2, 2], 3)).toBe('Faltam números.');
+  });
+});
+
+describe('a free-form die in the chat', () => {
+  const cav = () => customKind(freeDieOf(prismTriangles(5, 1.4), 'Caveira', 'caveira', [1, 2, 3, 4, 5, 6, 7]).id);
+  it('answers to its nickname alone, with or without a count', () => {
+    const k = cav();
+    expect(parseDice('caveira')).toEqual({ dice: [k] });
+    expect(parseDice('2caveira')).toEqual({ dice: [k, k] });
+    expect(parseDice('2 caveira')).toEqual({ dice: [k, k] });
+    expect(parseDice('caveira + d20')).toEqual({ dice: ['d20', k] });
+    expect(parseDice('2d6caveira')).toEqual({ dice: ['d6', 'd6', k] }); // compact: 2d6 then the die
+    expect(parseDice('0caveira')).toHaveProperty('error');
+  });
+  it('is named by itself and sums like a normal die', () => {
+    const k = cav();
+    expect(formatDice([k, k, 'd20'])).toBe('1d20 + 2 Caveira');
+    expect(resultText([k, k], [3, 4]).total).toBe('7');
+  });
+  it('never raises an omen', () => {
+    expect(isD20(cav())).toBe(false);
+  });
+  it('refuses the words the chat already reads as a nickname', () => {
+    for (const s of ['moeda', 'boladefogo']) expect(slugProblem(s)).toBeTruthy();
+  });
+});
+
+describe('ink and finish of an imported die', () => {
+  const base = { printed: true } as CustomDie;
+  it('a record without the fields gets automatic ink when printed, nothing otherwise, and the gem finish', () => {
+    expect(inkColorOf(base, '#E8F1F8')).toBe(INK_COLORS.escura); // light gem: dark ink
+    expect(inkColorOf(base, '#231C20')).toBe(INK_COLORS.ouro); // dark gem: gold
+    expect(inkColorOf({ printed: false } as CustomDie, '#E8F1F8')).toBeNull();
+    expect(finishOf(base)).toBe('gema');
+  });
+  it('honours the player’s choice', () => {
+    expect(inkColorOf({ ...base, ink: 'branca' }, '#E8F1F8')).toBe(INK_COLORS.branca);
+    expect(inkColorOf({ ...base, ink: 'nenhuma' }, '#E8F1F8')).toBeNull();
+    expect(finishOf({ ...base, finish: 'fosco' })).toBe('fosco');
   });
 });

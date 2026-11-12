@@ -213,3 +213,43 @@ Cada tarefa é um commit. Faça na ordem e não pule a verificação. Nomes de f
 
 ### T7 · E2E (só no fim, depois de pedir horário à sessão principal)
 Em `e2e/import.spec.ts`, um teste: gerar um prisma de 5 faces com o helper → importar → **Importar como dado de forma livre** → **Não, numerar para mim** → rolar com Espaço → o valor publicado é o da face cuja normal girada tem o menor `y` (via `__dice.bodies()` + `labels`) → `showcased` avança sem o dado sair do lugar → recarregar mantém. Depois, uma rodada da suíte inteira, coletando as falhas sem corrigir, e o relatório para a sessão principal.
+
+## Implementação e medições
+
+Feito nas tarefas T1–T6 (commits `feat:` na ordem). Medido só com modelos sintéticos (`tests/helpers/models.ts`); nenhum STL real foi baixado, então os limiares de 10% de área e de estabilidade (seção 8) seguem **sem conferência em modelos reais** (d5, d7, d30).
+
+- Prismas de 3, 5 e 7 lados dão 5, 7 e 9 faces de apoio; o triacontaedro rômbico (normais do icosidodecaedro) dá 30; 2 planos e 61 planos dão erro (o de 61 diz "3 a 60").
+- Um corte pequeno num canto de cubo (plano a 1/2,77) fica de fora por área (`dropped = 1`); cubo com ponto puxado para fora de uma aresta descarta faces (`dropped > 0`). O caso "instável" puro não tem um modelo simples que o isole da regra de área; o teste só garante `dropped > 0` e ≥ 3 faces.
+- O centroide do volume do sólido reconstruído fica em 0 (5 casas) num sólido assimétrico; circunraio 0,85 (5 casas).
+- Física: um prisma de 7 faces calibrado 1..7 rola com 3 sementes (2 dados), fica na bandeja, lê entre 1 e 7 e repete com a mesma semente.
+- Ajustes sobre o guia: `StdBase` (`custom.ts`) separa os d4–d20 de `'livre'` onde só os primeiros cabem (`FACES`, `checkValue`…); `Imported<B>` é genérico e `importModel` tem sobrecarga por `mode`; `BuiltinKind` exclui `'livre'`; `renumbered` preserva `readsDown`/`font`; o contorno âmbar na calibração de baixo é desenhado sem teste de profundidade (a face fica atrás do dado). A oferta "Importar como dado de forma livre" aparece no passo do arquivo, junto da mensagem de erro de sempre.
+- Fora desta rodada: E2E (T7) e conferência com STLs reais.
+
+### Modelos reais (conferência dos limiares, seção 8)
+
+Três STLs públicos do GitHub, baixados só para leitura numa pasta fora do repositório (nada versionado), rodando `readModel` + `detectFree` + `idealSolid('livre')` num script Vitest descartável:
+
+| Arquivo | Origem | Tamanho | Triângulos | Faces de apoio | Ignoradas | Justiça | Fonte (`poly.font`) |
+|---|---|---|---|---|---|---|---|
+| `d30.stl` | sycarion/stldice, `d30s/d30.stl` (CC BY 4.0) | 671 884 B | 13 436 | **30** | 0 | justo | 0,106 |
+| `D5Shard.stl` | LazareLive/AutomatedDices, `export/D5Shard.stl` (GPL-3.0) | 1 091 484 B | 21 828 | 15 | 725 | **aviso** | 0,019 |
+| `D7Shard.stl` | LazareLive/AutomatedDices, `export/D7Shard.stl` (GPL-3.0) | 1 482 584 B | 29 650 | 14 | 868 | justo | 0,076 |
+
+- O d30 rômbico real dá exatamente 30 faces, sem descarte: os limiares servem para o caso regular.
+- Os "shards" têm 5 e 7 faces numeradas, mas o casco tem camadas de facetas: 5 faces grandes (~9,5% da área do casco cada), 5 de ~4,6% e 5 de ~1,4% no d5; 7 de ~6,8% e 7 de ~3,9% no d7. Todas passam nos 10% da maior e na estabilidade, então o assistente mostra 15 e 14 faces. As camadas de baixo têm 48–57% da área das principais, então nenhum limiar de área razoável as separa sem cortar faces legítimas; **não ajustei os limiares**.
+- Consequências a conhecer: (1) num dado assim o jogador calibra todas as faces de apoio (repetição de valor é permitida, então 1-2-3-4-5 nas grandes e repetir nas outras serve); (2) o numeral dimensiona-se pela menor face de apoio, e fica minúsculo no d5 (0,019). Se isso incomodar, a saída é dimensionar `font` pela mediana (ou pelo menor inraio das faces ≥ 25% da maior) e não pela menor face: decisão de produto, não implementada.
+
+### Adendo dos shards (T8–T10): resultado com os STLs reais
+
+Depois da T9, no `npm run dev` (D5Shard e D7Shard importados pelo assistente, nada de Playwright) e num script Vitest descartável:
+
+| Arquivo | Faces de apoio | `tier` | Faces de leitura | Fonte (todas → leitura) | Justiça (todas) |
+|---|---|---|---|---|---|
+| `D5Shard.stl` | 15 | 5 | 5 | 0,019 → 0,080 | aviso (só nas 15) |
+| `D7Shard.stl` | 14 | 7 | 7 | 0,076 → 0,076 | justo |
+| `d30.stl` | 30 | null | 30 | 0,106 → 0,106 | justo |
+
+- A pergunta apareceu nos dois shards e a calibração pediu 5 e 7 faces ("1 de 5", "1 de 7"); um d5 calibrado 1–5 salvou sem erros. O d30 não muda.
+- **Desvio do adendo:** `TIER_DROP` = **0,70**, não 0,65. Pelas áreas dos polígonos do sólido ideal, a razão entre as faces longas e as pontas do D7 é 0,657 (102,81 → 67,54), e com 0,65 ele não tinha camada; o D5 (100,28 / 50,66 / 19,17) dava 5 nos dois. A sessão principal foi avisada; testes com as áreas reais dos dois shards fixam os valores.
+- A fonte só muda no d5 (0,019 → 0,080); no d7 o menor inraio das 14 faces já era o das faces grandes.
+- **Condição extra da S2 (adendo `d8c2794`):** além do salto, `tierOf` exige que sobrem pelo menos `k` faces depois das `k` grandes. Com a contagem repetida nos três STLs reais: D5Shard 15 faces, `tier` 5 (sobram 10); D7Shard 14 faces, `tier` 7 (sobram 7); d30 30 faces, `tier` null. Testes: shards sintéticos de 5 e 7 lados → camada; prisma de 5 lados com tampas a ~0,69 da lateral (altura 2,93) e `[100×5, 69, 69]` → null; triacontaedro → null.
