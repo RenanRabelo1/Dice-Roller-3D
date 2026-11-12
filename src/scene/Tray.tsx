@@ -1,12 +1,18 @@
 import { CuboidCollider, RigidBody } from '@react-three/rapier';
 import { MATERIAL, trayColliders } from '../physics/world';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import type { Group, Object3D } from 'three';
 import { useDice } from '../store';
-import { krakenAt, krakenIndices } from './krakenMotion';
+import { trayBrokenAt } from './krakenMotion';
 import { buildDefault, colorsOf, disposeTable, SURFACE } from './tableBuild';
 import { useTable } from './tableState';
+
+const setVisible = (o: Object3D, visible: boolean) => { o.visible = visible; };
+const broken = () => {
+  const s = useDice.getState();
+  return trayBrokenAt({ phase: s.gesture.phase, throwId: s.throwId, omen: s.omen, omenDone: s.omenDone, omenAt: s.omenAt, dice: s.dice, reducedMotion: s.reducedMotion }, performance.now());
+};
 
 // The tray's colliders are always trayColliders(); what you see comes from the active table theme (a default
 // build, or an imported .glb fitted to the same play area).
@@ -29,13 +35,16 @@ export function Tray() {
   useEffect(() => () => { if (loaded) disposeTable(loaded.group); }, [loaded]);
   const table: Object3D = slow && loaded?.theme === theme ? loaded.group : quick;
   useEffect(() => { useTable.getState().setColors(colorsOf(table) ?? { felt: theme.felt.color, wood: theme.wood.color }); }, [table, theme]);
+  // The floor that the kraken hides: a new table's floor gets the right visibility at once (not a frame later), and
+  // the one leaving the scene is left whole.
   const surface = useRef<Object3D>(table);
-  useEffect(() => { surface.current = table.getObjectByName(SURFACE) ?? table; }, [table]);
-  useFrame(() => {
-    const s = useDice.getState();
-    const live = s.gesture.phase === 'settled' && s.omen?.throwId === s.throwId && s.omenDone !== s.throwId;
-    surface.current.visible = !(live && krakenIndices(s.omen, s.dice).length && krakenAt(performance.now() - s.omenAt).broken);
-  });
+  useLayoutEffect(() => {
+    const next = table.getObjectByName(SURFACE) ?? table;
+    surface.current = next;
+    setVisible(next, !broken());
+    return () => setVisible(next, true);
+  }, [table]);
+  useFrame(() => setVisible(surface.current, !broken()));
   return (
     <RigidBody type="fixed" colliders={false}>
       {trayColliders().map(({ kind, center, half }, i) => (
