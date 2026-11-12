@@ -201,9 +201,11 @@ export function Die({ index, kind, selection, count, color, register }: {
   useEffect(() => { if (file?.object) paintGlb(file.object, ink); }, [file, ink]);
   const shown = !!file && (!needsWarm || warm === variant);
   const numbers = useNumbers(model, model.font ?? FONT[model.shape], INK[kind] ?? INK[model.shape] ?? GOLD, !!custom?.printed);
+  // No CCD: the scene's dice are always kinematic (the throw is simulated offline, presim.ts has its own CCD). With CCD a
+  // kinematic die stops at the tray's invisible walls on its way back from the result row and then snaps to the hand.
   return (
     <RigidBody ref={registerBody} type="kinematicPosition" colliders={false}
-      userData={{ selection }} ccd position={vortexCenter(count, 0)}>
+      userData={{ selection }} position={vortexCenter(count, 0)}>
       <ConvexHullCollider args={[points]} {...MATERIAL.die} />
       <group name={`die-${index}`}>
         {custom ? (

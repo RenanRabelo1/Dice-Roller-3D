@@ -10,6 +10,7 @@ Coisas que já morderam ou que quebram em silêncio. Ler antes de mexer em físi
 - **Mesa quebrada é uma regra só.** `trayBrokenAt` (`krakenMotion.ts`) decide; qualquer interrupção (recolher, trocar seleção, movimento reduzido) recompõe a mesa. Não espalhar a regra por componentes.
 - **`throwId` guarda tudo.** Qualquer callback assíncrono (worker, publish, fim de presságio, showcase) compara com o `throwId` atual e com a fase. Código novo assíncrono deve fazer o mesmo.
 - **Os corpos da cena são cinemáticos.** Dinâmica só existe no mundo offline. Não trocar a cena para dinâmica "ao vivo".
+- **Sem CCD nos dados da cena** (`<RigidBody>` em `Die.tsx`). Com `ccd`, um corpo cinemático para nas paredes invisíveis da bandeja (vão até a tampa, `TRAY.lidY = 7`). A fileira do resultado fica fora da bandeja (z ≈ 5), então na volta para a mão os dados se arrastavam ~0,07 por quadro e saltavam ~5 unidades no último quadro, e a mão "teleportava" perto das bordas. O CCD da pré-simulação (`presim.ts`, mundo separado) continua.
 - **`physics/apply.ts` é o único lugar** que muda tipo, velocidade ou pose de corpo na simulação (cena e testes compartilham).
 - **Versões fixas:** `@dimforge/rapier3d-compat` 0.19.2 precisa ser a mesma do `@react-three/rapier`, senão a pré-simulação diverge da cena. troika, Vitest e Playwright também estão fixos.
 
