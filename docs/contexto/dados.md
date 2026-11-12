@@ -5,7 +5,7 @@ Cobre `src/dice/*`, `scene/Die.tsx` e `ui/Chat.tsx`/`ui/Controls.tsx`. Tudo em `
 ## Tipos (`dice/kinds.ts`, reexportados por `dice/polyhedra.ts`)
 
 ```ts
-Shape       = 'd4'|'d6'|'d8'|'d10'|'d12'|'d20'|'d100'|'coin'  // corpo físico
+Shape       = 'd4'|'d6'|'d8'|'d10'|'d12'|'d20'|'d100'|'coin'|'livre'  // corpo físico ('livre' só existe em importados)
 BuiltinKind = Shape | 'vtm' | 'hunger' | 'fire'
 DieKind     = BuiltinKind | `custom:${string}`                 // o que o jogador escolhe
 KINDS       = os embutidos em ordem canônica; allKinds() = KINDS + importados (ordem de criação)
@@ -78,7 +78,7 @@ UI: `Controls.tsx` (um botão por kind + "−"; grupo "Meus dados" com os import
 
 ## Dados importados (`dice/custom.ts`, `importer.ts`, `customStore.ts`, `ui/ImportDie.tsx`)
 
-O jogador importa um modelo `.stl` ou `.glb` de d4/d6/d8/d10/d12/d20 (spec: `docs/superpowers/specs/2026-11-11-importar-dado-design.md`). d100, moeda e formas livres **não** entram.
+O jogador importa um modelo `.stl` ou `.glb` de d4/d6/d8/d10/d12/d20 (spec: `docs/superpowers/specs/2026-11-11-importar-dado-design.md`). d100 e moeda **não** entram; qualquer outro sólido convexo entra como **dado de forma livre** (seção abaixo).
 
 Pipeline (`importModel`, puro, testado em Node):
 1. `readModel`: limites **10 MB / 50 mil triângulos / textura 2048 px**; STL via `STLLoader` (normais recalculadas), GLB via `GLTFLoader` com `LoadingManager.setURLModifier` que só aceita `data:`/`blob:` (nada de rede).
@@ -92,11 +92,29 @@ Assistente (`ImportDie.tsx`): na pergunta de numeração a prévia fica fosca e 
 
 `CustomDie` (`custom.ts`) guarda arquivo, `fit`, `poly` numerado, `printed`, `color` (STL), `omens`. O registro em memória (`registerCustom`, `customPoly`, `customDie`) é lido por `polyhedron(kind)`, `baseOf`, `isD20` e `parseDice`; o worker só recebe o sólido (`registerPoly`, vindo em `RollRequest.customs`, ver arremesso.md). Persistência: IndexedDB `dice-roller` v1, store `customDice`; sem IndexedDB o dado vive só na sessão (`store.sessionOnly`, o painel avisa). Store: `customs`, `addCustom`, `removeCustom`, `loadCustoms` (chamado em `App`).
 
+Tinta e acabamento (spec `2026-11-11-numeros-pintados-mesa-design.md`): `CustomDie.ink` (`auto|ouro|escura|branca|nenhuma`) e `finish` (`gema|fosco`) são opcionais; sem campo = tinta automática (se `printed`) e gema. `inkColorOf(die, gem)` resolve a cor (automática: luminância linear da gema > 0,5 → escura `#1B1A16`, senão dourada `#D4A93F`; `null` sem gravação ou "sem tinta") e `finishOf` o acabamento. `inkTriangles(positions, solid)` marca, por **triângulo**, os do centro afundado (mesmo `dentTester` de `inkOf`/`looksNumbered`); `modelObject` a calcula uma vez por dado (só `printed`), deixa as malhas não indexadas e guarda a máscara em `geometry.userData.ink` (na geometria, não no `userData` da malha: `Object3D.clone` copiaria o array tipado como JSON). Em `Die.tsx`, STL pintado = geometria própria com atributo `color` (posições e normais compartilhadas; gema fora da gravação, tinta dentro) e material branco com `vertexColors`; fosco = `meshStandardMaterial` opaco (roughness 0,8, `transparent` ligado porque o retorno anima a opacidade); GLB ganha o atributo `color` na geometria compartilhada (branco fora, tinta dentro) e `vertexColors` nos clones. Variante nova de material (pintado/fosco) compila com `gl.compileAsync` antes de aparecer; enquanto isso o sólido ideal fica no lugar. Trocar só a cor da tinta reescreve o atributo, sem material novo. UI: `ui/InkChoice.tsx` (passo Salvar do assistente e botão **Tinta** em "Meus dados", via `store.updateCustom`); GLB com textura própria só oferece Escura e Sem tinta (`hasTexture`).
+
 Cena: `Die.tsx` mostra o sólido ideal até o arquivo ser lido (import dinâmico de `importer`, chunk separado) e então a malha: STL com o material de gema na `color`; GLB com os próprios materiais, clonados e `transparent` (o retorno anima a opacidade). `printed: true` não desenha numerais, só âncoras invisíveis em `userData.labels` (test hook e showcase acham a face pelo valor).
 
 Presságios: `isD20(kind)` (`omen.ts`) = d20 embutido ou importado de base d20 com `omens: true` (padrão ligado). `registerCustom` mantém esse conjunto (`omenD20s` em `kinds.ts`). d100 e moeda continuam só embutidos.
 
 Histórico: um dado importado vai para a API como `{ kind: 'custom:<id>', base, omens, value }`; o servidor valida o valor pela `base` e só conta presságio se `base === 'd20' && omens`.
+
+## Dado de forma livre (`Shape 'livre'`, spec `2026-11-11-dado-forma-livre-design.md`)
+
+Quando `detectPlanes` não reconhece d4–d20, ele lança `ImportError` com `code === 'nao-padrao'` e o assistente oferece "Importar como dado de forma livre" (`importModel(bytes, format, 'livre')`).
+
+- **Detecção** (`detectFree`): faces planas do casco com área ≥ 10% da maior; recalcula o sólido e descarta faces **instáveis** (o centroide do volume, projetado no plano, cai fora do polígono da face), até 3 passadas. Precisa de 3 a 60 faces de apoio (erro em pt-BR com o número achado). `uneven` = maior face > 2× a menor (aviso "não é justo", não erro). `dropped` = quantas faces ficaram de fora.
+- **Sólido** (`idealSolid('livre', …)`): centro no centroide do volume (não na média dos vértices), circunraio `RADIUS.livre` = 0,85; **sem `symmetrise`** (não exige faces opostas). `poly.readsDown = true` e `poly.font = 0,45 × menor inraio` (as faces variam, então `FONT[shape]` é só reserva: `poly.font ?? FONT[shape]` em `Die.tsx` e `Hand.tsx`).
+- **Leitura**: `readUp` com `readsDown` escolhe a normal que aponta mais para **baixo**; o valor é o que o jogador calibrou para "ele apoiado nessa face". Valores inteiros de −99 a 999, repetição permitida (`checkFreeValue(s)`); `toResults` não mexe neles. Sem opostas, `fromTriangles('livre')` dá 1..N e `askOrder` ordena por área decrescente. `renumbered` preserva `readsDown`/`font`.
+- **Showcase**: `staysOnTray(kind)` (só forma livre; a moeda voa como os dados): o dado não voa até a câmera, só o número sobe. Nunca dispara presságio (`isD20` é falso).
+- **Chat**: pelo apelido, como a moeda: `caveira`, `2caveira`, `2 caveira`; o nome do dado é só o `name` ("2 Caveira"). Em `parseDice` o ramo dos livres vem antes do `d`.
+- **Física**: `presim.ts` usa o amortecimento do d100 quando há mais de 20 faces de apoio; senão nenhum.
+- **Assistente**: calibração com a face perguntada voltada para baixo (orientação com a normal negada, contorno âmbar sem teste de profundidade); "Não, numerar para mim" dá 1..N pela ordem de área.
+
+### Faces de apoio × faces de leitura (shards)
+
+Dados "shard" têm faces longas numeradas e pontas lapidadas em camadas de facetas, que também passam como faces de apoio. `detectFree` devolve `tier` (`tierOf(areas)`: o menor k ≥ 3 com a (k+1)-ésima face < `TIER_DROP` (0,70) × a k-ésima, as k primeiras a até 1,3× umas das outras, e sobrando pelo menos k faces depois delas: as pontas de um shard vêm em camadas de k, as duas tampas de um prisma não) e `areas` (na ordem de `planes`). Com `tier`, o assistente pergunta "Usar só as grandes como resultado?" (padrão Sim): `withReadable(poly, normais)` marca `Face.readable = false` nas outras, zera o valor delas, tira os rótulos delas e dimensiona `font` pelas faces de leitura. O sólido e o colisor seguem inteiros. `readUp`, `askOrder` e `checkFreeValues` só contam as faces de leitura; `renumbered` preserva a marcação; registros antigos (sem `readable`) leem todas as faces. O aviso de justiça (`unevenOf`) compara só as de leitura. `dentTester`/`inkTriangles` usam todas as faces (geometria).
 
 ## Receita: adicionar um dado novo
 

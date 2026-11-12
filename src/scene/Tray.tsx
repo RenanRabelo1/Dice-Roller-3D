@@ -1,40 +1,57 @@
 import { CuboidCollider, RigidBody } from '@react-three/rapier';
-import { MATERIAL, TRAY, trayColliders } from '../physics/world';
-import { useRef } from 'react';
-import { useFrame } from '@react-three/fiber';
-import type { Group } from 'three';
-import { omenPlaying, useDice } from '../store';
-import { krakenAt, krakenIndices } from './krakenMotion';
+import { MATERIAL, trayColliders } from '../physics/world';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useFrame, useThree } from '@react-three/fiber';
+import type { Group, Object3D } from 'three';
+import { useDice } from '../store';
+import { trayBrokenAt } from './krakenMotion';
+import { buildDefault, colorsOf, disposeTable, SURFACE } from './tableBuild';
+import { useTable } from './tableState';
 
+const setVisible = (o: Object3D, visible: boolean) => { o.visible = visible; };
+const broken = () => {
+  const s = useDice.getState();
+  return trayBrokenAt({ phase: s.gesture.phase, throwId: s.throwId, omen: s.omen, omenDone: s.omenDone, omenAt: s.omenAt, dice: s.dice, reducedMotion: s.reducedMotion }, performance.now());
+};
+
+// The tray's colliders are always trayColliders(); what you see comes from the active table theme (a default
+// build, or an imported .glb fitted to the same play area).
 export function Tray() {
-  const surface = useRef<Group>(null);
-  useFrame(() => {
-    const s = useDice.getState();
-    const live = omenPlaying(s);
-    if (surface.current) surface.current.visible = !(live && krakenIndices(s.omen, s.dice).length && krakenAt(performance.now() - s.omenAt).broken);
-  });
+  const theme = useTable((s) => s.theme);
+  const { gl, camera, scene } = useThree();
+  const texture = typeof theme.felt.texture === 'string' ? theme.felt.texture : 'liso';
+  const slow = !!theme.model || typeof theme.felt.texture === 'object'; // needs decoding before it can show
+  // The default table shows at once (also while a slower one loads, and if that one fails).
+  const quick = useMemo(() => buildDefault({ ...theme, felt: { ...theme.felt, texture } }), [theme.felt.color, texture, theme.wood.color]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [loaded, setLoaded] = useState<{ theme: typeof theme; group: Group } | null>(null);
+  useEffect(() => () => disposeTable(quick), [quick]);
+  useEffect(() => {
+    if (!slow) return;
+    let alive = true;
+    // Compile its shaders off the main thread before it replaces the table, so the swap never stalls a frame.
+    import('./tableFile').then((m) => m.buildFor(theme)).then(async (group) => { await gl.compileAsync(group, camera, scene).catch(() => {}); return group; }).then((group) => { if (alive) setLoaded({ theme, group }); else disposeTable(group); }, () => { if (alive) setLoaded(null); });
+    return () => { alive = false; };
+  }, [theme, slow, gl, camera, scene]);
+  useEffect(() => () => { if (loaded) disposeTable(loaded.group); }, [loaded]);
+  const table: Object3D = slow && loaded?.theme === theme ? loaded.group : quick;
+  useEffect(() => { useTable.getState().setColors(colorsOf(table) ?? { felt: theme.felt.color, wood: theme.wood.color }); }, [table, theme]);
+  // The floor that the kraken hides: a new table's floor gets the right visibility at once (not a frame later), and
+  // the one leaving the scene is left whole.
+  const surface = useRef<Object3D>(table);
+  useLayoutEffect(() => {
+    const next = table.getObjectByName(SURFACE) ?? table;
+    surface.current = next;
+    setVisible(next, !broken());
+    return () => setVisible(next, true);
+  }, [table]);
+  useFrame(() => setVisible(surface.current, !broken()));
   return (
     <RigidBody type="fixed" colliders={false}>
       {trayColliders().map(({ kind, center, half }, i) => (
         <CuboidCollider key={i} args={half} position={center}
           {...(kind === 'floor' ? MATERIAL.velvet : MATERIAL.wall)} />
       ))}
-      <group ref={surface} name="tray-surface">
-        <mesh position={[0, -0.29, 0]} receiveShadow>
-          <boxGeometry args={[15, 0.42, 10]} />
-          <meshStandardMaterial color="#3B2416" roughness={0.7} />
-        </mesh>
-        <mesh position={[0, -0.04, 0]} receiveShadow>
-          <boxGeometry args={[14, 0.08, 9]} />
-          <meshStandardMaterial color="#3A0F1A" roughness={1} />
-        </mesh>
-      </group>
-      {trayColliders().filter(({ kind }) => kind === 'wall').map(({ center, half }, i) => (
-        <mesh key={i} position={[center[0], TRAY.wallHeight / 2, center[2]]} castShadow receiveShadow>
-          <boxGeometry args={[half[0] * 2, TRAY.wallHeight, half[2] * 2]} />
-          <meshStandardMaterial color="#3B2416" roughness={0.7} />
-        </mesh>
-      ))}
+      <primitive object={table} />
     </RigidBody>
   );
 }

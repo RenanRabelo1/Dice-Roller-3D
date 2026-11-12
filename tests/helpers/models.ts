@@ -1,7 +1,8 @@
 import { Euler, Quaternion, Vector3 } from 'three';
 import { ConvexHull } from 'three/examples/jsm/math/ConvexHull.js';
-import { registerCustom, type CustomBase, type CustomDie } from '../../src/dice/custom';
-import { detectPlanes, idealSolid } from '../../src/dice/importer';
+import type { Vec3 } from '../../src/physics/world';
+import { registerCustom, type StdBase, type CustomDie } from '../../src/dice/custom';
+import { detectFree, detectPlanes, idealSolid, renumbered } from '../../src/dice/importer';
 import { polyhedron, type Polyhedron } from '../../src/dice/polyhedra';
 
 // Die models made from the app's own solids, standing in for files a player would import.
@@ -38,7 +39,7 @@ export function modelTriangles(poly: Polyhedron, { bevel = 0, scale = 25, engrav
   return Float32Array.from(out);
 }
 
-export const stockPoly = (base: CustomBase) => polyhedron(base);
+export const stockPoly = (base: StdBase) => polyhedron(base);
 
 // Binary STL for a triangle soup.
 export function stl(positions: Float32Array): ArrayBuffer {
@@ -74,7 +75,7 @@ export function glb(positions: Float32Array, uri?: string): ArrayBuffer {
 }
 
 // A registered imported die built from the app's own solid (chamfered, off-centre, in mm), as the importer would.
-export function customDieOf(base: CustomBase, name: string, slug: string, { omens = true, bevel = 0.08 } = {}): CustomDie {
+export function customDieOf(base: StdBase, name: string, slug: string, { omens = true, bevel = 0.08 } = {}): CustomDie {
   const positions = modelTriangles(polyhedron(base), { bevel });
   const { planes } = detectPlanes(positions), { poly, fit } = idealSolid(base, planes);
   const die: CustomDie = {
@@ -97,4 +98,79 @@ export function subdivided(positions: Float32Array, n: number): Float32Array {
     }
   }
   return Float32Array.from(out);
+}
+
+// --- free-form solids ------------------------------------------------------------------------------------------
+
+// Outward triangles of the convex hull of some points.
+export function hullTriangles(pts: Vec3[]): Vec3[] {
+  const out: Vec3[] = [];
+  for (const f of new ConvexHull().setFromPoints(pts.map((p) => new Vector3(...p))).faces) {
+    const ring: Vector3[] = [];
+    let e = f.edge;
+    do { ring.push(e.head().point); e = e.next; } while (e !== f.edge);
+    for (let k = 1; k < ring.length - 1; k++) for (const p of [ring[0], ring[k], ring[k + 1]]) out.push(p.toArray() as Vec3);
+  }
+  return out;
+}
+
+// A straight prism on a regular polygon (circumradius 1) of the given height: sides + 2 faces.
+export function prismTriangles(sides: number, height: number): Vec3[] {
+  const ring = (y: number) => Array.from({ length: sides }, (_, k): Vec3 => [Math.cos((2 * Math.PI * k) / sides), y, Math.sin((2 * Math.PI * k) / sides)]);
+  return hullTriangles([...ring(height / 2), ...ring(-height / 2)]);
+}
+
+// The solid { x : n · x <= 1 for every n } (n are not normalised: the plane is 1/|n| from the origin), as triangles. Fewer than 4 planes (or an open solid) gives none.
+export function planesSolid(normals: Vec3[]): Vec3[] {
+  const pts: Vec3[] = [];
+  const n = normals.map((v) => new Vector3(...v));
+  for (let i = 0; i < n.length; i++) for (let j = i + 1; j < n.length; j++) for (let k = j + 1; k < n.length; k++) {
+    const det = n[i].dot(new Vector3().crossVectors(n[j], n[k]));
+    if (Math.abs(det) < 1e-9) continue;
+    const x = new Vector3().crossVectors(n[j], n[k]).add(new Vector3().crossVectors(n[k], n[i])).add(new Vector3().crossVectors(n[i], n[j])).divideScalar(det);
+    if (n.every((m) => m.dot(x) <= 1 + 1e-9) && !pts.some((p) => x.distanceTo(new Vector3(...p)) < 1e-7)) pts.push(x.toArray() as Vec3);
+  }
+  return pts.length < 4 ? [] : hullTriangles(pts);
+}
+
+// The 30 face normals of the rhombic triacontahedron (the vertices of the icosidodecahedron).
+export function triacontahedronNormals(): Vec3[] {
+  const phi = (1 + Math.sqrt(5)) / 2, out: Vec3[] = [];
+  for (const s of [1, -1]) out.push([0, 0, s * phi], [0, s * phi, 0], [s * phi, 0, 0]);
+  for (const a of [1, -1]) for (const b of [1, -1]) for (const c of [1, -1]) {
+    const [x, y, z] = [a / 2, (b * phi) / 2, (c * phi * phi) / 2];
+    out.push([x, y, z], [y, z, x], [z, x, y]);
+  }
+  return out;
+}
+
+// A model the way a file would hold it: turned, scaled to mm and moved off the origin.
+export function asFile(tris: Vec3[], scale = 25): Float32Array {
+  const q = new Quaternion().setFromEuler(new Euler(0.7, 1.1, -0.4));
+  return Float32Array.from(tris.flatMap((p) => new Vector3(...p).applyQuaternion(q).multiplyScalar(scale).add(new Vector3(30, -12, 7)).toArray()));
+}
+
+// A registered free-form die from loose triangles (as a file), its faces numbered `values` (default 1..N).
+export function freeDieOf(tris: Vec3[], name: string, slug: string, values?: number[]): CustomDie {
+  const positions = asFile(tris);
+  const { planes } = detectFree(positions), solid = idealSolid('livre', planes);
+  const poly = values ? renumbered(solid.poly, { values }) : solid.poly;
+  const die: CustomDie = {
+    version: 1, id: `test-${slug}`, createdAt: Date.now(), name, slug, base: 'livre', omens: false,
+    file: { format: 'stl', name: `${slug}.stl`, bytes: stl(positions) }, fit: solid.fit, poly, printed: false, color: null,
+  };
+  registerCustom(die);
+  return die;
+}
+
+// A shard die: a prism of `sides` long faces whose two tips are cut in facets that are about 45% of a long face (stable
+// ones: a longer shard would tip over them). Like the real D5/D7 shards, the supporting faces come in two sizes.
+export function shardTriangles(sides: number): Vec3[] {
+  const ring = (r: number, y: number, turn = 0): Vec3[] => Array.from({ length: sides }, (_, k) => [r * Math.cos((2 * Math.PI * k) / sides + turn), y, r * Math.sin((2 * Math.PI * k) / sides + turn)]);
+  const body = 0.5, steep = 0.5, apex = 0.5, narrow = 0.7; // half-length of the straight part, then the tips
+  const pts: Vec3[] = [];
+  for (const s of [1, -1]) {
+    pts.push(...ring(1, s * body), ...ring(narrow, s * (body + steep), Math.PI / sides), [0, s * (body + steep + apex), 0]);
+  }
+  return hullTriangles(pts);
 }

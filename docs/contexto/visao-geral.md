@@ -35,7 +35,9 @@ Gate de entrega usado no projeto: build → lint → test → e2e, todos verdes.
 
 ```
 src/
+  indexedDb.ts             abre o IndexedDB `dice-roller` v2 (dados importados + mesas)
   main.tsx, App.tsx        casca: <Controls/> + <Canvas><Stage/></Canvas> + <OmenOverlay/>
+  failure.ts               sonda WebGL e falhas de renderer/física → `store.error`  → armadilhas.md
   store.ts                 zustand: seleção, fase, throwId, launch, results, omen  → arremesso.md
   api/history.ts           envia cada resultado à API (só com VITE_API_URL)
   testHook.ts              window.__dice (só em mode=test)                          → testes.md
@@ -43,7 +45,7 @@ src/
     kinds.ts                 tipos de dado, `KINDS`, `BASE`, `SIDES` (sem 3D: compartilhado com server/)
     polyhedra.ts             geometria, numeração, rótulos, `fromTriangles` (reexporta os tipos)
     custom.ts                tipo `CustomDie` + registro em memória dos dados importados
-    customStore.ts           IndexedDB (`dice-roller`/`customDice`)
+    customStore.ts           IndexedDB store `customDice`
     importer.ts              .stl/.glb → poliedro (detecção, sólido ideal, calibração)
     read.ts                  face de cima → valor; raw → resultado
     notation.ts              parser/formatador "2d10 + d100", texto do painel
@@ -62,15 +64,18 @@ src/
   scene/                   componentes R3F
     Stage.tsx                raiz da cena, ThrowLoop (replay), câmera, DPR, test hook
     Hand.tsx                 input, mão, retorno, showcase pós-resultado             → apresentacao.md
-    Die.tsx, Tray.tsx        corpo+malha de cada dado; bandeja
+    Die.tsx, Tray.tsx        corpo+malha de cada dado; bandeja (visual do tema da mesa)
+    table*.ts, Backdrop.tsx  mesa e fundo personalizados, .glb                      → mesa.md
     showcase.ts, highlight.ts poses e linha do tempo do "voo até a câmera"         → apresentacao.md
     Omens.tsx, Kraken.ts, krakenMotion.ts, Fire.ts, fireMotion.ts  presságios 3D   → apresentacao.md
-  ui/                      HTML: Controls (seleção + painel), Chat, OmenOverlay, ImportDie (assistente, carregado sob demanda)
+  ui/                      HTML: Controls (seleção + painel), Chat, OmenOverlay, ImportDie (assistente, carregado sob demanda),
+                           TablePanel (mesa e fundo), Safeguard (mensagens de falha de WebGL/renderer/física)
 tests/                     Vitest (unidades puras + física Node); helpers/sim.ts
 server/                    API do histórico (Fastify + MongoDB; usa kinds.ts e omen.ts do front, roda em Node com TS nativo)
 e2e/                       Playwright; usa window.__dice
 references/threejs/        exemplos oficiais do three.js (só leitura, ver CLAUDE.md)
-docs/superpowers/          specs/planos/revisões HISTÓRICOS (ver armadilhas.md)
+docs/superpowers/          specs (as de 2026-11-11 são as atuais) e planos/revisões HISTÓRICOS (ver armadilhas.md)
+docs/backlog.md            features combinadas e o link para a spec de cada uma
 docs/performance-coins.md  diagnóstico de desempenho com várias moedas
 ```
 

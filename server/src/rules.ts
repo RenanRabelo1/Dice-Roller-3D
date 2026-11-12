@@ -6,8 +6,8 @@ export const CUSTOM = '^custom:[A-Za-z0-9_-]{1,64}$';
 // An imported die (kind "custom:<id>") also says which solid it is and whether it counts as a d20 for omens.
 export interface Die { kind: DieKind; value: number; base?: CustomBase; omens?: boolean }
 
-const shapeOf = (d: Die): Shape | undefined =>
-  isCustom(d.kind) ? d.base : (KINDS as string[]).includes(d.kind) ? BASE[d.kind as keyof typeof BASE] : undefined;
+const shapeOf = (d: Die): Exclude<Shape, 'livre'> | undefined =>
+  isCustom(d.kind) ? (d.base === 'livre' ? undefined : d.base) : (KINDS as string[]).includes(d.kind) ? BASE[d.kind as keyof typeof BASE] : undefined;
 // What is kept of each die: an imported one with its solid and omen choice, a built-in one as it is.
 const clean = ({ kind, value, base, omens }: Die): Die => (isCustom(kind) ? { kind, value, base, omens: omens === true } : { kind, value });
 

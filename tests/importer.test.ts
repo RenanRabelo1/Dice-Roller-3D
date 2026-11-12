@@ -1,11 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { BoxGeometry, IcosahedronGeometry } from 'three';
-import type { CustomBase } from '../src/dice/custom';
-import { askOrder, checkValues, detectPlanes, idealSolid, ImportError, importModel, LIMITS, looksNumbered, readModel, renumbered, suggestOpposite } from '../src/dice/importer';
+import type { StdBase } from '../src/dice/custom';
+import { askOrder, checkValues, detectFree, detectPlanes, idealSolid, ImportError, importModel, inkOf, inkTriangles, LIMITS, looksNumbered, readModel, renumbered, suggestOpposite, tierOf, unevenOf, withReadable } from '../src/dice/importer';
 import { RADIUS, polyhedron } from '../src/dice/polyhedra';
-import { glb, modelTriangles, stl } from './helpers/models';
+import type { Vec3 } from '../src/physics/world';
+import { asFile, glb, hullTriangles, modelTriangles, planesSolid, prismTriangles, shardTriangles, stl, triacontahedronNormals } from './helpers/models';
 
-const BASES: CustomBase[] = ['d4', 'd6', 'd8', 'd10', 'd12', 'd20'];
+const BASES: StdBase[] = ['d4', 'd6', 'd8', 'd10', 'd12', 'd20'];
 const FACES = { d4: 4, d6: 6, d8: 8, d10: 10, d12: 12, d20: 20 };
 const dot = (a: number[], b: number[]) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 const soup = (g: BoxGeometry | IcosahedronGeometry, scale = 1) => {
@@ -104,5 +105,138 @@ describe('numerals cut into the faces', () => {
     expect(check({ bevel: 0.1 })).toBe(false);
     expect(check({ engrave: 0.04 })).toBe(true);
     expect(check({ bevel: 0.1, engrave: 0.04 })).toBe(true);
+  });
+});
+
+describe('ink mask per triangle', () => {
+  const solidOf = (positions: Float32Array, base: StdBase) => idealSolid(base, detectPlanes(positions).planes);
+  for (const base of BASES) it(`${base}: marks only the walls of the engraved numerals`, () => {
+    const engraved = modelTriangles(polyhedron(base), { engrave: 0.04 });
+    const mask = inkTriangles(engraved, solidOf(engraved, base));
+    const pits = FACES[base] * 12; // a hexagonal pit per face, 12 wall triangles each (written first)
+    expect(mask).toHaveLength(engraved.length / 9);
+    expect(Array.from(mask.slice(0, pits)).every((m) => m === 1)).toBe(true);
+    expect(Array.from(mask.slice(pits)).every((m) => m === 0)).toBe(true);
+  });
+  it('marks nothing on a smooth or only chamfered die', () => {
+    for (const bevel of [0, 0.1]) {
+      const smooth = modelTriangles(polyhedron('d20'), { bevel });
+      expect(inkTriangles(smooth, solidOf(smooth, 'd20')).some(Boolean)).toBe(false);
+    }
+  });
+  it('inkOf spreads the mask over the three vertices of each marked triangle', () => {
+    const engraved = modelTriangles(polyhedron('d20'), { engrave: 0.04 }), solid = solidOf(engraved, 'd20');
+    const ink = inkOf(engraved, solid), mask = inkTriangles(engraved, solid);
+    expect(ink).toHaveLength(engraved.length);
+    mask.forEach((m, t) => expect(ink[t * 9 + 4]).toBe(m));
+  });
+});
+
+describe('free-form dice (detectFree)', () => {
+  const faces = (tris: Vec3[]) => detectFree(asFile(tris)).planes.length;
+  it.each([[3, 5], [5, 7], [7, 9]])('a prism of %i sides has %i faces to rest on', (sides, count) => {
+    expect(faces(prismTriangles(sides, 1.4))).toBe(count);
+  });
+  it('finds the 30 faces of a rhombic triacontahedron', () => {
+    expect(faces(planesSolid(triacontahedronNormals()))).toBe(30);
+  });
+  it('the standard detector refuses a prism, with the code the wizard looks for', () => {
+    try { detectPlanes(asFile(prismTriangles(3, 1.4))); expect.unreachable(); } catch (e) { expect((e as ImportError).code).toBe('nao-padrao'); }
+  });
+  it('leaves out a small facet cut from a corner', () => {
+    const cube: Vec3[] = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]];
+    const found = detectFree(asFile(planesSolid([...cube, [1 / 2.77, 1 / 2.77, 1 / 2.77]])));
+    expect(found.planes).toHaveLength(6);
+    expect(found.dropped).toBe(1);
+  });
+  it('drops faces the die could not rest on', () => {
+    // A cube with a far point pulled out beyond one edge: the long slopes are small or tip the die over.
+    const cube: Vec3[] = [];
+    for (const a of [-1, 1]) for (const b of [-1, 1]) for (const c of [-1, 1]) cube.push([a, b, c]);
+    const found = detectFree(asFile(hullTriangles([...cube, [3, 3, 0]])));
+    expect(found.dropped).toBeGreaterThan(0);
+    expect(found.planes.length).toBeGreaterThanOrEqual(3);
+  });
+  it('refuses 2 and 61 planes', () => {
+    expect(() => detectFree(asFile(planesSolid([[1, 0, 0], [-1, 0, 0]])))).toThrow(ImportError);
+    const many: Vec3[] = Array.from({ length: 61 }, (_, i) => { const y = 1 - (2 * (i + 0.5)) / 61, r = Math.sqrt(1 - y * y); return [Math.cos(2.4 * i) * r, y, Math.sin(2.4 * i) * r]; });
+    expect(() => detectFree(asFile(planesSolid(many)))).toThrow(/3 a 60/);
+  });
+  it('rebuilds the solid centred on its centre of mass, circumradius 0.85, with the numeral sized to the smallest face', () => {
+    const { planes } = detectFree(asFile(prismTriangles(5, 1.4)));
+    const { poly } = idealSolid('livre', planes);
+    expect(Math.max(...poly.points.map((p) => Math.hypot(...p)))).toBeCloseTo(0.85, 5);
+    expect(poly.faces).toHaveLength(7);
+    expect(poly.readsDown).toBe(true);
+    expect(poly.font).toBeGreaterThan(0);
+    const mid = [0, 1, 2].map((k) => poly.points.reduce((s, p) => s + p[k], 0) / poly.points.length);
+    expect(Math.hypot(...mid)).toBeLessThan(0.2);
+  });
+  it('puts the volume centroid (not the vertex mean) at the origin', () => {
+    const cube: Vec3[] = [];
+    for (const a of [-1, 1]) for (const b of [-1, 1]) for (const c of [-1, 1]) cube.push([a, b, c]);
+    const lopsided = hullTriangles([...cube, [2.2, 1, 0.5]]);
+    const { poly } = idealSolid('livre', detectFree(asFile(lopsided)).planes);
+    let vol = 0;
+    const sum = [0, 0, 0];
+    for (let i = 0; i < poly.triangles.length; i += 9) {
+      const [a, b, c] = [0, 3, 6].map((k) => poly.triangles.slice(i + k, i + k + 3));
+      const v = (a[0] * (b[1] * c[2] - b[2] * c[1]) - a[1] * (b[0] * c[2] - b[2] * c[0]) + a[2] * (b[0] * c[1] - b[1] * c[0])) / 6;
+      vol += v;
+      for (let k = 0; k < 3; k++) sum[k] += (v * (a[k] + b[k] + c[k])) / 4;
+    }
+    sum.forEach((x) => expect(x / vol).toBeCloseTo(0, 5));
+  });
+  it('asks the biggest faces first (no opposite pairs)', () => {
+    const { poly } = idealSolid('livre', detectFree(asFile(prismTriangles(3, 2.5))).planes);
+    const order = askOrder(poly);
+    expect([...order].sort()).toEqual([0, 1, 2, 3, 4]);
+    // a tall prism: the two caps are the smallest faces, so they come last, facing opposite ways
+    expect(dot(poly.faces[order[3]].normal, poly.faces[order[4]].normal)).toBeLessThan(-0.99);
+  });
+  it('imports through importModel in free mode', async () => {
+    const out = await importModel(stl(asFile(prismTriangles(5, 1.4))), 'stl', 'livre');
+    expect(out.base).toBe('livre');
+    expect(out.poly.faces).toHaveLength(7);
+  });
+});
+
+describe('supporting faces and reading faces (shards)', () => {
+  const free = (tris: Vec3[]) => detectFree(asFile(tris));
+  it('sees the size layers of a shard, and none on regular dice', () => {
+    expect(free(shardTriangles(5)).tier).toBe(5);
+    expect(free(shardTriangles(7)).tier).toBe(7);
+    expect(free(prismTriangles(7, 1.4)).tier).toBeNull();
+    expect(free(prismTriangles(5, 2.93)).tier).toBeNull(); // caps at ~0.69 of a side: 5 + 2, not layers
+    expect(free(planesSolid(triacontahedronNormals())).tier).toBeNull();
+    expect(tierOf([10, 10, 9.5, 9.5, 9.5, 4.6, 4.6, 4.6, 4.5, 4.5])).toBe(5);
+    expect(tierOf([...Array(7).fill(102.81), ...Array(7).fill(67.54)])).toBe(7); // the real D7 shard
+    expect(tierOf([...Array(5).fill(100.28), ...Array(5).fill(50.66), ...Array(5).fill(19.17)])).toBe(5); // the real D5 shard
+    expect(tierOf([10, 10, 10, 4, 4, 4])).toBe(3);
+    expect(tierOf([10, 10, 10, 4, 4])).toBeNull(); // fewer than k faces follow: caps of a prism, not tips
+    expect(tierOf([...Array(5).fill(100), 69, 69])).toBeNull(); // 5 sides with caps at 0.69 of a side
+    expect(tierOf([10, 9, 8])).toBeNull(); // nothing after the big ones
+    expect(tierOf([10, 5, 5, 5])).toBeNull(); // the first k are not alike
+  });
+  it('keeps the whole solid but reads, numbers and sizes only the big faces', () => {
+    const r = free(shardTriangles(5)), { poly } = idealSolid('livre', r.planes);
+    const order = [...r.areas].map((a, i) => [a, i]).sort((a, b) => b[0] - a[0]).slice(0, 5).map(([, i]) => poly.faces[i].normal);
+    const only = withReadable(poly, order);
+    expect(only.faces).toHaveLength(poly.faces.length); // the collider and the solid are untouched
+    expect(only.points).toBe(poly.points);
+    expect(only.faces.filter((f) => f.readable !== false)).toHaveLength(5);
+    expect(only.labelList).toHaveLength(5);
+    expect(only.font!).toBeGreaterThan(poly.font!);
+    expect(askOrder(only)).toHaveLength(5);
+    expect(withReadable(poly, null)).toBe(poly);
+    expect(unevenOf(r.areas)).toBe(true);
+  });
+  it('renumbered keeps which faces are read', () => {
+    const r = free(shardTriangles(5)), { poly } = idealSolid('livre', r.planes);
+    const big = [...r.areas].map((a, i) => [a, i]).sort((a, b) => b[0] - a[0]).slice(0, 5).map(([, i]) => poly.faces[i].normal);
+    const only = renumbered(withReadable(poly, big), { values: poly.faces.map((_, i) => i + 1) });
+    expect(only.faces.filter((f) => f.readable !== false)).toHaveLength(5);
+    expect(only.labelList).toHaveLength(5);
+    expect(only.readsDown).toBe(true);
   });
 });

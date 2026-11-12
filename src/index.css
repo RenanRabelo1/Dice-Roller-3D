@@ -61,6 +61,10 @@ progress { width: 100%; height: 12px; accent-color: var(--brass); }
   .status p { font-size: 12px; }
 }
 canvas { display: block; }
+/* Backdrop behind the transparent canvas (photo or ready-made theme); the canvas wrapper comes later, so it stacks above. */
+.backdrop { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.backdrop-art { position: absolute; inset: 0; background-size: cover; background-position: center; }
+.backdrop-dim { position: absolute; inset: 0; background: #000; }
 
 /* Dice chat: a side sheet that slides in from the right (drawer curve, interruptible CSS transition). */
 .chat-toggle kbd { font: inherit; font-size: 12px; border: 1px solid #786958; border-radius: 3px; padding: 0 5px; margin-left: 4px; }
@@ -135,11 +139,33 @@ canvas { display: block; }
 .import-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .import-ask { display: flex; flex-direction: column; gap: 10px; }
 .import-ask label { display: flex; flex-direction: column; gap: 4px; }
-.import input:not([type="checkbox"]):not([type="color"]):not([type="file"]) { font: inherit; color: var(--chalk); background: #1E1517; border: 1px solid #786958; border-radius: 3px; padding: 8px 10px; }
+.import input:not([type="checkbox"]):not([type="color"]):not([type="file"]):not([type="radio"]) { font: inherit; color: var(--chalk); background: #1E1517; border: 1px solid #786958; border-radius: 3px; padding: 8px 10px; }
 .import-error { color: #F28B6B; margin: 0; }
 .import-note { color: var(--brass); margin: 0; font-size: 14px; }
+.ink-pop { position: relative; }
+.ink-pop summary { list-style: none; color: var(--chalk); background: var(--panel); border: 1px solid #786958; border-left: 0; border-radius: 3px; padding: 8px 10px; min-height: 40px; display: flex; align-items: center; cursor: pointer; }
+.ink-pop summary::-webkit-details-marker { display: none; }
+.ink-pop .ink-choice { position: absolute; top: 100%; right: 0; z-index: 6; background: var(--panel); border: 1px solid #786958; border-radius: 3px; padding: 10px 12px; }
+.ink-choice { display: flex; gap: 20px; }
+.ink-choice fieldset { border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.ink-choice legend { font-weight: 800; padding: 0; margin-bottom: 4px; }
+.ink-choice label { display: flex; flex-direction: row; gap: 6px; align-items: center; white-space: nowrap; }
 .import-choice { display: flex; flex-direction: column; gap: 8px; }
 .import-choice button { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; padding: 10px 12px; }
 .import-choice button small { opacity: 0.8; font-size: 13px; }
 .import-choice button.primary { background: var(--brass); color: var(--ink); border-color: var(--brass); font-weight: 800; }
 .import-choice button.primary small { opacity: 1; font-weight: 400; }
+
+/* Table panel: reuses the import sheet. */
+.table-panel fieldset { border: 1px solid #49332E; border-radius: 3px; display: flex; flex-direction: column; gap: 10px; margin: 0; min-width: 0; }
+.table-panel legend { padding: 0 6px; color: var(--brass); }
+.table-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.table-row input[type="range"], .table-row select, .table-row input:not([type]) { flex: 1; max-width: 200px; }
+.table-row select { font: inherit; color: var(--chalk); background: #1E1517; border: 1px solid #786958; border-radius: 3px; padding: 6px; }
+.table-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.table-list li { display: flex; gap: 6px; }
+.table-list li button:first-child { flex: 1; text-align: left; }
+.table-panel .import-error ul { margin: 6px 0; padding-left: 18px; }
+
+/* The 3D could not start (no WebGL, renderer or physics failure): a plain message in the play area. */
+.failure { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; padding: 24px; text-align: center; font-size: 20px; line-height: 1.4; color: var(--chalk); }

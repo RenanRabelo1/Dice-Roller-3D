@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { PerspectiveCamera, Quaternion, Vector3 } from 'three';
 import { polyhedron } from '../src/dice/polyhedra';
-import { fractureCells, KRAKEN, krakenAt, krakenDieAt, krakenIndices, STORM, stormAt, stormDieAt, stormIndices } from '../src/scene/krakenMotion';
+import { fractureCells, KRAKEN, krakenAt, krakenDieAt, krakenIndices, STORM, stormAt, stormDieAt, stormIndices, trayBrokenAt } from '../src/scene/krakenMotion';
 import { showcasePoses, type Pose } from '../src/scene/showcase';
 
 const camera = (aspect: number) => {
@@ -95,5 +95,26 @@ describe('temporary tray fragments', () => {
     }, 0)) / 2, 0);
     expect(area).toBeCloseTo(15 * 10, 5);
     expect(cells.flat().every(([px, pz]) => Math.abs(px) <= 7.5 + 1e-8 && Math.abs(pz) <= 5 + 1e-8)).toBe(true);
+  });
+});
+
+describe('trayBrokenAt', () => {
+  const live = { phase: 'settled' as const, throwId: 4, omen: { throwId: 4, crits: [0], fumbles: [] }, omenDone: 3, omenAt: 1000, dice: ['d100' as const], reducedMotion: false };
+  const mid = 1000 + KRAKEN.lift;
+  it('is broken in the middle of the kraken', () => expect(trayBrokenAt(live, mid)).toBe(true));
+  it('is whole before the rupture and after the repair', () => {
+    expect(trayBrokenAt(live, 1000)).toBe(false);
+    expect(trayBrokenAt(live, 1000 + KRAKEN.restored)).toBe(false);
+  });
+  it('is whole at once with reduced motion', () => expect(trayBrokenAt({ ...live, reducedMotion: true }, mid)).toBe(false));
+  it('is whole once the omen is done, for another throw, or when the hand is picked up', () => {
+    expect(trayBrokenAt({ ...live, omenDone: 4 }, mid)).toBe(false);
+    expect(trayBrokenAt({ ...live, throwId: 5 }, mid)).toBe(false);
+    expect(trayBrokenAt({ ...live, phase: 'hand' }, mid)).toBe(false);
+  });
+  it('is whole when the selection has no d100 critical', () => {
+    expect(trayBrokenAt({ ...live, dice: ['d20'] }, mid)).toBe(false);
+    expect(trayBrokenAt({ ...live, omen: { throwId: 4, crits: [0], fumbles: [0] } }, mid)).toBe(false);
+    expect(trayBrokenAt({ ...live, omen: null }, mid)).toBe(false);
   });
 });

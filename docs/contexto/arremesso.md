@@ -53,7 +53,7 @@ Descartes por `throwId`: resposta do worker de arremesso antigo, publish atrasad
 - Cria um `RAPIER.World` próprio (`GRAVITY`, `STEP = 1/60`), bandeja de `trayColliders()` (chão, 4 paredes, tampa em y=7), um corpo por dado com CCD e `DAMPING` por shape.
 - Colisor: `convexHull(poly.points)`; moeda usa `roundCylinder` (casco fino balança para sempre).
 - `applyLaunch`: torna dinâmico, velocidade linear `launchVelocity(handCenter, target, force)`, angular = giro da mão + `spin(seed, i)`.
-- Loop até `SETTLE.timeoutSteps` (240 = 4 s): `world.step()` → trava rotação de moeda lenta e deitada → `stepSettle` → `applySettle` → grava quadro. No `reveal`, lê `readUp` de cada pose e converte com `toResults`.
+- Loop até `SETTLE.timeoutSteps` (240 = 4 s): `world.step()` → trava rotação de moeda lenta e deitada → `stepSettle` → `applySettle` → grava quadro. No `reveal`, lê `readUp` de cada pose e converte com `toResults` (dado de forma livre, `readsDown`: lê a face de baixo, ver dados.md).
 - Determinístico: mesmos inputs → mesma gravação (testado em `tests/physics.test.ts`).
 - `perturb` existe só para testes (forçar fuga/timeout).
 

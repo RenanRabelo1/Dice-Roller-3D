@@ -101,7 +101,11 @@ for (const action of ['pickup', 'selection', 'reduced motion']) {
     expect(await page.evaluate(() => window.__dice.state().trayBroken)).toBe(true);
     if (action === 'pickup') await page.keyboard.press('Space');
     else if (action === 'selection') await page.evaluate(() => window.__dice.select(['d6']));
-    else await page.emulateMedia({ reducedMotion: 'reduce' });
+    else {
+      await page.emulateMedia({ reducedMotion: 'reduce' });
+      // The media-query event reaches the app asynchronously; wait for the state before moving the simulated clock.
+      await page.waitForFunction(() => window.__dice.state().reducedMotion === true);
+    }
     await page.clock.runFor(500);
     expect(await page.evaluate(() => window.__dice.state().trayBroken)).toBe(false);
     await expect(page.locator('.omen')).toHaveCount(0);

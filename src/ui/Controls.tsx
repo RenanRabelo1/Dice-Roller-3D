@@ -1,13 +1,30 @@
 import { lazy, Suspense, useCallback, useState } from 'react';
 import { omenPlaying, useDice } from '../store';
-import { customKind } from '../dice/custom';
+import { customDie, customKind, finishOf, isCustom, type CustomDie } from '../dice/custom';
 import { KINDS, MAX_DICE, type DieKind } from '../dice/polyhedra';
 import { dieName, formatDice, resultText } from '../dice/notation';
 import { Chat } from './Chat';
+import { InkChoice } from './InkChoice';
+import { TablePanel } from './TablePanel';
 
 // The importer (and the model loaders) only load when the player opens it.
 const ImportDie = lazy(() => import('./ImportDie').then((m) => ({ default: m.ImportDie })));
 
+
+// The ink and finish of one imported die, changed in place (nothing is imported again).
+function InkButton({ die }: { die: CustomDie }) {
+  const [textured, setTextured] = useState(false);
+  const change = (patch: Partial<CustomDie>) => { void useDice.getState().updateCustom({ ...die, ...patch }); };
+  return (
+    <details className="ink-pop" onToggle={(e) => {
+      if (e.currentTarget.open && die.file.format === 'glb') void import('../dice/importer').then((m) => m.modelObject(die)).then((o) => import('../dice/importer').then((m) => setTextured(m.hasTexture(o))));
+    }}>
+      <summary aria-label={`Tinta de ${die.name}`}>Tinta</summary>
+      <InkChoice ink={die.ink ?? 'auto'} finish={finishOf(die)} engraved stl={die.file.format === 'stl'} textured={textured}
+        onInk={(ink) => change({ ink })} onFinish={(finish) => change({ finish })} />
+    </details>
+  );
+}
 
 function Force() {
   const force = useDice((s) => s.force);
@@ -26,6 +43,7 @@ export function Controls() {
           onClick={() => useDice.getState().addDie(type)}>{n ? formatDice(dice.filter((d) => d === type)) : name}</button>
         {n > 0 && <button className="remove" aria-label={`Remover ${name}`} disabled={dice.length === 1}
           onClick={() => useDice.getState().removeDie(type)}>−</button>}
+        {mine && isCustom(type) && customDie(type)?.printed && <InkButton die={customDie(type)!} />}
         {mine && <button className="remove" aria-label={`Excluir ${name}`}
           onClick={() => { if (confirm(`Excluir ${name} deste navegador? Isso não pode ser desfeito.`)) void useDice.getState().removeCustom(type as `custom:${string}`); }}>🗑</button>}
       </div>
@@ -48,6 +66,7 @@ export function Controls() {
         </div>
         <p className="pool" aria-live="polite">{formatDice(dice)}</p>
         <Chat />
+        <TablePanel />
         {mounted && <Suspense fallback={null}><ImportDie open={importing} onClose={closeImport} /></Suspense>}
       </header>
       <footer className="status panel">

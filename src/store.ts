@@ -8,7 +8,7 @@ import { HAND, type Vec3 } from './physics/world';
 import { initialGesture, reduce, type Effect, type GestureEvent, type GestureState } from './throw/gesture';
 
 type HandMotion = { center: Vec3; omega: Vec3 };
-type DiceError = 'graphics' | 'physics' | null;
+export type DiceError = 'webgl' | 'graphics' | 'physics' | null;
 
 interface DiceState {
   dice: DieKind[]; // the selection, one entry per die
@@ -31,6 +31,7 @@ interface DiceState {
   sessionOnly: boolean; // IndexedDB is unavailable: imported dice last until the page closes
   loadCustoms: () => Promise<void>;
   addCustom: (die: CustomDie) => Promise<string | null>; // null, or why it could not be saved
+  updateCustom: (die: CustomDie) => Promise<string | null>; // save a changed die (e.g. its ink); the selection stays
   removeCustom: (kind: CustomKind) => Promise<void>;
   addDie: (kind: DieKind) => void;
   removeDie: (kind: DieKind) => void;
@@ -89,6 +90,16 @@ export const useDice = create<DiceState>((set, get) => ({
     }
     registerCustom(die);
     set({ customs: customList(), sessionOnly: failure !== null || get().sessionOnly });
+    return null;
+  },
+  updateCustom: async (die) => {
+    // Applied at once (the controls and the scene follow the store), saved after; a failed save keeps it for this session.
+    registerCustom(die);
+    set({ customs: customList() });
+    try { await saveCustomDie(die); } catch (e) {
+      set({ sessionOnly: true });
+      if (e instanceof DOMException && e.name === 'QuotaExceededError') return 'Não coube no armazenamento do navegador; a mudança vale só nesta sessão.';
+    }
     return null;
   },
   removeCustom: async (kind) => {

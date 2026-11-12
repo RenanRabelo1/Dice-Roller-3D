@@ -23,9 +23,9 @@ const SYMBOL: Partial<Record<BuiltinKind, (digit: number) => SymbolName | undefi
   hunger: (v) => (v === 0 ? 'fangs' : v === 1 ? 'skull' : v >= 6 ? 'ankh' : undefined),
 };
 // Circumscribed radius of each shape.
-export const RADIUS: Record<Shape, number> = { d4: 0.9, d6: 0.75, d8: 0.7, d10: 0.7, d12: 0.7, d20: 0.7, d100: 0.9, coin: 0.76 };
+export const RADIUS: Record<Shape, number> = { d4: 0.9, d6: 0.75, d8: 0.7, d10: 0.7, d12: 0.7, d20: 0.7, d100: 0.9, coin: 0.76, livre: 0.85 };
 
-export interface Face { normal: Vec3; center: Vec3; value: number }
+export interface Face { normal: Vec3; center: Vec3; value: number; readable?: boolean } // readable: counts as a result (free-form dice; missing = true)
 export interface Top { dir: Vec3; value: number }
 export interface Label { text: string; value: number; position: Vec3; normal: Vec3; up: Vec3; symbol?: SymbolName }
 export interface Polyhedron {
@@ -36,6 +36,8 @@ export interface Polyhedron {
   faces: Face[];
   tops: Top[];
   labelList: Label[];
+  readsDown?: boolean; // free-form die: read from the face it rests on
+  font?: number; // numeral size when the faces differ (free-form dice)
 }
 
 export const OPPOSITE_SUM: Partial<Record<Shape, number>> = { d6: 7, d8: 9, d10: 9, d12: 13, d20: 21 };
@@ -132,6 +134,7 @@ function rawTriangles(shape: Shape): Vec3[] {
     case 'd20': return geometryTriangles(new IcosahedronGeometry(r));
     case 'd100': return hundredTriangles(r);
     case 'coin': throw new Error('the coin is built by coin()');
+    case 'livre': throw new Error('a free-form die comes from an imported model');
   }
 }
 
@@ -170,7 +173,8 @@ export function fromTriangles(shape: Shape, verts: Vec3[], numbering?: Numbering
     return { normal: g.normal, center, value: 0 };
   });
 
-  if (shape !== 'd4') {
+  if (shape === 'livre') faces.forEach((f, i) => { f.value = numbering?.values?.[i] ?? i + 1; });
+  else if (shape !== 'd4') {
     const sum = OPPOSITE_SUM[shape] ?? 0;
     const key = (f: Face) => [-round6(f.normal[1]), Math.atan2(round6(f.normal[2]), round6(f.normal[0]))];
     const order = faces.map((_, i) => i).sort((i, j) => {
@@ -193,7 +197,7 @@ export function fromTriangles(shape: Shape, verts: Vec3[], numbering?: Numbering
   }
 
   const tops: Top[] = shape === 'd4' ? points.map((p, i) => ({ dir: unit(p), value: numbering?.values?.[i] ?? i + 1 })) : [];
-  if (numbering?.values && shape !== 'd4') faces.forEach((f, i) => { f.value = numbering.values![i]; });
+  if (numbering?.values && shape !== 'd4' && shape !== 'livre') faces.forEach((f, i) => { f.value = numbering.values![i]; });
 
   const marked = shape === 'd10' || shape === 'd12' || shape === 'd20' || shape === 'd100';
   const text = (v: number) => (marked && (v === 6 || v === 9) ? `${v}.` : String(v));
@@ -246,6 +250,8 @@ export const sortDice = (dice: DieKind[]): DieKind[] => [...dice].sort((a, b) =>
 export const allKinds = (): DieKind[] => [...KINDS, ...customList().map((d) => customKind(d.id))];
 // The physical shape behind a kind (imported dice report the base they were recognised as).
 export const baseOf = (kind: DieKind): Shape => (isCustom(kind) ? customBase(kind) ?? 'd20' : BASE[kind]);
+// A free-form die stays where it stopped: the showcase only raises its number (the coin flies like the dice).
+export const staysOnTray = (kind: DieKind) => baseOf(kind) === 'livre';
 export const MAX_DICE = 10;
 // The solids of the imported dice in a selection, for the worker (which has no registry of its own).
 export const customsOf = (dice: DieKind[]): Record<CustomKind, Polyhedron> =>
