@@ -44,7 +44,19 @@ describe('roll history API', () => {
     expect((await post({ playerId: ana, dice: [{ kind: 'd20', value: 20, base: 'd4' }] })).json().dice).toEqual([{ kind: 'd20', value: 20 }]); // a built-in die keeps no base
   });
 
+  it('records a free-form die: any whole value from -99 to 999, a negative total, and never an omen', async () => {
+    const free = 'custom:9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d';
+    const res = await post({ playerId: ana, dice: [{ kind: 'd20', value: 7 }, { kind: free, value: -5, base: 'livre', omens: true }] });
+    expect(res.statusCode).toBe(201);
+    expect(res.json()).toMatchObject({ total: 2, omen: null, dice: [{ kind: 'd20', value: 7 }, { kind: free, value: -5, base: 'livre', omens: false }] });
+    expect((await post({ playerId: ana, dice: [{ kind: free, value: -99, base: 'livre' }, { kind: free, value: 0, base: 'livre' }] })).json().total).toBe(-99);
+    expect((await post({ playerId: ana, dice: [{ kind: free, value: 999, base: 'livre' }] })).json().total).toBe(999);
+  });
+
   it.each([
+    ['a free-form die over 999', { playerId: ana, dice: [{ kind: 'custom:abc', value: 1000, base: 'livre' }] }],
+    ['a free-form die under -99', { playerId: ana, dice: [{ kind: 'custom:abc', value: -100, base: 'livre' }] }],
+    ['a free-form die with a fractional value', { playerId: ana, dice: [{ kind: 'custom:abc', value: 2.5, base: 'livre' }] }],
     ['an imported die with no solid', { playerId: ana, dice: [{ kind: 'custom:abc', value: 3 }] }],
     ['an imported die past its solid', { playerId: ana, dice: [{ kind: 'custom:abc', value: 7, base: 'd6' }] }],
     ['an imported die of a solid it cannot be', { playerId: ana, dice: [{ kind: 'custom:abc', value: 1, base: 'd100' }] }],
@@ -82,6 +94,19 @@ describe('roll history API', () => {
     await expect(db.collection('rolls').insertOne({ playerId: ana, createdAt: new Date(), dice: [{ kind: 'custom:x', value: 1, base: 'd7' }], total: 1, omen: null, force: null })).rejects.toThrow(/validation/i);
     const plan = await db.collection('rolls').find({ playerId: ana }).sort({ _id: -1 }).explain('queryPlanner');
     expect(JSON.stringify(plan.queryPlanner.winningPlan)).toContain('player_history');
+  });
+
+  it('brings the validator of an older collection up to date', async () => {
+    const old = await client.db('diceroller-old');
+    await old.createCollection('rolls', { validator: { $jsonSchema: { bsonType: 'object', properties: {
+      dice: { bsonType: 'array', items: { bsonType: 'object', properties: { value: { bsonType: 'int', minimum: 1, maximum: 100 }, base: { enum: ['d4', 'd6', 'd8', 'd10', 'd12', 'd20'] } } } },
+      total: { bsonType: 'int', minimum: 0 },
+    } } } });
+    const free = { kind: 'custom:x', value: -5, base: 'livre', omens: false };
+    const doc = { playerId: ana, createdAt: new Date(), dice: [free], total: -5, omen: null, force: null };
+    await expect(old.collection('rolls').insertOne({ ...doc })).rejects.toThrow(/validation/i);
+    const rolls = await rollsCollection(old);
+    await expect(rolls.insertOne({ ...doc } as never)).resolves.toBeDefined();
   });
 
   it('reports its health and lets the dev front end call it', async () => {

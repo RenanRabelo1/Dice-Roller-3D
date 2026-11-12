@@ -46,6 +46,8 @@ Há uma coleção, `rolls`, com um documento por arremesso:
 }
 ```
 
+- Dados importados levam `base` (o sólido) e `omens`. Os de forma livre têm `base: 'livre'`, valores de −99 a 999 (o servidor só confere a faixa) e nunca dão presságio. Por isso o `total` pode ser negativo.
+
 Escolhas de modelagem:
 
 - **Os dados ficam embutidos no arremesso.** São no máximo 10 e sempre são lidos junto com ele. Uma coleção separada de dados só custaria joins.
@@ -57,6 +59,10 @@ Próximos passos previstos:
 
 - Coleção `players` (`_id`, `name`, `createdAt`), quando houver login. O `playerId` anônimo pode ser migrado para a conta.
 - Estatísticas com aggregation: média por tipo de dado e contagem de críticos.
+
+## Atualizando de uma versão antiga
+
+O validador da coleção `rolls` é atualizado sozinho (`collMod`) quando a API sobe. Se o usuário do app for só `readWrite`, o `collMod` falha e aparece um aviso no log; jogadas com dado de forma livre são recusadas até atualizar. Nesse caso, rode a API uma vez com a string de um usuário com `dbAdmin` no `MONGODB_URI` e depois volte para a do app.
 
 ## Endpoints
 
