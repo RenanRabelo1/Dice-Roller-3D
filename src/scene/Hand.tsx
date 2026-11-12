@@ -274,8 +274,6 @@ export function Hand({ gameArea, bodies }: {
       return;
     }
     if (phase === 'returning' && returning.current) {
-      // Every die must be here before the hand is declared back: one still registering would be left where it landed.
-      if (current.length < state.dice.length) return;
       const t = Math.min(1, (now - returning.current.at) / (state.reducedMotion ? 150 : 400));
       const ease = state.reducedMotion ? 1 : 1 - (1 - t) ** 3;
       const positions = handPositions(current.length, clampHandX(state.aim[0], current.length));
