@@ -236,7 +236,7 @@ export function Hand({ gameArea, bodies }: {
           const die = customDie(state.dice[i] as `custom:${string}`)!, group = scene.getObjectByName(`die-${i}`);
           const ink = inkColorOf(die, gemColor(state.dice[i]));
           const down = polys[i].labelList.find((l) => l.value === raw[i])!.normal;
-          const glow = gems[i] && group ? glowMesh(gems[i], group, down, ink ? `#${new Color(ink).lerp(new Color('#FFE38A'), 0.6).getHexString()}` : '#FFE38A', `${state.dice[i]}|${raw[i]}`) : null;
+          const glow = gems[i] && group ? glowMesh(gems[i], group, polys[i].faces, down, ink ? `#${new Color(ink).lerp(new Color('#FFE38A'), 0.6).getHexString()}` : '#FFE38A', `${state.dice[i]}|${raw[i]}`) : null;
           if (glow) { glow.name = `ink-glow-${i}`; group!.add(glow); numbers[i].visible = glyphs[i].visible = false; }
           else marks[i].scale = FONT.livre / HL_SIZE; // no engraving found: the number floats in front of the die
           return glow;

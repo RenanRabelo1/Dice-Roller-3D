@@ -181,4 +181,6 @@ Branch `claude/gravacao-acesa-68ef1e` (a partir da `dev-jg`), um commit por tare
 
 Brilho reforçado a pedido do João (aditivo, cor puxada para #FFE38A, pulso cheio).
 
+Brilho por face (a pedido da sessão principal, após o D5Shard real acender só metade de cada número): `upInk` decide pela face do sólido de menor folga sob o centro de cada triângulo de tinta, não pela normal do triângulo, então a gravação acende inteira ou não acende. Nenhum caso de aresta entre duas faces errou nos testes; não foi visto no D5Shard real.
+
 **Gate:** `npm run build && npm run lint && npm test` verde em todas as tarefas (322 testes). **E2E** (`import`, `coin`, `smoke`): 17 testes, 16 passaram na rodada única e 1 falhou (o do shard, pelo item acima, erro do teste); depois de ajustar, esse teste foi rodado sozinho e passou.

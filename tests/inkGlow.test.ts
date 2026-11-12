@@ -2,13 +2,17 @@ import { describe, expect, it } from 'vitest';
 import { BufferGeometry, Float32BufferAttribute, Group, Mesh } from 'three';
 import { glowMesh, upInk } from '../src/scene/inkGlow';
 
-const normals = [0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0.7071, 0.7071];
+const unit = (deg: number): [number, number, number] => [Math.sin((deg * Math.PI) / 180), Math.cos((deg * Math.PI) / 180), 0]; // deg from straight up
+const faceAt = (deg: number) => ({ normal: unit(deg), center: unit(deg) });
 
 describe('upInk', () => {
-  it('keeps inked triangles that face up', () => {
-    const mask = Uint8Array.from([1, 1, 0, 1]);
-    expect(upInk(normals, mask, [0, -1, 0])).toEqual([0, 3]);
-    expect(upInk(normals, mask, [-1, 0, 0])).toEqual([1]);
+  it('lights a whole engraving by the face it is cut into, whatever the slope of its walls', () => {
+    const a = unit(55), tangent = [Math.cos((55 * Math.PI) / 180), -Math.sin((55 * Math.PI) / 180), 0];
+    const under = (k: number, s: number) => a.map((v, i) => v * 0.97 + tangent[i] * s + (i === 2 ? k : 0)); // just below face A's plane
+    const centers = [...under(0, 0), ...under(0.2, 0.1), ...under(-0.2, -0.1), 0.97, 0, 0]; // the 4th is under a side face
+    const faces = [faceAt(55), faceAt(90), faceAt(0)];
+    expect(upInk(centers, Uint8Array.from([1, 1, 1, 1]), faces, [0, -1, 0])).toEqual([0, 1, 2]);
+    expect(upInk(centers, Uint8Array.from([1, 0, 1, 1]), faces, [0, -1, 0])).toEqual([0, 2]); // plain triangles never
   });
 });
 
@@ -26,14 +30,16 @@ describe('glowMesh', () => {
   };
   it('collects the up-facing ink in group space, lifted off the surface', () => {
     const group = build([1, 1]);
-    const glow = glowMesh(group, group, [0, -1, 0], '#fff')!;
-    expect(glow.geometry.getAttribute('position').count).toBe(3);
+    const glow = glowMesh(group, group, [{ normal: [0, 1, 0], center: [0, 1, 0] }], [0, -1, 0], '#fff')!;
+    expect(glow.geometry.getAttribute('position').count).toBe(6); // both triangles: the whole engraving, even the one on its side
     const p = glow.geometry.getAttribute('position');
     expect([p.getX(0), p.getY(0), p.getZ(0)].map((v) => +v.toFixed(3))).toEqual([1, 0.004, 0]);
     expect([p.getX(2), p.getY(2), p.getZ(2)].map((v) => +v.toFixed(3))).toEqual([3, 0.004, 0]);
   });
   it('is null when nothing qualifies', () => {
     const group = build([0, 0]);
-    expect(glowMesh(group, group, [0, -1, 0], '#fff')).toBeNull();
+    expect(glowMesh(group, group, [{ normal: [0, 1, 0], center: [0, 1, 0] }], [0, -1, 0], '#fff')).toBeNull();
+    const inked = build([1, 1]);
+    expect(glowMesh(inked, inked, [{ normal: [0, 1, 0], center: [0, 1, 0] }], [0, 1, 0], '#fff')).toBeNull(); // face looking down
   });
 });
