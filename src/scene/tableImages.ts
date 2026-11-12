@@ -111,3 +111,18 @@ async function loadPanorama(bg: { image: Blob; format: 'ldr' | 'hdr' }): Promise
   return tex;
 }
 const isTwoToOne = (w: number, h: number) => w / h >= 1.9 && w / h <= 2.1;
+
+// The panorama as a plain 8-bit picture for the .glb (glTF has no HDR): an LDR one as it is, an HDR one tone-mapped (c / (1 + c), then gamma).
+export async function panoramaPicture(bg: { image: Blob; format: 'ldr' | 'hdr' }): Promise<ImageBitmap | HTMLCanvasElement> {
+  if (bg.format === 'ldr') return createImageBitmap(bg.image);
+  const tex = await panoramaTexture(bg), { data, width, height } = tex.image as { data: Uint16Array; width: number; height: number };
+  const canvas = document.createElement('canvas');
+  canvas.width = width; canvas.height = height;
+  const g = canvas.getContext('2d')!, out = g.createImageData(width, height);
+  for (let i = 0; i < width * height; i++) {
+    for (let c = 0; c < 3; c++) { const v = Math.max(0, DataUtils.fromHalfFloat(data[i * 4 + c]!)); out.data[i * 4 + c] = Math.round(255 * (v / (1 + v)) ** (1 / 2.2)); }
+    out.data[i * 4 + 3] = 255;
+  }
+  g.putImageData(out, 0, 0);
+  return canvas;
+}

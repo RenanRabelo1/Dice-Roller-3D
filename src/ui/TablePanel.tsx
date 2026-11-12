@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { colorsOf, disposeTable } from '../scene/tableBuild';
-import { panoramaTexture, preparePanorama, reduceImage, TableError } from '../scene/tableImages';
+import { panoramaPicture, panoramaTexture, preparePanorama, reduceImage, TableError } from '../scene/tableImages';
 import { useTable } from '../scene/tableState';
 import { clampBlur, clampDim, clampIntensity, clampPanoramaBlur, clampRotation, clampTile, DEFAULT_THEME, fileSafe, LIMITS, PRESETS, type Background, type PresetName, type TableTheme } from '../scene/tableTheme';
 
@@ -15,6 +15,7 @@ export function TablePanel() {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
+  const [note, setNote] = useState('');
   const [pending, setPending] = useState<Pending | null>(null);
   const toggle = useRef<HTMLButtonElement>(null);
   const bg = theme.background, model = !!theme.model;
@@ -31,7 +32,7 @@ export function TablePanel() {
 
   // Runs `work` with a status line; a TableError becomes the message, anything else a generic one.
   const task = async (label: string, work: () => Promise<void>) => {
-    setError(''); setBusy(label);
+    setError(''); setNote(''); setBusy(label);
     try { await work(); } catch (e) { setError(e instanceof TableError ? e.message : 'Não consegui fazer isso. Tente de novo.'); } finally { setBusy(''); }
   };
   const photo = (file: File | undefined) => file && task('Preparando imagem…', async () => {
@@ -53,7 +54,8 @@ export function TablePanel() {
     const { buildFor, exportTable } = await import('../scene/tableFile');
     const { CanvasTexture } = await import('three');
     const group = await buildFor(theme);
-    const map = bg.kind === 'image' ? new CanvasTexture(await createImageBitmap(bg.image)) : null;
+    const map = bg.kind === 'image' ? new CanvasTexture(await createImageBitmap(bg.image)) : bg.kind === 'panorama' ? new CanvasTexture(await panoramaPicture(bg)) : null;
+    if (bg.kind === 'panorama' && bg.format === 'hdr') setNote('O fundo HDR vai no arquivo como JPEG.');
     try {
       const bytes = await exportTable(group, theme, map);
       const a = document.createElement('a');
@@ -72,7 +74,7 @@ export function TablePanel() {
     const colors = colorsOf(read.group) ?? { felt: DEFAULT_THEME.felt.color, wood: DEFAULT_THEME.wood.color };
     disposeTable(read.group);
     const x = read.extras;
-    const background: Background = x ? (x.background.kind === 'image' ? (read.backdrop ? { kind: 'image', image: read.backdrop, blur: x.background.blur, dim: x.background.dim } : bg) : x.background.kind === 'panorama' ? bg : x.background) : bg; // ponytail: T5 reads the panorama from the file
+    const background: Background = x ? (x.background.kind === 'image' ? (read.backdrop ? { kind: 'image', image: read.backdrop, blur: x.background.blur, dim: x.background.dim } : bg) : x.background.kind === 'panorama' ? (read.backdrop ? { ...x.background, image: read.backdrop, format: 'ldr' } : bg) : x.background) : read.defaultPanorama && read.backdrop ? { kind: 'panorama', image: read.backdrop, format: 'ldr', rotation: 0, intensity: 1, blur: 0, reflect: true } : bg;
     const next: TableTheme = {
       version: 1, id: crypto.randomUUID(), name: (x?.name ?? file.name.replace(/\.glb$/i, '')).slice(0, 40), createdAt: Date.now(),
       background, felt: { color: colors.felt, texture: 'liso' }, wood: { color: colors.wood }, model: { name: file.name, bytes },
@@ -164,6 +166,7 @@ export function TablePanel() {
             <small>Só .glb (até 20 MB, 100 mil triângulos, texturas de 2048 px). A mesa só muda o visual: a física e os resultados não mudam.</small>
           </fieldset>
           {busy && <p role="status">{busy}</p>}
+          {note && <p role="status">{note}</p>}
           {error && <p className="import-error" role="alert">{error}</p>}
           {pending && (
             <div className="import-error" role="alertdialog" aria-label="Avisos da mesa" data-testid="table-warnings">

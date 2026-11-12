@@ -6,6 +6,8 @@ import { backdrop, buildDefault, find, GUIDE, isPlaceholder, roleOf, shade, SURF
 import { blobOfImage, isOpaque, TableError } from './tableImages';
 import { EXTRAS_KEY, extrasOf, LIMITS, readExtras, type TableTheme, type ThemeExtras } from './tableTheme';
 
+const PANORAMA_NODE = 'fundo-360'; // the hidden plane that carries the 360° picture in the file
+
 // Exporting, importing (cleaned, fitted, checked) and building any theme's table. Loaded on demand: it carries the
 // glTF loader and exporter. The default table's own build lives in tableBuild.ts.
 
@@ -21,11 +23,11 @@ export async function buildFor(theme: TableTheme): Promise<Group> {
 export async function exportTable(group: Group, theme: TableTheme, backgroundMap: Texture | null): Promise<ArrayBuffer> {
   const renamed: [Object3D, string][] = [];
   const rename = (o: Object3D, name: string) => { renamed.push([o, o.name]); o.name = name; };
-  // The model's old `fundo` is replaced by the one for the current backdrop.
-  const old = find(group, 'fundo');
-  const removedFrom = old?.parent ?? null;
-  old?.removeFromParent();
-  const fresh = backgroundMap && theme.background.kind === 'image' ? backdrop(backgroundMap) : null;
+  // The model's old `fundo` / `fundo-360` are replaced by the one for the current backdrop.
+  const olds = [find(group, 'fundo'), find(group, PANORAMA_NODE)].filter((o): o is Object3D => !!o).map((o) => ({ o, from: o.parent }));
+  olds.forEach(({ o }) => o.removeFromParent());
+  const kind = theme.background.kind;
+  const fresh = backgroundMap && (kind === 'image' || kind === 'panorama') ? backdrop(backgroundMap, kind === 'image' ? 'fundo' : PANORAMA_NODE) : null;
   if (fresh) group.add(fresh);
   const surface = group.getObjectByName(SURFACE);
   if (surface === group) rename(group, 'mesa'); else if (surface) rename(surface, 'piso');
@@ -57,7 +59,7 @@ export async function exportTable(group: Group, theme: TableTheme, backgroundMap
     renamed.reverse().forEach(([o, n]) => { o.name = n; });
     group.userData[EXTRAS_KEY] = previous;
     fresh?.removeFromParent();
-    if (old && removedFrom) removedFrom.add(old);
+    olds.forEach(({ o, from }) => from?.add(o));
   }
 }
 
@@ -140,11 +142,13 @@ export function fitTable(root: Object3D): { group: Group; warnings: string[] } {
   if (guia) guia.visible = false;
   const fundo = find(root, 'fundo');
   if (fundo) fundo.visible = false;
+  const pano = find(root, PANORAMA_NODE);
+  if (pano) pano.visible = false;
   shade(group);
   return { group, warnings };
 }
 
-export interface ImportedTable { group: Group; warnings: string[]; extras: ThemeExtras | null; backdrop: Blob | null }
+export interface ImportedTable { group: Group; warnings: string[]; extras: ThemeExtras | null; backdrop: Blob | null; defaultPanorama: boolean }
 
 // A table file, read: size and triangle limits, only data: URLs, textures up to 2048 px (the backdrop up to 4096).
 export async function readTable(bytes: ArrayBuffer, withBackdrop = true): Promise<ImportedTable> {
@@ -152,7 +156,7 @@ export async function readTable(bytes: ArrayBuffer, withBackdrop = true): Promis
   if (!bytes.byteLength) throw new TableError('O arquivo está vazio.');
   let root: Object3D;
   try {
-    root = await parseGlb(bytes, (mesh) => (roleOf(mesh) === 'fundo' ? LIMITS.photoPx : LIMITS.texturePx));
+    root = await parseGlb(bytes, (mesh) => (roleOf(mesh) === 'fundo' ? LIMITS.photoPx : mesh.name === PANORAMA_NODE ? LIMITS.panoramaPx : LIMITS.texturePx));
   } catch (e) {
     if (e instanceof Error && e.constructor.name === 'ImportError') throw new TableError(e.message.replace('O GLB precisa', 'A mesa precisa'));
     throw new TableError('Não consegui ler esse arquivo. Exporte como .glb.');
@@ -163,14 +167,22 @@ export async function readTable(bytes: ArrayBuffer, withBackdrop = true): Promis
   const raw = [root.userData[EXTRAS_KEY], find(root, 'mesa')?.userData[EXTRAS_KEY], root.children[0]?.userData[EXTRAS_KEY]];
   const parsed = raw.map((x) => { if (typeof x === 'string') { try { return JSON.parse(x); } catch { return null; } } return x; });
   const extras = parsed.map(readExtras).find((e) => e) ?? null;
-  const fundo = find(root, 'fundo');
+  const panoNode = find(root, PANORAMA_NODE), wantsPano = extras?.background.kind === 'panorama';
+  const fundo = wantsPano ? panoNode : find(root, 'fundo') ?? panoNode;
   const map = fundo instanceof Mesh ? ((Array.isArray(fundo.material) ? fundo.material[0] : fundo.material) as MeshBasicMaterial).map : null;
   const { group, warnings } = fitTable(root);
-  let backdrop: Blob | null = null;
-  if (withBackdrop && extras?.background.kind === 'image') {
+  let backdrop: Blob | null = null, defaultPanorama = false;
+  if (withBackdrop && wantsPano) {
+    if (map?.image) backdrop = await blobOfImage(map.image as HTMLImageElement);
+    else warnings.push('O tema pede um fundo 360°, mas o arquivo não tem o plano "fundo-360". O fundo atual foi mantido.');
+  } else if (withBackdrop && panoNode && extras?.background.kind !== 'image') {
+    defaultPanorama = true; // a 360° plane without its settings
+    if (map?.image) backdrop = await blobOfImage(map.image as HTMLImageElement);
+    warnings.push('O arquivo tem um fundo 360° sem os ajustes; usei os padrões.');
+  } else if (withBackdrop && extras?.background.kind === 'image') {
     if (map?.image) backdrop = await blobOfImage(map.image as HTMLImageElement);
     else warnings.push('O tema pede uma foto de fundo, mas o arquivo não tem o plano "fundo". O fundo atual foi mantido.');
   }
   if (withBackdrop && !extras) warnings.push('O arquivo não traz o tema (cores e fundo). Mantive o fundo atual; as cores vêm do modelo.');
-  return { group, warnings, extras, backdrop };
+  return { group, warnings, extras, backdrop, defaultPanorama };
 }
