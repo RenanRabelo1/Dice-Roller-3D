@@ -30,7 +30,7 @@ const SYMBOL: Partial<Record<BuiltinKind, (digit: number) => SymbolName | undefi
 // Circumscribed radius of each shape.
 export const RADIUS: Record<Shape, number> = { d4: 0.9, d6: 0.75, d8: 0.7, d10: 0.7, d12: 0.7, d20: 0.7, d100: 0.9, coin: 0.76, livre: 0.85 };
 
-export interface Face { normal: Vec3; center: Vec3; value: number }
+export interface Face { normal: Vec3; center: Vec3; value: number; readable?: boolean } // readable: counts as a result (free-form dice; missing = true)
 export interface Top { dir: Vec3; value: number }
 export interface Label { text: string; value: number; position: Vec3; normal: Vec3; up: Vec3; symbol?: SymbolName }
 export interface Polyhedron {

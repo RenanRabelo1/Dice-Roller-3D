@@ -225,7 +225,16 @@ const noFlat = () => new ImportError('Esse modelo não tem faces planas para o d
 
 // Free-form dice: the faces a die can rest on. Small facets (under 10% of the biggest face) and faces that
 // tip the die over (its centre of mass drops outside them) are left out, and the solid is rebuilt without them.
-export function detectFree(positions: Float32Array): { planes: Plane[]; dropped: number; uneven: boolean } {
+// Do the supporting faces come in sizes? With the areas biggest first, the first k (k >= 3) are alike (within 1.3x), the next
+// is under 0.65x the k-th, and more faces follow: a long shard die with facets on its tips. Returns k, or null.
+export function tierOf(areas: number[]): number | null {
+  const a = [...areas].sort((x, y) => y - x);
+  for (let k = 3; k < a.length; k++) if (a[k] < 0.65 * a[k - 1] && a[0] <= 1.3 * a[k - 1]) return k;
+  return null;
+}
+export const unevenOf = (areas: number[]) => Math.max(...areas) > 2 * Math.min(...areas);
+
+export function detectFree(positions: Float32Array): { planes: Plane[]; dropped: number; uneven: boolean; tier: number | null; areas: number[] } {
   const all = flatFaces(positions);
   let keep: Plane[] = all.filter((f) => f.area >= FREE.minArea * all[0].area).map((f) => ({ n: f.n.toArray() as Vec3, d: f.d }));
   let dropped = all.length - keep.length;
@@ -240,13 +249,15 @@ export function detectFree(positions: Float32Array): { planes: Plane[]; dropped:
     keep = stable;
   }
   const pts = corners(keep);
-  const rings = pts.length < 4 ? [] : keep.map((pl) => facePolygon(pl, pts)).filter((r) => r.length >= 3);
+  const all3 = pts.length < 4 ? [] : keep.map((pl) => ({ pl, ring: facePolygon(pl, pts) })).filter((x) => x.ring.length >= 3);
+  keep = all3.map((x) => x.pl);
+  const rings = all3.map((x) => x.ring);
   if (rings.length < FREE.minFaces || rings.length > FREE.maxFaces) {
     if (!rings.length) throw noFlat();
     throw new ImportError(`Encontrei ${rings.length} faces de apoio; um dado de forma livre precisa de ${FREE.minFaces} a ${FREE.maxFaces}.`);
   }
   const areas = rings.map(polygonArea);
-  return { planes: keep, dropped, uneven: Math.max(...areas) > 2 * Math.min(...areas) };
+  return { planes: keep, dropped, uneven: unevenOf(areas), tier: tierOf(areas), areas };
 }
 
 export interface Solid { poly: Polyhedron; fit: { center: Vec3; scale: number } }
@@ -290,14 +301,28 @@ function freeSolid(found: Plane[]): Solid {
   if (rings.some((r) => r.length < 3)) throw refuse('tem faces que não fecham um sólido');
   const poly = fromTriangles('livre', rings.flatMap(fan));
   if (poly.faces.length !== found.length) throw refuse('tem faces que não fecham um sólido');
-  // The numeral must fit the smallest face: a share of its smallest inradius (centre of the face to its nearest edge).
-  const inradius = (r: Vec3[]) => {
-    const c = [0, 1, 2].map((k) => r.reduce((s, p) => s + p[k], 0) / r.length) as Vec3;
-    return Math.min(...r.map((a, i) => { const e = sub3(r[(i + 1) % r.length], a); return Math.hypot(...cross3(e, sub3(c, a))) / Math.hypot(...e); }));
-  };
   poly.readsDown = true;
   poly.font = 0.45 * Math.min(...rings.map(inradius));
   return { poly, fit: { center, scale } };
+}
+
+// Distance from the middle of a face (its ring of corners) to its nearest edge: the numeral must fit inside it.
+function inradius(r: Vec3[]): number {
+  const c = [0, 1, 2].map((k) => r.reduce((s, p) => s + p[k], 0) / r.length) as Vec3;
+  return Math.min(...r.map((a, i) => { const e = sub3(r[(i + 1) % r.length], a); return Math.hypot(...cross3(e, sub3(c, a))) / Math.hypot(...e); }));
+}
+const ringOf = (poly: Polyhedron, f: Polyhedron['faces'][number]) => facePolygon({ n: f.normal, d: dot3(f.normal, f.center) }, poly.points);
+
+// A free-form die read only from some of its faces (the `readable` normals; null = all). The solid and the collider stay
+// whole: the other faces are tips it can rest on, but they are not a result, have no numeral and do not size it.
+export function withReadable(poly: Polyhedron, readable: Vec3[] | null): Polyhedron {
+  if (!readable) return poly;
+  const reads = (n: Vec3) => readable.some((r) => dot3(r, n) > 0.9999);
+  const faces = poly.faces.map((f) => (reads(f.normal) ? { ...f, readable: undefined } : { ...f, readable: false, value: 0 }));
+  const keep = faces.filter((f) => f.readable !== false);
+  if (keep.length === faces.length) return { ...poly, faces: poly.faces.map((f) => ({ ...f, readable: undefined })) };
+  const labelList = poly.labelList.filter((l) => reads(l.normal));
+  return { ...poly, faces, labelList, font: 0.45 * Math.min(...keep.map((f) => inradius(ringOf(poly, f)))) };
 }
 
 // Does the model have numerals cut into (or raised from) its faces? A numeral leaves vertices well below the plane
@@ -378,12 +403,12 @@ export const suggestOpposite = (base: StdBase, value: number): number | null => 
 // Opposite faces side by side, so the answer for one suggests the next.
 export function askOrder(poly: Polyhedron): number[] {
   if (poly.shape === 'd4') return poly.tops.map((_, i) => i);
-  if (poly.readsDown) { // no opposite pairs: the biggest faces first
+  if (poly.readsDown) { // no opposite pairs: the biggest readable faces first
     const area = (i: number) => {
       const f = poly.faces[i], on = poly.points.filter((p) => Math.abs(dot3(f.normal, p) - dot3(f.normal, f.center)) < 1e-4);
       return polygonArea(facePolygon({ n: f.normal, d: dot3(f.normal, f.center) }, on));
     };
-    return poly.faces.map((_, i) => i).sort((a, b) => area(b) - area(a));
+    return poly.faces.map((_, i) => i).filter((i) => poly.faces[i].readable !== false).sort((a, b) => area(b) - area(a));
   }
   const order: number[] = [], done = new Set<number>();
   poly.faces.forEach((f, i) => {
@@ -400,7 +425,8 @@ export function renumbered(poly: Polyhedron, numbering: Numbering): Polyhedron {
   for (let i = 0; i < poly.triangles.length; i += 3) tris.push([poly.triangles[i], poly.triangles[i + 1], poly.triangles[i + 2]]);
   const out = fromTriangles(poly.shape, tris, numbering);
   if (poly.readsDown) { out.readsDown = true; out.font = poly.font; } // free-form: keep how it is read and drawn
-  return out;
+  const reads = poly.faces.filter((f) => f.readable !== false);
+  return reads.length < poly.faces.length ? { ...withReadable(out, reads.map((f) => f.normal)), readsDown: true } : out;
 }
 
 // --- the whole import -------------------------------------------------------------------------------------------
@@ -408,6 +434,7 @@ export function renumbered(poly: Polyhedron, numbering: Numbering): Polyhedron {
 export interface Imported<B extends CustomBase = StdBase> extends Solid {
   base: B; triangles: number; object: Object3D; hasNumbers: boolean;
   dropped?: number; uneven?: boolean; // free-form only: faces left out, and whether the faces are very unequal
+  tier?: number | null; areas?: number[]; // free-form only: how many big faces when they come in sizes; the area of each face
 }
 // 'padrao' recognises a d4–d20; 'livre' takes any convex solid with 3 to 60 faces it can rest on.
 export async function importModel(bytes: ArrayBuffer, format: ModelFormat): Promise<Imported>;
@@ -415,9 +442,9 @@ export async function importModel(bytes: ArrayBuffer, format: ModelFormat, mode:
 export async function importModel(bytes: ArrayBuffer, format: ModelFormat, mode: 'padrao' | 'livre' = 'padrao'): Promise<Imported<CustomBase>> {
   const model = await readModel(bytes, format);
   if (mode === 'livre') {
-    const { planes, dropped, uneven } = detectFree(model.positions);
+    const { planes, dropped, uneven, tier, areas } = detectFree(model.positions);
     const solid = idealSolid('livre', planes);
-    return { base: 'livre', ...solid, triangles: model.triangles, object: model.object, hasNumbers: looksNumbered(model.positions, solid), dropped, uneven };
+    return { base: 'livre', ...solid, triangles: model.triangles, object: model.object, hasNumbers: looksNumbered(model.positions, solid), dropped, uneven, tier, areas };
   }
   const { base, planes } = detectPlanes(model.positions);
   const solid = idealSolid(base, planes);

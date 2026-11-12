@@ -6,7 +6,7 @@ const UP = new Vector3(0, 1, 0);
 
 // Face normals (or d4 vertex directions) with the value each one shows.
 const marks = (poly: Polyhedron) =>
-  poly.shape === 'd4' ? poly.tops.map((t) => ({ v: t.dir, value: t.value })) : poly.faces.map((f) => ({ v: f.normal, value: f.value }));
+  poly.shape === 'd4' ? poly.tops.map((t) => ({ v: t.dir, value: t.value })) : poly.faces.filter((f) => f.readable !== false).map((f) => ({ v: f.normal, value: f.value }));
 
 // Up value and tilt (degrees) of a die. d4 reads the top vertex; others the top face; a free-form die (readsDown)
 // reads the face it rests on, the one pointing down.

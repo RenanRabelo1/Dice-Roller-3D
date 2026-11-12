@@ -162,3 +162,15 @@ export function freeDieOf(tris: Vec3[], name: string, slug: string, values?: num
   registerCustom(die);
   return die;
 }
+
+// A shard die: a prism of `sides` long faces whose two tips are cut in facets that are about 45% of a long face (stable
+// ones: a longer shard would tip over them). Like the real D5/D7 shards, the supporting faces come in two sizes.
+export function shardTriangles(sides: number): Vec3[] {
+  const ring = (r: number, y: number, turn = 0): Vec3[] => Array.from({ length: sides }, (_, k) => [r * Math.cos((2 * Math.PI * k) / sides + turn), y, r * Math.sin((2 * Math.PI * k) / sides + turn)]);
+  const body = 0.5, steep = 0.5, apex = 0.5, narrow = 0.7; // half-length of the straight part, then the tips
+  const pts: Vec3[] = [];
+  for (const s of [1, -1]) {
+    pts.push(...ring(1, s * body), ...ring(narrow, s * (body + steep), Math.PI / sides), [0, s * (body + steep + apex), 0]);
+  }
+  return hullTriangles(pts);
+}

@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { BoxGeometry, IcosahedronGeometry } from 'three';
 import type { StdBase } from '../src/dice/custom';
-import { askOrder, checkValues, detectFree, detectPlanes, idealSolid, ImportError, importModel, inkOf, inkTriangles, LIMITS, looksNumbered, readModel, renumbered, suggestOpposite } from '../src/dice/importer';
+import { askOrder, checkValues, detectFree, detectPlanes, idealSolid, ImportError, importModel, inkOf, inkTriangles, LIMITS, looksNumbered, readModel, renumbered, suggestOpposite, tierOf, unevenOf, withReadable } from '../src/dice/importer';
 import { RADIUS, polyhedron } from '../src/dice/polyhedra';
 import type { Vec3 } from '../src/physics/world';
-import { asFile, glb, hullTriangles, modelTriangles, planesSolid, prismTriangles, stl, triacontahedronNormals } from './helpers/models';
+import { asFile, glb, hullTriangles, modelTriangles, planesSolid, prismTriangles, shardTriangles, stl, triacontahedronNormals } from './helpers/models';
 
 const BASES: StdBase[] = ['d4', 'd6', 'd8', 'd10', 'd12', 'd20'];
 const FACES = { d4: 4, d6: 6, d8: 8, d10: 10, d12: 12, d20: 20 };
@@ -198,5 +198,40 @@ describe('free-form dice (detectFree)', () => {
     const out = await importModel(stl(asFile(prismTriangles(5, 1.4))), 'stl', 'livre');
     expect(out.base).toBe('livre');
     expect(out.poly.faces).toHaveLength(7);
+  });
+});
+
+describe('supporting faces and reading faces (shards)', () => {
+  const free = (tris: Vec3[]) => detectFree(asFile(tris));
+  it('sees the size layers of a shard, and none on regular dice', () => {
+    expect(free(shardTriangles(5)).tier).toBe(5);
+    expect(free(shardTriangles(7)).tier).toBe(7);
+    expect(free(prismTriangles(7, 1.4)).tier).toBeNull();
+    expect(free(planesSolid(triacontahedronNormals())).tier).toBeNull();
+    expect(tierOf([10, 10, 9.5, 9.5, 9.5, 4.6, 4.6])).toBe(5);
+    expect(tierOf([10, 10, 10, 4, 4])).toBe(3);
+    expect(tierOf([10, 9, 8])).toBeNull(); // nothing after the big ones
+    expect(tierOf([10, 5, 5, 5])).toBeNull(); // the first k are not alike
+  });
+  it('keeps the whole solid but reads, numbers and sizes only the big faces', () => {
+    const r = free(shardTriangles(5)), { poly } = idealSolid('livre', r.planes);
+    const order = [...r.areas].map((a, i) => [a, i]).sort((a, b) => b[0] - a[0]).slice(0, 5).map(([, i]) => poly.faces[i].normal);
+    const only = withReadable(poly, order);
+    expect(only.faces).toHaveLength(poly.faces.length); // the collider and the solid are untouched
+    expect(only.points).toBe(poly.points);
+    expect(only.faces.filter((f) => f.readable !== false)).toHaveLength(5);
+    expect(only.labelList).toHaveLength(5);
+    expect(only.font!).toBeGreaterThan(poly.font!);
+    expect(askOrder(only)).toHaveLength(5);
+    expect(withReadable(poly, null)).toBe(poly);
+    expect(unevenOf(r.areas)).toBe(true);
+  });
+  it('renumbered keeps which faces are read', () => {
+    const r = free(shardTriangles(5)), { poly } = idealSolid('livre', r.planes);
+    const big = [...r.areas].map((a, i) => [a, i]).sort((a, b) => b[0] - a[0]).slice(0, 5).map(([, i]) => poly.faces[i].normal);
+    const only = renumbered(withReadable(poly, big), { values: poly.faces.map((_, i) => i + 1) });
+    expect(only.faces.filter((f) => f.readable !== false)).toHaveLength(5);
+    expect(only.labelList).toHaveLength(5);
+    expect(only.readsDown).toBe(true);
   });
 });
