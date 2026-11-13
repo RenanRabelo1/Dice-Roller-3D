@@ -9,8 +9,13 @@ export function clampTarget([x, , z]: Vec3): Vec3 {
   return [Math.min(mx, Math.max(-mx, x)), 0, Math.min(mz, Math.max(-mz, z))];
 }
 
-/** Triangle wave 0 → 1 → 0 with a 1400 ms cycle. */
-export function charge(ms: number): number {
+// How the charge moves while it is held. 'relative': up and down, 0 → 1 → 0 every 1400 ms (time the release).
+// 'static': up to 1 in 700 ms, then it stays there until the release. 1 is the strongest throw the tray is
+// tuned for (LAUNCH.maxSpeed), the same top the relative charge reaches.
+export type ChargeMode = 'relative' | 'static';
+
+export function charge(ms: number, mode: ChargeMode = 'relative'): number {
+  if (mode === 'static') return Math.min(1, Math.max(0, ms / CHARGE_HALF_CYCLE_MS));
   return 1 - Math.abs(((ms / CHARGE_HALF_CYCLE_MS) % 2) - 1);
 }
 

@@ -90,7 +90,8 @@ export function Hand({ gameArea, bodies }: {
       if (phase === 'charging' && source?.kind === 'pointer' && source.id === e.pointerId) cancel();
     };
     const down = (e: PointerEvent) => {
-      if (e.button !== 0 || !live()) return;
+      // Only the table starts a throw: a press on a panel laid over it (the animation tests) belongs to that panel.
+      if (e.button !== 0 || !live() || (e.target !== area && !(e.target instanceof HTMLCanvasElement))) return;
       const state = useDice.getState();
       if (state.gesture.phase !== 'hand' && state.gesture.phase !== 'settled') return;
       area.focus({ preventScroll: true });
@@ -332,7 +333,7 @@ export function Hand({ gameArea, bodies }: {
       return;
     }
     if (!active || preview) return;
-    const force = phase === 'charging' ? charge(now - state.gesture.chargeStart) : 0;
+    const force = phase === 'charging' ? charge(now - state.gesture.chargeStart, state.chargeMode) : 0; // static: holds at 1, the whirl at full speed
     if (phase === 'charging') state.setForce(force);
     handX.current += (vortexCenter(current.length, state.aim[0])[0] - handX.current) * (1 - Math.exp(-12 * dt));
     const vx = (state.aim[0] - previousAim.current[0]) / dt, vz = (state.aim[2] - previousAim.current[2]) / dt;

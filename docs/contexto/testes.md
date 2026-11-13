@@ -23,7 +23,7 @@
 |---|---|
 | `table()` | mesa ativa lida da cena: id, nome, fundo (incl. `panorama`), cores do feltro/madeira, textura, se há modelo, caixa da guia, nº de mesas salvas, `reflect` (fundo 360°) e `programs` (nº de programas de shader, para checar recompilação) |
 | `shards()` | cores (feltro/madeira) do primeiro caco do kraken |
-| `state()` | dice, phase, throwId, results, ready, error, aim, showcased, omen, omenDone, reducedMotion, omenTime, trayBroken, burning (fogo do d20 visível) |
+| `state()` | dice, phase, throwId, results, ready, error, aim, showcased, omen, omenDone, reducedMotion, omenTime, trayBroken, burning (fogo do d20 visível), force (carga agora ou do último arremesso) |
 | `select(dice)` | troca a seleção sem clicar |
 | `rigOmen(omen \| null)` | força o presságio dos próximos arremessos (a física e o resultado continuam reais) |
 | `bodies()` / `meshes()` | poses dos corpos Rapier / quaternions das malhas `gem-i` |
@@ -49,7 +49,7 @@ Padrão dos specs: esperar `state().ready`, interagir pelo teclado/ponteiro na `
 | `failure` | sem WebGL, falha do renderer e física que não carrega (simuladas por `addInitScript`): mensagem em pt-BR, sem canvas |
 | `table` | fundo (tema/foto/cor), cores no pixel, ida-e-volta exportar→importar (M13), arquivo com escala/Z para cima/moldura invadindo, recusas, upgrade do IndexedDB v1→v2 |
 | `table-kraken` | cacos com a cor do feltro da mesa; modelo sem piso some inteiro na quebra |
-| `omen` / `kraken` | presságios forçados (raio, kraken que arremessa e busca o d100, fogo do d20, tempestade do d100), reduced motion, recolher durante presságio, bandeja quebrada/restaurada |
+| `omen` / `kraken` | presságios forçados (raio, kraken que arremessa e busca o d100, fogo do d20, tempestade do d100), reduced motion, recolher durante presságio, bandeja quebrada/restaurada; os 5 botões de teste (dois arremessos reais caindo no presságio, e desligar com os dados na mão) |
 | `import` | importar STL/GLB (gerados por `tests/helpers/models.ts` a partir dos nossos sólidos), calibrar, rolar, recarregar, excluir, recusas, 10 dados de ~48 mil triângulos |
 | `coin` | repetição de jogadas da moeda, mobile; a moeda sobe e "Cara"/"Coroa" fica embaixo |
 | `coin-performance` / `coin-software` | orçamento de quadros com 10 moedas, worker atrasado/falho, DPR no SwiftShader |

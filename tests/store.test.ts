@@ -30,6 +30,22 @@ describe('store', () => {
     expect(s().launch).toMatchObject({ throwId: 1, target: [2, 0, -2], force: 1, handCenter: [0, 3, 3], handOmega: [1, 0, 0] });
     expect(typeof s().launch!.seed).toBe('number'); expect(s().gesture.phase).toBe('rolling');
   });
+  it('the chosen roll mode decides the force: static holds at the top, relative swings back', () => {
+    expect(s().chargeMode).toBe('relative');
+    s().input({ type: 'press', source: P, at: 0, repeat: false });
+    expect(s().input({ type: 'release', source: P, at: 1400 })).toEqual({ type: 'throw', force: 0 });
+    useDice.setState(useDice.getInitialState(), true);
+    s().setChargeMode('static');
+    s().input({ type: 'press', source: P, at: 0, repeat: false });
+    expect(s().input({ type: 'release', source: P, at: 5000 })).toEqual({ type: 'throw', force: 1 });
+    expect(s().launch!.force).toBe(1);
+  });
+  it('choosing an animation test puts its dice in the hand; turning it off keeps them', () => {
+    s().setOmenTest('kraken');
+    expect(s()).toMatchObject({ omenTest: 'kraken', dice: ['d20', 'd100'] });
+    s().setOmenTest(null);
+    expect(s()).toMatchObject({ omenTest: null, dice: ['d20', 'd100'] });
+  });
   it('publish only lands for the current throw while rolling', () => {
     s().input({ type: 'press', source: P, at: 0, repeat: false });
     s().input({ type: 'release', source: P, at: 700 }, { center: [0, 3, 3], omega: [0, 0, 0] });

@@ -129,3 +129,45 @@ test('a d100 that rolls 100 drifts toward you in the storm', async ({ page }) =>
   await expect(page.getByTestId('result')).not.toBeEmpty();
   await expect(page.locator('.game-area')).not.toHaveAttribute('data-storm');
 });
+
+// The animation test buttons (dev only), clicked with the dice in the hand as a player would.
+const testPanel = async (page: Page) => {
+  await page.getByRole('button', { name: 'Testar animações' }).click();
+  return page.getByRole('group', { name: 'Animação dos próximos arremessos' });
+};
+for (const { name, dice, omen, die, value, sign } of [
+  { name: 'Raio', dice: ['d20'], omen: 'crit', die: 'd20', value: 20, sign: '.omen-flash' },
+  { name: 'Fogo', dice: ['d20'], omen: 'fumble', die: 'd20', value: 1, sign: '.omen-heat' },
+  { name: 'Kraken', dice: ['d20', 'd100'], omen: 'crit', die: 'd100', value: 1, sign: '.omen-deep' },
+  { name: 'Tempestade', dice: ['d20', 'd100'], omen: 'fumble', die: 'd100', value: 100, sign: '.omen-rain' },
+  { name: 'Dualidade', dice: ['d20', 'd20'], omen: 'duality', die: '', value: 0, sign: '.omen' },
+]) {
+  test(`test button ${name}: two real throws land on its omen, then it turns off`, async ({ page }) => {
+    const warnings: string[] = [];
+    page.on('console', (m) => { if (m.type() === 'warning' && !/THREE|deprecated/.test(m.text())) warnings.push(m.text()); });
+    const panel = await testPanel(page);
+    const button = panel.getByRole('button', { name: new RegExp(name) });
+    await button.click();
+    await expect(button).toHaveAttribute('aria-pressed', 'true');
+    await ready(page, dice.length);
+    expect(await page.evaluate(() => window.__dice.state().dice)).toEqual(dice); // the dice it needs are in the hand
+    expect(await page.evaluate(() => window.__dice.state().phase)).toBe('hand'); // the click did not throw
+    for (let n = 0; n < 2; n++) {
+      if (n) { await page.keyboard.press('Space'); await page.waitForFunction(() => window.__dice.state().phase === 'hand'); }
+      await page.keyboard.down('Space'); await page.waitForTimeout(300); await page.keyboard.up('Space'); // focus is back on the table
+      await page.waitForFunction(() => window.__dice.state().phase === 'settled', null, { timeout: 30_000 });
+      const s = await page.evaluate(() => window.__dice.state());
+      expect(s.omen, `results ${s.results} · ${warnings.join(' | ')}`).toBe(omen);
+      if (die) expect(s.results![s.dice.lastIndexOf(die as DieKind)]).toBe(value);
+      await expect(page.locator(sign)).toHaveCount(1);
+      await shown(page);
+    }
+    await page.screenshot({ path: `screens/omen-test-${name}.png` });
+    await page.keyboard.press('Space'); await page.waitForFunction(() => window.__dice.state().phase === 'hand');
+    await button.click(); // with the dice in the hand: turns it off, does not throw
+    await expect(button).toHaveAttribute('aria-pressed', 'false');
+    expect(await page.evaluate(() => window.__dice.state().phase)).toBe('hand');
+    await expect(page.getByRole('button', { name: 'Testar animações' })).toHaveText('Testar animações');
+    expect(warnings).toEqual([]); // no throw fell back or missed its omen
+  });
+}

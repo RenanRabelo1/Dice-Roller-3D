@@ -3,6 +3,7 @@ import { Canvas } from '@react-three/fiber';
 import { Stage } from './scene/Stage';
 import { Controls } from './ui/Controls';
 import { OmenOverlay } from './ui/OmenOverlay';
+import { OmenTests } from './ui/OmenTests';
 import { useDice } from './store';
 import { Backdrop } from './scene/Backdrop';
 import { hasWebGL } from './failure';
@@ -43,6 +44,7 @@ export default function App() {
       )}
       <Failure />
       <OmenOverlay gameArea={gameArea} />
+      {import.meta.env.DEV && <OmenTests gameArea={gameArea} />}
     </div>
     </main>
   );

@@ -174,6 +174,28 @@ for (const width of [1440, 390]) {
   });
 }
 
+test('roll mode, bottom left: static charge rises to the top and stays there until release; the choice is remembered', async ({ page }) => {
+  const mode = page.getByRole('radiogroup', { name: 'Rolagem' });
+  await expect(mode.getByRole('radio', { name: 'Relativa' })).toBeChecked(); // the current behaviour stays the default
+  const box = await mode.boundingBox(), view = page.viewportSize()!;
+  expect(box!.x).toBeLessThan(view.width / 3); expect(box!.y).toBeGreaterThan(view.height * 0.75);
+  const hold = async (ms: number) => {
+    await page.locator('.game-area').focus();
+    await page.keyboard.down('Space'); await page.waitForTimeout(ms);
+    const during = await page.evaluate(() => window.__dice.state().force);
+    await page.keyboard.up('Space'); await settled(page);
+    return { during, thrown: await page.evaluate(() => window.__dice.state().force) };
+  };
+  // Relative: held for one whole cycle the charge has come back down.
+  expect((await hold(1400)).thrown).toBeLessThan(0.5);
+  await page.keyboard.press('Space'); await page.waitForFunction(() => window.__dice.state().phase === 'hand');
+  await mode.getByRole('radio', { name: 'Estática' }).check();
+  const held = await hold(2600); // well past the top, and past where the relative charge would have fallen
+  expect(held.during).toBe(1); expect(held.thrown).toBe(1);
+  await page.reload(); await ready(page);
+  await expect(page.getByRole('radiogroup', { name: 'Rolagem' }).getByRole('radio', { name: 'Estática' })).toBeChecked();
+});
+
 test('a coin flips heads or tails: the panel names the face it shows', async ({ page }) => {
   await page.getByRole('button', { name: 'Adicionar Moeda' }).click();
   await page.getByRole('button', { name: 'Remover d20' }).click();
