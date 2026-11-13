@@ -29,7 +29,7 @@ Uma suíte `tests/arquitetura/`, rodando no `npm test` (portanto no gate), em du
 
 **B. Dono dos dados (regra 2), com um teste próprio do Vitest.**
 
-O `docs/mapa-modulos.md` tem um bloco `json` marcado `donos-dos-dados`, com cada dado e o módulo dono: as stores do IndexedDB (`customDice`, `tables`), as chaves do `localStorage` (`diceroller.player`, `mesa.ativa`) e a coleção `rolls`. O teste lê esse bloco (o documento é a fonte única) e varre o código:
+O `docs/mapa-modulos.md` tem um bloco `json` marcado `donos-dos-dados`, com cada dado e o módulo dono (a lista abaixo é a de quando o ADR foi escrito; a atual é a do bloco): as stores do IndexedDB (`customDice`, `tables`), as chaves do `localStorage` (`diceroller.player`, `mesa.ativa`) e a coleção `rolls`. O teste lê esse bloco (o documento é a fonte única) e varre o código:
 
 - `indexedDB` só aparece em `src/shared/db`. O nome de store passado ao `shared/db` só aparece dentro do módulo dono;
 - `localStorage`/`sessionStorage` só aparecem no `repository.ts` do módulo dono da chave usada;

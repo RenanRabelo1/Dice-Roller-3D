@@ -15,7 +15,7 @@
 
 ## Arquitetura — `tests/arquitetura/` (dentro do `npm test`)
 
-Imports e ciclos (regras 1 e 4 do guia, ADR 0006 parte A). O leitor é nosso (ADR 0009), sem `dependency-cruiser`: o `parseSync` do `@swc/core` lê cada `.ts`/`.tsx` de `src/`, `server/src` e `server/test`. A suíte leva menos de 1 s.
+Imports e ciclos (regras 1 e 4 do guia, ADR 0006 parte A) e dono dos dados (regra 2, parte B, abaixo). O leitor é nosso (ADR 0009), sem `dependency-cruiser`: o `parseSync` do `@swc/core` lê cada `.ts`/`.tsx` de `src/`, `server/src` e `server/test`. A suíte leva menos de 1 s.
 
 - `leitor.ts`: arestas de `import`/`export … from` (só `import type`/`export type` contam como tipo, por causa do `verbatimModuleSyntax`), `import()` com string literal e `new URL('./x', import.meta.url)` (o worker). Resolve caminho relativo com ou sem extensão e `index.ts`/`index.tsx` de pasta, e só guarda destinos `.ts`/`.tsx` (css e imagem são ignorados). **Derrubam a suíte:** import relativo que não resolve, import com grafia diferente da do disco (o Windows aceita, o Linux não), caminho absoluto `/src/...` e `import()` sem string literal. Hoje não há alias de `paths` no tsconfig; se aparecer, o leitor precisa recusá-lo também.
 - `leitor.test.ts`: prova as quatro arestas reais (estático, `import type`, `import()` de `ImportDie`, o worker de `Stage.tsx`) e, em `fixtures/leitor/`, cada recusa acima e o `new URL` de não-código.
@@ -28,7 +28,28 @@ Imports e ciclos (regras 1 e 4 do guia, ADR 0006 parte A). O leitor é nosso (AD
 - As regras de módulo valem antes de existir módulo: `fixtures/modulos/` é uma árvore mínima (`src/`, `server/`) que viola cada regra uma vez, e o teste confere que cada uma dispara. Os fixtures são checados pelo `tsc -b` (`tsconfig.test.json`); os que não compilam de propósito (import quebrado, caminho absoluto, grafia) usam `// @ts-nocheck`.
 - Falha sai como `[regra] origem → destino (regra do guia / ADR)`.
 
-**Exceções** só em `tests/arquitetura/config.ts`, cada uma com o ADR ou a linha do plano ao lado: `CICLOS_CONHECIDOS`, `SERVIDOR_PODE_IMPORTAR` (cai na extração de `regras`), `REGRAS_TESTES_PODEM_IMPORTAR` (`vitest` nos testes do próprio módulo, ADR 0007 ponto 9).
+**Exceções** só em `tests/arquitetura/config.ts`, cada uma com o ADR ou a linha do plano ao lado: `CICLOS_CONHECIDOS`, `SERVIDOR_PODE_IMPORTAR` (cai na extração de `regras`), `REGRAS_TESTES_PODEM_IMPORTAR` (`vitest` nos testes do próprio módulo, ADR 0007 ponto 9) e `DADOS_LEGADO` (dono dos dados, abaixo).
+
+### Dono dos dados (`donos.ts` + `dados.test.ts`)
+
+Regra 2 do guia (ADR 0006 parte B; ADR 0003 pontos 2 e 5). Varre só produção: `src/` e `server/src`, sem nenhuma pasta `tests/`. Lê cada arquivo pela AST do `@swc/core`, como o leitor de imports.
+
+- **Fonte única:** os donos vêm do bloco ` ```json donos-dos-dados ` de `docs/mapa-modulos.md` (`MAPA_DE_DONOS`). Se o bloco faltar, o JSON for inválido ou faltar um dos grupos `indexedDB`, `localStorage` ou `mongodb`, a suíte falha com `[fonte única] …`.
+- **Dado novo:** acrescente-o ao bloco do mapa, no grupo certo, como `"<nome>": "<módulo dono>"`, no mesmo commit do código. Depois disso:
+  - uma store do IndexedDB é definida com `defineStore('<nome>')`, com string literal, uma única vez e dentro de `src/modules/<dono>/`;
+  - uma chave do `localStorage`/`sessionStorage` só é usada em `src/modules/<dono>/repository.ts`, e o literal da chave aparece nesse arquivo;
+  - uma coleção do MongoDB é acessada só em `server/src/modules/<dono>/repository.ts` ou em `server/src/shared/db.ts`.
+- **O que falha:**
+  - `indexedDB` fora de `src/shared/db.ts`;
+  - `defineStore` com nome fora do bloco, sem string literal, fora do módulo dono, ou o mesmo nome definido mais de uma vez (ou nenhuma);
+  - um arquivo que usa `localStorage`/`sessionStorage` sem nenhum literal de chave do bloco, ou com `getItem`/`setItem`/`removeItem` de uma chave literal que não está no bloco ("chave não declarada no mapa");
+  - uma coleção fora do bloco ou fora do lugar. Contam como acesso `.collection`, `.createCollection` e `.dropCollection` (o primeiro argumento), `listCollections({ name })` e `command({ collMod | create | drop })`;
+  - um `$lookup`/`$graphLookup` cujo `from` é de outro dono (join entre domínios);
+  - um `create` importado de `zustand` (com outro nome ou por namespace também) fora de `src/modules/<m>/store.ts`.
+- A falha sai como `[regra] arquivo: dado (dono esperado: …; ADR)`.
+- **Exceções:** ficam em `DADOS_LEGADO` (`config.ts`), no formato `{ arquivo, dado, motivo }`. É uma por arquivo e por dado, e cobre todas as regras que aquele arquivo quebra com aquele dado. O `dado` é o nome da store, da chave ou da coleção, ou então `indexedDB`/`zustand` para a API crua. O motivo cita o ADR ou o plano. Hoje há três grupos: o legado sem módulo, a store de falha de `shared/plataforma` (ADR 0008) e o `server/src/rolls.ts` antes da extração do `historico`. Como em `CICLOS_CONHECIDOS`, a suíte também falha com uma exceção sem uso ou repetida. Tire a entrada no mesmo commit que moveu o acesso.
+- **Heurística** (ADR 0006: "pega o caso comum"). O teste procura padrões na AST. Ele não segue um nome que vem de variável de outro arquivo, um acesso por função de outro módulo nem um global renomeado. Também não vê `createStore`/`createWithEqualityFn` do zustand (só `create`) nem `$unionWith` no MongoDB (só `$lookup`/`$graphLookup`). Ainda falta a regra "nenhum `index.ts` reexporta o store cru" (ADR 0003 ponto 2, ADR 0006): entra com o primeiro módulo que tiver store. A revisão continua obrigatória.
+- `fixtures/dados/` tem o próprio `mapa.md` e viola cada regra uma vez. O teste recebe a raiz e o bloco por parâmetro.
 
 **Ciclo conhecido:** a entrada é `{ nivel, membros, motivo }`, e `membros` é o componente fortemente conexo inteiro, em ordem alfabética (a mensagem de falha mostra um caminho do ciclo). O teste falha nos dois sentidos: ciclo fora da lista (desfaça; só acrescente com motivo citando a tabela "Ciclos de hoje" do `docs/mapa-modulos.md` ou o `docs/plano-refatoracao.md` §8) e ciclo da lista que não existe mais (tire a entrada no mesmo commit que o desfez). Se o componente cresce ou encolhe, a entrada muda junto.
 

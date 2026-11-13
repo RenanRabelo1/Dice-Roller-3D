@@ -13,7 +13,7 @@ Os módulos seguem domínios de negócio, não as pastas de hoje. As decisões q
 | `dados` | O dado como objeto: catálogo vivo dos tipos jogáveis (embutidos + importados registrados), sólidos, numeração, leitura da face, símbolos e aparência na cena (gema, tinta, numerais, modelo importado). | catálogo de tipos (registro em memória), caches de sólido, símbolo e modelo | `regras` | pendente |
 | `selecao` | Quais dados estão na mão: botões, chat com notação, nomes de exibição e regras de apelido. | `dice` (a seleção) | `regras`, `dados` | pendente |
 | `meus-dados` | Os dados que o jogador importa: assistente (arquivo, forma, calibração, tinta), salvar, editar tinta, excluir. Entrega cada dado salvo ao catálogo de `dados`. | IndexedDB `customDice`, a lista "Meus dados" e o aviso de sessão | `regras`, `dados`, `selecao` | pendente |
-| `arremesso` | Do gesto à publicação: mira, carga, redemoinho na mão, lançamento, pré-simulação (worker e fallback), parada, replay, publicação do resultado e retorno à mão. Dono da área de jogo física (bandeja, colisores). | `gesture`, `throwId`, `aim`, `force`, `launch`, `results`, `raw`, `ready`, registro de corpos, worker | `regras`, `dados`, `selecao` | pendente |
+| `arremesso` | Do gesto à publicação: mira, carga, redemoinho na mão, lançamento, pré-simulação (worker e fallback), parada, replay, publicação do resultado e retorno à mão. Dono da área de jogo física (bandeja, colisores). | `gesture`, `throwId`, `aim`, `force`, `chargeMode`, `launch`, `results`, `raw`, `ready`, registro de corpos, worker, `localStorage['diceroller.rolagem']` | `regras`, `dados`, `selecao` | pendente |
 | `mesa` | Aparência da mesa e do fundo: temas, cores, texturas, foto, fundo 360°, mesas salvas, exportar e importar `.glb`. Só visual: nunca muda colisores nem resultados. | store da mesa (`theme`, `tables`, `colors`, `sessionOnly`), IndexedDB `tables`, `localStorage['mesa.ativa']`, caches de textura e panorama | `arremesso` | pendente |
 | `pressagios` | Decidir e mostrar o presságio de um resultado (raio, kraken, fogo, tempestade, dualidade) em 3D e em HTML, com duração, relógio e quebra da mesa. | `omen`, `omenAt`, `omenDone`, `omenRig` | `regras`, `dados`, `arremesso`, `mesa` | pendente |
 | `vitrine` | Mostrar o resultado: o voo dos dados até a câmera, os números em destaque, a gravação acesa e o painel com total e detalhe. Espera o presságio terminar. | `showcased`, cache do brilho da gravação | `regras`, `dados`, `arremesso`, `pressagios` | pendente |
@@ -77,7 +77,7 @@ Verificado no código. O detalhe e as linhas estão no diagnóstico, §6.
 ```json donos-dos-dados
 {
   "indexedDB": { "customDice": "meus-dados", "tables": "mesa" },
-  "localStorage": { "diceroller.player": "historico", "mesa.ativa": "mesa" },
+  "localStorage": { "diceroller.player": "historico", "mesa.ativa": "mesa", "diceroller.rolagem": "arremesso" },
   "mongodb": { "rolls": "historico" }
 }
 ```

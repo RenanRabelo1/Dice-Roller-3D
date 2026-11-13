@@ -77,6 +77,7 @@ Do gesto ao resultado. O módulo cuida da mira, da carga da força e do redemoin
 
 ## Dados de que é dono
 - `gesture`, `throwId`, `aim`, `force`, `launch`, `results`, `raw`, `ready`.
+- `chargeMode` (modo de rolagem Relativa/Estática, veio de `feat/modo-de-rolagem` na OS-0001) e a chave `localStorage['diceroller.rolagem']`, que guarda a escolha entre visitas.
 - O registro de corpos (a ref `bodies`), o worker e o estado do replay.
 
 ## Origem do código

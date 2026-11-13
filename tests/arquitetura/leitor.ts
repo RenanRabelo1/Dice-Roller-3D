@@ -11,10 +11,11 @@ export interface Grafo { arquivos: string[]; arestas: Aresta[] }
 interface Bruta { especificador: string; tipo: Tipo; soTipo: boolean; problema?: string }
 
 const CODIGO = /\.tsx?$/;
-const posixDe = (p: string) => p.split(sep).join('/');
-const texto = (n: any): string | undefined =>
+export const posixDe = (p: string) => p.split(sep).join('/');
+/** Value of a string literal or of a template literal without expressions. */
+export const texto = (n: any): string | undefined =>
   n?.type === 'StringLiteral' ? n.value
-  : n?.type === 'TemplateLiteral' && n.expressions.length === 0 ? n.quasis[0].cooked : undefined;
+  : n?.type === 'TemplateLiteral' && n.expressions?.length === 0 ? n.quasis[0].cooked : undefined; // a template type has no `expressions`
 const ehImportMetaUrl = (n: any) =>
   n?.type === 'MemberExpression' && n.object?.type === 'MetaProperty' && n.object.kind === 'import.meta' && n.property?.value === 'url';
 
@@ -61,7 +62,7 @@ export function resolver(deArquivo: string, especificador: string): string | nul
   return null;
 }
 
-const listar = (dir: string): string[] => readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+export const listar = (dir: string): string[] => readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
   e.name === 'node_modules' ? [] : e.isDirectory() ? listar(join(dir, e.name)) : CODIGO.test(e.name) ? [join(dir, e.name)] : []);
 
 /** Reads every `.ts`/`.tsx` under `raizes` (relative to `base`). Paths in the graph are relative
