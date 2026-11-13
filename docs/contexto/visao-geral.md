@@ -37,7 +37,7 @@ Gate de entrega usado no projeto: build → lint → test → e2e, todos verdes.
 src/
   shared/db.ts             abre o IndexedDB `dice-roller` v2; cada dono declara a sua store (`defineStore`)
   main.tsx, App.tsx        casca: <Controls/> + <Canvas><Stage/></Canvas> + <OmenOverlay/>
-  shared/plataforma/       falha registrada (`registrarFalha`), `Guard`, `Failure`, sonda WebGL, renderizador por software  → armadilhas.md
+  shared/plataforma/       falha registrada (`registrarFalha`), `Guard`, `Failure`, sonda WebGL, renderizador por software, movimento reduzido (`movimentoReduzido`, evento de mudança)  → armadilhas.md
   store.ts                 zustand: seleção, fase, throwId, launch, results, omen  → arremesso.md
   api/history.ts           envia cada resultado à API (só com VITE_API_URL)
   testHook.ts              window.__dice (só em mode=test)                          → testes.md

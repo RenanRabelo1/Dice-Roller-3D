@@ -3,6 +3,7 @@ import { MATERIAL, trayColliders } from '../physics/world';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import type { Group, Object3D } from 'three';
+import { movimentoReduzido } from '../shared/plataforma';
 import { useDice } from '../store';
 import { trayBrokenAt } from './krakenMotion';
 import { buildDefault, colorsOf, disposeTable, SURFACE } from './tableBuild';
@@ -11,7 +12,7 @@ import { useTable } from './tableState';
 const setVisible = (o: Object3D, visible: boolean) => { o.visible = visible; };
 const broken = () => {
   const s = useDice.getState();
-  return trayBrokenAt({ phase: s.gesture.phase, throwId: s.throwId, omen: s.omen, omenDone: s.omenDone, omenAt: s.omenAt, dice: s.dice, reducedMotion: s.reducedMotion }, performance.now());
+  return trayBrokenAt({ phase: s.gesture.phase, throwId: s.throwId, omen: s.omen, omenDone: s.omenDone, omenAt: s.omenAt, dice: s.dice, reducedMotion: movimentoReduzido() }, performance.now());
 };
 
 // The tray's colliders are always trayColliders(); what you see comes from the active table theme (a default

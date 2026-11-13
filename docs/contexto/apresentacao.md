@@ -33,7 +33,7 @@ Só d20 (embutido, ou importado de base d20 com `omens: true`: `isD20`) e d100 c
 | fumble d100 | tempestade: tentáculos no mar em volta da bandeja, chuva, trovão, tela balançando; o d100 vem até você | 4600 ms |
 | duality | peixes yin-yang colidem (`TaiJi`), tela treme (CSS) | 2600 ms |
 
-`omenMs` escolhe a duração (falha com d20 e d100: a maior). Reduced motion: `publish` não cria presságio; ligar reduced motion durante um cancela (`setReducedMotion`). `rigOmen` (só via test hook) força o presságio dos próximos arremessos sem alterar a física.
+`omenMs` escolhe a duração (falha com d20 e d100: a maior). Reduced motion: `publish` não cria presságio; ligar reduced motion durante um cancela (`definirMovimentoReduzido(true)`, de `shared/plataforma`; o store ouve o evento e zera `omen`). `rigOmen` (só via test hook) força o presságio dos próximos arremessos sem alterar a física.
 
 ## Lado 3D (`scene/Omens.tsx`)
 

@@ -2,4 +2,5 @@
 export { falha, registrarFalha, useFalha, type Falha } from './falha.ts'
 export { Failure, Guard } from './Safeguard.tsx'
 export { hasWebGL } from './webgl.ts'
+export { aoMudarMovimentoReduzido, definirMovimentoReduzido, movimentoReduzido, observarPreferenciaDoSistema, useMovimentoReduzido } from './movimento.ts'
 export { marcarRenderizadorPorSoftware, renderizadorPorSoftware } from './software.ts'

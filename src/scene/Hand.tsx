@@ -7,6 +7,7 @@ import { MAX_DICE, polyhedron, RADIUS } from '../dice/polyhedra';
 import { toKinematic } from '../physics/apply';
 import { HAND } from '../physics/world';
 import { easeOut, type Pose, type Quat, type Vec3 } from '../shared/math';
+import { movimentoReduzido } from '../shared/plataforma';
 import { omenPlaying, useDice } from '../store';
 import { charge, clampTarget } from '../throw/aim';
 import { newWhirl, ORBITS, restingPlaces, spinAngle, stepWhirl, vortexCenter } from '../throw/vortex';
@@ -190,7 +191,7 @@ export function Hand({ gameArea, bodies }: {
       }) };
     }
     if (phase !== 'settled') { for (const o of [...numbers, ...glyphs]) o.visible = false; dropGlows(); }
-    if (phase === 'settled' && (mode.current !== nextMode || (state.reducedMotion && showcase.current?.still === false))) {
+    if (phase === 'settled' && (mode.current !== nextMode || (movimentoReduzido() && showcase.current?.still === false))) {
       // Reduced motion switched on mid-show: the dice go back to where they landed instead of hanging mid-flight.
       const landed = mode.current === nextMode ? showcase.current?.from : undefined;
       dropGlows();
@@ -206,7 +207,7 @@ export function Hand({ gameArea, bodies }: {
         const cam = camera as PerspectiveCamera;
         // The values the panel shows, from the simulation: never re-read a die that stopped near an edge.
         // Reduced motion: dice stay where they landed and the number only fades in above them.
-        const still = state.reducedMotion;
+        const still = movimentoReduzido();
         // An engraved free-form die is seen from above, as it lay, and its engraving lights up.
         const above = state.dice.map((k, i) => !still && isCustom(k) && !!customDie(k)?.printed && !!polys[i].readsDown);
         const to = still ? from : showcasePoses(polys, raw,
@@ -313,8 +314,8 @@ export function Hand({ gameArea, bodies }: {
       return;
     }
     if (phase === 'returning' && returning.current) {
-      const t = Math.min(1, (now - returning.current.at) / (state.reducedMotion ? 150 : 400));
-      const ease = state.reducedMotion ? 1 : 1 - (1 - t) ** 3;
+      const t = Math.min(1, (now - returning.current.at) / (movimentoReduzido() ? 150 : 400));
+      const ease = movimentoReduzido() ? 1 : 1 - (1 - t) ** 3;
       const x = vortexCenter(current.length, state.aim[0])[0];
       const positions = restingPlaces(whirl.current, x, state.dice.map((d) => polyhedron(d).radius));
       current.forEach((body, i) => {
@@ -322,10 +323,10 @@ export function Hand({ gameArea, bodies }: {
         const p = new Vector3(...from.p).lerp(new Vector3(...positions[i]), ease);
         const q = new Quaternion(...from.q).slerp(new Quaternion(), ease);
         // Publish "hand" only after Rapier has the exact final pose, even if its last step lagged a frame.
-        if (state.reducedMotion || t === 1) { body.setTranslation(p, true); body.setRotation(q, true); }
+        if (movimentoReduzido() || t === 1) { body.setTranslation(p, true); body.setRotation(q, true); }
         body.setNextKinematicTranslation(p); body.setNextKinematicRotation(q);
       });
-      setOpacity(state.reducedMotion ? t : 1);
+      setOpacity(movimentoReduzido() ? t : 1);
       if (t === 1) {
         handX.current = x;
         state.input({ type: 'returned' });
@@ -337,13 +338,13 @@ export function Hand({ gameArea, bodies }: {
     if (phase === 'charging') state.setForce(force);
     handX.current += (vortexCenter(current.length, state.aim[0])[0] - handX.current) * (1 - Math.exp(-12 * dt));
     const vx = (state.aim[0] - previousAim.current[0]) / dt, vz = (state.aim[2] - previousAim.current[2]) / dt;
-    const omega: Vec3 = state.reducedMotion ? [0, 0, 0] : [vz * 1.2 + 0.6, 0.4, -vx * 1.2]; // the hand's swing, handed on to the throw
+    const omega: Vec3 = movimentoReduzido() ? [0, 0, 0] : [vz * 1.2 + 0.6, 0.4, -vx * 1.2]; // the hand's swing, handed on to the throw
     previousAim.current = [...state.aim];
     // The whirl: every die on its own orbit and spinning about its own axis, all faster as the charge builds.
-    const places = stepWhirl(whirl.current, { x: handX.current, force, dt, radii: state.dice.map((d) => polyhedron(d).radius), still: state.reducedMotion });
+    const places = stepWhirl(whirl.current, { x: handX.current, force, dt, radii: state.dice.map((d) => polyhedron(d).radius), still: movimentoReduzido() });
     const center: Vec3 = [0, 0, 0];
     current.forEach((body, i) => {
-      const spin = new Quaternion().setFromAxisAngle(new Vector3(...ORBITS[i].axis), spinAngle(i, force, dt, state.reducedMotion));
+      const spin = new Quaternion().setFromAxisAngle(new Vector3(...ORBITS[i].axis), spinAngle(i, force, dt, movimentoReduzido()));
       body.setNextKinematicTranslation(new Vector3(...places[i]));
       body.setNextKinematicRotation(rotations.current[i].premultiply(spin).normalize());
       for (let k = 0; k < 3; k++) center[k] += places[i][k] / current.length;

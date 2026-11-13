@@ -26,7 +26,7 @@ Um store zustand `useDice`. Campos que importam:
 - `chargeMode` — `'relative'` (padrão) ou `'static'`, escolhido no canto inferior esquerdo (`RollMode` em `Controls.tsx`) e lembrado no `localStorage` (`diceroller.rolagem`).
 - `omen`, `omenAt`, `omenDone`, `showcased` — sincronizam apresentação (ver apresentacao.md); `omenPlaying(s)` diz se o presságio deste arremesso está na tela.
 - `error` — `'physics'` quando nem o worker nem o cálculo local conseguem simular (os dados voltam à mão e o painel avisa).
-- `reducedMotion` — vem de `prefers-reduced-motion` em `App.tsx`; desliga presságios e voo.
+- Movimento reduzido **não** é campo do store: vive em `shared/plataforma` (`movimentoReduzido()`, `useMovimentoReduzido()`, `definirMovimentoReduzido`, evento `aoMudarMovimentoReduzido`). `App.tsx` chama `observarPreferenciaDoSistema()`, que segue `prefers-reduced-motion`. Desliga presságios e voo; `publish`, `Hand`, `Tray` e o `window.__dice.state().reducedMotion` leem `movimentoReduzido()`. O store assina o evento no carregamento e, a cada `true` (mesmo repetido), descarta o presságio (`omen: null`).
 
 Regras:
 

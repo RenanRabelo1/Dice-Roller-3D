@@ -6,6 +6,7 @@ import { omenOf, type Omen } from './dice/omen';
 import type { Launch } from './physics/apply';
 import { HAND } from './physics/world';
 import type { Vec3 } from './shared/math';
+import { aoMudarMovimentoReduzido, movimentoReduzido } from './shared/plataforma';
 import { initialGesture, reduce, type Effect, type GestureEvent, type GestureState } from './throw/gesture';
 import type { ChargeMode } from './throw/aim';
 import { withDiceFor, type OmenTest } from './dice/omenTest';
@@ -23,7 +24,6 @@ interface DiceState {
   results: number[] | null;
   raw: number[] | null; // per-body up value behind `results` (d10 digit, d4 vertex)
   ready: boolean;
-  reducedMotion: boolean;
   showcased: number; // throwId whose dice finished flying to the front
   omen: (Omen & { throwId: number }) | null; // the show this throw's result puts on before it appears
   omenDone: number; // throwId whose omen finished playing
@@ -43,7 +43,6 @@ interface DiceState {
   setForce: (force: number) => void;
   setChargeMode: (mode: ChargeMode) => void;
   setReady: () => void;
-  setReducedMotion: (reducedMotion: boolean) => void;
   setShowcased: (throwId: number) => void;
   setOmenDone: (throwId: number) => void;
   rigOmen: (omen: Omen | null) => void;
@@ -71,7 +70,7 @@ export const omenPlaying = (s: Pick<DiceState, 'gesture' | 'omen' | 'omenDone' |
 export const useDice = create<DiceState>((set, get) => ({
   dice: ['d20'], gesture: initialGesture, throwId: 0,
   aim: [0, 0, -1], force: 0, chargeMode: savedMode(), launch: null, results: null, raw: null,
-  ready: false, reducedMotion: false, showcased: 0, omen: null, omenDone: 0, omenAt: 0, omenRig: null, omenTest: null, customs: [], sessionOnly: false,
+  ready: false, showcased: 0, omen: null, omenDone: 0, omenAt: 0, omenRig: null, omenTest: null, customs: [], sessionOnly: false,
   addDie: (kind) => set((s) => (s.dice.length >= MAX_DICE ? s : { ...selection(s), dice: sortDice([...s.dice, kind]) })),
   removeDie: (kind) => set((s) => {
     const i = s.dice.lastIndexOf(kind);
@@ -126,7 +125,6 @@ export const useDice = create<DiceState>((set, get) => ({
     try { localStorage.setItem(MODE_KEY, chargeMode); } catch { /* a private window: the choice lasts this visit */ }
   },
   setReady: () => set({ ready: true }),
-  setReducedMotion: (reducedMotion) => set((s) => ({ reducedMotion, omen: reducedMotion ? null : s.omen })),
   setShowcased: (showcased) => set({ showcased }),
   setOmenDone: (omenDone) => set({ omenDone }),
   rigOmen: (omenRig) => set({ omenRig }),
@@ -156,7 +154,11 @@ export const useDice = create<DiceState>((set, get) => ({
     if (throwId !== s.throwId || s.gesture.phase !== 'rolling') return s;
     // Publish the result, its omen and the reducer transition together so subscribers see one settled snapshot.
     // Reduced motion skips the omens' shows.
-    const omen = s.reducedMotion ? null : s.omenRig ?? omenOf(s.dice, results);
+    const omen = movimentoReduzido() ? null : s.omenRig ?? omenOf(s.dice, results);
     return { results: [...results], raw: raw ? [...raw] : null, omen: omen && { throwId, ...omen }, omenAt: omen ? performance.now() : 0, gesture: reduce(s.gesture, { type: 'published' }).state };
   }),
 }));
+
+// Switching reduced motion on cancels the omen being shown, in the same synchronous tick (ADR 0005). Subscribed
+// when the module loads and never cancelled: the store lives as long as the app.
+aoMudarMovimentoReduzido((v) => { if (v) useDice.setState({ omen: null }); });

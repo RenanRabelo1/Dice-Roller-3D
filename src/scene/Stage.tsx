@@ -23,7 +23,7 @@ import { customsOf, MAX_DICE } from '../dice/polyhedra';
 import { VORTEX, vortexCenter, vortexRadius } from '../throw/vortex';
 import { useTable } from './tableState';
 import { panoramaTexture } from './tableImages';
-import { Guard, falha, marcarRenderizadorPorSoftware, registrarFalha } from '../shared/plataforma';
+import { Guard, falha, marcarRenderizadorPorSoftware, movimentoReduzido, registrarFalha } from '../shared/plataforma';
 
 const WORKER_TIMEOUT = 2000; // ms; a ten-dice recording takes well under 200 ms
 // The test-only surface preview checks numeral pixels, so it keeps the real resolution (no SwiftShader or adaptive DPR drop).
@@ -204,7 +204,7 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
           results: state.results,
           ready: state.ready && state.dice.join(',') === key && bodies.current.filter((b) => b?.isValid()).length === selected.length,
           error: falha(), aim: state.aim, showcased: state.showcased,
-          omen: state.omen?.throwId === state.throwId ? omenKind(state.omen) : null, omenDone: state.omenDone, reducedMotion: state.reducedMotion,
+          omen: state.omen?.throwId === state.throwId ? omenKind(state.omen) : null, omenDone: state.omenDone, reducedMotion: movimentoReduzido(),
           omenTime: performance.now() - state.omenAt, trayBroken: scene.getObjectByName('tray-surface')?.visible === false,
           burning: scene.getObjectByName('fire')?.visible === true, force: state.force,
         };

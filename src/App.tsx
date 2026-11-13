@@ -6,7 +6,7 @@ import { OmenOverlay } from './ui/OmenOverlay';
 import { OmenTests } from './ui/OmenTests';
 import { useDice } from './store';
 import { Backdrop } from './scene/Backdrop';
-import { Failure, Guard, hasWebGL, registrarFalha, useFalha } from './shared/plataforma';
+import { Failure, Guard, hasWebGL, observarPreferenciaDoSistema, registrarFalha, useFalha } from './shared/plataforma';
 import { useTable } from './scene/tableState';
 import { warmImageDecoder } from './scene/tableImages';
 import { saveRoll } from './api/history';
@@ -16,12 +16,7 @@ export default function App() {
   const error = useFalha();
   useState(() => { if (!hasWebGL()) registrarFalha('webgl'); }); // before the first Canvas render
   useEffect(() => { void useDice.getState().loadCustoms(); void useTable.getState().load(); warmImageDecoder(); }, []);
-  useEffect(() => {
-    const media = matchMedia('(prefers-reduced-motion: reduce)');
-    const update = () => useDice.getState().setReducedMotion(media.matches);
-    update(); media.addEventListener('change', update);
-    return () => media.removeEventListener('change', update);
-  }, []);
+  useEffect(() => observarPreferenciaDoSistema(), []);
   // Every published result goes to the roll history (when the app has an API address; see src/api/history).
   useEffect(() => useDice.subscribe((s, prev) => {
     if (s.results && s.results !== prev.results) saveRoll(s.dice, s.results, s.force);

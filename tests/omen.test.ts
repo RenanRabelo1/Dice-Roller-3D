@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import type { DieKind } from '../src/dice/polyhedra';
 import { OMEN_MS, omenKind, omenMs, omenOf } from '../src/dice/omen';
 import { omenPlaying, useDice } from '../src/store';
+import { definirMovimentoReduzido } from '../src/shared/plataforma';
 
 const d20 = (n: number) => Array<DieKind>(n).fill('d20');
 
@@ -45,7 +46,8 @@ describe('store omen', () => {
   const s = () => useDice.getState();
   const P = { kind: 'pointer', id: 1 } as const;
   const roll = () => { s().input({ type: 'press', source: P, at: 0, repeat: false }); s().input({ type: 'release', source: P, at: 700 }); };
-  beforeEach(() => useDice.setState(useDice.getInitialState(), true));
+  // Reduced motion lives outside the store now, so it would carry over from one test to the next.
+  beforeEach(() => { useDice.setState(useDice.getInitialState(), true); definirMovimentoReduzido(false); });
 
   it('publish records the omen of the throw with the results', () => {
     roll(); s().publish(1, [20]);
@@ -67,13 +69,13 @@ describe('store omen', () => {
     expect(s().omen).toBeNull();
   });
   it('reduced motion skips omens', () => {
-    s().setReducedMotion(true); roll(); s().publish(1, [20]);
+    definirMovimentoReduzido(true); roll(); s().publish(1, [20]);
     expect(s().omen).toBeNull();
   });
   it('enabling reduced motion cancels the current omen', () => {
     roll(); s().publish(1, [20]);
     expect(s().omen).not.toBeNull();
-    s().setReducedMotion(true);
+    definirMovimentoReduzido(true);
     expect(s().omen).toBeNull();
     expect(s().results).toEqual([20]);
   });
