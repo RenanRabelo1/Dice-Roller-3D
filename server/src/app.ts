@@ -1,6 +1,6 @@
 import Fastify, { type FastifyServerOptions } from 'fastify';
 import cors from '@fastify/cors';
-import { CUSTOM_BASES, FREE_VALUES, KINDS } from '../../src/dice/kinds.ts';
+import { CUSTOM_BASES, FREE_VALUES, KINDS } from '../../src/modules/regras/index.ts';
 import type { RollStore } from './rolls.ts';
 import { CUSTOM, score, type Die } from './rules.ts';
 

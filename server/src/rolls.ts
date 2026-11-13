@@ -1,6 +1,5 @@
 import { ObjectId, type Collection, type Db } from 'mongodb';
-import { CUSTOM_BASES, FREE_VALUES, KINDS } from '../../src/dice/kinds.ts';
-import type { OmenKind } from '../../src/dice/omen.ts';
+import { CUSTOM_BASES, FREE_VALUES, KINDS, type OmenKind } from '../../src/modules/regras/index.ts';
 import { CUSTOM, type Die } from './rules.ts';
 
 // One document per throw. The dice are embedded: at most 10, always read with their throw.

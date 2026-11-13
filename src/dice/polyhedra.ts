@@ -250,7 +250,7 @@ export const sortDice = (dice: DieKind[]): DieKind[] => [...dice].sort((a, b) =>
 export const allKinds = (): DieKind[] => [...KINDS, ...customList().map((d) => customKind(d.id))];
 // The physical shape behind a kind (imported dice report the base they were recognised as).
 export const baseOf = (kind: DieKind): Shape => (isCustom(kind) ? customBase(kind) ?? 'd20' : BASE[kind]);
-export const MAX_DICE = 10;
+export { MAX_DICE } from '../modules/regras/index.ts'; // ponte até a OS-0015
 // The solids of the imported dice in a selection, for the worker (which has no registry of its own).
 export const customsOf = (dice: DieKind[]): Record<CustomKind, Polyhedron> =>
   Object.fromEntries(dice.filter(isCustom).map((k) => [k, polyhedron(k)])) as Record<CustomKind, Polyhedron>;

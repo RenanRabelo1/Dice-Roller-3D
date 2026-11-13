@@ -1,5 +1,5 @@
-// Allowed: kinds.ts. Violates: outro.ts.
-import { kinds } from '../../src/dice/kinds.ts';
+// Allowed: regras/index.ts. Violates: outro.ts.
+import { v } from '../../src/modules/regras/index.ts';
 import { outro } from '../../src/dice/outro.ts';
 
-export const servidor = kinds + outro;
+export const servidor = [v, outro];

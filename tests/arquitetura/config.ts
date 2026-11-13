@@ -23,9 +23,8 @@ export const CICLOS_CONHECIDOS: CicloConhecido[] = [
   },
 ];
 
-/** `server/**` → `src/**`: only these files. Named exception that falls with the `regras`
- * extraction, when the only allowed target becomes `src/modules/regras/index.ts` (ADR 0002, ADR 0004). */
-export const SERVIDOR_PODE_IMPORTAR = ['src/dice/kinds.ts', 'src/dice/omen.ts'];
+/** `server/**` → `src/**`: only the door of the pure `regras` module (ADR 0002, ADR 0004). */
+export const SERVIDOR_PODE_IMPORTAR = ['src/modules/regras/index.ts'];
 
 /** Packages `src/modules/regras/**` may never import (ADR 0002). Any other package also fails
  * ("nada fora do próprio módulo"); this list only names the failure. A trailing `/` is a scope. */

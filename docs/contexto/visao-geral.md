@@ -43,8 +43,9 @@ src/
   app/                     casca: a cena e o window.__dice
     Cena.tsx                 raiz da cena, ThrowLoop (replay), câmera, DPR, test hook
     testHook.ts              window.__dice (só em mode=test)                        → testes.md
+  modules/regras/          regras do jogo, puras, compartilhadas com server/        → modules/regras/CLAUDE.md
   dice/                    domínio puro dos dados (sem React)                       → dados.md
-    kinds.ts                 tipos de dado, `KINDS`, `BASE`, `SIDES` (sem 3D: compartilhado com server/)
+    kinds.ts                 ponte para `modules/regras` (tipos de dado, `KINDS`, `BASE`, `SIDES`) até a OS-0015
     polyhedra.ts             geometria, numeração, rótulos, `fromTriangles` (reexporta os tipos)
     custom.ts                tipo `CustomDie` + registro em memória dos dados importados
     customStore.ts           IndexedDB store `customDice`

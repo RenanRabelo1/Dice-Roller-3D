@@ -12,7 +12,7 @@ KINDS       = os embutidos em ordem canônica; allKinds() = KINDS + importados (
 BASE        = só os embutidos (vtm, hunger → d10; fire → d6); use baseOf(kind), que também cobre importados
 ```
 
-`kinds.ts` não tem código 3D porque a API (`server/`) também o importa, junto com `omen.ts`. Por isso esses dois arquivos importam com extensão `.ts` e não podem depender de `three` nem do registro de importados (`custom.ts`).
+As regras de tipo (`KINDS`, `BASE`, `SIDES`, faces válidas, total, crítico/falha) moram no módulo `src/modules/regras/` (ver o `CLAUDE.md` dele), que a API (`server/`) importa pelo `index.ts`. Por isso o módulo importa com extensão `.ts` e não depende de `three` nem do registro de importados. `kinds.ts` e parte de `omen.ts` são pontes para o legado até a OS-0015.
 
 Dado personalizado = mesmo corpo/numeração/leitura do `BASE`; muda só a aparência (cor, tinta, símbolos).
 
