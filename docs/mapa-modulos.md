@@ -1,6 +1,6 @@
 # Mapa de módulos
 
-Proposto em 2026-11-13, a partir de [diagnostico.md](diagnostico.md). **Aguarda a validação do responsável humano.** Nenhum código foi movido.
+Proposto em 2026-11-13, a partir de [diagnostico.md](diagnostico.md), e aprovado pelo responsável humano na mesma data. A fundação (fase 4) foi concluída nas OS-0004 a OS-0013; nenhum módulo foi extraído ainda.
 
 Os módulos seguem domínios de negócio, não as pastas de hoje. As decisões que sustentam este mapa estão nos ADRs 0001 a 0008 (`docs/adr/`).
 
@@ -60,17 +60,17 @@ Verificado no código. O detalhe e as linhas estão no diagnóstico, §6.
 | `gesture`, `throwId`, `launch`, `results`, `force` | `selection()` da seleção, `input` do arremesso, `publish` | `arremesso` | `selecao` não escreve mais. `arremesso` assina `selecaoAlterada` e se reinicia |
 | `dice` (seleção) | `addDie`/`removeDie`/`setDice` e `removeCustom` | `selecao` | `meus-dados` exclui no catálogo de `dados`, e `selecao` reage a `catalogoAlterado` |
 | `omen`, `omenAt` | `publish` (arremesso) e `setReducedMotion` | `pressagios` | `pressagios` assina `resultadoPublicado` e `movimentoReduzidoAlterado`. Os outros leem `presagioTocando()` e `tempoDoPresagio()` |
-| `error` | `App` (WebGL), `Guard` (renderizador/física), `Stage` (física) | `shared/plataforma` | `registrarFalha(tipo)` (o primeiro vence, como hoje) e `falha()` |
+| `error` | `App` (WebGL), `Guard` (renderizador/física), `app/Cena` (física) | `shared/plataforma` | `registrarFalha(tipo)` (o primeiro vence, como hoje) e `falha()` |
 | `reducedMotion` | `App` | `shared/plataforma` | `movimentoReduzido()` e o evento acima |
-| `ready` | o efeito do test hook em `Stage` | `arremesso` (cena pronta = corpos registrados) | `prontoParaJogar()` |
+| `ready` | o efeito do test hook em `app/Cena` | `arremesso` (cena pronta = corpos registrados) | `prontoParaJogar()` |
 | `showcased` | `Hand` (parte do showcase) | `vitrine` | `vitrineConcluida(throwId)`; a casca usa para o DPR e o panorama |
 | registro de importados (`Map` em `custom.ts`) e `store.customs` (cópia) | `registerCustom` e as ações do store | registro → `dados` (catálogo); registros salvos → `meus-dados` | `meus-dados` chama `dados.registrarTipo/removerTipo`. Ninguém mais lê o registro direto |
 | `omenD20s` (`Set` global em `kinds.ts`) | `custom.ts` | deixa de existir | `dados.paraRegras(kind)` devolve `'d20'` para um importado que conta como d20, antes de chamar `regras` (como o servidor já faz) |
 | `useTable.colors` | `tableState` (cores do tema) e `Tray` (cores do objeto 3D) | `mesa` | `coresDaMesa()`. A fonte de verdade dentro da `mesa` é decisão de negócio (dúvida 5) |
 | Visibilidade do piso na quebra | `Tray` chama `trayBrokenAt` do kraken | regra em `pressagios`, objeto em `mesa` | `pressagios` chama `mesa.ocultarPiso(bool)`; a `mesa` não conhece o kraken |
-| Registro de corpos (ref `bodies` em `Stage`) | `Die` | `arremesso` | Leitura de pose por `corpos()`. Em `settled`, a `vitrine` move os dados por `arremesso.moverDado(i, pose)` e é a única que move nessa fase |
+| Registro de corpos (ref `bodies` em `app/Cena`) | `Die` | `arremesso` | Leitura de pose por `corpos()`. Em `settled`, a `vitrine` move os dados por `arremesso.moverDado(i, pose)` e é a única que move nessa fase |
 | Nomes de objeto (`die-i`, `gem-i`, `tray-surface`, `result-highlights`…) | `Die`, `tableBuild`, `Hand` | quem nomeia | Os outros não procuram por nome: o dono expõe a função (opacidade, sombra, ocultar piso). O test hook usa a inspeção de cada módulo |
-| `softwareGl` (`tableImages`) | `Stage` | `shared/plataforma` | `renderizadorPorSoftware()` |
+| `softwareGl` (`tableImages`) | `app/Cena` | `shared/plataforma` | `renderizadorPorSoftware()` |
 | Banco IndexedDB `dice-roller` (abre e atualiza as duas stores) | `indexedDb.ts` | infra `shared/db`; cada store é do módulo dono | o `repository.ts` de cada módulo declara a própria store |
 | `parseGlb` (leitura de GLB que a mesa usa do importador de dados) | `dice/importer.ts` | infra `shared/modelos3d` | limites por parâmetro. `dados`, `meus-dados` e `mesa` usam |
 

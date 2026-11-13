@@ -18,7 +18,7 @@
 Imports e ciclos (regras 1 e 4 do guia, ADR 0006 parte A) e dono dos dados (regra 2, parte B, abaixo). O leitor é nosso (ADR 0009), sem `dependency-cruiser`: o `parseSync` do `@swc/core` lê cada `.ts`/`.tsx` de `src/`, `server/src` e `server/test`. A suíte leva menos de 1 s.
 
 - `leitor.ts`: arestas de `import`/`export … from` (só `import type`/`export type` contam como tipo, por causa do `verbatimModuleSyntax`), `import()` com string literal e `new URL('./x', import.meta.url)` (o worker). Resolve caminho relativo com ou sem extensão e `index.ts`/`index.tsx` de pasta, e só guarda destinos `.ts`/`.tsx` (css e imagem são ignorados). **Derrubam a suíte:** import relativo que não resolve, import com grafia diferente da do disco (o Windows aceita, o Linux não), caminho absoluto `/src/...` e `import()` sem string literal. Hoje não há alias de `paths` no tsconfig; se aparecer, o leitor precisa recusá-lo também.
-- `leitor.test.ts`: prova as quatro arestas reais (estático, `import type`, `import()` de `ImportDie`, o worker de `Stage.tsx`) e, em `fixtures/leitor/`, cada recusa acima e o `new URL` de não-código.
+- `leitor.test.ts`: prova as quatro arestas reais (estático, `import type`, `import()` de `ImportDie`, o worker de `app/Cena.tsx`) e, em `fixtures/leitor/`, cada recusa acima e o `new URL` de não-código.
 - Ciclos só são procurados em `src/`; os de `server/` entram na extração do `historico`.
 - `regras.ts` + `imports.test.ts`, sobre o código real:
   - **ciclos** (Tarjan, contando tipo, dinâmico e worker) em dois níveis: `arquivo` e `pasta` (unidade = `src/modules/<m>`, `src/<pasta>` ou arquivo da raiz de `src/`);
@@ -58,7 +58,7 @@ Regra 2 do guia (ADR 0006 parte B; ADR 0003 pontos 2 e 5). Varre só produção:
 - `playwright.config.ts`: Chrome instalado (`channel: 'chrome'`), WebGL por software (`--use-gl=angle --use-angle=swiftshader`), 1440×900, `workers: 1`, timeout 120 s.
 - Sobe `npm run dev:test` (Vite em `--mode test`, 127.0.0.1:5179, porta fixa). Não reusa servidor existente (nem o stub abaixo).
 - Sobe também `node e2e/api-stub.mjs` (127.0.0.1:5180): um stub da API do histórico que responde 204 a tudo, com CORS e preflight `OPTIONS`. O Vite de teste recebe `VITE_API_URL=http://127.0.0.1:5180`, então o build de teste envia o histórico (`src/api/history.ts`) e um POST que nenhum teste intercepta não gera erro de console (um 404 ou um endereço morto gerariam, e vários specs exigem console limpo). `history.spec` intercepta `http://127.0.0.1:5180/rolls` com `page.route`.
-- Em `mode === 'test'` o canvas usa `preserveDrawingBuffer` e o app expõe `window.__dice` (tipo em `src/testHook.ts`, instalado em `Stage.tsx`).
+- Em `mode === 'test'` o canvas usa `preserveDrawingBuffer` e o app expõe `window.__dice` (tipo em `src/app/testHook.ts`, instalado em `app/Cena.tsx`).
 
 ### `window.__dice` (DiceHook)
 
@@ -120,4 +120,4 @@ Artefatos locais ignorados pelo Git: `test-results/`, `playwright-report/`, `scr
 
 ## `screens.spec.ts` (numerais na superfície)
 
-Falhava em 7 casos por duas causas do teste, não do desenho: (1) contava pixels **dourados** em todos os dados, mas d10, d20 e d100 têm numeral **escuro** em gema clara (`INK` em `Die.tsx`); agora conta tinta escura entre pixels claros da mesma linha para esses três; (2) a página `?surface-preview` herdava o DPR 0,35 do SwiftShader e a queda adaptativa de DPR, deixando o dado com poucos pixels. A prévia (só em `mode=test`) agora mantém a resolução real (`isPreview` em `Stage.tsx`). As margens são conferidas em px CSS.
+Falhava em 7 casos por duas causas do teste, não do desenho: (1) contava pixels **dourados** em todos os dados, mas d10, d20 e d100 têm numeral **escuro** em gema clara (`INK` em `Die.tsx`); agora conta tinta escura entre pixels claros da mesma linha para esses três; (2) a página `?surface-preview` herdava o DPR 0,35 do SwiftShader e a queda adaptativa de DPR, deixando o dado com poucos pixels. A prévia (só em `mode=test`) agora mantém a resolução real (`isPreview` em `app/Cena.tsx`). As margens são conferidas em px CSS.

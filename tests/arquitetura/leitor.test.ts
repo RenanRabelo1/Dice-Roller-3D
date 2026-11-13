@@ -9,10 +9,10 @@ const aresta = (de: string, para: string) => grafo.arestas.find((a) => a.de === 
 
 describe('leitor de imports (swc)', () => {
   it.each([
-    ['import estático', 'src/scene/Stage.tsx', 'src/physics/apply.ts', 'import', false],
+    ['import estático', 'src/app/Cena.tsx', 'src/physics/apply.ts', 'import', false],
     ['import type', 'src/dice/read.ts', 'src/shared/math.ts', 'import', true],
     ['import() dinâmico', 'src/ui/Controls.tsx', 'src/ui/ImportDie.tsx', 'dinamico', false],
-    ['worker com new URL(..., import.meta.url)', 'src/scene/Stage.tsx', 'src/physics/presim.worker.ts', 'url', false],
+    ['worker com new URL(..., import.meta.url)', 'src/app/Cena.tsx', 'src/physics/presim.worker.ts', 'url', false],
   ] as const)('enxerga %s: %s → %s', (_kind, de, para, tipo, soTipo) => {
     const a = aresta(de, para);
     expect(a, `o leitor não viu a aresta ${de} → ${para} (ADR 0009)`).toBeDefined();

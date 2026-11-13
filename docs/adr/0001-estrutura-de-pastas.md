@@ -1,6 +1,6 @@
 # ADR 0001: Estrutura de pastas dos módulos neste repositório
 
-Status: proposto (aguarda o responsável humano)
+Status: aceito (o responsável humano autorizou o plano em 2026-11-13; ver `docs/plano-refatoracao.md`)
 
 ## Contexto
 

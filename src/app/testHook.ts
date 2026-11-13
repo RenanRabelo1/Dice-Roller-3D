@@ -1,8 +1,8 @@
-import type { DieKind } from './dice/polyhedra';
-import type { Falha } from './shared/plataforma';
-import type { Omen, OmenKind } from './dice/omen';
-import type { Quat, Vec3 } from './shared/math';
-import type { Phase } from './throw/gesture';
+import type { DieKind } from '../dice/polyhedra';
+import type { Falha } from '../shared/plataforma';
+import type { Omen, OmenKind } from '../dice/omen';
+import type { Quat, Vec3 } from '../shared/math';
+import type { Phase } from '../throw/gesture';
 
 export interface DiceHook {
   state(): {
@@ -28,6 +28,7 @@ export interface DiceHook {
   previewSurface(index: number, position: Vec3, quaternion: Quat): void;
 }
 
+// For now the Cena installs the whole hook; building it from each module's inspection (ADR 0003) comes with the extractions.
 export function installTestHook(api: DiceHook): void {
   if (import.meta.env.MODE === 'test') {
     (window as unknown as { __dice: DiceHook }).__dice = api;

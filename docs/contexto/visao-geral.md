@@ -36,11 +36,13 @@ Gate de entrega usado no projeto: build → lint → test → e2e, todos verdes.
 ```
 src/
   shared/db.ts             abre o IndexedDB `dice-roller` v2; cada dono declara a sua store (`defineStore`)
-  main.tsx, App.tsx        casca: <Controls/> + <Canvas><Stage/></Canvas> + <OmenOverlay/>
+  main.tsx, App.tsx        casca: <Controls/> + <Canvas><Cena/></Canvas> + <OmenOverlay/>
   shared/plataforma/       falha registrada (`registrarFalha`), `Guard`, `Failure`, sonda WebGL, renderizador por software, movimento reduzido (`movimentoReduzido`, evento de mudança)  → armadilhas.md
   store.ts                 zustand: seleção, fase, throwId, launch, results, omen  → arremesso.md
   api/history.ts           envia cada resultado à API (só com VITE_API_URL)
-  testHook.ts              window.__dice (só em mode=test)                          → testes.md
+  app/                     casca: a cena e o window.__dice
+    Cena.tsx                 raiz da cena, ThrowLoop (replay), câmera, DPR, test hook
+    testHook.ts              window.__dice (só em mode=test)                        → testes.md
   dice/                    domínio puro dos dados (sem React)                       → dados.md
     kinds.ts                 tipos de dado, `KINDS`, `BASE`, `SIDES` (sem 3D: compartilhado com server/)
     polyhedra.ts             geometria, numeração, rótulos, `fromTriangles` (reexporta os tipos)
@@ -62,7 +64,6 @@ src/
     presim.ts                simula o arremesso inteiro offline e grava os quadros
     presim.worker.ts         roda presim fora da thread de render
   scene/                   componentes R3F
-    Stage.tsx                raiz da cena, ThrowLoop (replay), câmera, DPR, test hook
     Hand.tsx                 input, mão, retorno, showcase pós-resultado             → apresentacao.md
     Die.tsx, Tray.tsx        corpo+malha de cada dado; bandeja (visual do tema da mesa)
     table*.ts, Backdrop.tsx  mesa e fundo personalizados, .glb                      → mesa.md

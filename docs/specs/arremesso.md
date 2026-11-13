@@ -86,12 +86,12 @@ Do gesto ao resultado. O módulo cuida da mira, da carga da força e do redemoin
 |---|---|
 | `src/throw/*`, `src/physics/*` | tudo. `world.ts` se divide: os vetores vão para `src/shared/math`, `MAX_RADIUS` já foi para `dados` e o resto fica aqui |
 | `src/store.ts` | campos e ações de gesto e resultado (`input`, `publish`, `setAim`, `setForce`, `setReady`) |
-| `src/scene/Stage.tsx:26, 30-98, 133-139, 151-153` | `ThrowLoop`, `WORKER_TIMEOUT`, registro de corpos, `recordLaunch` |
+| `src/app/Cena.tsx` (era `scene/Stage.tsx`) `:26, 30-98, 133-139, 151-153` | `ThrowLoop`, `WORKER_TIMEOUT`, registro de corpos, `recordLaunch` |
 | `src/scene/Hand.tsx:23-38, 73-146, 165-190, 314-356, 359` | input, mão, redemoinho, seta, retorno. A parte `settled` (`39-72, 191-313`) vai para `vitrine` e `pressagios` |
 | `src/scene/Die.tsx:169-227` | `RigidBody`, colisor, `register`, posição inicial |
 | `src/scene/Tray.tsx:48-56` | colisores fixos |
 | `src/ui/Controls.tsx:29-32, 52, 54, 77-81` | `Force`, a dica por fase, o aviso de física |
-| `src/scene/Stage.tsx:155-192` | o enquadramento fica na casca e passa a usar `envelopeDaMao()` |
+| `src/app/Cena.tsx` (era `scene/Stage.tsx`) `:155-192` | o enquadramento fica na casca e passa a usar `envelopeDaMao()` |
 
 **Pontos de chamada a trocar:**
 - os legados de vitrine e presságio, que ainda estão em `Hand.tsx`, `Omens.tsx` e `Tray.tsx`;

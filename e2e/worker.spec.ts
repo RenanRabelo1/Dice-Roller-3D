@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 
-// The physics worker, replaced by addInitScript (no hook in src/): ThrowLoop in src/scene/Stage.tsx waits
+// The physics worker, replaced by addInitScript (no hook in src/): ThrowLoop in src/app/Cena.tsx waits
 // WORKER_TIMEOUT (2 s) for an answer, then falls back to the main thread (terminate + local presimulation).
 const ready = (p: Page, n?: number) => p.waitForFunction((n) => window.__dice?.state().ready && (n === undefined || window.__dice.bodies().length === n), n);
 const settled = (p: Page) => p.waitForFunction(() => { const s = window.__dice.state(); return s.phase === 'settled' && s.showcased === s.throwId; }, null, { timeout: 90_000 });

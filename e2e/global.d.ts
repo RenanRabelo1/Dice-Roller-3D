@@ -1,3 +1,3 @@
 interface Window {
-  __dice: import('../src/testHook').DiceHook;
+  __dice: import('../src/app/testHook').DiceHook;
 }

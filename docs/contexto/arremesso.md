@@ -1,6 +1,6 @@
 # Arremesso: input → física → resultado
 
-Cobre `store.ts`, `throw/*`, `physics/*`, `scene/Stage.tsx` (ThrowLoop) e a parte de input/mão de `scene/Hand.tsx`. O que acontece **depois** de publicar está em [apresentacao.md](apresentacao.md).
+Cobre `store.ts`, `throw/*`, `physics/*`, `app/Cena.tsx` (ThrowLoop) e a parte de input/mão de `scene/Hand.tsx`. O que acontece **depois** de publicar está em [apresentacao.md](apresentacao.md).
 
 ## Ideia central
 
@@ -39,7 +39,7 @@ Regras:
 1. **Mira** — `Hand.tsx` faz raycast do ponteiro no plano y=0 e grava `clampTarget(hit)`. Setas movem 0,5. Os dados na mão (cinemáticos) giram num redemoinho (`throw/vortex.ts`): cada um numa órbita inclinada (planos de Fibonacci, `ORBITS`) e girando no próprio eixo, separados entre si; o centro segue `aim.x` e a velocidade cresce com a carga. A mão balança conforme a velocidade da mira (`omega`).
 2. **Carga** — `pointerdown`/Espaço → `press`. A cada quadro `force = charge(agora - chargeStart, chargeMode)`: **relativa** = onda triangular 0→1→0, ciclo 1400 ms; **estática** = sobe até 1 em 700 ms e fica em 1 (o máximo de `LAUNCH`, com o redemoinho na velocidade máxima) até soltar. A seta (`ArrowHelper`) muda de cor/tamanho com a força.
 3. **Soltura** — `release` → store cria `Launch` com `handCenter`/`handOmega` reais.
-4. **Pré-simulação** — `ThrowLoop` (em `Stage.tsx`, dentro de `useBeforePhysicsStep`) detecta `throwId` novo, captura as poses atuais dos corpos e manda `RollRequest { dice, start, launch, customs, bias? }` ao worker (`presim.worker.ts`); `bias` só existe com um botão de teste de presságio ligado (`omenTest`) e faz `presimulateFor` procurar, dentro de `BIAS_BUDGET`, uma semente que produza aquele presságio. Sem worker, ou sem resposta em 2 s (`WORKER_TIMEOUT`, mais `BIAS_BUDGET.worker` com `bias`) → `presimulateFor` síncrono na thread principal (fallback); se ele também falhar, os dados voltam à mão com `error: 'physics'`.
+4. **Pré-simulação** — `ThrowLoop` (em `app/Cena.tsx`, dentro de `useBeforePhysicsStep`) detecta `throwId` novo, captura as poses atuais dos corpos e manda `RollRequest { dice, start, launch, customs, bias? }` ao worker (`presim.worker.ts`); `bias` só existe com um botão de teste de presságio ligado (`omenTest`) e faz `presimulateFor` procurar, dentro de `BIAS_BUDGET`, uma semente que produza aquele presságio. Sem worker, ou sem resposta em 2 s (`WORKER_TIMEOUT`, mais `BIAS_BUDGET.worker` com `bias`) → `presimulateFor` síncrono na thread principal (fallback); se ele também falhar, os dados voltam à mão com `error: 'physics'`.
 5. **Replay** — a cada passo físico aplica `rec.frames[at]` via `setNextKinematicTranslation/Rotation`. Os corpos da cena continuam **cinemáticos** o tempo todo; quem simula dinâmica é só o mundo offline.
 6. **Publicação** — no último quadro, fixa a pose final com `setTranslation/setRotation` **antes** de `publish(throwId, rec.results, rec.raw)`.
 7. **Settled** → apresentação (presságio, voo, números). Clique/Espaço → `returning`.

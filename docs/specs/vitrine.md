@@ -65,7 +65,7 @@ Mostrar o resultado depois de `settled`. Os dados voam até a frente da câmera 
 | `src/ui/Controls.tsx:52-55, 74-76` | `<output data-testid="result">` |
 
 **Pontos de chamada a trocar:**
-- a casca (o predicado "entre animações", hoje em `Stage.tsx:128` e `:148`, vira uma função da casca);
+- a casca (o predicado "entre animações", hoje em `app/Cena.tsx` (era `Stage.tsx:128` e `:148`), vira uma função da casca);
 - o test hook (`highlights`, `inkGlow`, `state().showcased`);
 - `tests/showcase.test.ts`, `highlight.test.ts` e `inkGlow.test.ts`, que movem para o módulo.
 

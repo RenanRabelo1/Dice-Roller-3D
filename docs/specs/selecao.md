@@ -53,7 +53,7 @@ Quais dados estão na mão do jogador e como ele os escolhe: botões de cada tip
 | `src/ui/Chat.tsx` | tudo |
 | `src/ui/Controls.tsx:35-45, 60-62, 67` | botões de dado, "−", `.pool` |
 
-**Pontos de chamada a trocar:** `Stage.tsx` (lê `dice`), `Hand.tsx`, `Omens.tsx`, `Tray.tsx`, `OmenOverlay.tsx`, `ImportDie.tsx` (`addDie`, `dice.length`), `App.tsx` (histórico) e o test hook (`select`). Os testes de `tests/notation.test.ts` e a parte de seleção de `tests/store.test.ts` movem para o módulo.
+**Pontos de chamada a trocar:** `app/Cena.tsx` (lê `dice`), `Hand.tsx`, `Omens.tsx`, `Tray.tsx`, `OmenOverlay.tsx`, `ImportDie.tsx` (`addDie`, `dice.length`), `App.tsx` (histórico) e o test hook (`select`). Os testes de `tests/notation.test.ts` e a parte de seleção de `tests/store.test.ts` movem para o módulo.
 
 ## Critérios de aceite da extração
 - Ninguém fora do módulo escreve a mão; o `arremesso` legado se reinicia por evento.

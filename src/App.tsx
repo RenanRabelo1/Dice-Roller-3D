@@ -1,6 +1,6 @@
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { Stage } from './scene/Stage';
+import { Cena } from './app/Cena';
 import { Controls } from './ui/Controls';
 import { OmenOverlay } from './ui/OmenOverlay';
 import { OmenTests } from './ui/OmenTests';
@@ -31,7 +31,7 @@ export default function App() {
           <Canvas shadows camera={{ position: [0, 14, 10], fov: 40 }}
             gl={{ preserveDrawingBuffer: import.meta.env.MODE === 'test' }}>
             <Suspense fallback={null}>
-              <Stage gameArea={gameArea} />
+              <Cena gameArea={gameArea} />
             </Suspense>
           </Canvas>
         </Guard>

@@ -1,6 +1,6 @@
 # ADR 0002: O domínio mora no cliente; as regras que o servidor usa formam um módulo puro
 
-Status: proposto (aguarda o responsável humano)
+Status: aceito (o responsável humano autorizou o plano em 2026-11-13; ver `docs/plano-refatoracao.md`)
 
 ## Contexto
 

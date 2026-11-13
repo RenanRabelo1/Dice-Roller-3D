@@ -1,6 +1,6 @@
 # ADR 0005: Barramento de eventos
 
-Status: proposto (aguarda o responsável humano)
+Status: aceito (o responsável humano autorizou o plano em 2026-11-13; ver `docs/plano-refatoracao.md`)
 
 ## Contexto
 

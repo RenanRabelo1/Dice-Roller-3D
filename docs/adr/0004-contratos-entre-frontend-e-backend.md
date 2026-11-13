@@ -1,6 +1,6 @@
 # ADR 0004: Como o frontend usa os tipos do `contracts.ts` do backend
 
-Status: proposto (aguarda o responsável humano)
+Status: aceito (o responsável humano autorizou o plano em 2026-11-13; ver `docs/plano-refatoracao.md`)
 
 ## Contexto
 

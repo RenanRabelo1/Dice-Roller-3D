@@ -53,7 +53,7 @@ Os imports por URL de `src/` nos E2E (`kraken`, `coin-performance`, `table-krake
 | F-5 | `src/shared/plataforma`: a falha registrada (hoje `store.error`), `Guard`/`Failure`, a sonda de WebGL, o movimento reduzido com evento, o renderizador por software. Tira `error` e `reducedMotion` do `useDice`. Desfaz o ciclo `scene ↔ ui` do lado do `Guard` |
 | F-6 | `src/shared/modelos3d`: `parseGlb`/`readModel` saem de `dice/importer.ts`, com os limites por parâmetro. A `tableFile.ts` passa a usá-lo e para de identificar erro pelo nome da classe |
 | F-7 | Testes de arquitetura em `tests/arquitetura/` (ADR 0006): o `dependency-cruiser` com parser `swc` (ou o leitor próprio, se o `swc` não enxergar `import()` e `new URL`), as regras de import e ciclo e o teste de dono dos dados (lê o bloco `donos-dos-dados` do mapa). Os ciclos que ainda existem no legado entram como exceção, citando este plano, e somem até a fase 7 |
-| F-8 | `src/app/`: a casca. A `Stage.tsx` vai para `src/app/Cena.tsx` e o `testHook.ts` para `src/app/`. A casca passa a montar o `window.__dice` a partir das partes |
+| F-8 | `src/app/`: a casca. A `Stage.tsx` vai para `src/app/Cena.tsx` e o `testHook.ts` para `src/app/`. A casca passa a montar o `window.__dice` a partir das partes. **Feito na OS-0013**, exceto a montagem por partes: ela depende do `inspecao()` de cada módulo e entra com as extrações (comentário em `src/app/testHook.ts`) |
 
 O `CLAUDE.md` raiz é reescrito pelo orquestrador ao fim da fundação, no formato do guia: visão geral, as regras da seção 2 com as adaptações dos ADRs, o mapa de módulos e onde ficam as coisas. A tabela "Tarefa → Ler" muda de `docs/contexto/` para o `CLAUDE.md` de cada módulo à medida que os módulos forem extraídos.
 
@@ -111,7 +111,7 @@ Cada uma deixa o sistema verde.
 | Hoje | Destino |
 |---|---|
 | `CLAUDE.md` raiz (aponta para `docs/contexto/`) | reescrito na fundação no formato do guia |
-| `docs/contexto/visao-geral.md` | absorvido pelo `CLAUDE.md` raiz e pelo mapa; sai ao fim da fundação |
+| `docs/contexto/visao-geral.md` | as regras e o "onde ficam as coisas" foram para o `CLAUDE.md` raiz ao fim da fundação (2026-11-13). Fica como referência de stack, comandos e glossário, e a árvore de arquivos encolhe a cada extração. Sai junto com o último arquivo de `docs/contexto/` de módulo |
 | `docs/contexto/{arremesso,dados,apresentacao,mesa}.md` | o conteúdo de cada módulo vai para o `CLAUDE.md` dele quando ele é extraído (30 a 50 linhas; detalhe a mais vai para `src/modules/<m>/NOTAS.md`, que só se lê quando a ordem manda). O arquivo sai quando o último módulo que ele cobre é extraído |
 | `docs/contexto/armadilhas.md` | fica: são invariantes do sistema que atravessam módulos. Cada armadilha ganha o módulo a que se refere |
 | `docs/contexto/testes.md` | fica, para E2E, `window.__dice` e o gate. Os testes unitários passam a ser descritos no módulo |

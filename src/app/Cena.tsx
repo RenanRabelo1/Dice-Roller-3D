@@ -8,21 +8,21 @@ import { Text } from 'troika-three-text';
 import { bodyStates } from '../physics/apply';
 import { BIAS_BUDGET, presimulateFor, type Recording, type RollRequest, type RollResponse } from '../physics/presim';
 import { omenKinds } from '../dice/omenTest';
-import type { DiceHook } from '../testHook';
+import type { DiceHook } from './testHook';
 import { GRAVITY, HAND, MAX_RADIUS, STEP, TRAY, handPositions } from '../physics/world';
 import type { Vec3 } from '../shared/math';
 import { useDice } from '../store';
-import { installTestHook } from '../testHook';
-import { Die, gemColor } from './Die';
-import { Tray } from './Tray';
-import { Hand } from './Hand';
-import { Omens } from './Omens';
+import { installTestHook } from './testHook';
+import { Die, gemColor } from '../scene/Die';
+import { Tray } from '../scene/Tray';
+import { Hand } from '../scene/Hand';
+import { Omens } from '../scene/Omens';
 import { omenKind } from '../dice/omen';
 import { customKind } from '../dice/custom';
 import { customsOf, MAX_DICE } from '../dice/polyhedra';
 import { VORTEX, vortexCenter, vortexRadius } from '../throw/vortex';
-import { useTable } from './tableState';
-import { panoramaTexture } from './tableImages';
+import { useTable } from '../scene/tableState';
+import { panoramaTexture } from '../scene/tableImages';
 import { Guard, falha, marcarRenderizadorPorSoftware, movimentoReduzido, registrarFalha } from '../shared/plataforma';
 
 const WORKER_TIMEOUT = 2000; // ms; a ten-dice recording takes well under 200 ms
@@ -101,7 +101,7 @@ function ThrowLoop({ bodies, recordLaunch }: {
 
 interface Pano { tex: Texture; rotation: number; intensity: number; blur: number; reflect: boolean }
 
-export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> }) {
+export function Cena({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> }) {
   const selected = useDice((state) => state.dice);
   const background = useTable((state) => state.theme.background);
   const key = selected.join(',');

@@ -57,7 +57,7 @@ Aparência da mesa e do fundo. Temas prontos, cores, texturas do feltro, foto de
 | `src/scene/Tray.tsx:19-47` | o visual da mesa. A regra `broken()` vai para `pressagios` (que chama `ocultarPiso`), e os colisores para `arremesso` |
 | `src/scene/Backdrop.tsx` | tudo |
 | `src/ui/TablePanel.tsx` | tudo. A conversão "mesa importada → tema" (`:69-83`) vira uma função pura com teste |
-| `src/scene/Stage.tsx:100, 104, 114-132, 306, 313-319` | panorama, cor de fundo, props do `EnvironmentPortal` |
+| `src/app/Cena.tsx` (era `scene/Stage.tsx`) `:100, 104, 114-132, 306, 313-319` | panorama, cor de fundo, props do `EnvironmentPortal` |
 
 **Pontos de chamada a trocar:**
 - `App.tsx` (`load`, `warmImageDecoder`);
