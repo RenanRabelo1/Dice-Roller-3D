@@ -45,15 +45,17 @@ Padrão dos specs: esperar `state().ready`, interagir pelo teclado/ponteiro na `
 | Spec | Foco |
 |---|---|
 | `smoke` | contexto WebGL, canvas pinta, toda seleção cria corpos e numerais |
-| `roll` | face de cima = resultado publicado, Espaço, d100×10, seleção mista, captura de ponteiro, blur, reduced motion, moeda, modo de rolagem Relativa/Estática (carga e escolha lembrada) |
+| `roll` | face de cima = resultado publicado, Espaço, d100×10, seleção mista, d4/d8/d6 Fogo ×3 (o d4 lê o numeral mais alto), captura de ponteiro, blur, reduced motion, moeda, modo de rolagem Relativa/Estática (carga e escolha lembrada) |
+| `controls` | limites da mão (com 1 dado o "−" desabilitado; com 10, todos os "Adicionar …" do grupo Dados), `M` abre "Personalizar mesa" e `Esc` fecha (foco volta ao botão Mesa), `m`/`M` digitados no chat não abrem o painel |
 | `chat` | tecla C, notação, Vampiro, bola de fogo, erro, moedas |
 | `failure` | sem WebGL, falha do renderer e física que não carrega (simuladas por `addInitScript`): mensagem em pt-BR, sem canvas |
 | `table` | fundo (tema/foto/cor), cores no pixel, ida-e-volta exportar→importar (M13), arquivo com escala/Z para cima/moldura invadindo, recusas, upgrade do IndexedDB v1→v2 |
 | `table-kraken` | cacos com a cor do feltro da mesa; modelo sem piso some inteiro na quebra |
-| `omen` / `kraken` | presságios forçados (raio, kraken que arremessa e busca o d100, fogo do d20, tempestade do d100), reduced motion, recolher durante presságio, bandeja quebrada/restaurada; os 5 botões de teste (dois arremessos reais caindo no presságio, e desligar com os dados na mão) |
+| `omen` / `kraken` | presságios forçados (raio, kraken que arremessa e busca o d100, fogo do d20, tempestade do d100), reduced motion, recolher durante presságio, bandeja quebrada/restaurada; os 5 botões de teste (dois arremessos reais caindo no presságio, e desligar com os dados na mão; **sensíveis à carga da máquina**: a busca por semente tem orçamento de tempo, `BIAS_BUDGET` 6000 ms no worker, e com a CPU ocupada por outros processos o arremesso sai comum e o caso falha com "nenhum arremesso com … em 6000 ms") |
 | `import` | importar STL/GLB (gerados por `tests/helpers/models.ts` a partir dos nossos sólidos), calibrar, rolar, recarregar, excluir, recusas, 10 dados de ~48 mil triângulos |
 | `coin` | repetição de jogadas da moeda, mobile; a moeda sobe e "Cara"/"Coroa" fica embaixo |
 | `coin-performance` / `coin-software` | orçamento de quadros com 10 moedas, worker atrasado/falho, DPR no SwiftShader |
+| `worker` | `Worker` da pré-simulação trocado por `addInitScript` por um que nunca responde: o cálculo local entra depois do `WORKER_TIMEOUT` (≥ 2 s, < 5 s entre o pedido e o `terminate`) e publica a face de cima. Com o pedido envenenado (o falso não clona; o cálculo local lança ao ler), caracteriza o comportamento **atual** da falha dupla (`docs/diagnostico.md` §10, item 1): `error: 'physics'`, mesma mão de volta com novo `throwId`, mensagem "Não foi possível carregar a física. Recarregue a página.", canvas removido e o rodapé dizendo "os dados voltaram para a mão. Tente jogar de novo." Quando esse caminho for corrigido, esse caso muda junto |
 | `history` | histórico: 1 d20 gera exatamente um POST `{ playerId, dice, force }` quando o resultado é publicado; seleção mista na ordem de `dice` com os valores de `results`; mesmo `playerId` em dois arremessos e depois de recarregar; resposta 500 não afeta o jogo |
 
 Os testes de desempenho têm orçamentos calibrados na máquina do autor (ver `docs/performance-coins.md`); falha só neles em outra máquina pode ser ambiente.

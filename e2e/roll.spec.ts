@@ -67,6 +67,17 @@ test('a mixed selection (d10 + 2d12 + d100) rolls together and each die shows it
   await expect(page.getByTestId('result')).toContainText(String(results.reduce((a, b) => a + b, 0)));
 });
 
+for (const kind of ['d4', 'd8', 'fire'] as const) {
+  test(`${kind} × 3 rolls and each die shows its published result`, async ({ page }) => {
+    await page.evaluate((kind) => window.__dice.select(Array(3).fill(kind)), kind); await ready(page, 3);
+    await throwWithSpace(page); await settled(page);
+    const results = (await page.evaluate(() => window.__dice.state().results))!;
+    expect(results).toHaveLength(3);
+    for (let i = 0; i < 3; i++) expect(String(results[i])).toBe(await topValue(page, i, kind === 'd4'));
+    await expect(page.getByTestId('result')).toContainText(String(results.reduce((a, b) => a + b, 0)));
+  });
+}
+
 test('repeating a throw with the same selection gets a new throwId', async ({ page }) => {
   await throwWithSpace(page); await settled(page);
   const first = await page.evaluate(() => window.__dice.state().throwId);
