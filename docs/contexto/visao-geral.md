@@ -35,7 +35,7 @@ Gate de entrega usado no projeto: build → lint → test → e2e, todos verdes.
 
 ```
 src/
-  indexedDb.ts             abre o IndexedDB `dice-roller` v2 (dados importados + mesas)
+  shared/db.ts             abre o IndexedDB `dice-roller` v2; cada dono declara a sua store (`defineStore`)
   main.tsx, App.tsx        casca: <Controls/> + <Canvas><Stage/></Canvas> + <OmenOverlay/>
   failure.ts               sonda WebGL e falhas de renderer/física → `store.error`  → armadilhas.md
   store.ts                 zustand: seleção, fase, throwId, launch, results, omen  → arremesso.md
