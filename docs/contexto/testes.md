@@ -44,7 +44,7 @@ Padrão dos specs: esperar `state().ready`, interagir pelo teclado/ponteiro na `
 | Spec | Foco |
 |---|---|
 | `smoke` | contexto WebGL, canvas pinta, toda seleção cria corpos e numerais |
-| `roll` | face de cima = resultado publicado, Espaço, d100×10, seleção mista, captura de ponteiro, blur, reduced motion, moeda |
+| `roll` | face de cima = resultado publicado, Espaço, d100×10, seleção mista, captura de ponteiro, blur, reduced motion, moeda, modo de rolagem Relativa/Estática (carga e escolha lembrada) |
 | `chat` | tecla C, notação, Vampiro, bola de fogo, erro, moedas |
 | `failure` | sem WebGL, falha do renderer e física que não carrega (simuladas por `addInitScript`): mensagem em pt-BR, sem canvas |
 | `table` | fundo (tema/foto/cor), cores no pixel, ida-e-volta exportar→importar (M13), arquivo com escala/Z para cima/moldura invadindo, recusas, upgrade do IndexedDB v1→v2 |
