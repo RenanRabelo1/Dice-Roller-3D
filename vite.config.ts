@@ -5,5 +5,5 @@ import { defineConfig } from 'vite'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
-  test: { include: ['tests/**/*.test.ts'], environment: 'node', testTimeout: 10_000 },
+  test: { include: ['tests/**/*.test.ts', 'src/**/tests/**/*.test.ts'], environment: 'node', testTimeout: 10_000 },
 })

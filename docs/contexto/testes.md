@@ -2,14 +2,16 @@
 
 ## Unitários — Vitest (`npm test`)
 
-- Só `tests/**/*.test.ts`, ambiente **Node**, timeout 10 s (`vite.config.ts`).
+- `tests/**/*.test.ts` e `src/**/tests/**/*.test.ts`, ambiente **Node**, timeout 10 s (`vite.config.ts`).
+- Onde fica cada teste (ADR 0007, ponto 9): o unitário de um módulo mora em `src/<...>/tests/` e só importa o próprio módulo (o primeiro é `src/shared/tests/events.test.ts`). O `tests/` da raiz fica para o que atravessa módulos: física de ponta a ponta, rede de segurança e arquitetura. Os testes de `src/` são checados pelo `tsconfig.test.json` (tipos do Node); o `tsconfig.app.json` os exclui, e o `tsc -b` do build roda os dois.
 - Cobrem os módulos puros e a física real: `aim`, `gesture`, `settle`, `world`, `polyhedra`, `read`, `notation`, `omen`, `symbols`, `highlight`, `showcase`, `kraken`, `fire`, `vortex`, `history`, `store`, `physics`, `importer`, `custom`, `table`.
 - A API tem sua própria suíte: `npm run test:server` (typecheck + `vitest` em `server/`; Fastify de verdade num MongoDB em memória via `mongodb-memory-server`). Precisa de `npm install` em `server/` uma vez.
 - `tests/helpers/sim.ts`:
   - `initRapier()` — inicializa `rapier3d-compat` uma vez e silencia o aviso de depreciação conhecido do wasm-bindgen.
   - `models.ts`: `modelTriangles` (sólido nosso, chanfrado, girado e deslocado como um export de fatiador), `stl`, `glb`, `subdivided`, `customDieOf` (dado importado registrado).
   - `simulate({ kind|dice, count, force, target, seed, perturb? })` — roda o **mesmo** `presimulate` do app a partir das poses da mão. Use para testes de física (determinismo, fuga, timeout, seleção mista).
-- Teste novo de lógica pura: arquivo `tests/<modulo>.test.ts`, sem fixtures nem mocks de three.
+- Teste novo de lógica pura: arquivo `src/<...>/tests/<x>.test.ts`, dentro do módulo, sem fixtures nem mocks de three. Os que hoje estão em `tests/` migram na extração de cada módulo.
+- O `server/vitest.config.ts` também inclui `src/**/tests/**/*.test.ts`, além de `test/**`.
 
 ## E2E — Playwright (`npm run e2e`)
 
