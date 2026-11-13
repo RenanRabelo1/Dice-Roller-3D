@@ -1,4 +1,5 @@
-import { isOutside, recoveryPoint, SETTLE, type Quat, type Vec3 } from '../physics/world';
+import { isOutside, recoveryPoint, SETTLE } from '../physics/world';
+import type { Quat, Vec3 } from '../shared/math';
 import type { Phase } from './gesture';
 
 export interface BodyState { p: Vec3; q: Quat; speed: number; spin: number }

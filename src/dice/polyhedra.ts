@@ -8,7 +8,7 @@ import {
   type BufferGeometry,
 } from 'three';
 import { ConvexHull } from 'three/examples/jsm/math/ConvexHull.js';
-import type { Vec3 } from '../physics/world';
+import type { Vec3 } from '../shared/math';
 import { customBase, customKind, customList, customOrder, customPoly, isCustom, type CustomKind } from './custom';
 
 import { BASE, KINDS, type BuiltinKind, type DieKind, type Shape } from './kinds';

@@ -2,7 +2,7 @@ import { LoadingManager, Mesh, Vector3, type BufferGeometry, type Material, type
 import { ConvexHull } from 'three/examples/jsm/math/ConvexHull.js';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import type { Vec3 } from '../physics/world';
+import type { Vec3 } from '../shared/math';
 import { customKind, type CustomBase, type CustomDie, type StdBase } from './custom';
 import { FREE_VALUES } from './kinds';
 import { fromTriangles, OPPOSITE_SUM, RADIUS, type Numbering, type Polyhedron } from './polyhedra';

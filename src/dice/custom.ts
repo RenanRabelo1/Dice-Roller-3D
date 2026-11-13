@@ -1,5 +1,5 @@
 import { Color } from 'three';
-import type { Vec3 } from '../physics/world';
+import type { Vec3 } from '../shared/math';
 import { isCustom, omenD20s, type CustomBase, type CustomKind } from './kinds';
 import type { Polyhedron, Shape } from './polyhedra';
 

@@ -2,7 +2,7 @@ import { RigidBodyType } from '@dimforge/rapier3d-compat';
 import type { RigidBody } from '@dimforge/rapier3d-compat';
 import { launchVelocity, spin } from '../throw/aim';
 import type { BodyState, SettleAction } from '../throw/settle';
-import type { Quat, Vec3 } from './world';
+import type { Quat, Vec3 } from '../shared/math';
 
 // The single place that changes Rapier body types, velocities and poses (scene and Node tests alike).
 

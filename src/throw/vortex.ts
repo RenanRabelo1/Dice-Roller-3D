@@ -1,5 +1,6 @@
 import { MAX_DICE } from '../dice/polyhedra';
-import { HAND, TRAY, type Vec3 } from '../physics/world';
+import { HAND, TRAY } from '../physics/world';
+import type { Vec3 } from '../shared/math';
 
 // The hand as a whirlwind. One die waits alone, spinning. More dice gather into an atom-like whirl:
 // each on its own tilted orbit (half of them going the other way round) and spinning about its own axis.

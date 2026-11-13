@@ -1,4 +1,5 @@
-import { LAUNCH, MAX_RADIUS, SPIN, TRAY, type Vec3 } from '../physics/world';
+import { LAUNCH, MAX_RADIUS, SPIN, TRAY } from '../physics/world';
+import type { Vec3 } from '../shared/math';
 
 const CHARGE_HALF_CYCLE_MS = 700;
 

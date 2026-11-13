@@ -5,9 +5,9 @@ import { polyhedron, type DieKind, type Polyhedron } from '../dice/polyhedra';
 import { readUp, toResults } from '../dice/read';
 import { initSettle, stepSettle } from '../throw/settle';
 import { applyLaunch, applySettle, bodyStates, type Launch } from './apply';
-import { DAMPING, GRAVITY, isOutside, MATERIAL, SETTLE, STEP, trayColliders, type Quat, type Vec3 } from './world';
+import { DAMPING, GRAVITY, isOutside, MATERIAL, SETTLE, STEP, trayColliders } from './world';
+import type { Pose } from '../shared/math';
 
-export type Pose = { p: Vec3; q: Quat };
 export interface Recording { frames: Pose[][]; raw: number[]; results: number[]; timedOut: boolean; escaped: boolean; recovered: boolean }
 // `customs`: the imported dice of the selection, because the worker has no registry of its own.
 // `bias` (dev test buttons only): look for a roll that plays this omen; `kinds` from omenKinds.
