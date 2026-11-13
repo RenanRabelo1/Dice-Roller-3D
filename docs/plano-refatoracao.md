@@ -61,7 +61,7 @@ O `CLAUDE.md` raiz é reescrito pelo orquestrador ao fim da fundação, no forma
 
 O formato da seção 6 do guia pressupõe um módulo. Enquanto os módulos não existem, as ordens trocam o campo `Módulo:` por `Escopo de escrita:`, uma lista fechada de caminhos:
 
-- **RS-n (rede de segurança):** só `e2e/**`, `tests/**`, `playwright.config.ts` e `package.json` (scripts). Nenhum arquivo de `src/` ou `server/src/`, com uma exceção: a RS-0, que integra uma branch e é revisada pelo diff do merge.
+- **RS-n (rede de segurança):** só `e2e/**`, `tests/**`, `playwright.config.ts`, `package.json` (scripts) e o `docs/contexto/*.md` que descreve o que a ordem mudou (regra 8). Nenhum arquivo de `src/` ou `server/src/`, com uma exceção: a RS-0, que integra uma branch e é revisada pelo diff do merge.
 - **F-n (fundação):** `src/shared/<parte>/**`, mais os pontos de chamada no legado que a ordem lista nominalmente. É o "dev de shared" do guia.
 
 As ordens de extração (fase 5) usam o formato do guia. O escopo de escrita é:

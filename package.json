@@ -9,6 +9,7 @@
     "lint": "oxlint",
     "dev:test": "vite --mode test --host 127.0.0.1 --port 5179 --strictPort",
     "test": "vitest run",
+    "test:server": "npm --prefix server run typecheck && npm --prefix server test",
     "e2e": "playwright test",
     "preview": "vite preview"
   },

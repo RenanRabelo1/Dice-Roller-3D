@@ -4,7 +4,7 @@
 
 - Só `tests/**/*.test.ts`, ambiente **Node**, timeout 10 s (`vite.config.ts`).
 - Cobrem os módulos puros e a física real: `aim`, `gesture`, `settle`, `world`, `polyhedra`, `read`, `notation`, `omen`, `symbols`, `highlight`, `showcase`, `kraken`, `fire`, `vortex`, `history`, `store`, `physics`, `importer`, `custom`, `table`.
-- A API tem sua própria suíte: `cd server && npm test` (Fastify de verdade num MongoDB em memória via `mongodb-memory-server`).
+- A API tem sua própria suíte: `npm run test:server` (typecheck + `vitest` em `server/`; Fastify de verdade num MongoDB em memória via `mongodb-memory-server`). Precisa de `npm install` em `server/` uma vez.
 - `tests/helpers/sim.ts`:
   - `initRapier()` — inicializa `rapier3d-compat` uma vez e silencia o aviso de depreciação conhecido do wasm-bindgen.
   - `models.ts`: `modelTriangles` (sólido nosso, chanfrado, girado e deslocado como um export de fatiador), `stl`, `glb`, `subdivided`, `customDieOf` (dado importado registrado).
@@ -14,7 +14,8 @@
 ## E2E — Playwright (`npm run e2e`)
 
 - `playwright.config.ts`: Chrome instalado (`channel: 'chrome'`), WebGL por software (`--use-gl=angle --use-angle=swiftshader`), 1440×900, `workers: 1`, timeout 120 s.
-- Sobe `npm run dev:test` (Vite em `--mode test`, 127.0.0.1:5179, porta fixa). Não reusa servidor existente.
+- Sobe `npm run dev:test` (Vite em `--mode test`, 127.0.0.1:5179, porta fixa). Não reusa servidor existente (nem o stub abaixo).
+- Sobe também `node e2e/api-stub.mjs` (127.0.0.1:5180): um stub da API do histórico que responde 204 a tudo, com CORS e preflight `OPTIONS`. O Vite de teste recebe `VITE_API_URL=http://127.0.0.1:5180`, então o build de teste envia o histórico (`src/api/history.ts`) e um POST que nenhum teste intercepta não gera erro de console (um 404 ou um endereço morto gerariam, e vários specs exigem console limpo). `history.spec` intercepta `http://127.0.0.1:5180/rolls` com `page.route`.
 - Em `mode === 'test'` o canvas usa `preserveDrawingBuffer` e o app expõe `window.__dice` (tipo em `src/testHook.ts`, instalado em `Stage.tsx`).
 
 ### `window.__dice` (DiceHook)
@@ -53,6 +54,7 @@ Padrão dos specs: esperar `state().ready`, interagir pelo teclado/ponteiro na `
 | `import` | importar STL/GLB (gerados por `tests/helpers/models.ts` a partir dos nossos sólidos), calibrar, rolar, recarregar, excluir, recusas, 10 dados de ~48 mil triângulos |
 | `coin` | repetição de jogadas da moeda, mobile; a moeda sobe e "Cara"/"Coroa" fica embaixo |
 | `coin-performance` / `coin-software` | orçamento de quadros com 10 moedas, worker atrasado/falho, DPR no SwiftShader |
+| `history` | histórico: 1 d20 gera exatamente um POST `{ playerId, dice, force }` quando o resultado é publicado; seleção mista na ordem de `dice` com os valores de `results`; mesmo `playerId` em dois arremessos e depois de recarregar; resposta 500 não afeta o jogo |
 
 Os testes de desempenho têm orçamentos calibrados na máquina do autor (ver `docs/performance-coins.md`); falha só neles em outra máquina pode ser ambiente.
 
@@ -62,6 +64,7 @@ Os testes de desempenho têm orçamentos calibrados na máquina do autor (ver `d
 npm run build
 npm run lint
 npm test
+npm run test:server
 npm run e2e
 ```
 
