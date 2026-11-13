@@ -8,7 +8,8 @@ import { customDie, customKind, finishOf, inkColorOf, isCustom, type CustomDie, 
 import { useDice } from '../store';
 import { baseOf, polyhedron, type BuiltinKind, type DieKind, type Label, type Polyhedron, type Shape } from '../dice/polyhedra';
 import { symbolGeometry } from '../dice/symbols';
-import { MATERIAL, type Vec3 } from '../physics/world';
+import { MATERIAL } from '../physics/world';
+import type { Vec3 } from '../shared/math';
 import { vortexCenter } from '../throw/vortex';
 
 // Kept alongside Die as the scene's specified gem palette.

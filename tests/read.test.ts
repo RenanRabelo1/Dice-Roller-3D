@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { Quaternion, Vector3 } from 'three';
 import { polyhedron, type BuiltinKind } from '../src/dice/polyhedra';
 import { readUp, toResults } from '../src/dice/read';
-import type { Quat, Vec3 } from '../src/physics/world';
+import type { Quat, Vec3 } from '../src/shared/math';
 import { detectFree, idealSolid, renumbered, withReadable } from '../src/dice/importer';
 import { asFile, freeDieOf, prismTriangles, shardTriangles } from './helpers/models';
 

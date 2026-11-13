@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { TRAY, MAX_RADIUS, trayColliders, handPositions, clampHandX, recoveryPoint, isOutside, type Vec3 } from '../src/physics/world';
+import { TRAY, MAX_RADIUS, trayColliders, handPositions, clampHandX, recoveryPoint, isOutside } from '../src/physics/world';
+import type { Vec3 } from '../src/shared/math';
 
 const dist = (a: Vec3, b: Vec3) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 const within = (p: Vec3, r: number) =>

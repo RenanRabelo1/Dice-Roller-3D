@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { omenKinds, plays, withDiceFor } from '../src/dice/omenTest';
 import { presimulate, presimulateFor, type RollRequest } from '../src/physics/presim';
-import { handPositions, type Quat, type Vec3 } from '../src/physics/world';
+import { handPositions } from '../src/physics/world';
+import type { Quat, Vec3 } from '../src/shared/math';
 import type { DieKind } from '../src/dice/polyhedra';
 import { initRapier } from './helpers/sim';
 

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useDice } from '../src/store';
-import type { Vec3 } from '../src/physics/world';
+import type { Vec3 } from '../src/shared/math';
 
 const s = () => useDice.getState();
 const P = { kind: 'pointer', id: 1 } as const;

@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { PerspectiveCamera, Quaternion, Vector3 } from 'three';
 import { polyhedron } from '../src/dice/polyhedra';
 import { fractureCells, KRAKEN, krakenAt, krakenDieAt, krakenIndices, STORM, stormAt, stormDieAt, stormIndices, trayBrokenAt } from '../src/scene/krakenMotion';
-import { showcasePoses, type Pose } from '../src/scene/showcase';
+import { showcasePoses } from '../src/scene/showcase';
+import type { Pose } from '../src/shared/math';
 
 const camera = (aspect: number) => {
   const c = new PerspectiveCamera(40, aspect);

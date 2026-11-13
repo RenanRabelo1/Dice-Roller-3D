@@ -1,8 +1,8 @@
 import { Matrix4, Quaternion, Vector3 } from 'three';
 import type { Polyhedron } from '../dice/polyhedra';
-import { MAX_RADIUS, type Quat, type Vec3 } from '../physics/world';
+import { MAX_RADIUS } from '../physics/world';
+import type { Pose, Quat, Vec3 } from '../shared/math';
 
-export type Pose = { p: Vec3; q: Quat };
 export interface View { position: Vector3; quaternion: Quaternion; fov: number; aspect: number }
 
 const SPACING = 2 * MAX_RADIUS + 0.2;

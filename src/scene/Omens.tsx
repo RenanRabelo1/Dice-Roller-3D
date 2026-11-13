@@ -9,7 +9,8 @@ import {
 import { MAX_DICE } from '../dice/polyhedra';
 import { DUALITY_HIT, isD20, omenKind, omenMs } from '../dice/omen';
 import { omenPlaying, useDice } from '../store';
-import { krakenIndices, span, stormIndices } from './krakenMotion';
+import { krakenIndices, stormIndices } from './krakenMotion';
+import { clamp01, span } from '../shared/math';
 import { Kraken } from './Kraken';
 import { useTable } from './tableState';
 import { Fire } from './Fire';
@@ -20,7 +21,6 @@ import { fireAt, fireIndices } from './fireMotion';
 // duality (the rain, heat and shakes are screen overlays, see OmenOverlay). Effect materials are compiled at
 // mount and hidden (0 draw calls) outside an omen. When the show ends it marks the omen done, and the result goes on.
 
-const clamp01 = (t: number) => Math.min(1, Math.max(0, t));
 const easeOut = (t: number) => 1 - (1 - clamp01(t)) ** 3;
 const easeIn = (t: number) => clamp01(t) ** 3;
 

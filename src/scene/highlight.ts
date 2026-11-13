@@ -1,4 +1,5 @@
 import { Vector3 } from 'three';
+import { clamp01, easeOut } from '../shared/math';
 
 // Showcase timeline (ms from the moment the dice settle): the rolled number rises over its die, then
 // ~1 s after settling each die flies to the camera (staggered) and the number lands on its face and glows.
@@ -6,9 +7,6 @@ export const SHOW = { rise: 550, delay: 1000, duration: 650, stagger: 70 };
 export const HL_SIZE = 0.55; // font size of the floating number (world units)
 const LIFT = 0.55;
 const PULSE_HZ = 0.9;
-
-export const easeOut = (t: number) => 1 - (1 - t) ** 4;
-const clamp01 = (t: number) => Math.min(1, Math.max(0, t));
 
 export interface Highlight { p: Vector3; opacity: number; scale: number; glow: number }
 

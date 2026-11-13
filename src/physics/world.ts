@@ -1,5 +1,4 @@
 import type { Vec3 } from '../shared/math';
-export type { Vec3, Quat } from '../shared/math'; // ponte até a OS-0006
 
 export const STEP = 1 / 60;
 export const GRAVITY: Vec3 = [0, -40, 0];

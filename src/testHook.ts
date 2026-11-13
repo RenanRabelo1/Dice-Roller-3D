@@ -1,7 +1,7 @@
 import type { DieKind } from './dice/polyhedra';
 import type { DiceError } from './store';
 import type { Omen, OmenKind } from './dice/omen';
-import type { Quat, Vec3 } from './physics/world';
+import type { Quat, Vec3 } from './shared/math';
 import type { Phase } from './throw/gesture';
 
 export interface DiceHook {

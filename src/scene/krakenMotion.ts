@@ -1,12 +1,10 @@
 import { MathUtils, Quaternion, Vector3 } from 'three';
 import type { Omen } from '../dice/omen';
 import type { DieKind } from '../dice/polyhedra';
-import { TRAY, type Quat, type Vec3 } from '../physics/world';
-import { easeOut } from './highlight';
-import type { Pose } from './showcase';
+import { TRAY } from '../physics/world';
+import { easeOut, span, type Pose, type Quat, type Vec3 } from '../shared/math';
 import type { Phase } from '../throw/gesture';
 
-export const span = (t: number, a: number, b: number) => MathUtils.clamp((t - a) / (b - a), 0, 1);
 const smooth = (t: number, a: number, b: number) => MathUtils.smootherstep(t, a, b);
 const UP = new Vector3(0, 1, 0);
 

@@ -1,5 +1,5 @@
 import { AdditiveBlending, BufferGeometry, Float32BufferAttribute, Matrix3, Matrix4, Mesh, MeshBasicMaterial, Vector3, type Object3D } from 'three';
-import type { Vec3 } from '../physics/world';
+import type { Vec3 } from '../shared/math';
 
 // Triangles of an engraved model that face up when the die rests on the face whose outward normal is `down`
 // (die space): inked (mask = 1) and cut into a solid face that looks within ~60° of straight up. The face is the one

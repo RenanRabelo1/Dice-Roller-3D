@@ -5,18 +5,18 @@ import { ArrowHelper, Color, Group, Matrix4, Mesh, MeshBasicMaterial, Plane, Qua
 import { Text } from 'troika-three-text';
 import { MAX_DICE, polyhedron, RADIUS } from '../dice/polyhedra';
 import { toKinematic } from '../physics/apply';
-import { HAND, type Quat, type Vec3 } from '../physics/world';
+import { HAND } from '../physics/world';
+import { easeOut, type Pose, type Quat, type Vec3 } from '../shared/math';
 import { omenPlaying, useDice } from '../store';
 import { charge, clampTarget } from '../throw/aim';
 import { newWhirl, ORBITS, restingPlaces, spinAngle, stepWhirl, vortexCenter } from '../throw/vortex';
 import { CAPTION, showcasePoses } from './showcase';
 import { glowMesh } from './inkGlow';
 import { customDie, inkColorOf, isCustom } from '../dice/custom';
-import { easeOut, highlightAt, HL_SIZE, SHOW } from './highlight';
+import { highlightAt, HL_SIZE, SHOW } from './highlight';
 import { symbolGeometry } from '../dice/symbols';
 import { FONT, FONT_URL, gemColor, SYMBOL } from './Die';
 import { KRAKEN, krakenAt, krakenDieAt, krakenIndices, STORM, stormAt, stormDieAt, stormIndices } from './krakenMotion';
-import type { Pose } from './showcase';
 
 type Mark = { local: Vector3; turn: Quaternion; start: Vector3; face: Vector3; scale: number }; // local, turn: the rolled numeral's place and turn in die space
 

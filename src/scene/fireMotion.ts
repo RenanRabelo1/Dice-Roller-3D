@@ -2,8 +2,7 @@ import { MathUtils } from 'three';
 import { isD20, type Omen } from '../dice/omen';
 import type { DieKind } from '../dice/polyhedra';
 import { TRAY } from '../physics/world';
-import { easeOut } from './highlight';
-import { span } from './krakenMotion';
+import { easeOut, span } from '../shared/math';
 
 // d20 = 1. The die catches fire, the fire runs over the whole felt, and the die flies to the front still
 // burning; the tray burns out, the die burns on until it is picked up.

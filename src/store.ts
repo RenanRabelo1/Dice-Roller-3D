@@ -4,7 +4,8 @@ import { deleteCustomDie, listCustomDice, saveCustomDie } from './dice/customSto
 import { MAX_DICE, sortDice, type DieKind } from './dice/polyhedra';
 import { omenOf, type Omen } from './dice/omen';
 import type { Launch } from './physics/apply';
-import { HAND, type Vec3 } from './physics/world';
+import { HAND } from './physics/world';
+import type { Vec3 } from './shared/math';
 import { initialGesture, reduce, type Effect, type GestureEvent, type GestureState } from './throw/gesture';
 import type { ChargeMode } from './throw/aim';
 import { withDiceFor, type OmenTest } from './dice/omenTest';

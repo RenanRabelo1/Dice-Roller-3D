@@ -3,7 +3,7 @@ import { BoxGeometry, IcosahedronGeometry } from 'three';
 import type { StdBase } from '../src/dice/custom';
 import { askOrder, checkValues, detectFree, detectPlanes, idealSolid, ImportError, importModel, inkOf, inkTriangles, LIMITS, looksNumbered, readModel, renumbered, suggestOpposite, tierOf, unevenOf, withReadable } from '../src/dice/importer';
 import { RADIUS, polyhedron } from '../src/dice/polyhedra';
-import type { Vec3 } from '../src/physics/world';
+import type { Vec3 } from '../src/shared/math';
 import { asFile, glb, hullTriangles, modelTriangles, planesSolid, prismTriangles, shardTriangles, stl, triacontahedronNormals } from './helpers/models';
 
 const BASES: StdBase[] = ['d4', 'd6', 'd8', 'd10', 'd12', 'd20'];

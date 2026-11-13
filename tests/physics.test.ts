@@ -3,7 +3,8 @@ import RAPIER, { RigidBodyType } from '@dimforge/rapier3d-compat';
 import { BASE, KINDS } from '../src/dice/polyhedra';
 import { clampTarget, launchVelocity, spin } from '../src/throw/aim';
 import { applyLaunch, applySettle, bodyStates, toKinematic } from '../src/physics/apply';
-import { isOutside, MAX_RADIUS, SETTLE, type Quat, type Vec3 } from '../src/physics/world';
+import { isOutside, MAX_RADIUS, SETTLE } from '../src/physics/world';
+import type { Quat, Vec3 } from '../src/shared/math';
 import { initRapier, simulate } from './helpers/sim';
 
 const T = 180_000;
