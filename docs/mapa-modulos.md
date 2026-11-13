@@ -86,11 +86,13 @@ O bloco acima é lido pelo teste de arquitetura (ADR 0006). Mudou um dono? Mude 
 
 ## Ciclos de hoje e como somem
 
+Estado em 2026-11-13, depois da fundação até a OS-0010: os ciclos de import que restam são os de `CICLOS_CONHECIDOS` em `tests/arquitetura/config.ts`, que falha se surgir um novo ou se um deles sumir.
+
 | Ciclo (verificado no grafo de imports) | O que o sustenta | Como some |
 |---|---|---|
-| pastas `dice ↔ physics ↔ throw` | `Vec3`/`Quat` em `physics/world.ts`, usados pela geometria; parâmetros do arremesso (`TRAY`, `LAUNCH`, `SETTLE`, `HAND`) no mesmo arquivo do motor; `presim` lendo o registro de importados | Vetores vão para `shared/`; `throw/` + `physics/` viram o módulo `arremesso`; `MAX_RADIUS` vai para `dados`; a pré-simulação recebe os sólidos prontos (já chegam em `RollRequest.customs`) |
+| pastas `physics ↔ throw` (era `dice ↔ physics ↔ throw`; o lado `dice` sumiu com `shared/math`, OS-0005/0006) | `Vec3`/`Quat` em `physics/world.ts`, usados pela geometria; parâmetros do arremesso (`TRAY`, `LAUNCH`, `SETTLE`, `HAND`) no mesmo arquivo do motor; `presim` lendo o registro de importados | Vetores vão para `shared/`; `throw/` + `physics/` viram o módulo `arremesso`; `MAX_RADIUS` vai para `dados`; a pré-simulação recebe os sólidos prontos (já chegam em `RollRequest.customs`) |
 | arquivos `custom.ts ↔ polyhedra.ts` | `polyhedron(kind)` resolve importados pelo registro | Interno a `dados`: tipos, construtores de sólido e catálogo em arquivos separados, nessa ordem de dependência |
-| pastas `scene ↔ ui` | `TablePanel` importa a mesa que mora em `scene/`; `Stage` importa o `Guard` de `ui/` | A mesa vira módulo próprio, com o painel dentro; o `Guard` vai para `shared/plataforma` |
+| ~~pastas `scene ↔ ui`~~ — **desfeito** na OS-0008 (o `Guard` foi para `shared/plataforma`); resta `ui → scene` em sentido único (`TablePanel` importa a mesa) | — | A mesa vira módulo próprio, com o painel dentro |
 | `mesa ↔ presságio` (`Tray → trayBrokenAt`, `Omens → useTable.colors`) | a regra de quebra é executada pela mesa | `pressagios → mesa` em sentido único (`coresDaMesa`, `ocultarPiso`) |
 | latente `showcase ↔ presságio` (aparece ao partir `Hand.tsx`) | `krakenMotion` usa `Pose`/`easeOut` de `showcase`/`highlight`; `Hand` usa o caminho do d100 do kraken | `Pose`/`easeOut`/`span` vão para `shared/`; `vitrine → pressagios` (`movimentoDoDadoNoPresagio`), e a pose final do voo entra por parâmetro |
 | gatilho do histórico na casca (`App.tsx:26`) | a casca assina o store e chama `saveRoll` | `historico` assina `resultadoPublicado` |

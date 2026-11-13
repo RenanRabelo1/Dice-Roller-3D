@@ -13,6 +13,25 @@
 - Teste novo de lógica pura: arquivo `src/<...>/tests/<x>.test.ts`, dentro do módulo, sem fixtures nem mocks de three. Os que hoje estão em `tests/` migram na extração de cada módulo.
 - O `server/vitest.config.ts` também inclui `src/**/tests/**/*.test.ts`, além de `test/**`.
 
+## Arquitetura — `tests/arquitetura/` (dentro do `npm test`)
+
+Imports e ciclos (regras 1 e 4 do guia, ADR 0006 parte A). O leitor é nosso (ADR 0009), sem `dependency-cruiser`: o `parseSync` do `@swc/core` lê cada `.ts`/`.tsx` de `src/`, `server/src` e `server/test`. A suíte leva menos de 1 s.
+
+- `leitor.ts`: arestas de `import`/`export … from` (só `import type`/`export type` contam como tipo, por causa do `verbatimModuleSyntax`), `import()` com string literal e `new URL('./x', import.meta.url)` (o worker). Resolve caminho relativo com ou sem extensão e `index.ts`/`index.tsx` de pasta, e só guarda destinos `.ts`/`.tsx` (css e imagem são ignorados). **Derrubam a suíte:** import relativo que não resolve, import com grafia diferente da do disco (o Windows aceita, o Linux não), caminho absoluto `/src/...` e `import()` sem string literal. Hoje não há alias de `paths` no tsconfig; se aparecer, o leitor precisa recusá-lo também.
+- `leitor.test.ts`: prova as quatro arestas reais (estático, `import type`, `import()` de `ImportDie`, o worker de `Stage.tsx`) e, em `fixtures/leitor/`, cada recusa acima e o `new URL` de não-código.
+- Ciclos só são procurados em `src/`; os de `server/` entram na extração do `historico`.
+- `regras.ts` + `imports.test.ts`, sobre o código real:
+  - **ciclos** (Tarjan, contando tipo, dinâmico e worker) em dois níveis: `arquivo` e `pasta` (unidade = `src/modules/<m>`, `src/<pasta>` ou arquivo da raiz de `src/`);
+  - `src/shared/**` não importa nada de `src/` fora de `src/shared/`;
+  - de outro módulo, só `index.ts`, ou `contracts.ts` com `import type`; módulo não importa a casca (`src/main.tsx`, `src/App.tsx`, `src/app/**`); `src/modules/regras/**` não importa pacote nem arquivo fora dele (ADR 0002);
+  - `server/**` → `src/**` só para os arquivos de `SERVIDOR_PODE_IMPORTAR`; `src/**` → `server/**` só `import type` de `server/src/modules/<m>/contracts.ts`. As regras internas do `server/` (`routes.ts`, `mongodb`) entram na extração do `historico`.
+- As regras de módulo valem antes de existir módulo: `fixtures/modulos/` é uma árvore mínima (`src/`, `server/`) que viola cada regra uma vez, e o teste confere que cada uma dispara. Os fixtures são checados pelo `tsc -b` (`tsconfig.test.json`); os que não compilam de propósito (import quebrado, caminho absoluto, grafia) usam `// @ts-nocheck`.
+- Falha sai como `[regra] origem → destino (regra do guia / ADR)`.
+
+**Exceções** só em `tests/arquitetura/config.ts`, cada uma com o ADR ou a linha do plano ao lado: `CICLOS_CONHECIDOS`, `SERVIDOR_PODE_IMPORTAR` (cai na extração de `regras`), `REGRAS_TESTES_PODEM_IMPORTAR` (`vitest` nos testes do próprio módulo, ADR 0007 ponto 9).
+
+**Ciclo conhecido:** a entrada é `{ nivel, membros, motivo }`, e `membros` é o componente fortemente conexo inteiro, em ordem alfabética (a mensagem de falha mostra um caminho do ciclo). O teste falha nos dois sentidos: ciclo fora da lista (desfaça; só acrescente com motivo citando a tabela "Ciclos de hoje" do `docs/mapa-modulos.md` ou o `docs/plano-refatoracao.md` §8) e ciclo da lista que não existe mais (tire a entrada no mesmo commit que o desfez). Se o componente cresce ou encolhe, a entrada muda junto.
+
 ## E2E — Playwright (`npm run e2e`)
 
 - `playwright.config.ts`: Chrome instalado (`channel: 'chrome'`), WebGL por software (`--use-gl=angle --use-angle=swiftshader`), 1440×900, `workers: 1`, timeout 120 s.
