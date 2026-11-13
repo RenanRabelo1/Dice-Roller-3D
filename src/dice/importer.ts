@@ -1,8 +1,7 @@
-import { LoadingManager, Mesh, Vector3, type BufferGeometry, type Material, type Object3D, type Texture } from 'three';
+import { Mesh, Vector3, type BufferGeometry, type Material, type Object3D, type Texture } from 'three';
 import { ConvexHull } from 'three/examples/jsm/math/ConvexHull.js';
-import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import type { Vec3 } from '../shared/math';
+import { ModelError, readModel as readShared, type Model, type ModelFormat } from '../shared/modelos3d';
 import { customKind, type CustomBase, type CustomDie, type StdBase } from './custom';
 import { FREE_VALUES } from './kinds';
 import { fromTriangles, OPPOSITE_SUM, RADIUS, type Numbering, type Polyhedron } from './polyhedra';
@@ -23,72 +22,21 @@ export class ImportError extends Error {
   code?: 'nao-padrao';
   constructor(message: string, code?: 'nao-padrao') { super(message); this.code = code; }
 }
-export type ModelFormat = 'stl' | 'glb';
-
-export const formatOf = (name: string): ModelFormat | null => {
-  const ext = name.toLowerCase().split('.').pop();
-  return ext === 'stl' || ext === 'glb' ? ext : null;
-};
+export type { Model, ModelFormat } from '../shared/modelos3d';
+export { formatOf } from '../shared/modelos3d';
 
 // --- reading the file -------------------------------------------------------------------------------------------
 
-export interface Model { positions: Float32Array; triangles: number; object: Object3D } // positions: 9 floats per triangle
-
-function collect(root: Object3D): { positions: Float32Array; triangles: number } {
-  root.updateWorldMatrix(true, true);
-  const out: number[] = [];
-  const v = new Vector3();
-  root.traverse((o) => {
-    if (!(o instanceof Mesh)) return;
-    const g = o.geometry as BufferGeometry, pos = g.getAttribute('position');
-    const at = (i: number) => { v.fromBufferAttribute(pos, i).applyMatrix4(o.matrixWorld); out.push(v.x, v.y, v.z); };
-    if (g.index) for (let i = 0; i + 2 < g.index.count; i += 3) for (let k = 0; k < 3; k++) at(g.index.getX(i + k));
-    else for (let i = 0; i + 2 < pos.count; i += 3) for (let k = 0; k < 3; k++) at(i + k);
-  });
-  return { positions: Float32Array.from(out), triangles: out.length / 9 };
-}
-
 const refuse = (what: string) => new ImportError(`O arquivo ${what}.`);
 
-// `textureMax` lets another caller (the table importer) allow a bigger texture on some meshes.
-export async function parseGlb(bytes: ArrayBuffer, textureMax: (mesh: Mesh) => number = () => LIMITS.texture): Promise<Object3D> {
-  // Nothing may come from the network: only data:/blob: URLs load, anything else fails the parse.
-  const manager = new LoadingManager();
-  manager.setURLModifier((url) => {
-    if (/^(data|blob):/i.test(url)) return url;
-    throw new ImportError('O GLB precisa ser autocontido (sem arquivos externos).');
-  });
-  const gltf = await new GLTFLoader(manager).parseAsync(bytes, '');
-  gltf.scene.traverse((o) => {
-    if (!(o instanceof Mesh)) return;
-    for (const m of Array.isArray(o.material) ? o.material : [o.material]) {
-      for (const t of Object.values(m as Material & Record<string, unknown>)) {
-        const img = t && (t as Texture).isTexture ? ((t as Texture).image as { width?: number; height?: number } | null) : null;
-        if (img && Math.max(img.width ?? 0, img.height ?? 0) > textureMax(o)) throw new ImportError(`Textura maior que ${textureMax(o)} px no modelo.`);
-      }
-    }
-  });
-  return gltf.scene;
-}
-
+// The reading itself lives in shared/modelos3d; the die's limits and the die's error class stay here.
 export async function readModel(bytes: ArrayBuffer, format: ModelFormat): Promise<Model> {
-  if (bytes.byteLength > LIMITS.bytes) throw refuse(`passa de ${LIMITS.bytes / 1024 / 1024} MB`);
-  if (!bytes.byteLength) throw refuse('está vazio');
-  let object: Object3D;
   try {
-    if (format === 'stl') {
-      const geometry = new STLLoader().parse(bytes);
-      geometry.computeVertexNormals(); // many exporters leave the normals zero
-      object = new Mesh(geometry);
-    } else object = await parseGlb(bytes);
+    return await readShared(bytes, format, LIMITS);
   } catch (e) {
-    if (e instanceof ImportError) throw e;
-    throw refuse(`não parece um ${format.toUpperCase()} válido`);
+    if (e instanceof ModelError) throw new ImportError(e.message);
+    throw e;
   }
-  const { positions, triangles } = collect(object);
-  if (!triangles) throw refuse('não tem nenhum triângulo');
-  if (triangles > LIMITS.triangles) throw refuse(`tem ${triangles} triângulos; o máximo é ${LIMITS.triangles}`);
-  return { positions, triangles, object };
 }
 
 // --- recognising the shape --------------------------------------------------------------------------------------

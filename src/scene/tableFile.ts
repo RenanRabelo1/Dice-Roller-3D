@@ -1,6 +1,6 @@
 import { Box3, Camera, Group, Light, Mesh, MeshBasicMaterial, MeshStandardMaterial, Scene, Texture, Vector3, type BufferGeometry, type Object3D } from 'three';
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js';
-import { parseGlb } from '../dice/importer';
+import { ModelError, parseGlb } from '../shared/modelos3d';
 import { TRAY } from '../physics/world';
 import { backdrop, buildDefault, find, GUIDE, isPlaceholder, roleOf, shade, SURFACE } from './tableBuild';
 import { blobOfImage, isOpaque, TableError } from './tableImages';
@@ -158,7 +158,7 @@ export async function readTable(bytes: ArrayBuffer, withBackdrop = true): Promis
   try {
     root = await parseGlb(bytes, (mesh) => (roleOf(mesh) === 'fundo' ? LIMITS.photoPx : mesh.name === PANORAMA_NODE ? LIMITS.panoramaPx : LIMITS.texturePx));
   } catch (e) {
-    if (e instanceof Error && e.constructor.name === 'ImportError') throw new TableError(e.message.replace('O GLB precisa', 'A mesa precisa'));
+    if (e instanceof ModelError) throw new TableError(e.message.replace('O GLB precisa', 'A mesa precisa'));
     throw new TableError('Não consegui ler esse arquivo. Exporte como .glb.');
   }
   cleanTable(root);
