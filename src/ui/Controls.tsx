@@ -1,5 +1,6 @@
 import { lazy, Suspense, useCallback, useState } from 'react';
 import { omenPlaying, useDice } from '../store';
+import { useFalha } from '../shared/plataforma';
 import { customDie, customKind, finishOf, isCustom, type CustomDie } from '../dice/custom';
 import { KINDS, MAX_DICE, type DieKind } from '../dice/polyhedra';
 import { dieName, formatDice, resultText } from '../dice/notation';
@@ -71,7 +72,7 @@ export function Controls() {
   };
   const phase = useDice((s) => s.gesture.phase), results = useDice((s) => s.results);
   const waiting = useDice(omenPlaying); // the result shows once its omen has played (or the dice are picked up)
-  const failed = useDice((s) => s.error === 'physics');
+  const failed = useFalha() === 'physics';
   const text = results && !waiting && resultText(dice, results);
   return (
     <>

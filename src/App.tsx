@@ -6,16 +6,15 @@ import { OmenOverlay } from './ui/OmenOverlay';
 import { OmenTests } from './ui/OmenTests';
 import { useDice } from './store';
 import { Backdrop } from './scene/Backdrop';
-import { hasWebGL } from './failure';
-import { Failure, Guard } from './ui/Safeguard';
+import { Failure, Guard, hasWebGL, registrarFalha, useFalha } from './shared/plataforma';
 import { useTable } from './scene/tableState';
 import { warmImageDecoder } from './scene/tableImages';
 import { saveRoll } from './api/history';
 
 export default function App() {
   const gameArea = useRef<HTMLDivElement>(null);
-  const error = useDice((s) => s.error);
-  useState(() => { if (!hasWebGL()) useDice.getState().setError('webgl'); }); // before the first Canvas render
+  const error = useFalha();
+  useState(() => { if (!hasWebGL()) registrarFalha('webgl'); }); // before the first Canvas render
   useEffect(() => { void useDice.getState().loadCustoms(); void useTable.getState().load(); warmImageDecoder(); }, []);
   useEffect(() => {
     const media = matchMedia('(prefers-reduced-motion: reduce)');

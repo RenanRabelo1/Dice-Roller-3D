@@ -1,5 +1,6 @@
 import { CanvasTexture, DataTexture, DataUtils, EquirectangularReflectionMapping, FloatType, HalfFloatType, RGBAFormat, SRGBColorSpace, Texture } from 'three';
 import { LIMITS } from './tableTheme';
+import { renderizadorPorSoftware } from '../shared/plataforma';
 
 // Browser-only image helpers (canvas / createImageBitmap). Photos and textures are re-encoded smaller before saving.
 export class TableError extends Error {} // the message is shown to the player, in pt-BR
@@ -50,9 +51,6 @@ export function warmImageDecoder() {
 }
 
 // --- 360° panorama ---------------------------------------------------------------------------------------------------
-let softwareGl = false; // Stage sets this when the renderer is SwiftShader: half-size panoramas keep the first frame affordable
-export const markSoftwareGl = () => { softwareGl = true; };
-
 export async function preparePanorama(file: Blob, name: string): Promise<{ image: Blob; format: 'ldr' | 'hdr' }> {
   if (/\.hdr$/i.test(name) || file.type === 'image/vnd.radiance') {
     if (file.size > LIMITS.panoramaHdrBytes) throw new TableError(`O arquivo .hdr passa de ${LIMITS.panoramaHdrBytes / 1024 / 1024} MB.`);
@@ -73,7 +71,8 @@ export function panoramaTexture(bg: { image: Blob; format: 'ldr' | 'hdr' }): Pro
 }
 
 async function loadPanorama(bg: { image: Blob; format: 'ldr' | 'hdr' }): Promise<Texture> {
-  const maxPx = softwareGl ? LIMITS.panoramaPx / 2 : LIMITS.panoramaPx;
+  // On a software renderer (SwiftShader, marked by Stage), half-size panoramas keep the first frame affordable.
+  const maxPx = renderizadorPorSoftware() ? LIMITS.panoramaPx / 2 : LIMITS.panoramaPx;
   let tex: Texture, w: number, h: number;
   if (bg.format === 'ldr') {
     const bitmap = await createImageBitmap(bg.image);

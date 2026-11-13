@@ -11,7 +11,6 @@ import type { ChargeMode } from './throw/aim';
 import { withDiceFor, type OmenTest } from './dice/omenTest';
 
 type HandMotion = { center: Vec3; omega: Vec3 };
-export type DiceError = 'webgl' | 'graphics' | 'physics' | null;
 
 interface DiceState {
   dice: DieKind[]; // the selection, one entry per die
@@ -23,7 +22,6 @@ interface DiceState {
   launch: Launch | null;
   results: number[] | null;
   raw: number[] | null; // per-body up value behind `results` (d10 digit, d4 vertex)
-  error: DiceError;
   ready: boolean;
   reducedMotion: boolean;
   showcased: number; // throwId whose dice finished flying to the front
@@ -45,7 +43,6 @@ interface DiceState {
   setForce: (force: number) => void;
   setChargeMode: (mode: ChargeMode) => void;
   setReady: () => void;
-  setError: (error: DiceError) => void;
   setReducedMotion: (reducedMotion: boolean) => void;
   setShowcased: (throwId: number) => void;
   setOmenDone: (throwId: number) => void;
@@ -74,7 +71,7 @@ export const omenPlaying = (s: Pick<DiceState, 'gesture' | 'omen' | 'omenDone' |
 export const useDice = create<DiceState>((set, get) => ({
   dice: ['d20'], gesture: initialGesture, throwId: 0,
   aim: [0, 0, -1], force: 0, chargeMode: savedMode(), launch: null, results: null, raw: null,
-  error: null, ready: false, reducedMotion: false, showcased: 0, omen: null, omenDone: 0, omenAt: 0, omenRig: null, omenTest: null, customs: [], sessionOnly: false,
+  ready: false, reducedMotion: false, showcased: 0, omen: null, omenDone: 0, omenAt: 0, omenRig: null, omenTest: null, customs: [], sessionOnly: false,
   addDie: (kind) => set((s) => (s.dice.length >= MAX_DICE ? s : { ...selection(s), dice: sortDice([...s.dice, kind]) })),
   removeDie: (kind) => set((s) => {
     const i = s.dice.lastIndexOf(kind);
@@ -129,7 +126,6 @@ export const useDice = create<DiceState>((set, get) => ({
     try { localStorage.setItem(MODE_KEY, chargeMode); } catch { /* a private window: the choice lasts this visit */ }
   },
   setReady: () => set({ ready: true }),
-  setError: (error) => set({ error }),
   setReducedMotion: (reducedMotion) => set((s) => ({ reducedMotion, omen: reducedMotion ? null : s.omen })),
   setShowcased: (showcased) => set({ showcased }),
   setOmenDone: (omenDone) => set({ omenDone }),

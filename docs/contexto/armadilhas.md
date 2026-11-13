@@ -51,6 +51,6 @@ Coisas que já morderam ou que quebram em silêncio. Ler antes de mexer em físi
 | timeout de 480 passos (8 s) | `SETTLE.timeoutSteps = 240` (4 s) |
 | refração por dado com buffer compartilhado | gema por `meshPhysicalMaterial` sem passe de refração |
 | "fora de escopo: misturar tipos num arremesso" | seleção mista é suportada |
-| error boundaries para WebGL/renderer/física (R10) | implementadas: `App` sonda WebGL (`failure.ts`) e põe `store.error = 'webgl'`; `Guard` (`ui/Safeguard.tsx`) fora do `<Canvas>` = `'graphics'` e em volta de `<Physics>` = `'physics'`; `'physics'` também quando o worker e o cálculo local falham (`WORKER_TIMEOUT` em Stage.tsx). `Failure` mostra a mensagem em pt-BR. O primeiro erro registrado vale |
+| error boundaries para WebGL/renderer/física (R10) | implementadas: `App` sonda WebGL (`hasWebGL`, `shared/plataforma`) e registra `registrarFalha('webgl')`; `Guard` (`shared/plataforma/Safeguard.tsx`) fora do `<Canvas>` = `'graphics'` e em volta de `<Physics>` = `'physics'`; `'physics'` também quando o worker e o cálculo local falham (`WORKER_TIMEOUT` em Stage.tsx). `Failure` mostra a mensagem em pt-BR. Entre os `Guard`, o primeiro erro registrado vale (o mais interno fala primeiro); o `Stage` sobrescreve com `'physics'` quando o worker e o cálculo local falham e limpa a falha (`registrarFalha(null)`) a cada arremesso novo |
 
 Em conflito, o código e estes arquivos de `docs/contexto/` valem; atualize-os junto com a mudança.

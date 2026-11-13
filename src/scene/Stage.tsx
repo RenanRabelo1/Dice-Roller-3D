@@ -22,8 +22,8 @@ import { customKind } from '../dice/custom';
 import { customsOf, MAX_DICE } from '../dice/polyhedra';
 import { VORTEX, vortexCenter, vortexRadius } from '../throw/vortex';
 import { useTable } from './tableState';
-import { markSoftwareGl, panoramaTexture } from './tableImages';
-import { Guard } from '../ui/Safeguard';
+import { panoramaTexture } from './tableImages';
+import { Guard, falha, marcarRenderizadorPorSoftware, registrarFalha } from '../shared/plataforma';
 
 const WORKER_TIMEOUT = 2000; // ms; a ten-dice recording takes well under 200 ms
 // The test-only surface preview checks numeral pixels, so it keeps the real resolution (no SwiftShader or adaptive DPR drop).
@@ -45,7 +45,7 @@ function ThrowLoop({ bodies, recordLaunch }: {
       try { pending.rec = presimulateFor(pending.request, BIAS_BUDGET.local); } catch (error) {
         console.error(error);
         state.setDice(state.dice);
-        state.setError('physics');
+        registrarFalha('physics');
       }
     }
   }, []);
@@ -76,7 +76,7 @@ function ThrowLoop({ bodies, recordLaunch }: {
       const start = bodyStates(current).map(({ p, q }) => ({ p, q }));
       const request: RollRequest = { dice, start, launch, customs: customsOf(dice), ...(omenTest && { bias: { test: omenTest, kinds: omenKinds(dice) } }) };
       play.current = { throwId, request, rec: null, at: 0, sent: performance.now() };
-      useDice.getState().setError(null);
+      registrarFalha(null);
       if (worker.current) worker.current.postMessage(request);
       else play.current.rec = presimulateFor(request, BIAS_BUDGET.local);
       recordLaunch({ before: start, after: bodyStates(current).map(({ p, q }) => ({ p, q })) });
@@ -111,7 +111,7 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
     const context = gl.getContext(), debug = context.getExtension('WEBGL_debug_renderer_info');
     const renderer = context.getParameter(debug ? debug.UNMASKED_RENDERER_WEBGL : context.RENDERER) as string;
     // SwiftShader cannot afford a full-resolution first throw or a late buffer resize on pickup.
-    if (!isPreview() && /swiftshader/i.test(renderer)) { desiredDpr.current = maxDpr.current = 0.35; setDpr(0.35); markSoftwareGl(); }
+    if (!isPreview() && /swiftshader/i.test(renderer)) { desiredDpr.current = maxDpr.current = 0.35; setDpr(0.35); marcarRenderizadorPorSoftware(); }
   }, [gl, setDpr]);
   // The 360° panorama (background + reflections). It is applied only between animations, like the DPR: re-capturing the
   // environment cubemap mid-throw would cost a frame.
@@ -203,7 +203,7 @@ export function Stage({ gameArea }: { gameArea: RefObject<HTMLDivElement | null>
           dice: state.dice, phase: state.gesture.phase, throwId: state.throwId,
           results: state.results,
           ready: state.ready && state.dice.join(',') === key && bodies.current.filter((b) => b?.isValid()).length === selected.length,
-          error: state.error, aim: state.aim, showcased: state.showcased,
+          error: falha(), aim: state.aim, showcased: state.showcased,
           omen: state.omen?.throwId === state.throwId ? omenKind(state.omen) : null, omenDone: state.omenDone, reducedMotion: state.reducedMotion,
           omenTime: performance.now() - state.omenAt, trayBroken: scene.getObjectByName('tray-surface')?.visible === false,
           burning: scene.getObjectByName('fire')?.visible === true, force: state.force,

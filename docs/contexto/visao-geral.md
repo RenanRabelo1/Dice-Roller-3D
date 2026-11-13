@@ -37,7 +37,7 @@ Gate de entrega usado no projeto: build → lint → test → e2e, todos verdes.
 src/
   shared/db.ts             abre o IndexedDB `dice-roller` v2; cada dono declara a sua store (`defineStore`)
   main.tsx, App.tsx        casca: <Controls/> + <Canvas><Stage/></Canvas> + <OmenOverlay/>
-  failure.ts               sonda WebGL e falhas de renderer/física → `store.error`  → armadilhas.md
+  shared/plataforma/       falha registrada (`registrarFalha`), `Guard`, `Failure`, sonda WebGL, renderizador por software  → armadilhas.md
   store.ts                 zustand: seleção, fase, throwId, launch, results, omen  → arremesso.md
   api/history.ts           envia cada resultado à API (só com VITE_API_URL)
   testHook.ts              window.__dice (só em mode=test)                          → testes.md
@@ -69,7 +69,7 @@ src/
     showcase.ts, highlight.ts poses e linha do tempo do "voo até a câmera"         → apresentacao.md
     Omens.tsx, Kraken.ts, krakenMotion.ts, Fire.ts, fireMotion.ts  presságios 3D   → apresentacao.md
   ui/                      HTML: Controls (seleção + painel), Chat, OmenOverlay, ImportDie (assistente, carregado sob demanda),
-                           TablePanel (mesa e fundo), Safeguard (mensagens de falha de WebGL/renderer/física)
+                           TablePanel (mesa e fundo)
 tests/                     Vitest (unidades puras + física Node); helpers/sim.ts
 server/                    API do histórico (Fastify + MongoDB; usa kinds.ts e omen.ts do front, roda em Node com TS nativo)
 e2e/                       Playwright; usa window.__dice
