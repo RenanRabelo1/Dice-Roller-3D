@@ -74,4 +74,13 @@ Observação: `poisonedReads >= 1` está certo; não trocar por `toBe(1)`.
 - Os mesmos casos passaram 86/86 no gate da OS-0001.
 - Na hora, a máquina tinha 2,8 GB livres e 39% de CPU ocupada por outros projetos (servidores Expo do PontoPlusMobile com cerca de 20 workers, instâncias do Codex), sem nenhum processo desta worktree.
 
-A fragilidade ficou registrada em `docs/contexto/testes.md`. Pendente: confirmar `omen.spec.ts` verde com a máquina livre antes de a fundação começar.
+A fragilidade ficou registrada em `docs/contexto/testes.md`.
+
+**Confirmação com a máquina mais livre** (servidores do PontoPlusMobile fechados pelo usuário):
+
+| Comando | Resultado |
+|---|---|
+| `npx playwright test e2e/omen.spec.ts`, durante o fechamento | ⚠️ 14 de 15 (botão Dualidade, orçamento de 6000 ms) |
+| `npx playwright test e2e/omen.spec.ts`, com tudo fechado | ✅ 15 de 15 (5,1 min) |
+
+Ressalva encerrada.
