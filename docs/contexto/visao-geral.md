@@ -51,7 +51,7 @@ src/
   dice/                    o resto do legado dos dados (sem React)                  → dados.md
     notation.ts              texto do painel (`resultText`); a notação está em `modules/selecao`
     omen.ts                  regra de crítico/falha e duração dos presságios
-  modules/arremesso/       domínio do arremesso (em extração; store, cena e componentes ainda no legado); `index.ts` puro, com `criarWorkerDePresimulacao`  → arremesso.md
+  modules/arremesso/       arremesso: domínio, store, laço, corpos, colisores e a mão (`MaoDoArremesso`), em extração (os componentes de UI ainda no legado); `index.ts` puro, com `criarWorkerDePresimulacao`  → arremesso.md
     domain/gesture.ts        máquina de fases (reducer)
     domain/aim.ts            mira, carga, velocidade, giro com semente
     domain/settle.ts         quando os dados "pararam"
@@ -62,7 +62,7 @@ src/
     domain/presim.worker.ts  roda presim fora da thread de render
     domain/vies.ts           `plays`: se um resultado toca o presságio do botão de teste
   scene/                   componentes R3F
-    Hand.tsx                 input, mão, retorno, showcase pós-resultado             → apresentacao.md
+    Hand.tsx                 só a parte `settled` (voo, números, gravação acesa); a mão é a `MaoDoArremesso`  → apresentacao.md
     Tray.tsx                 bandeja (visual do tema da mesa, dentro de `ColisoresDaBandeja`)
     table*.ts, Backdrop.tsx  mesa e fundo personalizados, .glb                      → mesa.md
     showcase.ts, highlight.ts poses e linha do tempo do "voo até a câmera"         → apresentacao.md

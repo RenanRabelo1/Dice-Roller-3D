@@ -1,6 +1,6 @@
 # Apresentação do resultado: presságios, showcase, destaque
 
-Tudo que acontece em `settled`, depois do `publish`. Arquivos: `dice/omen.ts`, `scene/Omens.tsx`, `scene/Kraken.ts`, `scene/krakenMotion.ts`, `scene/Fire.ts`, `scene/fireMotion.ts`, `scene/Tray.tsx`, `ui/OmenOverlay.tsx`, `scene/showcase.ts`, `scene/highlight.ts`, parte `settled` de `scene/Hand.tsx`, `ui/Controls.tsx` (painel).
+Tudo que acontece em `settled`, depois do `publish`. Arquivos: `dice/omen.ts`, `scene/Omens.tsx`, `scene/Kraken.ts`, `scene/krakenMotion.ts`, `scene/Fire.ts`, `scene/fireMotion.ts`, `scene/Tray.tsx`, `ui/OmenOverlay.tsx`, `scene/showcase.ts`, `scene/highlight.ts`, `scene/Hand.tsx` (só a parte `settled`; a mão do arremesso é a `MaoDoArremesso` do módulo `arremesso`, montada logo antes), `ui/Controls.tsx` (painel).
 
 ## Ordem em `settled`
 

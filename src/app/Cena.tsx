@@ -8,7 +8,7 @@ import { Text } from 'troika-three-text';
 import {
   arremesso, GRAVITY, HAND, handPositions, STEP, TRAY, VORTEX, vortexCenter, vortexRadius,
 } from '../modules/arremesso/index';
-import { CorpoDoDado, LoopDoArremesso, useArremesso } from '../modules/arremesso/cena';
+import { CorpoDoDado, LoopDoArremesso, MaoDoArremesso, useArremesso } from '../modules/arremesso/cena';
 import type { DiceHook } from './testHook';
 import type { Vec3 } from '../shared/math';
 import { useDice } from '../store';
@@ -224,7 +224,8 @@ export function Cena({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> 
       <Guard kind="physics">
       <Physics gravity={GRAVITY} timeStep={STEP} interpolate={false}>
         <Tray />
-        <Hand gameArea={gameArea} bodies={bodies} />
+        <MaoDoArremesso gameArea={gameArea} bodies={bodies} />
+        <Hand bodies={bodies} />
         <LoopDoArremesso bodies={bodies} recordLaunch={recordLaunch} omenTest={omenTestAtual} />
         <group ref={dice}>
           {selected.map((kind, i) => (
