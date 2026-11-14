@@ -1,5 +1,5 @@
 import { customDie } from '../dice/custom';
-import { isCustom, type DieKind } from '../dice/kinds';
+import { isCustom, type DieKind } from '../modules/regras/index.ts';
 
 // Sends each throw to the history API (server/) when the app runs with VITE_API_URL set. Fire and forget:
 // the table never waits on the network, and with no backend configured nothing is sent.

@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import type { DieKind } from '../src/dice/polyhedra';
-import { OMEN_MS, omenKind, omenMs, omenOf } from '../src/dice/omen';
+import { OMEN_MS, omenKind, omenMs } from '../src/dice/omen';
+import { omenOf } from '../src/modules/regras/index.ts';
 import { omenPlaying, useDice } from '../src/store';
 import { definirMovimentoReduzido } from '../src/shared/plataforma';
 

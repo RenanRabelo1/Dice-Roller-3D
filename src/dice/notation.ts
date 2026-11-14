@@ -1,5 +1,6 @@
 import { customDie, customKind, customList, isCustom, type CustomDie } from './custom';
 import { allKinds, baseOf, MAX_DICE, sortDice, type DieKind } from './polyhedra';
+import { total as sumOf } from '../modules/regras/index.ts';
 
 // What may follow the "d": longest first, so "d100" wins over "d10" + "0" and "d10vampiro" over "d10v".
 const AFTER_D: [string, DieKind][] = [
@@ -40,7 +41,7 @@ export function resultText(dice: DieKind[], results: number[]): { total: string;
   const face = (v: number) => (v === 1 ? 'Cara' : 'Coroa');
   const coins = results.filter((_, i) => dice[i] === 'coin');
   const heads = coins.filter((v) => v === 1).length, tails = coins.length - heads;
-  const total = coins.length < results.length ? String(results.reduce((s, v, i) => (dice[i] === 'coin' ? s : s + v), 0))
+  const total = coins.length < results.length ? String(sumOf(results.map((value, i) => ({ kind: dice[i], value }))))
     : coins.length === 1 ? face(coins[0])
       : [heads && plural(heads, 'cara'), tails && plural(tails, 'coroa')].filter(Boolean).join(', ');
   const detail = results.length < 2 ? '' : allKinds().filter((k) => dice.includes(k)).map((k) => {

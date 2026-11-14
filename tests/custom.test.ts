@@ -2,7 +2,9 @@ import { Quaternion, Vector3 } from 'three';
 import { afterEach, describe, expect, it } from 'vitest';
 import { customKind, finishOf, INK_COLORS, inkColorOf, registerPoly, unregisterCustom, type CustomDie } from '../src/dice/custom';
 import { formatDice, parseDice, resultText, slugOf, slugProblem } from '../src/dice/notation';
-import { isD20, omenOf } from '../src/dice/omen';
+import { isD20 } from '../src/dice/omen';
+import { omenKinds } from '../src/dice/omenTest';
+import { omenOf } from '../src/modules/regras/index.ts';
 import { baseOf, polyhedron, sortDice } from '../src/dice/polyhedra';
 import { readUp, toResults } from '../src/dice/read';
 import { customDieOf, freeDieOf, prismTriangles } from './helpers/models';
@@ -52,8 +54,8 @@ describe('imported dice in play', () => {
     const on = customKind(customDieOf('d20', 'Cav', 'cav').id), off = customKind(customDieOf('d20', 'Caveira', 'caveira', { omens: false }).id);
     expect(isD20(on)).toBe(true);
     expect(isD20(off)).toBe(false);
-    expect(omenOf([on, off], [20, 20])).toEqual({ crits: [0], fumbles: [] });
-    expect(omenOf([on, off], [1, 1])).toEqual({ crits: [], fumbles: [0] });
+    expect(omenOf(omenKinds([on, off]), [20, 20])).toEqual({ crits: [0], fumbles: [] });
+    expect(omenOf(omenKinds([on, off]), [1, 1])).toEqual({ crits: [], fumbles: [0] });
   });
   it('rolls in the tray: stays inside, reads 1..20, deterministic', async () => {
     const kind = customKind(skull().id);

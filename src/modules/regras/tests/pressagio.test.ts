@@ -24,6 +24,15 @@ describe('omenOf', () => {
     const dice = [{ kind: 'custom:a', base: 'd20', omens: true, value: 20 }, { kind: 'custom:b', base: 'd20', value: 1 }] as const;
     expect(omenOf(dice.map(tipoParaPresagio), dice.map((d) => d.value))).toEqual({ crits: [0], fumbles: [] });
   });
+
+  it('finds a fumble and duality on an imported d20 once its kind is normalised', () => {
+    const fumble = [{ kind: 'custom:a', base: 'd20', omens: true, value: 1 }, { kind: 'custom:b', base: 'd20', value: 1 }] as const;
+    expect(omenOf(fumble.map(tipoParaPresagio), fumble.map((d) => d.value))).toEqual({ crits: [], fumbles: [0] });
+    const duality = [{ kind: 'custom:a', base: 'd20', omens: true, value: 20 }, { kind: 'd20', value: 1 }] as const;
+    const o = omenOf(duality.map(tipoParaPresagio), duality.map((d) => d.value))!;
+    expect(o).toEqual({ crits: [0], fumbles: [1] });
+    expect(omenKind(o)).toBe('duality');
+  });
 });
 
 describe('omenKind', () => {

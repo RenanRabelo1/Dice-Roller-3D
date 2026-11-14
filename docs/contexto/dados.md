@@ -2,7 +2,7 @@
 
 Cobre `src/dice/*`, `scene/Die.tsx` e `ui/Chat.tsx`/`ui/Controls.tsx`. Tudo em `dice/` é puro (sem React) e testado em Node.
 
-## Tipos (`dice/kinds.ts`, reexportados por `dice/polyhedra.ts`)
+## Tipos (`modules/regras`, reexportados por `dice/polyhedra.ts`)
 
 ```ts
 Shape       = 'd4'|'d6'|'d8'|'d10'|'d12'|'d20'|'d100'|'coin'|'livre'  // corpo físico ('livre' só existe em importados)
@@ -12,7 +12,7 @@ KINDS       = os embutidos em ordem canônica; allKinds() = KINDS + importados (
 BASE        = só os embutidos (vtm, hunger → d10; fire → d6); use baseOf(kind), que também cobre importados
 ```
 
-As regras de tipo (`KINDS`, `BASE`, `SIDES`, faces válidas, total, crítico/falha) moram no módulo `src/modules/regras/` (ver o `CLAUDE.md` dele), que a API (`server/`) importa pelo `index.ts`. Por isso o módulo importa com extensão `.ts` e não depende de `three` nem do registro de importados. `kinds.ts` e parte de `omen.ts` são pontes para o legado até a OS-0015.
+As regras de tipo (`KINDS`, `BASE`, `SIDES`, faces válidas, total, crítico/falha) moram no módulo `src/modules/regras/` (ver o `CLAUDE.md` dele), que a API (`server/`) importa pelo `index.ts`. Por isso o módulo importa com extensão `.ts` e não depende de `three` nem do registro de importados. Os reexports de `polyhedra.ts` e de `omen.ts` (`Omen`, `OmenKind`, `omenKind`) são pontes para o legado até a OS-0016. O `omenOf` de `regras` só reconhece o `'d20'` literal: quem chama normaliza antes (`omenKinds` em `omenTest.ts`).
 
 Dado personalizado = mesmo corpo/numeração/leitura do `BASE`; muda só a aparência (cor, tinta, símbolos).
 
@@ -96,7 +96,7 @@ Tinta e acabamento (spec `2026-11-11-numeros-pintados-mesa-design.md`): `CustomD
 
 Cena: `Die.tsx` mostra o sólido ideal até o arquivo ser lido (import dinâmico de `importer`, chunk separado) e então a malha: STL com o material de gema na `color`; GLB com os próprios materiais, clonados e `transparent` (o retorno anima a opacidade). `printed: true` não desenha numerais, só âncoras invisíveis em `userData.labels` (test hook e showcase acham a face pelo valor).
 
-Presságios: `isD20(kind)` (`omen.ts`) = d20 embutido ou importado de base d20 com `omens: true` (padrão ligado). `registerCustom` mantém esse conjunto (`omenD20s` em `kinds.ts`). d100 e moeda continuam só embutidos.
+Presságios: `isD20(kind)` (`omen.ts`) = d20 embutido ou importado de base d20 com `omens: true` (padrão ligado). `isD20` consulta o registro de importados (`customDie`) via `tipoParaPresagio` de `regras`; no worker, sem registro, os tipos chegam já normalizados. d100 e moeda continuam só embutidos.
 
 Histórico: um dado importado vai para a API como `{ kind: 'custom:<id>', base, omens, value }`; o servidor valida o valor pela `base` e só conta presságio se `base === 'd20' && omens`.
 
@@ -119,7 +119,7 @@ Dados "shard" têm faces longas numeradas e pontas lapidadas em camadas de facet
 
 ## Receita: adicionar um dado novo
 
-1. `kinds.ts`: incluir em `BuiltinKind` e `KINDS` (posição = ordem na UI); `BASE`; se for shape novo, `Shape` e `SIDES`. `polyhedra.ts`: se for shape novo, `RADIUS`, `rawTriangles`/construtor e `OPPOSITE_SUM`. Símbolos → `SYMBOL` + `SymbolName` + desenho em `symbols.ts`.
+1. `modules/regras` (`contracts.ts` e `domain/catalogo.ts`): incluir em `BuiltinKind` e `KINDS` (posição = ordem na UI); `BASE`; se for shape novo, `Shape` e `SIDES`. `polyhedra.ts`: se for shape novo, `RADIUS`, `rawTriangles`/construtor e `OPPOSITE_SUM`. Símbolos → `SYMBOL` + `SymbolName` + desenho em `symbols.ts`.
 2. `Die.tsx`: `GEM` (obrigatório, é `Record`), `FONT` se shape novo, `INK`/`EMBER` se preciso.
 3. `notation.ts`: sufixo em `AFTER_D` (mantendo do mais longo ao mais curto) e nome em `CUSTOM`; atualizar a mensagem de erro e a dica do `Chat.tsx`.
 4. `read.ts`: só se a regra de valor mudar.

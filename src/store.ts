@@ -2,14 +2,15 @@ import { create } from 'zustand';
 import { customDie, customList, isCustom, registerCustom, unregisterCustom, type CustomDie, type CustomKind } from './dice/custom';
 import { deleteCustomDie, listCustomDice, saveCustomDie } from './dice/customStore';
 import { MAX_DICE, sortDice, type DieKind } from './dice/polyhedra';
-import { omenOf, type Omen } from './dice/omen';
+import type { Omen } from './dice/omen';
+import { omenOf } from './modules/regras/index.ts';
 import type { Launch } from './physics/apply';
 import { HAND } from './physics/world';
 import type { Vec3 } from './shared/math';
 import { aoMudarMovimentoReduzido, movimentoReduzido } from './shared/plataforma';
 import { initialGesture, reduce, type Effect, type GestureEvent, type GestureState } from './throw/gesture';
 import type { ChargeMode } from './throw/aim';
-import { withDiceFor, type OmenTest } from './dice/omenTest';
+import { omenKinds, withDiceFor, type OmenTest } from './dice/omenTest';
 
 type HandMotion = { center: Vec3; omega: Vec3 };
 
@@ -154,7 +155,7 @@ export const useDice = create<DiceState>((set, get) => ({
     if (throwId !== s.throwId || s.gesture.phase !== 'rolling') return s;
     // Publish the result, its omen and the reducer transition together so subscribers see one settled snapshot.
     // Reduced motion skips the omens' shows.
-    const omen = movimentoReduzido() ? null : s.omenRig ?? omenOf(s.dice, results);
+    const omen = movimentoReduzido() ? null : s.omenRig ?? omenOf(omenKinds(s.dice), results);
     return { results: [...results], raw: raw ? [...raw] : null, omen: omen && { throwId, ...omen }, omenAt: omen ? performance.now() : 0, gesture: reduce(s.gesture, { type: 'published' }).state };
   }),
 }));

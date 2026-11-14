@@ -45,7 +45,6 @@ src/
     testHook.ts              window.__dice (só em mode=test)                        → testes.md
   modules/regras/          regras do jogo, puras, compartilhadas com server/        → modules/regras/CLAUDE.md
   dice/                    domínio puro dos dados (sem React)                       → dados.md
-    kinds.ts                 ponte para `modules/regras` (tipos de dado, `KINDS`, `BASE`, `SIDES`) até a OS-0015
     polyhedra.ts             geometria, numeração, rótulos, `fromTriangles` (reexporta os tipos)
     custom.ts                tipo `CustomDie` + registro em memória dos dados importados
     customStore.ts           IndexedDB store `customDice`
@@ -73,7 +72,7 @@ src/
   ui/                      HTML: Controls (seleção + painel), Chat, OmenOverlay, ImportDie (assistente, carregado sob demanda),
                            TablePanel (mesa e fundo)
 tests/                     Vitest (unidades puras + física Node); helpers/sim.ts
-server/                    API do histórico (Fastify + MongoDB; usa kinds.ts e omen.ts do front, roda em Node com TS nativo)
+server/                    API do histórico (Fastify + MongoDB; usa `src/modules/regras` pelo `index.ts`, roda em Node com TS nativo)
 e2e/                       Playwright; usa window.__dice
 references/threejs/        exemplos oficiais do three.js (só leitura, ver CLAUDE.md)
 docs/superpowers/          specs (as de 2026-11-11 são as atuais) e planos/revisões HISTÓRICOS (ver armadilhas.md)

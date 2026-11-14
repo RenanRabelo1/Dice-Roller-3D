@@ -1,6 +1,6 @@
 import { Color } from 'three';
 import type { Vec3 } from '../shared/math';
-import { isCustom, omenD20s, type CustomBase, type CustomKind } from './kinds';
+import { isCustom, type CustomBase, type CustomKind } from '../modules/regras/index.ts';
 import type { Polyhedron, Shape } from './polyhedra';
 
 export { isCustom };
@@ -53,8 +53,7 @@ export const customBase = (kind: CustomKind): Shape | undefined => polys.get(kin
 export function registerCustom(die: CustomDie): void {
   dice.set(customKind(die.id), die);
   polys.set(customKind(die.id), die.poly);
-  if (die.base === 'd20' && die.omens) omenD20s.add(customKind(die.id)); else omenD20s.delete(customKind(die.id));
 }
 // The worker only needs the solid.
 export const registerPoly = (kind: CustomKind, poly: Polyhedron): void => { polys.set(kind, poly); };
-export function unregisterCustom(kind: CustomKind): void { dice.delete(kind); polys.delete(kind); omenD20s.delete(kind); }
+export function unregisterCustom(kind: CustomKind): void { dice.delete(kind); polys.delete(kind); }

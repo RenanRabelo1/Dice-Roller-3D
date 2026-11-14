@@ -1,4 +1,5 @@
-import { isD20, omenKind, omenOf } from './omen';
+import { omenKind, omenOf } from '../modules/regras/index.ts';
+import { isD20 } from './omen';
 import { MAX_DICE, sortDice, type DieKind } from './polyhedra';
 
 // Test buttons (dev only): the next throws land on faces that call the chosen omen, so its animation can be
