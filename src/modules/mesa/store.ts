@@ -61,6 +61,9 @@ export const store = createStore<TableState>((set, get) => {
 
 export const mesa = (): TableState => store.getState();
 
+/** The colours the table shows: an imported model's own, or the theme's (what the kraken's shards use). */
+export const coresDaMesa = (): TableState['colors'] => mesa().colors;
+
 export const { load, apply, edit, copy, remove, reset, setColors } = store.getState();
 
 // Closing the tab within the debounce window still saves the last change (best effort: IndexedDB may not finish).

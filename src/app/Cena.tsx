@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, type RefObject } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { EnvironmentPortal, Lightformer, PerformanceMonitor } from '@react-three/drei';
+import { Lightformer, PerformanceMonitor } from '@react-three/drei';
 import { Physics } from '@react-three/rapier';
-import { Box3, Color, Group, Mesh, Quaternion, Texture, Vector3, type BufferGeometry, type Material, type Object3D } from 'three';
+import { Box3, Color, Group, Mesh, Quaternion, Vector3, type BufferGeometry, type Material, type Object3D } from 'three';
 import { Text } from 'troika-three-text';
 
 import {
@@ -12,25 +12,28 @@ import { CorpoDoDado, LoopDoArremesso, MaoDoArremesso, useArremesso } from '../m
 import type { Vec3 } from '../shared/math';
 import { useDice } from '../store';
 import { installTestHook } from './testHook';
-import { Tray } from '../scene/Tray';
+import { QuebraDaMesa } from '../scene/QuebraDaMesa';
 import { Hand } from '../scene/Hand';
 import { Omens } from '../scene/Omens';
 import { MAX_DICE, omenKind } from '../modules/regras/index';
 import { inspecao, RAIO_MAXIMO } from '../modules/dados/index';
 import { definir } from '../modules/selecao/index';
 import { inspecao as inspecaoDosImportados } from '../modules/meus-dados/index';
-import { mesa, panoramaTexture } from '../modules/mesa/index';
-import { useMesa } from '../modules/mesa/cena';
+import { mesa } from '../modules/mesa/index';
+import { AmbienteDaMesa, MesaNaCena } from '../modules/mesa/cena';
 import { Guard, falha, marcarRenderizadorPorSoftware, movimentoReduzido } from '../shared/plataforma';
 
 // The test-only surface preview checks numeral pixels, so it keeps the real resolution (no SwiftShader or adaptive DPR drop).
 const isPreview = () => import.meta.env.MODE === 'test' && new URLSearchParams(location.search).has('surface-preview');
 
-interface Pano { tex: Texture; rotation: number; intensity: number; blur: number; reflect: boolean }
+// Between animations (phase `hand`, or the showcase done): the DPR and the table's panorama change only then.
+const entreAnimacoes = () => {
+  const { gesture, throwId } = arremesso(), { showcased } = useDice.getState();
+  return gesture.phase === 'hand' || (gesture.phase === 'settled' && showcased === throwId);
+};
 
 export function Cena({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> }) {
   const selected = useArremesso((state) => state.dice);
-  const background = useMesa((state) => state.theme.background);
   const key = selected.join(',');
   const { camera, size, scene, gl, setDpr, viewport: { initialDpr, dpr } } = useThree();
   const desiredDpr = useRef(initialDpr), maxDpr = useRef(initialDpr);
@@ -40,25 +43,6 @@ export function Cena({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> 
     // SwiftShader cannot afford a full-resolution first throw or a late buffer resize on pickup.
     if (!isPreview() && /swiftshader/i.test(renderer)) { desiredDpr.current = maxDpr.current = 0.35; setDpr(0.35); marcarRenderizadorPorSoftware(); }
   }, [gl, setDpr]);
-  // The 360° panorama (background + reflections). It is applied only between animations, like the DPR: re-capturing the
-  // environment cubemap mid-throw would cost a frame.
-  const [pano, setPano] = useState<Pano | null>(null);
-  const wanted = useRef<Pano | null>(null);
-  useEffect(() => {
-    if (background.kind !== 'panorama') { wanted.current = null; return; }
-    let live = true;
-    const { rotation, intensity, blur, reflect } = background;
-    panoramaTexture(background).then((tex) => { if (live) wanted.current = { tex, rotation: rotation * Math.PI / 180, intensity, blur, reflect }; }, () => {});
-    return () => { live = false; };
-  }, [background]);
-  useFrame((state) => {
-    if (wanted.current === pano) return;
-    const { gesture, throwId } = arremesso(), { showcased } = useDice.getState();
-    if (gesture.phase !== 'hand' && !(gesture.phase === 'settled' && showcased === throwId)) return;
-    if (wanted.current) state.scene.background = wanted.current.tex;
-    else if (pano && state.scene.background === pano.tex) state.scene.background = null; // a colour background attaches itself
-    setPano(wanted.current);
-  });
   const info = useRef(gl.info);
   const dice = useRef<Group>(null);
   const adjustDpr = (scale: number) => {
@@ -67,9 +51,8 @@ export function Cena({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> 
   };
   useFrame(() => {
     if (desiredDpr.current === dpr) return;
-    const { gesture, throwId } = arremesso(), { showcased } = useDice.getState();
     // Resizing the backing buffer can stall a software renderer: do it between animations.
-    if (gesture.phase !== 'hand' && !(gesture.phase === 'settled' && showcased === throwId)) return;
+    if (!entreAnimacoes()) return;
     setDpr(desiredDpr.current);
   });
   // The dev omen test button lives in the legacy store; the throw loop reads it through this.
@@ -194,24 +177,22 @@ export function Cena({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> 
       {/* Slow GPUs need fewer pixels during tosses and pickup; restore detail when there is headroom. */}
       <PerformanceMonitor ms={200} iterations={3} bounds={() => [28, 55]}
         onDecline={() => adjustDpr(0.75)} onIncline={() => adjustDpr(1.1)} />
-      {/* A colour is the scene's background; a photo or ready-made theme sits behind the transparent canvas (see App). */}
-      {background.kind === 'color' && <color attach="background" args={[background.color]} />}
-      <ambientLight intensity={0.35} />
-      <directionalLight position={[-4, 10, 5]} intensity={2.5} castShadow
-        shadow-mapSize={[1024, 1024]} shadow-camera-left={-9} shadow-camera-right={9}
-        shadow-camera-top={8} shadow-camera-bottom={-8} shadow-normalBias={0.03} />
-      {/* Same cubemap target for every panorama, so the dice materials do not recompile when it changes. The rotation, intensity and blur props are
-          re-applied by drei each time it re-captures, so they have to be passed here rather than set on the scene. */}
-      <EnvironmentPortal resolution={256} map={pano?.reflect ? pano.tex : undefined}
-        backgroundRotation={[0, pano?.rotation ?? 0, 0]} backgroundIntensity={pano?.intensity ?? 1} backgroundBlurriness={pano?.blur ?? 0}
-        environmentRotation={[0, pano?.rotation ?? 0, 0]}>
+      {/* The table's ambience (colour background, 360° panorama, environment map) renders in this order: the colour,
+          the shell's lights, then the environment with the shell's Lightformers inside. */}
+      <AmbienteDaMesa podeTrocar={entreAnimacoes} luzes={<>
+        <ambientLight intensity={0.35} />
+        <directionalLight position={[-4, 10, 5]} intensity={2.5} castShadow
+          shadow-mapSize={[1024, 1024]} shadow-camera-left={-9} shadow-camera-right={9}
+          shadow-camera-top={8} shadow-camera-bottom={-8} shadow-normalBias={0.03} />
+      </>}>
         <Lightformer position={[0, 8, -5]} target={[0, 0, 0]} scale={[10, 6, 1]} intensity={3} color="#fff4dd" />
         <Lightformer position={[-8, 3, 4]} target={[0, 0, 0]} scale={[3, 8, 1]} intensity={4} color="#dceaff" />
         <Lightformer position={[6, -2, 6]} target={[0, 0, 0]} scale={[5, 9, 1]} intensity={3} color="#ffdab0" />
-      </EnvironmentPortal>
+      </AmbienteDaMesa>
       <Guard kind="physics">
       <Physics gravity={GRAVITY} timeStep={STEP} interpolate={false}>
-        <Tray />
+        <QuebraDaMesa />
+        <MesaNaCena />
         <MaoDoArremesso gameArea={gameArea} />
         <Hand />
         <LoopDoArremesso omenTest={omenTestAtual} />

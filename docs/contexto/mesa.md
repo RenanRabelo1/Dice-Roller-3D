@@ -6,25 +6,28 @@ O jogador muda o fundo e a aparência da bandeja, salva no navegador e exporta/i
 
 | Arquivo | Papel |
 |---|---|
-| `modules/mesa/index.ts`, `cena.ts` | portas do módulo `mesa` (em extração): `index.ts` puro (`mesa()`, as ações, o domínio que o legado usa, `carregarArquivoDeMesa`); `cena.ts` com `useMesa(sel)` |
+| `modules/mesa/index.ts`, `cena.ts` | portas do módulo `mesa` (em extração): `index.ts` puro (`mesa()`, as ações, `coresDaMesa()`, `ocultarPiso(on)`, o domínio que o legado usa, `carregarArquivoDeMesa`); `cena.ts` com `useMesa(sel)`, `<MesaNaCena/>`, `<AmbienteDaMesa/>` e `<FundoCss/>` |
 | `modules/mesa/domain/tableTheme.ts` | puro: `TableTheme`, `DEFAULT_THEME` (= a mesa de antes), temas prontos (`PRESETS`, gradientes CSS), `LIMITS`, `checkTheme`, `extrasOf`/`readExtras` (o tema que viaja no `.glb`) |
-| `modules/mesa/store.ts` | store zustand vanilla (`mesa()` fora do React, `useMesa` em `ui/useMesa.tsx`): tema ativo, mesas salvas, `sessionOnly`, `colors` (cores que a mesa realmente mostra; o kraken usa) |
+| `modules/mesa/store.ts` | store zustand vanilla (`mesa()` fora do React, `useMesa` em `ui/useMesa.tsx`): tema ativo, mesas salvas, `sessionOnly`, `colors` (cores que a mesa realmente mostra; o kraken usa por `coresDaMesa()`; o único escritor é a `MesaNaCena`) |
 | `modules/mesa/repository.ts` | IndexedDB store `tables` + id ativo em `localStorage['mesa.ativa']` |
 | `shared/db.ts` | abertura única do banco `dice-roller` **v2**; não conhece nome de store: `modules/mesa/repository.ts` declara `tables` e `modules/meus-dados/repository.ts` declara `customDice` com `defineStore`; o upgrade só cria o que falta |
 | `modules/mesa/domain/tableTextures.ts`, `tableImages.ts` | texturas do feltro (veludo/couro desenhadas em canvas, ou a imagem do jogador) e redução de imagens (foto ≤ 4096 px, textura ≤ 2048 px) |
 | `modules/mesa/domain/tableBuild.ts` | monta a mesa padrão (`defaultTable`, `buildDefault`), nomes (`roleOf`, `find`), `colorsOf`, `disposeTable`; carregado junto com a cena |
 | `modules/mesa/domain/tableFile.ts` | **sob demanda** por `carregarArquivoDeMesa()` (traz GLTFLoader/Exporter): `exportTable`, `readTable` → `cleanTable` → `fitTable`, `buildFor` (qualquer tema) |
-| `scene/Tray.tsx` | colisores fixos + a mesa visível do tema; esconde `tray-surface` na quebra do kraken |
-| `scene/Backdrop.tsx` | foto/tema pronto em CSS **atrás** do canvas (desfoque e escurecer grátis na GPU) |
+| `modules/mesa/scene/MesaNaCena.tsx` | a mesa visível do tema, dentro do `ColisoresDaBandeja` de `arremesso` (colisores fixos); grava `colors`; registra o piso (`tray-surface`) em `scene/piso.ts` |
+| `modules/mesa/scene/piso.ts` | sem React: a flag `pisoOculto` e o piso atual. `ocultarPiso(on)` grava a flag e aplica `visible = !on` na hora; um piso novo herda a flag; o que sai volta visível |
+| `modules/mesa/scene/AmbienteDaMesa.tsx` | cor de fundo (`<color attach="background">`), panorama 360° e `<EnvironmentPortal>`; recebe `podeTrocar`, as luzes (`luzes`) e os `Lightformer`s (`children`) da casca |
+| `modules/mesa/ui/FundoCss.tsx` | foto/tema pronto em CSS **atrás** do canvas (desfoque e escurecer grátis na GPU) |
+| `scene/QuebraDaMesa.tsx` | legado de `pressagios`: a cada quadro, `ocultarPiso(trayBrokenAt(...))`. A casca o monta logo antes da `<MesaNaCena/>` |
 | `ui/TablePanel.tsx` | painel "Personalizar mesa" (botão **Mesa**, tecla `M`, `Esc` fecha) |
 
 ## Como funciona
 
-- **Fundo:** cor = `scene.background` (`Cena`); foto e tema pronto = `scene.background` nulo e canvas transparente sobre `.backdrop`. Os reflexos dos dados continuam dos `Lightformer`s: o fundo não toca nos materiais dos dados.
-- **Mesa:** `Tray` desenha `buildDefault(tema)` na hora (cores/texturas geradas) e, se o tema tem modelo ou imagem de feltro, troca pelo `buildFor(tema)` quando decodifica. Nomes na cena: grupo `mesa` → `tray-surface` (base + `feltro`), `moldura` (4 paredes), `guia-area-de-jogo` (caixa 14 × 1,5 × 9, invisível), `fundo` (só no arquivo).
+- **Fundo:** cor = `scene.background` (`AmbienteDaMesa`); foto e tema pronto = `scene.background` nulo e canvas transparente sobre `.backdrop`. Os reflexos dos dados continuam dos `Lightformer`s: o fundo não toca nos materiais dos dados.
+- **Mesa:** `MesaNaCena` desenha `buildDefault(tema)` na hora (cores/texturas geradas) e, se o tema tem modelo ou imagem de feltro, troca pelo `buildFor(tema)` quando decodifica. Nomes na cena: grupo `mesa` → `tray-surface` (base + `feltro`), `moldura` (4 paredes), `guia-area-de-jogo` (caixa 14 × 1,5 × 9, invisível), `fundo` (só no arquivo).
 - A cor do feltro multiplica a textura. Ao escolher uma imagem própria o painel põe o feltro em `#FFFFFF` (a imagem aparece como é) e avisa que a cor tinge; veludo e couro mantêm a cor.
 - **Tema ativo = registro salvo.** Editar a mesa padrão cria "Minha mesa"; editar grava com atraso de 300 ms (e no `pagehide`). Sem IndexedDB vale só na sessão (`sessionOnly`, o painel avisa).
-- **Kraken:** `Kraken.start(..., mesa().colors)`: cacos com o feltro da mesa e a madeira "iluminada" (`shardWood`; a madeira padrão dá `#815435`, igual a antes). Sem nó `piso`, o modelo inteiro some na quebra (o grupo raiz vira `tray-surface`).
+- **Kraken:** `Kraken.start(..., coresDaMesa())`: cacos com o feltro da mesa e a madeira "iluminada" (`shardWood`; a madeira padrão dá `#815435`, igual a antes). Sem nó `piso`, o modelo inteiro some na quebra (o grupo raiz vira `tray-surface`). Quem decide a quebra é o `QuebraDaMesa` (legado de `pressagios`); a mesa só obedece a `ocultarPiso`.
 
 ## Exportar e importar (`.glb` autocontido)
 
@@ -40,7 +43,7 @@ O jogador muda o fundo e a aparência da bandeja, salva no navegador e exporta/i
 - O primeiro `createImageBitmap` da página para a thread principal por ~1 s; `warmImageDecoder()` (em `App`) decodifica um PNG de 1 pixel na abertura para pagar isso cedo.
 - Nunca mudar o número de luzes por causa da mesa. Trocar textura do feltro pode recompilar um shader uma vez (só no painel).
 - O `GLTFExporter` binário usa `FileReader`: só roda no navegador (o ida-e-volta é E2E, não Vitest). Vitest cobre o encaixe, os avisos e a limpeza com objetos montados à mão.
-- `Tray` só tem estado de React; o objeto 3D da mesa é recriado a cada mudança de cor/textura/modelo (descartado com `disposeTable`). Colisores não mudam.
+- `MesaNaCena` só tem estado de React; o objeto 3D da mesa é recriado a cada mudança de cor/textura/modelo (descartado com `disposeTable`). Colisores não mudam.
 - Testes de pixel (`smoke`, `screens`) assumem o tema padrão (fundo de cor, canvas opaco).
 
 ## Fundo 360°
@@ -49,7 +52,7 @@ Spec: `docs/superpowers/specs/2026-11-11-fundo-360-design.md`. Quarto tipo de fu
 
 - **Tema:** `{ kind: 'panorama', image, format: 'ldr' | 'hdr', rotation (0–359), intensity (0,3–1,5), blur (0–0,4), reflect }`. `intensity` age só no fundo (`backgroundIntensity`); a força do reflexo nos dados não muda.
 - **Carregar** (`tableImages.ts`): `preparePanorama` (JPG/PNG/WebP reduzidos a 4096 px; `.hdr` guardado como veio, até 25 MB; `.exr` é erro) e `panoramaTexture` (cache por blob; checa 2:1 com tolerância 1,9–2,1; HDR por `HDRLoader` em import dinâmico, reduzido por média 2×2 e guardado em half float). Com SwiftShader (`marcarRenderizadorPorSoftware`, de `shared/plataforma`, chamado em `Cena`) o teto cai para 2048 px.
-- **Cena** (`app/Cena.tsx`): `<EnvironmentPortal resolution={256} map={reflect ? tex : undefined}>` com os mesmos três `Lightformer`s (o panorama **soma**; os `Lightformer`s seguem acesos). O alvo do cubemap é o mesmo para qualquer panorama, então trocar de panorama, ligar/desligar o reflexo ou girar **não** recompila shader de dado: `gl.info.programs` sobe de 40 para 42 uma vez (fundo do panorama), depois fica fixo. Rotação, brilho e desfoque vão como props do portal (o drei os reaplica a cada recaptura; setar na cena à mão seria desfeito).
-- **Quando aplica:** `Cena` guarda o panorama pedido numa ref e só o aplica (estado + `scene.background`) com a fase `hand` ou com o showcase do arremesso atual encerrado, a mesma regra do DPR. Backdrop CSS não desenha nada para `panorama`.
+- **Cena** (`modules/mesa/scene/AmbienteDaMesa.tsx`, montado pela `app/Cena.tsx`): `<EnvironmentPortal resolution={256} map={reflect ? tex : undefined}>` com os mesmos três `Lightformer`s (o panorama **soma**; os `Lightformer`s seguem acesos). O alvo do cubemap é o mesmo para qualquer panorama, então trocar de panorama, ligar/desligar o reflexo ou girar **não** recompila shader de dado: `gl.info.programs` sobe de 40 para 42 uma vez (fundo do panorama), depois fica fixo. Rotação, brilho e desfoque vão como props do portal (o drei os reaplica a cada recaptura; setar na cena à mão seria desfeito). O drei só recaptura quando os `children` do portal mudam: o `AmbienteDaMesa` embrulha os `Lightformer`s num fragmento novo a cada render, como acontecia quando o portal estava na `Cena`.
+- **Quando aplica:** `AmbienteDaMesa` guarda o panorama pedido numa ref e só o aplica (estado + `scene.background`) quando `podeTrocar()` diz que sim. A casca passa `entreAnimacoes` (fase `hand` ou showcase do arremesso atual encerrado), a mesma regra do DPR. O `FundoCss` não desenha nada para `panorama`.
 - **Painel:** botão **360°** (`data-testid="table-panorama"`), sliders Girar/Brilho/Desfoque, checkbox "Refletir nos dados". A proporção é checada ao escolher o arquivo.
 - **Arquivo:** nó oculto `fundo-360` (plano 2:1, como o `fundo`) + `extras`. HDR vai como JPEG tonemapeado (`c/(1+c)`, gama 2,2; o painel avisa) e volta como `ldr`. Armadilha: `roleOf('fundo-360')` dá `fundo-` (a regex do sufixo do Blender come os três dígitos), então esse nó é achado por `o.name`, não por `roleOf`. `fundo-360` sem `extras` panorama importa com os ajustes padrão e avisa.

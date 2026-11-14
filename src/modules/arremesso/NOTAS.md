@@ -27,7 +27,7 @@ Store zustand vanilla do módulo (OS-0031), escrito só lá. Campos de `EstadoDo
 O que ficou no store legado `useDice` (`src/store.ts`): `omen`, `omenAt`, `omenDone`, `omenRig`, `omenTest`, `showcased`. `omenPlaying()` lê os dois estados (`arremesso()` e `useDice.getState()`); `useOmenPlaying()` é o mesmo como hook. Quem passa estado às funções puras (`trayBrokenAt`, `Show.frame`, `Hand`, o test hook) junta os dois com `{ ...arremesso(), ...useDice.getState() }`. O presságio é decidido por um assinante de `resultadoPublicado` no `useDice` (`omenRig ?? omenOf(omenKinds(dice), results)`, `null` com movimento reduzido). Só um `assinarArremesso` veria o resultado sem o presságio; nenhum assinante lê `omen`. A casca (`App.tsx`) assina o mesmo evento para gravar o histórico. São dois `set` no mesmo tique (OS-0031): o React agrupa os dois e o `useFrame` lê no quadro seguinte.
 
 - A falha `'physics'` vive em `shared/plataforma` (`falha()`, `useFalha()`), não no store; `<DicaDaFase/>` a mostra.
-- Movimento reduzido também vive em `shared/plataforma` (`movimentoReduzido()`); `MaoDoArremesso` o lê (sem balanço da mão, retorno curto com fade), como o `Hand` da vitrine, o `Tray` e o `__dice.state().reducedMotion`; o `App.tsx` chama `observarPreferenciaDoSistema`.
+- Movimento reduzido também vive em `shared/plataforma` (`movimentoReduzido()`); `MaoDoArremesso` o lê (sem balanço da mão, retorno curto com fade), como o `Hand` da vitrine, o `QuebraDaMesa` (pressagios) e o `__dice.state().reducedMotion`; o `App.tsx` chama `observarPreferenciaDoSistema`.
 - O registro de corpos e a contagem de lançamentos (`scene/corpos.ts`) valem para o módulo inteiro e não zeram se a `Cena` for remontada (no HEAD da OS-0033 eram refs da `Cena`). Hoje a `Cena` só desmonta numa falha e não volta na mesma sessão; cada E2E abre página nova.
 
 ## Cena (`scene/`)
@@ -36,7 +36,7 @@ O que ficou no store legado `useDice` (`src/store.ts`): `omen`, `omenAt`, `omenD
 - `MaoDoArremesso`: entrada por ponteiro e teclado, mira, seta (`ArrowHelper`), redemoinho, `motion` e retorno. É montada logo antes do `Hand` do legado (a parte `settled`), para o quadro dela rodar antes.
 - `LoopDoArremesso`: o laço abaixo, em `useBeforePhysicsStep`.
 - `CorpoDoDado`: o corpo cinemático de cada dado, sem CCD, com a `AparenciaDoDado` de `dados` e `userData.selection`.
-- `ColisoresDaBandeja`: o corpo fixo com `trayColliders()`; o `Tray` da mesa a passa como filha.
+- `ColisoresDaBandeja`: o corpo fixo com `trayColliders()`; a `MesaNaCena` (`mesa`) passa a mesa como filha dela.
 
 ## Linha do tempo de um arremesso
 

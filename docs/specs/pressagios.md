@@ -67,7 +67,7 @@ Decidir se um resultado publicado tem presságio e mostrá-lo antes do resultado
 | `src/store.ts:26-29, 45-46, 59-62, 119, 144-145` | campos, `omenPlaying`, cálculo no `publish`, o cancelamento no `setReducedMotion` |
 | `src/scene/Omens.tsx`, `Kraken.ts`, `krakenMotion.ts`, `Fire.ts`, `fireMotion.ts` | tudo. A regra "que efeito em que dado" (`Omens.tsx:199-209`) vira a função pura `planoDoPresagio(omen, dice)`, usada também pela camada HTML |
 | `src/ui/OmenOverlay.tsx` | tudo, usando `planoDoPresagio` em vez de recalcular |
-| `src/scene/Tray.tsx:11-15, 38-47` | a regra da quebra, aplicada por `mesa.ocultarPiso` |
+| `src/scene/QuebraDaMesa.tsx` (era `Tray.tsx:11-15, 38-47`) | a regra da quebra, aplicada por `mesa.ocultarPiso` |
 | `src/scene/Hand.tsx:214-215, 277-287` | o percurso do d100, que vira `movimentoNoPresagio` |
 | `src/index.css` (blocos `.omen*` e `.game-area[data-*]`) | `src/modules/pressagios/components/presagios.css` |
 

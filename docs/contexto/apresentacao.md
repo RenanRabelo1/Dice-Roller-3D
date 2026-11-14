@@ -1,6 +1,6 @@
 # Apresentação do resultado: presságios, showcase, destaque
 
-Tudo que acontece em `settled`, depois do `publish`. Arquivos: `dice/omen.ts`, `scene/Omens.tsx`, `scene/Kraken.ts`, `scene/krakenMotion.ts`, `scene/Fire.ts`, `scene/fireMotion.ts`, `scene/Tray.tsx`, `ui/OmenOverlay.tsx`, `scene/showcase.ts`, `scene/highlight.ts`, `scene/Hand.tsx` (só a parte `settled`; a mão do arremesso é a `MaoDoArremesso` do módulo `arremesso`, montada logo antes), `ui/Controls.tsx` (painel).
+Tudo que acontece em `settled`, depois do `publish`. Arquivos: `dice/omen.ts`, `scene/Omens.tsx`, `scene/Kraken.ts`, `scene/krakenMotion.ts`, `scene/Fire.ts`, `scene/fireMotion.ts`, `scene/QuebraDaMesa.tsx`, `ui/OmenOverlay.tsx`, `scene/showcase.ts`, `scene/highlight.ts`, `scene/Hand.tsx` (só a parte `settled`; a mão do arremesso é a `MaoDoArremesso` do módulo `arremesso`, montada logo antes), `ui/Controls.tsx` (painel).
 
 ## Ordem em `settled`
 
@@ -49,7 +49,7 @@ Desempenho (não quebrar):
 - `krakenMotion.ts` (puro, testado): `KRAKEN` = marcos (rupture 450, grab 1150, lift 1750, fling 2050, away 2650, catch 3350, shown 4350, release 5300, restored 6300, duration 6500). `krakenAt(t)` dá `broken/spread/arms/grip/reveal`; `krakenDieAt` dá a pose do d100 (erguido, sacudido, arremessado para `FAR` fora da tela, trazido de volta até a pose do showcase); `fractureCells` quebra o piso em cacos radiais que cobrem o retângulo todo.
 - `krakenIndices(omen, dice)`: só d100 críticos, e só se **não** houver falha (dualidade vence).
 - `Kraken.ts`: modo `grab` (braço 0 agarra: corpo em Bézier cúbica + hélice enrolada no dado; os outros 9 se debatem; cacos, rachaduras, abismo) e modo `storm` (10 braços saindo do mar em volta da bandeja). Tubos com referenciais de transporte paralelo, ventosas instanciadas.
-- `Tray.tsx` esconde `tray-surface` enquanto `trayBrokenAt` (krakenMotion.ts) diz que a bandeja está quebrada; o `Kraken` desenha os cacos no lugar, com as cores da mesa ativa (`Kraken.start('grab', ..., mesa().colors)`; ver mesa.md). Mesa importada sem piso: o modelo inteiro some.
+- `QuebraDaMesa.tsx` chama, a cada quadro, `ocultarPiso(trayBrokenAt(...))` do módulo `mesa`, que esconde `tray-surface` na hora (montado antes da `<MesaNaCena/>`, então vale no mesmo quadro); o `Kraken` desenha os cacos no lugar, com as cores da mesa ativa (`Kraken.start('grab', ..., coresDaMesa())`; ver mesa.md). Mesa importada sem piso: o modelo inteiro some.
 - O d100 do kraken ou da tempestade **não** faz o voo comum do showcase; o percurso dele é o do presságio (`krakenDieAt` / `stormDieAt`, `STORM` em krakenMotion.ts), e termina na pose comum do resultado.
 
 ## Fogo (falha de d20)

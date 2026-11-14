@@ -30,7 +30,7 @@ Aparência da mesa e do fundo. Temas prontos, cores, texturas do feltro, foto de
 
 ### Expõe
 - `carregar()`: a casca chama na montagem.
-- Componentes: `<MesaNaCena/>` (o visual da bandeja), `<FundoCss/>` (o antigo `Backdrop`), `<AmbienteDaMesa podeTrocar />` (cor de fundo, panorama e mapa do ambiente), `<PainelDaMesa/>`.
+- Componentes: `<MesaNaCena/>` (o visual da bandeja), `<FundoCss/>` (o antigo `Backdrop`), `<AmbienteDaMesa podeTrocar luzes>{Lightformers}</AmbienteDaMesa>` (cor de fundo, panorama e mapa do ambiente; as luzes e os `Lightformer`s vêm da casca), `<PainelDaMesa/>`.
 - `coresDaMesa() → { felt, wood }`.
 - `ocultarPiso(on)`: para a quebra do kraken.
 - `inspecao()` (modo teste): o mesmo conteúdo do `table()` de hoje.

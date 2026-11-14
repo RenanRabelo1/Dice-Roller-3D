@@ -5,9 +5,9 @@ import { Controls } from './ui/Controls';
 import { OmenOverlay } from './ui/OmenOverlay';
 import { OmenTests } from './ui/OmenTests';
 import { resultadoPublicado } from './modules/arremesso/index.ts';
-import { Backdrop } from './scene/Backdrop';
 import { Failure, Guard, hasWebGL, observarPreferenciaDoSistema, registrarFalha, useFalha } from './shared/plataforma';
 import { load as carregarMesa, warmImageDecoder } from './modules/mesa/index.ts';
+import { FundoCss } from './modules/mesa/cena.ts';
 import { registrarArremesso } from './modules/historico/index.ts';
 import { corpoDosDados } from './app/historico';
 import { carregar } from './modules/meus-dados/index.ts';
@@ -27,7 +27,7 @@ export default function App() {
     <main className="app">
     <Controls />
     <div ref={gameArea} className="game-area" tabIndex={0} aria-label="Área de arremesso">
-      <Backdrop />
+      <FundoCss />
       {!error && (
         <Guard kind="graphics">
           <Canvas shadows camera={{ position: [0, 14, 10], fov: 40 }}

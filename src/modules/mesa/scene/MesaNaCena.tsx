@@ -1,23 +1,16 @@
-import { arremesso } from '../modules/arremesso/index';
-import { ColisoresDaBandeja } from '../modules/arremesso/cena';
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { useFrame, useThree } from '@react-three/fiber';
+import { ColisoresDaBandeja } from '../../arremesso/cena.ts';
+import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import { useThree } from '@react-three/fiber';
 import type { Group, Object3D } from 'three';
-import { movimentoReduzido } from '../shared/plataforma';
-import { useDice } from '../store';
-import { trayBrokenAt } from './krakenMotion';
-import { buildDefault, carregarArquivoDeMesa, colorsOf, disposeTable, mesa, SURFACE } from '../modules/mesa/index';
-import { useMesa } from '../modules/mesa/cena';
-
-const setVisible = (o: Object3D, visible: boolean) => { o.visible = visible; };
-const broken = () => {
-  const a = arremesso(), s = useDice.getState();
-  return trayBrokenAt({ phase: a.gesture.phase, throwId: a.throwId, omen: s.omen, omenDone: s.omenDone, omenAt: s.omenAt, dice: a.dice, reducedMotion: movimentoReduzido() }, performance.now());
-};
+import { buildDefault, colorsOf, disposeTable, SURFACE } from '../domain/tableBuild.ts';
+import { carregarArquivoDeMesa } from '../index.ts';
+import { setColors } from '../store.ts';
+import { useMesa } from '../ui/useMesa.tsx';
+import { registrarPiso } from './piso.ts';
 
 // The tray's colliders are always trayColliders() (arremesso's ColisoresDaBandeja); what you see comes from the active table theme (a default
 // build, or an imported .glb fitted to the same play area).
-export function Tray() {
+export function MesaNaCena() {
   const theme = useMesa((s) => s.theme);
   const { gl, camera, scene } = useThree();
   const texture = typeof theme.felt.texture === 'string' ? theme.felt.texture : 'liso';
@@ -35,17 +28,14 @@ export function Tray() {
   }, [theme, slow, gl, camera, scene]);
   useEffect(() => () => { if (loaded) disposeTable(loaded.group); }, [loaded]);
   const table: Object3D = slow && loaded?.theme === theme ? loaded.group : quick;
-  useEffect(() => { mesa().setColors(colorsOf(table) ?? { felt: theme.felt.color, wood: theme.wood.color }); }, [table, theme]);
-  // The floor that the kraken hides: a new table's floor gets the right visibility at once (not a frame later), and
-  // the one leaving the scene is left whole.
-  const surface = useRef<Object3D>(table);
+  useEffect(() => { setColors(colorsOf(table) ?? { felt: theme.felt.color, wood: theme.wood.color }); }, [table, theme]);
+  // The floor that the kraken hides (ocultarPiso): a new table's floor gets the right visibility at once (not a frame
+  // later), and the one leaving the scene is left whole.
   useLayoutEffect(() => {
     const next = table.getObjectByName(SURFACE) ?? table;
-    surface.current = next;
-    setVisible(next, !broken());
-    return () => setVisible(next, true);
+    registrarPiso(next);
+    return () => { registrarPiso(null); next.visible = true; };
   }, [table]);
-  useFrame(() => setVisible(surface.current, !broken()));
   return (
     <ColisoresDaBandeja>
       <primitive object={table} />
