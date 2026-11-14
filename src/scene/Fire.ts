@@ -1,7 +1,7 @@
 import {
   AdditiveBlending, BufferAttribute, BufferGeometry, Group, Mesh, PlaneGeometry, Points, ShaderMaterial, Vector3,
 } from 'three';
-import { MAX_DICE } from '../dice/polyhedra';
+import { MAX_DICE } from '../modules/regras/index';
 import { TRAY } from '../physics/world';
 import { fireAt, fireReach } from './fireMotion';
 

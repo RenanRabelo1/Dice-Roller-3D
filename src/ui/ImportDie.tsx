@@ -5,7 +5,8 @@ import { BufferGeometry, Color, Float32BufferAttribute, Group, Matrix4, Mesh, Qu
 import { customKind, inkColorOf, type CustomBase, type CustomDie, type Finish, type Ink, type StdBase } from '../dice/custom';
 import { askOrder, unevenOf, withReadable, checkFreeValue, checkFreeValues, checkValue, checkValues, formatOf, hasTexture, importModel, ImportError, inkOf, inkTriangles, markInk, LIMITS, normaliseValues, renumbered, suggestOpposite, type Imported } from '../dice/importer';
 import { slugOf, slugProblem } from '../dice/notation';
-import { MAX_DICE, type Polyhedron } from '../dice/polyhedra';
+import type { Polyhedron } from '../dice/polyhedra';
+import { MAX_DICE } from '../modules/regras/index';
 import { GEM, GemMaterial, paintGlb, usePainted } from '../scene/Die';
 import { useDice } from '../store';
 import { InkChoice } from './InkChoice';

@@ -1,5 +1,6 @@
 import { Quaternion, Vector3 } from 'three';
-import { baseOf, type DieKind, type Polyhedron } from './polyhedra';
+import { baseOf, type Polyhedron } from './polyhedra';
+import type { DieKind } from '../modules/regras/index';
 import type { Quat } from '../shared/math';
 
 const UP = new Vector3(0, 1, 0);

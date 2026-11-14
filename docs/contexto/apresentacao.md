@@ -23,7 +23,7 @@ Só d20 (embutido, ou importado de base d20 com `omens: true`: `isD20`) e d100 c
 | crítico | 20 | 1 (estilo Call of Cthulhu: baixo é bom) |
 | falha | 1 | 100 |
 
-`omenOf(dice, results)` → `{ crits: índices, fumbles: índices }` ou `null`. `omenKind`: crítico e falha no mesmo arremesso = `duality`.
+`omenOf(dice, results)` (`modules/regras`) → `{ crits: índices, fumbles: índices }` ou `null`. `omenKind` (`modules/regras`): crítico e falha no mesmo arremesso = `duality`.
 
 | Tipo | Efeito | Duração (`OMEN_MS`) |
 |---|---|---|
@@ -87,7 +87,7 @@ Os próximos arremessos **caem de verdade** no resultado: o `RollRequest` leva `
 
 ## Receita: novo presságio
 
-1. Regra e duração em `dice/omen.ts` (`omenOf`, `OmenKind`, `OMEN_MS`, `omenMs`) + `tests/omen.test.ts`.
+1. Regra em `modules/regras` (`omenOf`, `OmenKind`, `omenKind`) + `src/modules/regras/tests/pressagio.test.ts`; duração em `dice/omen.ts` (`OMEN_MS`, `omenMs`) + `tests/omen.test.ts`.
 2. 3D: nova classe no estilo `Bolt`/`TaiJi` dentro de `Show` (criar no construtor, aquecer em `compile`, esconder em `hide`, liberar em `dispose`). Não adicionar/remover luzes em tempo de execução.
 3. HTML: bloco em `OmenOverlay.tsx` + CSS; frase em `SAY`.
 4. E2E: `e2e/omen.spec.ts` usa `__dice.rigOmen(...)` para forçar o tipo.

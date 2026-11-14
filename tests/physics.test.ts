@@ -1,6 +1,6 @@
 import { afterEach, beforeAll, describe, it, expect } from 'vitest';
 import RAPIER, { RigidBodyType } from '@dimforge/rapier3d-compat';
-import { BASE, KINDS } from '../src/dice/polyhedra';
+import { BASE, KINDS } from '../src/modules/regras/index.ts';
 import { clampTarget, launchVelocity, spin } from '../src/throw/aim';
 import { applyLaunch, applySettle, bodyStates, toKinematic } from '../src/physics/apply';
 import { isOutside, MAX_RADIUS, SETTLE } from '../src/physics/world';

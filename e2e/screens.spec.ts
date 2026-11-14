@@ -1,6 +1,6 @@
 import { mkdir } from 'node:fs/promises';
 import { test, expect } from '@playwright/test';
-import type { DieKind } from '../src/dice/polyhedra';
+import type { DieKind } from '../src/modules/regras/index';
 import type { Quat } from '../src/shared/math';
 
 const orientations: { name: string; q: Quat }[] = [

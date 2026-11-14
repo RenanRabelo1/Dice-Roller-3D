@@ -8,7 +8,7 @@ Os módulos seguem domínios de negócio, não as pastas de hoje. As decisões q
 
 | Módulo | Responsabilidade | Dono dos dados | Pode depender de | Estado |
 |---|---|---|---|---|
-| `regras` | As regras do jogo que o servidor também aplica: tipos de dado, faces válidas, limite de 10 dados, total (moeda não soma), crítico, falha e dualidade. Puro, sem estado (ADR 0002). | nenhum | — | em extração (OS-0014 aceita; OS-0015 tira as pontes) |
+| `regras` | As regras do jogo que o servidor também aplica: tipos de dado, faces válidas, limite de 10 dados, total (moeda não soma), crítico, falha e dualidade. Puro, sem estado (ADR 0002). | nenhum | — | em extração (OS-0014 a 0016 aceitas; OS-0017 fecha os achados do aceite) |
 | `historico` | Gravar cada arremesso publicado na API, com o jogador anônimo. Único módulo com metade no servidor (rotas, regra de gravação, coleção). | `localStorage['diceroller.player']`, coleção `rolls` | `regras`, `dados`, `arremesso` (evento) | pendente |
 | `dados` | O dado como objeto: catálogo vivo dos tipos jogáveis (embutidos + importados registrados), sólidos, numeração, leitura da face, símbolos e aparência na cena (gema, tinta, numerais, modelo importado). | catálogo de tipos (registro em memória), caches de sólido, símbolo e modelo | `regras` | pendente |
 | `selecao` | Quais dados estão na mão: botões, chat com notação, nomes de exibição e regras de apelido. | `dice` (a seleção) | `regras`, `dados` | pendente |

@@ -1,6 +1,5 @@
-import type { DieKind } from '../dice/polyhedra';
+import type { DieKind, Omen, OmenKind } from '../modules/regras/index';
 import type { Falha } from '../shared/plataforma';
-import type { Omen, OmenKind } from '../dice/omen';
 import type { Quat, Vec3 } from '../shared/math';
 import type { Phase } from '../throw/gesture';
 

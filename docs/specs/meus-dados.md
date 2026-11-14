@@ -72,6 +72,8 @@ Os dados que o jogador traz de arquivo `.stl` ou `.glb`: o assistente de importa
 | `src/ui/ImportDie.tsx`, `src/ui/InkChoice.tsx` | tudo. A montagem do `CustomDie` (`:254-274`) vira uma função pura em `domain/`, com teste |
 | `src/ui/Controls.tsx:11-27, 46-48, 63-66` | `InkButton`, excluir, grupo "Meus dados", abrir a importação |
 
+**Duplicações de `regras` a desfazer nesta extração** (auditoria do aceite de `regras`, 2026-11-13): `src/dice/importer.ts:18` (`FACES`, cópia de `regras.SIDES` para d4–d20) e `src/ui/ImportDie.tsx:271` (regra "d20 com `omens`" num componente React; passar a usar `regras.tipoParaPresagio`).
+
 **Pontos de chamada a trocar:**
 - `App.tsx` (`loadCustoms`);
 - o test hook (`customs`);

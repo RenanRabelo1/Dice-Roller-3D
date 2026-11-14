@@ -1,5 +1,5 @@
 import RAPIER, { type RigidBody } from '@dimforge/rapier3d-compat';
-import type { DieKind } from '../../src/dice/polyhedra';
+import type { DieKind } from '../../src/modules/regras/index.ts';
 import { presimulate } from '../../src/physics/presim';
 import { handPositions } from '../../src/physics/world';
 import type { Vec3 } from '../../src/shared/math';

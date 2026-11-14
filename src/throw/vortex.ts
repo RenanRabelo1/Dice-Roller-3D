@@ -1,4 +1,4 @@
-import { MAX_DICE } from '../dice/polyhedra';
+import { MAX_DICE } from '../modules/regras/index';
 import { HAND, TRAY } from '../physics/world';
 import type { Vec3 } from '../shared/math';
 

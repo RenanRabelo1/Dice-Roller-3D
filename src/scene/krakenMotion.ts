@@ -1,6 +1,5 @@
 import { MathUtils, Quaternion, Vector3 } from 'three';
-import type { Omen } from '../dice/omen';
-import type { DieKind } from '../dice/polyhedra';
+import type { DieKind, Omen } from '../modules/regras/index';
 import { TRAY } from '../physics/world';
 import { easeOut, span, type Pose, type Quat, type Vec3 } from '../shared/math';
 import type { Phase } from '../throw/gesture';

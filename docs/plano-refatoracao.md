@@ -103,7 +103,7 @@ Cada uma deixa o sistema verde.
   - faz um commit por ordem em `refac/first-complete`, com a mensagem `refac(<escopo>): <título> [OS-NNNN]` e a ordem atualizada no mesmo commit;
   - isso dá um diff isolado por ordem, que se revisa ou reverte sozinho;
   - nada é enviado ao remoto (sem push).
-- **Gate por ordem:** `build`, `lint`, `test` e `test:server` sempre. `e2e` completo em toda ordem que toca `src/scene`, `src/ui`, `src/app`, um componente de módulo ou `e2e/`, e sempre no aceite de cada módulo. Os E2E rodam um por vez na máquina (ver `docs/contexto/testes.md`).
+- **Gate por ordem:** `build`, `lint`, `test` e `test:server` sempre. **Decisão do responsável humano em 2026-11-13 (a partir da OS-0017), para reduzir o tempo:** o `e2e` completo roda **só no aceite de cada módulo e no fim das fases 6 e 7**, não mais em cada ordem que toca cena ou UI; o dev também não roda E2E nas ordens intermediárias. Se o E2E do aceite falhar, a causa é procurada entre os commits das ordens daquele módulo (um por ordem). Os E2E rodam um por vez na máquina (ver `docs/contexto/testes.md`).
 - **Auditoria periódica** (seção 8 do guia): a cada módulo concluído, ou a cada dez ordens, o revisor confere o `CLAUDE.md` dos módulos contra o código e o mapa contra o grafo real.
 
 ## 5. Destino da documentação existente

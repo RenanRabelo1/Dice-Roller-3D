@@ -71,6 +71,8 @@ Decidir se um resultado publicado tem presságio e mostrá-lo antes do resultado
 | `src/scene/Hand.tsx:214-215, 277-287` | o percurso do d100, que vira `movimentoNoPresagio` |
 | `src/index.css` (blocos `.omen*` e `.game-area[data-*]`) | `src/modules/pressagios/components/presagios.css` |
 
+**Duplicação de `regras` a desfazer nesta extração** (auditoria do aceite de `regras`, 2026-11-13): `src/dice/omenTest.ts:39` repete a regra de presságio; passar a usar `regras`.
+
 **Pontos de chamada a trocar:**
 - `Controls.tsx` (`omenPlaying`), o legado da vitrine em `Hand.tsx`;
 - o test hook (`rigOmen`, `state().omen`);

@@ -1,6 +1,6 @@
-import { omenKind, omenOf } from '../modules/regras/index.ts';
+import { MAX_DICE, omenKind, omenOf, type DieKind } from '../modules/regras/index.ts';
 import { isD20 } from './omen';
-import { MAX_DICE, sortDice, type DieKind } from './polyhedra';
+import { sortDice } from './polyhedra';
 
 // Test buttons (dev only): the next throws land on faces that call the chosen omen, so its animation can be
 // seen at will. The roll stays real physics; only its random spin is picked (see presimulateFor).

@@ -28,7 +28,7 @@ Imports e ciclos (regras 1 e 4 do guia, ADR 0006 parte A) e dono dos dados (regr
 - As regras de módulo valem antes de existir módulo: `fixtures/modulos/` é uma árvore mínima (`src/`, `server/`) que viola cada regra uma vez, e o teste confere que cada uma dispara. Os fixtures são checados pelo `tsc -b` (`tsconfig.test.json`); os que não compilam de propósito (import quebrado, caminho absoluto, grafia) usam `// @ts-nocheck`.
 - Falha sai como `[regra] origem → destino (regra do guia / ADR)`.
 
-**Exceções** só em `tests/arquitetura/config.ts`, cada uma com o ADR ou a linha do plano ao lado: `CICLOS_CONHECIDOS`, `SERVIDOR_PODE_IMPORTAR` (cai na extração de `regras`), `REGRAS_TESTES_PODEM_IMPORTAR` (`vitest` nos testes do próprio módulo, ADR 0007 ponto 9) e `DADOS_LEGADO` (dono dos dados, abaixo).
+**Exceções** só em `tests/arquitetura/config.ts`, cada uma com o ADR ou a linha do plano ao lado: `CICLOS_CONHECIDOS`, `SERVIDOR_PODE_IMPORTAR` (desde a OS-0014, só `src/modules/regras/index.ts`: é a permissão definitiva dos ADRs 0002/0004, não uma exceção que some), `REGRAS_TESTES_PODEM_IMPORTAR` (`vitest` nos testes do próprio módulo, ADR 0007 ponto 9) e `DADOS_LEGADO` (dono dos dados, abaixo).
 
 ### Dono dos dados (`donos.ts` + `dados.test.ts`)
 

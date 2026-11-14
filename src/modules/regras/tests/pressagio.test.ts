@@ -1,7 +1,30 @@
 import { describe, expect, it } from 'vitest';
-import { omenKind, omenOf, tipoParaPresagio } from '../index.ts';
+import { omenKind, omenOf, tipoParaPresagio, type DieKind } from '../index.ts';
+
+const d20 = (n: number) => Array<DieKind>(n).fill('d20');
 
 describe('omenOf', () => {
+  it.each([
+    ['one 20 in 5d20 is a critical', d20(5), [3, 20, 7, 9, 11], { crits: [1], fumbles: [] }, 'crit'],
+    ['one 1 in 5d20 is a fumble', d20(5), [3, 1, 7, 9, 11], { crits: [], fumbles: [1] }, 'fumble'],
+    ['a 20 and a 1 is duality', d20(5), [20, 1, 7, 9, 11], { crits: [0], fumbles: [1] }, 'duality'],
+    ['two fumbles and a critical is still duality', d20(3), [1, 20, 1], { crits: [1], fumbles: [0, 2] }, 'duality'],
+    ['d100 1 is the Cthulhu critical', ['d100'], [1], { crits: [0], fumbles: [] }, 'crit'],
+    ['critical on both a d20 and a d100', ['d20', 'd100'], [20, 1], { crits: [0, 1], fumbles: [] }, 'crit'],
+    ['fumble on both', ['d20', 'd100'], [1, 100], { crits: [], fumbles: [0, 1] }, 'fumble'],
+    ['one of each across d20 and d100', ['d20', 'd100'], [20, 100], { crits: [0], fumbles: [1] }, 'duality'],
+  ] as [string, DieKind[], number[], object, string][])('%s', (_, dice, results, omen, kind) => {
+    const o = omenOf(dice, results)!;
+    expect(o).toEqual(omen);
+    expect(omenKind(o)).toBe(kind);
+  });
+
+  it('only d20 and d100 count: other dice, Vampire d10s and coins never trigger one', () => {
+    expect(omenOf(['d4', 'd6', 'd10', 'd12', 'vtm', 'hunger', 'fire', 'coin'], [1, 1, 10, 12, 10, 1, 6, 1])).toBeNull();
+    expect(omenOf(d20(3), [2, 19, 10])).toBeNull();
+    expect(omenOf(['d100'], [50])).toBeNull();
+  });
+
   it('finds a critical on a d20 (20) and on a d100 (1)', () => {
     expect(omenOf(['d20', 'd6'], [20, 6])).toEqual({ crits: [0], fumbles: [] });
     expect(omenOf(['d6', 'd100'], [1, 1])).toEqual({ crits: [1], fumbles: [] });

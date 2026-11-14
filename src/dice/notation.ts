@@ -1,6 +1,6 @@
 import { customDie, customKind, customList, isCustom, type CustomDie } from './custom';
-import { allKinds, baseOf, MAX_DICE, sortDice, type DieKind } from './polyhedra';
-import { total as sumOf } from '../modules/regras/index.ts';
+import { allKinds, baseOf, sortDice } from './polyhedra';
+import { MAX_DICE, total as sumOf, type DieKind } from '../modules/regras/index.ts';
 
 // What may follow the "d": longest first, so "d100" wins over "d10" + "0" and "d10vampiro" over "d10v".
 const AFTER_D: [string, DieKind][] = [

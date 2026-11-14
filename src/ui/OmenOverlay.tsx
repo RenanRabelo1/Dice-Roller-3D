@@ -1,6 +1,6 @@
 import { useEffect, type CSSProperties, type RefObject } from 'react';
-import { isD20, omenKind, omenMs, type OmenKind } from '../dice/omen';
-import type { DieKind } from '../dice/polyhedra';
+import { isD20, omenMs } from '../dice/omen';
+import { omenKind, type DieKind, type OmenKind } from '../modules/regras/index';
 import { omenPlaying, useDice } from '../store';
 
 // The screen side of an omen: a white flash as the lightning strikes, the deep dark while the kraken is up,

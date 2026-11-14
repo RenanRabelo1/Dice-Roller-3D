@@ -2,8 +2,6 @@ import { isCustom, omenKind, tipoParaPresagio, type DieKind, type Omen } from '.
 import { customDie } from './custom';
 
 // An omen is the show a roll puts on before its result appears; the rules (crit, fumble, duality) live in `regras`.
-export type { Omen, OmenKind } from '../modules/regras/index.ts'; // ponte até a OS-0016
-export { omenKind } from '../modules/regras/index.ts'; // ponte até a OS-0016
 
 // How long each show lasts (ms); the result waits for it.
 // d20 = 20: lightning. d100 = 1: the kraken grabs, flings and brings back the die. d20 = 1: fire. d100 = 100: the storm.

@@ -45,7 +45,7 @@ src/
     testHook.ts              window.__dice (só em mode=test)                        → testes.md
   modules/regras/          regras do jogo, puras, compartilhadas com server/        → modules/regras/CLAUDE.md
   dice/                    domínio puro dos dados (sem React)                       → dados.md
-    polyhedra.ts             geometria, numeração, rótulos, `fromTriangles` (reexporta os tipos)
+    polyhedra.ts             geometria, numeração, rótulos, `fromTriangles` (os tipos de dado vêm de `modules/regras`)
     custom.ts                tipo `CustomDie` + registro em memória dos dados importados
     customStore.ts           IndexedDB store `customDice`
     importer.ts              .stl/.glb → poliedro (detecção, sólido ideal, calibração)

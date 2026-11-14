@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { Quaternion, Vector3 } from 'three';
-import { polyhedron, type BuiltinKind } from '../src/dice/polyhedra';
+import { polyhedron } from '../src/dice/polyhedra';
+import type { BuiltinKind } from '../src/modules/regras/index.ts';
 import { readUp, toResults } from '../src/dice/read';
 import type { Quat, Vec3 } from '../src/shared/math';
 import { detectFree, idealSolid, renumbered, withReadable } from '../src/dice/importer';

@@ -13,8 +13,6 @@ import { customBase, customKind, customList, customOrder, customPoly, isCustom, 
 
 import { BASE, KINDS, type BuiltinKind, type DieKind, type Shape } from '../modules/regras/index.ts';
 
-// The kinds themselves live in `regras` (no 3D code), shared with the API server.
-export { BASE, KINDS, type BuiltinKind, type DieKind, type Shape } from '../modules/regras/index.ts'; // ponte até a OS-0016
 export type SymbolName = 'ankh' | 'crit' | 'skull' | 'fangs' | 'heads' | 'crown';
 
 // Vampire d10s show symbols instead of digits, by d10 digit (0 is the 10); the other faces are blank.
@@ -250,7 +248,6 @@ export const sortDice = (dice: DieKind[]): DieKind[] => [...dice].sort((a, b) =>
 export const allKinds = (): DieKind[] => [...KINDS, ...customList().map((d) => customKind(d.id))];
 // The physical shape behind a kind (imported dice report the base they were recognised as).
 export const baseOf = (kind: DieKind): Shape => (isCustom(kind) ? customBase(kind) ?? 'd20' : BASE[kind]);
-export { MAX_DICE } from '../modules/regras/index.ts'; // ponte até a OS-0016
 // The solids of the imported dice in a selection, for the worker (which has no registry of its own).
 export const customsOf = (dice: DieKind[]): Record<CustomKind, Polyhedron> =>
   Object.fromEntries(dice.filter(isCustom).map((k) => [k, polyhedron(k)])) as Record<CustomKind, Polyhedron>;

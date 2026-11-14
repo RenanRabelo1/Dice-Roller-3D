@@ -2,7 +2,7 @@
 
 Cobre `src/dice/*`, `scene/Die.tsx` e `ui/Chat.tsx`/`ui/Controls.tsx`. Tudo em `dice/` é puro (sem React) e testado em Node.
 
-## Tipos (`modules/regras`, reexportados por `dice/polyhedra.ts`)
+## Tipos (`modules/regras`)
 
 ```ts
 Shape       = 'd4'|'d6'|'d8'|'d10'|'d12'|'d20'|'d100'|'coin'|'livre'  // corpo físico ('livre' só existe em importados)
@@ -12,7 +12,7 @@ KINDS       = os embutidos em ordem canônica; allKinds() = KINDS + importados (
 BASE        = só os embutidos (vtm, hunger → d10; fire → d6); use baseOf(kind), que também cobre importados
 ```
 
-As regras de tipo (`KINDS`, `BASE`, `SIDES`, faces válidas, total, crítico/falha) moram no módulo `src/modules/regras/` (ver o `CLAUDE.md` dele), que a API (`server/`) importa pelo `index.ts`. Por isso o módulo importa com extensão `.ts` e não depende de `three` nem do registro de importados. Os reexports de `polyhedra.ts` e de `omen.ts` (`Omen`, `OmenKind`, `omenKind`) são pontes para o legado até a OS-0016. O `omenOf` de `regras` só reconhece o `'d20'` literal: quem chama normaliza antes (`omenKinds` em `omenTest.ts`).
+As regras de tipo (`KINDS`, `BASE`, `SIDES`, faces válidas, total, crítico/falha) moram no módulo `src/modules/regras/` (ver o `CLAUDE.md` dele), que a API (`server/`) importa pelo `index.ts`. Por isso o módulo importa com extensão `.ts` e não depende de `three` nem do registro de importados. Quem usa esses tipos, `MAX_DICE`, `Omen`, `OmenKind` ou `omenKind` importa direto de `modules/regras/index.ts`; `polyhedra.ts` e `omen.ts` não os reexportam. O `omenOf` de `regras` só reconhece o `'d20'` literal: quem chama normaliza antes (`omenKinds` em `omenTest.ts`).
 
 Dado personalizado = mesmo corpo/numeração/leitura do `BASE`; muda só a aparência (cor, tinta, símbolos).
 

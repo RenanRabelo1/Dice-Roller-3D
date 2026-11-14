@@ -6,7 +6,8 @@ import { BufferGeometry, Color, Float32BufferAttribute, Matrix4, Mesh, MeshBasic
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { customDie, customKind, finishOf, inkColorOf, isCustom, type CustomDie, type Finish } from '../dice/custom';
 import { useDice } from '../store';
-import { baseOf, polyhedron, type BuiltinKind, type DieKind, type Label, type Polyhedron, type Shape } from '../dice/polyhedra';
+import { baseOf, polyhedron, type Label, type Polyhedron } from '../dice/polyhedra';
+import type { BuiltinKind, DieKind, Shape } from '../modules/regras/index';
 import { symbolGeometry } from '../dice/symbols';
 import { MATERIAL } from '../physics/world';
 import type { Vec3 } from '../shared/math';

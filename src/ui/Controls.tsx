@@ -2,7 +2,7 @@ import { lazy, Suspense, useCallback, useState } from 'react';
 import { omenPlaying, useDice } from '../store';
 import { useFalha } from '../shared/plataforma';
 import { customDie, customKind, finishOf, isCustom, type CustomDie } from '../dice/custom';
-import { KINDS, MAX_DICE, type DieKind } from '../dice/polyhedra';
+import { KINDS, MAX_DICE, type DieKind } from '../modules/regras/index';
 import { dieName, formatDice, resultText } from '../dice/notation';
 import { Chat } from './Chat';
 import { InkChoice } from './InkChoice';

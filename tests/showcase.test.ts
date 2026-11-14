@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { PerspectiveCamera, Quaternion, Vector3 } from 'three';
-import { polyhedron, type DieKind } from '../src/dice/polyhedra';
+import { polyhedron } from '../src/dice/polyhedra';
+import type { DieKind } from '../src/modules/regras/index.ts';
 import { CAPTION, showcasePoses } from '../src/scene/showcase';
 import { HL_SIZE } from '../src/scene/highlight';
 import { customKind, unregisterCustom } from '../src/dice/custom';

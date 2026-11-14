@@ -1,6 +1,6 @@
 import { MathUtils } from 'three';
-import { isD20, type Omen } from '../dice/omen';
-import type { DieKind } from '../dice/polyhedra';
+import { isD20 } from '../dice/omen';
+import type { DieKind, Omen } from '../modules/regras/index';
 import { TRAY } from '../physics/world';
 import { easeOut, span } from '../shared/math';
 

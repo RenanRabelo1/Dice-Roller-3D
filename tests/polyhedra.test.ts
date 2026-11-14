@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { polyhedron, sortDice, RADIUS, KINDS, type Shape, type BuiltinKind } from '../src/dice/polyhedra';
+import { polyhedron, sortDice, RADIUS } from '../src/dice/polyhedra';
+import { KINDS, type Shape, type BuiltinKind } from '../src/modules/regras/index.ts';
 import { MAX_RADIUS } from '../src/physics/world';
 
 const SIDES: Record<Exclude<Shape, 'livre'>, number> = { d4: 4, d6: 6, d8: 8, d10: 10, d12: 12, d20: 20, d100: 100, coin: 2 };

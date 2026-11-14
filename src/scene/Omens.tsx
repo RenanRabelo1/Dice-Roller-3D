@@ -6,8 +6,8 @@ import {
   ExtrudeGeometry, Group, LineSegments, Mesh, MeshBasicMaterial, MeshStandardMaterial, Path, PointLight,
   Points, Shape, Sprite, SpriteMaterial, Vector3, type Camera, type Material, type PerspectiveCamera, type Scene, type WebGLRenderer,
 } from 'three';
-import { MAX_DICE } from '../dice/polyhedra';
-import { DUALITY_HIT, isD20, omenKind, omenMs } from '../dice/omen';
+import { MAX_DICE, omenKind } from '../modules/regras/index';
+import { DUALITY_HIT, isD20, omenMs } from '../dice/omen';
 import { omenPlaying, useDice } from '../store';
 import { krakenIndices, stormIndices } from './krakenMotion';
 import { clamp01, span } from '../shared/math';

@@ -3,7 +3,7 @@ import { omenKinds, plays, withDiceFor } from '../src/dice/omenTest';
 import { presimulate, presimulateFor, type RollRequest } from '../src/physics/presim';
 import { handPositions } from '../src/physics/world';
 import type { Quat, Vec3 } from '../src/shared/math';
-import type { DieKind } from '../src/dice/polyhedra';
+import type { DieKind } from '../src/modules/regras/index.ts';
 import { initRapier } from './helpers/sim';
 
 describe('animation test buttons', () => {
