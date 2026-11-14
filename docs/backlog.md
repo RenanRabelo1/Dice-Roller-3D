@@ -29,7 +29,7 @@ As notas abaixo são o contexto original que gerou as specs; valem as specs.
 ## 2. Fundo 360° (fase 3 da mesa)
 
 - **O quê:** foto panorâmica (2:1, equirretangular) como ambiente: aparece em volta da mesa e **reflete nos dados de gema**.
-- **De onde parte:** fases 1 e 2 em `docs/superpowers/specs/2026-11-11-mesa-e-fundo-design.md` e `docs/contexto/mesa.md`. Hoje o fundo de foto é CSS atrás do canvas e os reflexos vêm de `Lightformer`s.
+- **De onde parte:** fases 1 e 2 em `docs/superpowers/specs/2026-11-11-mesa-e-fundo-design.md` e `src/modules/mesa/CLAUDE.md` (detalhe em `NOTAS.md`). Hoje o fundo de foto é CSS atrás do canvas e os reflexos vêm de `Lightformer`s.
 - **Cuidados:** trocar o mapa de ambiente pode recompilar shaders (ver `docs/contexto/armadilhas.md`); custo de PMREM ao trocar; tamanho da imagem; medir o crítico do d100 com o fundo 360° ligado.
 - **Perguntas para a spec:** substitui os `Lightformer`s ou soma? Aceita `.hdr`/`.exr` ou só JPG/PNG? Vai dentro do `.glb` da mesa?
 
@@ -53,7 +53,7 @@ As notas abaixo são o contexto original que gerou as specs; valem as specs.
   2. **Destacar o que fica para cima**, não a face de apoio. "Face oposta" nem sempre existe: num shard de 5 ou 7 lados, oposta a uma face longa fica uma **aresta**, entre duas faces. Então destacar a face (ou as faces) cuja normal aponta mais para cima, e marcar a face de apoio só de leve, encostada no chão.
   3. **Pergunta:** "Com o dado caído assim, que número você lê em cima?".
   4. A prévia girando continua no passo de antes (escolher modelo e cor); a pose acima só no passo de numerar.
-- **De onde parte:** estilos em `src/index.css` (sem biblioteca de componentes), UI em `src/ui/` (`Controls`, `Chat`, `ImportDie`, `TablePanel`, `OmenOverlay`, `Safeguard`). Mapa em `docs/contexto/visao-geral.md`.
+- **De onde parte:** estilos em `src/index.css` (sem biblioteca de componentes), UI em `src/ui/` (`Controls`, `OmenOverlay`, `OmenTests`) e nos módulos (`selecao/ui`, `meus-dados/ui`, `arremesso/ui`, `mesa/ui`). Mapa em `docs/contexto/visao-geral.md`.
 - **Cuidados:** os E2E acham os controles por papel e nome acessível (`getByRole('button', { name: … })`, `getByLabel`); manter os textos e papéis ou atualizar os testes junto. Não mexer no canvas 3D nem no desempenho (`docs/contexto/armadilhas.md`).
 - **Perguntas para a spec:** direção visual (referências, paleta, tipografia)? Tudo de uma vez ou por painel? Mobile primeiro? Vale um design system mínimo (tokens de cor, espaçamento, botões) antes das telas?
 

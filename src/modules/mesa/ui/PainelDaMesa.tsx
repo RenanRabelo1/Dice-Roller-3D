@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   carregarArquivoDeMesa, clampBlur, clampDim, clampIntensity, clampPanoramaBlur, clampRotation, clampTile, colorsOf, DEFAULT_THEME, disposeTable, fileSafe, LIMITS,
-  panoramaPicture, panoramaTexture, preparePanorama, PRESETS, reduceImage, TableError, type Background, type PresetName, type TableTheme,
-} from '../modules/mesa/index';
-import { useMesa } from '../modules/mesa/cena';
+  panoramaPicture, panoramaTexture, preparePanorama, PRESETS, reduceImage, TableError, temaDaMesaImportada, type Background, type PresetName,
+  type TableTheme,
+} from '../index.ts';
+import { useMesa } from './useMesa.tsx';
 
 const typing = (el: EventTarget | null) =>
   el instanceof HTMLElement && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName));
@@ -11,7 +12,7 @@ const typing = (el: EventTarget | null) =>
 type Pending = { theme: TableTheme; warnings: string[] };
 
 // Side sheet "Personalizar mesa" (header button or the M key): backdrop, felt/wood, and the table file (export/import).
-export function TablePanel() {
+export function PainelDaMesa() {
   const { theme, tables, sessionOnly, edit, apply, copy, remove, reset } = useMesa();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState('');
@@ -74,12 +75,7 @@ export function TablePanel() {
     const read = await readTable(bytes);
     const colors = colorsOf(read.group) ?? { felt: DEFAULT_THEME.felt.color, wood: DEFAULT_THEME.wood.color };
     disposeTable(read.group);
-    const x = read.extras;
-    const background: Background = x ? (x.background.kind === 'image' ? (read.backdrop ? { kind: 'image', image: read.backdrop, blur: x.background.blur, dim: x.background.dim } : bg) : x.background.kind === 'panorama' ? (read.backdrop ? { ...x.background, image: read.backdrop, format: 'ldr' } : bg) : x.background) : read.defaultPanorama && read.backdrop ? { kind: 'panorama', image: read.backdrop, format: 'ldr', rotation: 0, intensity: 1, blur: 0, reflect: true } : bg;
-    const next: TableTheme = {
-      version: 1, id: crypto.randomUUID(), name: (x?.name ?? file.name.replace(/\.glb$/i, '')).slice(0, 40), createdAt: Date.now(),
-      background, felt: { color: colors.felt, texture: 'liso' }, wood: { color: colors.wood }, model: { name: file.name, bytes },
-    };
+    const next = temaDaMesaImportada({ read, fileName: file.name, bytes, atual: bg, id: crypto.randomUUID(), createdAt: Date.now(), colors });
     if (read.warnings.length) setPending({ theme: next, warnings: read.warnings }); else apply(next);
   });
 

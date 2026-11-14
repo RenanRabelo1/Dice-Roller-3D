@@ -4,7 +4,7 @@ import { resultText } from '../dice/notation';
 import { BotoesDeDados, Chat, ResumoDaMao } from '../modules/selecao/cena';
 // Importacao mounts the wizard on demand: the importer (and the model loaders) only load when the player opens it.
 import { Importacao, MeusDados } from '../modules/meus-dados/cena';
-import { TablePanel } from './TablePanel';
+import { PainelDaMesa } from '../modules/mesa/cena';
 
 export function Controls() {
   const phase = useArremesso((s) => s.gesture.phase), results = useArremesso((s) => s.results), thrown = useArremesso((s) => s.dice); // thrown: the dice behind `results`
@@ -18,7 +18,7 @@ export function Controls() {
         <MeusDados />
         <ResumoDaMao />
         <Chat />
-        <TablePanel />
+        <PainelDaMesa />
         <Importacao />
       </header>
       <footer className="status panel">

@@ -6,7 +6,7 @@ import { OmenOverlay } from './ui/OmenOverlay';
 import { OmenTests } from './ui/OmenTests';
 import { resultadoPublicado } from './modules/arremesso/index.ts';
 import { Failure, Guard, hasWebGL, observarPreferenciaDoSistema, registrarFalha, useFalha } from './shared/plataforma';
-import { load as carregarMesa, warmImageDecoder } from './modules/mesa/index.ts';
+import { carregar as carregarMesa, warmImageDecoder } from './modules/mesa/index.ts';
 import { FundoCss } from './modules/mesa/cena.ts';
 import { registrarArremesso } from './modules/historico/index.ts';
 import { corpoDosDados } from './app/historico';

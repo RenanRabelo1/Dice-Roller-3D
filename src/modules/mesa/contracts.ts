@@ -17,3 +17,13 @@ export interface TableState {
   reset(): void;
   setColors(c: { felt: string; wood: string }): void;
 }
+
+export type { MesaImportada } from './domain/importacao.ts';
+
+/** The active table as the test hook reads it (`window.__dice.table()`): the theme, and what the scene really shows. */
+export interface MesaInspecionada {
+  reflect: boolean | null; programs: number; id: string; name: string; background: TableTheme['background']['kind']; backgroundColor: string | null;
+  felt: string | null; feltTextured: boolean; wood: string | null; model: boolean;
+  guide: { size: [number, number, number]; center: [number, number, number] } | null;
+  saved: number; imported: boolean;
+}

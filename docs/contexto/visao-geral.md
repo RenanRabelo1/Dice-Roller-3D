@@ -48,7 +48,7 @@ src/
   modules/dados/           sólidos, catálogo (registro dos importados), leitura, símbolos, tinta, aparência; `index.ts` puro, `cena.ts` com componentes e hooks  → dados.md
   modules/selecao/         a mão (store vanilla), notação e apelido, chat e botões de dado; `index.ts` puro, `cena.ts` com hook e componentes  → modules/selecao/CLAUDE.md
   modules/meus-dados/      os dados do jogador: lista e `sessionOnly` (store vanilla), gravação (`repository.ts`, store `customDice`), importador (`domain/importador.ts`, .stl/.glb → poliedro, sob demanda por `carregarImportador`), `montarDado`; `cena.ts` com `useMeusDados`, `InkChoice` e o `AssistenteDeImportacao` (lazy)  → dados.md
-  modules/mesa/            mesa e fundo (em extração): tema, texturas, panorama, mesa padrão, `.glb` (`domain/tableFile.ts`, sob demanda por `carregarArquivoDeMesa`), gravação (`repository.ts`, store `tables`, `mesa.ativa`), estado (store vanilla, `mesa()`, `coresDaMesa()`), `ocultarPiso`; `cena.ts` com `useMesa`, `MesaNaCena` (a bandeja visível), `AmbienteDaMesa` (cor de fundo, panorama, mapa de reflexo) e `FundoCss` (foto, tema pronto)  → mesa.md
+  modules/mesa/            mesa e fundo: tema, texturas, panorama, mesa padrão, `.glb` (`domain/tableFile.ts`, sob demanda por `carregarArquivoDeMesa`), gravação (`repository.ts`, store `tables`, `mesa.ativa`), estado (store vanilla, `mesa()`, `coresDaMesa()`), `ocultarPiso`; `cena.ts` com `useMesa`, `MesaNaCena` (a bandeja visível), `AmbienteDaMesa` (cor de fundo, panorama, mapa de reflexo), `FundoCss` (foto, tema pronto) e `PainelDaMesa` (o painel "Personalizar mesa")  → modules/mesa/CLAUDE.md
   dice/                    o resto do legado dos dados (sem React)                  → dados.md
     notation.ts              texto do painel (`resultText`); a notação está em `modules/selecao`
     omen.ts                  regra de crítico/falha e duração dos presságios
@@ -67,8 +67,7 @@ src/
     QuebraDaMesa.tsx         quando o kraken quebra a bandeja: `ocultarPiso` da `mesa` a cada quadro  → apresentacao.md
     showcase.ts, highlight.ts poses e linha do tempo do "voo até a câmera"         → apresentacao.md
     Omens.tsx, Kraken.ts, krakenMotion.ts, Fire.ts, fireMotion.ts  presságios 3D   → apresentacao.md
-  ui/                      HTML: Controls (cabeçalho com os componentes de selecao, Meus dados, painel), OmenOverlay,
-                           TablePanel (mesa e fundo)
+  ui/                      HTML: Controls (cabeçalho com os componentes de selecao, Meus dados e o painel da mesa), OmenOverlay
 tests/                     Vitest (unidades puras + física Node); helpers/sim.ts
 server/                    API do histórico (Fastify + MongoDB; usa `src/modules/regras` pelo `index.ts`, roda em Node com TS nativo)
 e2e/                       Playwright; usa window.__dice

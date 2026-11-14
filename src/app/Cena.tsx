@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, type RefObject } from 
 import { useFrame, useThree } from '@react-three/fiber';
 import { Lightformer, PerformanceMonitor } from '@react-three/drei';
 import { Physics } from '@react-three/rapier';
-import { Box3, Color, Group, Mesh, Quaternion, Vector3, type BufferGeometry, type Material, type Object3D } from 'three';
+import { Color, Group, Mesh, Quaternion, type BufferGeometry, type Material } from 'three';
 import { Text } from 'troika-three-text';
 
 import {
@@ -19,7 +19,7 @@ import { MAX_DICE, omenKind } from '../modules/regras/index';
 import { inspecao, RAIO_MAXIMO } from '../modules/dados/index';
 import { definir } from '../modules/selecao/index';
 import { inspecao as inspecaoDosImportados } from '../modules/meus-dados/index';
-import { mesa } from '../modules/mesa/index';
+import { inspecao as inspecaoDaMesa } from '../modules/mesa/index';
 import { AmbienteDaMesa, MesaNaCena } from '../modules/mesa/cena';
 import { Guard, falha, marcarRenderizadorPorSoftware, movimentoReduzido } from '../shared/plataforma';
 
@@ -136,22 +136,7 @@ export function Cena({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> 
       },
       launches: () => inspecaoDoArremesso().lancamentos(),
       customs: () => inspecaoDosImportados(),
-      table: () => {
-        const t = mesa().theme, mesh = (name: string) => scene.getObjectByName(name), hex = (o?: Object3D) => {
-          const m = o instanceof Mesh ? (Array.isArray(o.material) ? o.material[0] : o.material) as { color?: Color; map?: unknown } : null;
-          return m?.color ? { color: `#${m.color.getHexString()}`, textured: !!m.map && !(m.map as { userData?: { placeholder?: boolean } }).userData?.placeholder } : null;
-        };
-        const guide = mesh('guia-area-de-jogo'), box = guide ? new Box3().setFromObject(guide, true) : null;
-        const felt = hex(mesh('feltro') ?? undefined), wood = hex(mesh('base') ?? mesh('madeira') ?? undefined);
-        return {
-          reflect: t.background.kind === 'panorama' ? t.background.reflect : null, programs: info.current.programs?.length ?? 0,
-          id: t.id, name: t.name, background: t.background.kind, backgroundColor: t.background.kind === 'color' ? t.background.color : null,
-          felt: felt?.color ?? null, feltTextured: felt?.textured ?? false, wood: wood?.color ?? null, model: !!t.model,
-          guide: box ? { size: box.getSize(new Vector3()).toArray(), center: box.getCenter(new Vector3()).toArray() } : null,
-          saved: mesa().tables.length,
-          imported: (scene.getObjectByName('mesa') ?? scene.getObjectByName('tray-surface'))?.userData.imported === true,
-        };
-      },
+      table: () => inspecaoDaMesa(scene, info.current.programs?.length ?? 0),
       shards: () => {
         const piece = scene.getObjectByName('kraken-fragments')?.children[0] as Mesh | undefined;
         const c = (piece?.geometry as BufferGeometry | undefined)?.getAttribute('color');

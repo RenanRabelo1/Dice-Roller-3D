@@ -5,3 +5,5 @@ export { useMesa } from './ui/useMesa.tsx';
 export { MesaNaCena } from './scene/MesaNaCena.tsx';
 export { AmbienteDaMesa } from './scene/AmbienteDaMesa.tsx';
 export { FundoCss } from './ui/FundoCss.tsx';
+// The side sheet "Personalizar mesa" (the Mesa button, the M key).
+export { PainelDaMesa } from './ui/PainelDaMesa.tsx';
