@@ -1,7 +1,7 @@
 import { MathUtils, Quaternion, Vector3 } from 'three';
-import type { DieKind, Omen } from '../modules/regras/index';
-import { TRAY, type Phase } from '../modules/arremesso/index';
-import { easeOut, span, type Pose, type Quat, type Vec3 } from '../shared/math';
+import type { DieKind, Omen } from '../../regras/index.ts';
+import { TRAY, type Phase } from '../../arremesso/index.ts';
+import { easeOut, span, type Pose, type Quat, type Vec3 } from '../../../shared/math.ts';
 
 const smooth = (t: number, a: number, b: number) => MathUtils.smootherstep(t, a, b);
 const UP = new Vector3(0, 1, 0);

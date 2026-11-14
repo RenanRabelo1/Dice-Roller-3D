@@ -1,6 +1,6 @@
-import { MAX_DICE, type DieKind } from '../modules/regras/index.ts';
-import { sortDice } from '../modules/dados/index.ts';
-import { omenKinds, type OmenTest } from '../modules/arremesso/index.ts';
+import { MAX_DICE, type DieKind } from '../../regras/index.ts';
+import { sortDice } from '../../dados/index.ts';
+import { omenKinds, type OmenTest } from '../../arremesso/index.ts';
 
 // Test buttons (dev only): the next throws land on faces that call the chosen omen, so its animation can be
 // seen at will. The roll stays real physics; only its random spin is picked (see presimulateFor, and `plays` in arremesso).

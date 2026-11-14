@@ -6,15 +6,14 @@ import {
   Points, Shape, Sprite, SpriteMaterial, Vector3, type Camera, type Material, type PerspectiveCamera, type Scene, type WebGLRenderer,
 } from 'three';
 import { MAX_DICE, omenKind } from '../modules/regras/index';
-import { DUALITY_HIT, isD20, omenMs } from '../dice/omen';
-import { omenPlaying, useDice } from '../store';
+import {
+  DUALITY_HIT, fireAt, fireIndices, isD20, krakenIndices, omenMs, presagio, presagioTocando, setOmenDone, stormIndices,
+} from '../modules/pressagios/index';
 import { arremesso, registroDeCorpos } from '../modules/arremesso/index';
-import { krakenIndices, stormIndices } from './krakenMotion';
 import { clamp01, span } from '../shared/math';
 import { Kraken } from './Kraken';
 import { coresDaMesa } from '../modules/mesa/index';
 import { Fire } from './Fire';
-import { fireAt, fireIndices } from './fireMotion';
 
 // The 3D side of an omen, played after the dice settle and before the result shows: lightning on a d20 20,
 // the kraken grabbing a d100 1, fire on a d20 1, the kraken's storm on a d100 100, the yin-yang fish for
@@ -191,7 +190,7 @@ class Show {
   }
   hide() { this.bolts.forEach((b) => b.hide()); this.kraken.hide(); this.fire.hide(); this.taiji.hide(); this.light.intensity = 0; this.run = null; }
   frame(now: number, camera: Camera, at: (i: number) => Vector3 | null, pixels: number): number | null {
-    const s = { ...arremesso(), ...useDice.getState() }, o = s.omen;
+    const s = { ...arremesso(), ...presagio() }, o = s.omen;
     // This throw's omen, while its dice lie settled (after the show only the fire is left).
     if (!o || o.throwId !== s.throwId || s.gesture.phase !== 'settled') { if (this.run) this.hide(); return null; }
     if (this.run?.throwId !== o.throwId) {
@@ -216,7 +215,7 @@ class Show {
       const flicker = 0.75 + 0.25 * Math.sin(t / 45) * Math.sin(t / 73);
       this.light.intensity = (6 + 18 * fireAt(t, 1).tray) * fireAt(t, 1).die * flicker;
     }
-    if (r.over || !omenPlaying()) return null;
+    if (r.over || !presagioTocando()) return null;
     let striking = false;
     for (let i = 0; i < r.bolts; i++) striking = this.bolts[i].update(t, camera.position) || striking;
     if (r.kraken) this.kraken.update(t, camera, at);
@@ -247,12 +246,12 @@ export function Omens() {
   useEffect(() => { show.compile(gl, scene, camera); return () => show.dispose(); }, [camera, gl, scene, show]);
   useFrame(() => {
     // Environment builds its reflection texture after mount; warm the final shader variants as well.
-    if (!warmed.current && scene.environment && gl.info.render.frame > 5 && !useDice.getState().omen) {
+    if (!warmed.current && scene.environment && gl.info.render.frame > 5 && !presagio().omen) {
       show.compile(gl, scene, camera, true); warmed.current = true;
     }
     const pixels = gl.domElement.height / (2 * Math.tan(((camera as PerspectiveCamera).fov * Math.PI) / 360));
     const done = show.frame(performance.now(), camera, (i) => { const b = registroDeCorpos.current[i]; const p = b?.isValid() ? b.translation() : null; return p ? new Vector3(p.x, p.y, p.z) : null; }, pixels);
-    if (done !== null) useDice.getState().setOmenDone(done);
+    if (done !== null) setOmenDone(done);
   });
   return <primitive object={show.root} />;
 }

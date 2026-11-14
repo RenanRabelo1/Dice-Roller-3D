@@ -28,7 +28,7 @@ Do gesto ao resultado: a mira, a carga da força e o redemoinho dos dados na mã
 - `dados`: `polyhedron`, `readUp`, `toResults`, `customsOf`, `registerPoly`, `paraRegras`, `RAIO_MAXIMO`, `<AparenciaDoDado/>`. A `MaoDoArremesso` ainda procura `die-i`/`gem-i` pelo nome para opacidade e sombra; `definirOpacidade`/`definirSombra` de `dados` chegam com a `vitrine`.
 - `regras`: `MAX_DICE`, `omenKind`, `omenOf` e os tipos de dado.
 - `src/shared`: `events` (`createSignal`), `math`, `plataforma` (`movimentoReduzido`, `registrarFalha`, `useFalha`).
-- Do legado, por prop-função da casca: `omenTest` (o botão de teste de presságio, que mora no `useDice`).
+- Do legado, por prop-função da casca: `omenTest` (o botão de teste de presságio, que mora em `pressagios`: `presagio().omenTest`).
 
 ## Fora do escopo
 - Depois de `settled`: o presságio (`pressagios`), o voo, os números e o resultado (`vitrine`). O `Hand` e o `Omens` do legado só leem `registroDeCorpos`.

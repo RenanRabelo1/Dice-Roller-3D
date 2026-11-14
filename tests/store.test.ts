@@ -1,13 +1,15 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useDice } from '../src/store';
+import { presagio } from '../src/modules/pressagios/index.ts';
+// Test only: the reset of the omen's state has no door (OS-0038).
+import { store as presagios } from '../src/modules/pressagios/store.ts';
 import { arremesso } from '../src/modules/arremesso/index.ts';
 // Test only: the reset of the throw's state has no door (the gesture, publication and hand tests live in the module, OS-0031).
 import { store } from '../src/modules/arremesso/store.ts';
 import { adicionar, definir, selecao } from '../src/modules/selecao/index.ts';
 
-const s = () => ({ ...arremesso(), ...useDice.getState() });
+const s = () => ({ ...arremesso(), ...presagio() });
 // The hand lives in selecao; reset it first so the copy in the throw starts equal (OS-0024, decision 8).
-beforeEach(() => { definir(['d20']); store.setState(store.getInitialState(), true); useDice.setState(useDice.getInitialState(), true); });
+beforeEach(() => { definir(['d20']); store.setState(store.getInitialState(), true); presagios.setState(presagios.getInitialState(), true); });
 
 describe('store', () => {
   it('choosing an animation test puts its dice in the hand; turning it off keeps them', () => {

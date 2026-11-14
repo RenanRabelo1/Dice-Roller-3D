@@ -1,4 +1,4 @@
-import { useOmenPlaying } from '../store';
+import { usePresagioTocando } from '../modules/pressagios/cena';
 import { BarraDeForca, DicaDaFase, ModoDeRolagem, useArremesso } from '../modules/arremesso/cena';
 import { resultText } from '../dice/notation';
 import { BotoesDeDados, Chat, ResumoDaMao } from '../modules/selecao/cena';
@@ -8,7 +8,7 @@ import { PainelDaMesa } from '../modules/mesa/cena';
 
 export function Controls() {
   const phase = useArremesso((s) => s.gesture.phase), results = useArremesso((s) => s.results), thrown = useArremesso((s) => s.dice); // thrown: the dice behind `results`
-  const waiting = useOmenPlaying(); // the result shows once its omen has played (or the dice are picked up)
+  const waiting = usePresagioTocando(); // the result shows once its omen has played (or the dice are picked up)
   const text = results && !waiting && resultText(thrown, results);
   return (
     <>

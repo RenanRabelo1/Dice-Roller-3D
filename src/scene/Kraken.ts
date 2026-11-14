@@ -3,7 +3,7 @@ import {
   LineSegments, Mesh, MeshBasicMaterial, MeshPhysicalMaterial, MeshStandardMaterial, Object3D, TorusGeometry,
   Vector3, type Camera,
 } from 'three';
-import { fractureCells, KRAKEN, krakenAt, stormAt } from './krakenMotion';
+import { fractureCells, KRAKEN, krakenAt, stormAt } from '../modules/pressagios/index';
 import { span } from '../shared/math';
 
 const ARMS = 10, RINGS = 56, SIDES = 10, SUCKER_EVERY = 5;

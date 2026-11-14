@@ -15,7 +15,7 @@ Os módulos seguem domínios de negócio, não as pastas de hoje. As decisões q
 | `meus-dados` | Os dados que o jogador importa: assistente (arquivo, forma, calibração, tinta), salvar, editar tinta, excluir. Entrega cada dado salvo ao catálogo de `dados`. | IndexedDB `customDice`, a lista "Meus dados", o aviso de sessão e o estado do assistente | `regras`, `dados`, `selecao` | concluído (OS-0027 a OS-0029). O importador e o assistente só entram por `import()` |
 | `arremesso` | Do gesto à publicação: mira, carga, redemoinho na mão, lançamento, pré-simulação (worker e fallback), parada, replay, publicação do resultado e retorno à mão. Dono da área de jogo física (bandeja, colisores). | `gesture`, `throwId`, `aim`, `force`, `chargeMode`, `launch`, `results`, `raw`, `ready`, registro de corpos, worker, `localStorage['diceroller.rolagem']` | `regras`, `dados`, `selecao` | concluído (OS-0030 a OS-0034). Nomes reais: `arremesso()`/`useArremesso`, `registroDeCorpos`, `inspecao()`; `dadoNaCena`/`moverDado`/`envelopeDaMao` ficam para a `vitrine` |
 | `mesa` | Aparência da mesa e do fundo: temas, cores, texturas, foto, fundo 360°, mesas salvas, exportar e importar `.glb`. Só visual: nunca muda colisores nem resultados. | store da mesa (`theme`, `tables`, `colors`, `sessionOnly`), IndexedDB `tables`, `localStorage['mesa.ativa']`, caches de textura e panorama | `arremesso` | concluído (OS-0035 a OS-0037). `ocultarPiso` é chamado pelo legado de `pressagios` (`QuebraDaMesa`) |
-| `pressagios` | Decidir e mostrar o presságio de um resultado (raio, kraken, fogo, tempestade, dualidade) em 3D e em HTML, com duração, relógio e quebra da mesa. | `omen`, `omenAt`, `omenDone`, `omenRig` | `regras`, `dados`, `arremesso`, `mesa` | pendente |
+| `pressagios` | Decidir e mostrar o presságio de um resultado (raio, kraken, fogo, tempestade, dualidade) em 3D e em HTML, com duração, relógio e quebra da mesa. | `omen`, `omenAt`, `omenDone`, `omenRig` | `regras`, `dados`, `selecao`, `arremesso`, `mesa` | em extração (OS-0038: domínio e estado) |
 | `vitrine` | Mostrar o resultado: o voo dos dados até a câmera, os números em destaque, a gravação acesa e o painel com total e detalhe. Espera o presságio terminar. | `showcased`, cache do brilho da gravação | `regras`, `dados`, `arremesso`, `pressagios` | pendente |
 
 O que não é módulo:
@@ -33,7 +33,7 @@ selecao ──► dados, regras
 meus-dados ──► selecao, dados, regras
 arremesso ──► selecao, dados, regras
 mesa ──► arremesso
-pressagios ──► arremesso, mesa, dados, regras
+pressagios ──► arremesso, mesa, selecao, dados, regras
 vitrine ──► pressagios, arremesso, dados, regras
 historico (cliente) ──► arremesso, dados        historico (servidor) ──► regras
 ```

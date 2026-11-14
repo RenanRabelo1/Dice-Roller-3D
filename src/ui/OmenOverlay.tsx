@@ -1,7 +1,7 @@
 import { useEffect, type CSSProperties, type RefObject } from 'react';
-import { isD20, omenMs } from '../dice/omen';
+import { isD20, omenMs } from '../modules/pressagios/index';
+import { usePresagio, usePresagioTocando } from '../modules/pressagios/cena';
 import { omenKind, type DieKind, type OmenKind } from '../modules/regras/index';
-import { useDice, useOmenPlaying } from '../store';
 import { useArremesso } from '../modules/arremesso/cena';
 
 // The screen side of an omen: a white flash as the lightning strikes, the deep dark while the kraken is up,
@@ -20,7 +20,7 @@ const RAIN = (() => {
 const SAY: Record<OmenKind, string> = { crit: 'Crítico!', fumble: 'Falha crítica!', duality: 'Dualidade: crítico e falha!' };
 
 export function OmenOverlay({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> }) {
-  const playing = useOmenPlaying(), omen = useDice((s) => s.omen), dice = useArremesso((s) => s.dice);
+  const playing = usePresagioTocando(), omen = usePresagio((s) => s.omen), dice = useArremesso((s) => s.dice);
   const live = playing ? omen : null;
   const kind = live && omenKind(live);
   const has = (list: number[] | undefined, is: (die: DieKind) => boolean) => !!list?.some((i) => is(dice[i]));

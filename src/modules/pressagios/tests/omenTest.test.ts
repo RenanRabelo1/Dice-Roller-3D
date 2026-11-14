@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { withDiceFor } from '../src/dice/omenTest';
-import { handPositions, omenKinds, plays, presimulate, presimulateFor, type RollRequest } from '../src/modules/arremesso/index.ts';
-import type { Quat, Vec3 } from '../src/shared/math';
-import type { DieKind } from '../src/modules/regras/index.ts';
-import { initRapier } from './helpers/sim';
+import { withDiceFor } from '../domain/omenTest.ts';
+import { handPositions, omenKinds, plays, presimulate, presimulateFor, type RollRequest } from '../../arremesso/index.ts';
+import type { Quat, Vec3 } from '../../../shared/math.ts';
+import type { DieKind } from '../../regras/index.ts';
+import { initRapier } from '../../../../tests/helpers/sim.ts';
 
 describe('animation test buttons', () => {
   it('know which results play each omen', () => {

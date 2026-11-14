@@ -3,7 +3,7 @@ import {
 } from 'three';
 import { MAX_DICE } from '../modules/regras/index';
 import { TRAY } from '../modules/arremesso/index';
-import { fireAt, fireReach } from './fireMotion';
+import { fireAt, fireReach } from '../modules/pressagios/index';
 
 const ON_FELT = 2600, PER_DIE = 90;
 

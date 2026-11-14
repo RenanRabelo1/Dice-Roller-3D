@@ -11,6 +11,7 @@ import {
 import { CorpoDoDado, LoopDoArremesso, MaoDoArremesso, useArremesso } from '../modules/arremesso/cena';
 import type { Vec3 } from '../shared/math';
 import { useDice } from '../store';
+import { presagio, rigOmen } from '../modules/pressagios/index';
 import { installTestHook } from './testHook';
 import { QuebraDaMesa } from '../scene/QuebraDaMesa';
 import { Hand } from '../scene/Hand';
@@ -55,8 +56,8 @@ export function Cena({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> 
     if (!entreAnimacoes()) return;
     setDpr(desiredDpr.current);
   });
-  // The dev omen test button lives in the legacy store; the throw loop reads it through this.
-  const omenTestAtual = useCallback(() => useDice.getState().omenTest, []);
+  // The dev omen test button lives in `pressagios`; the throw loop reads it through this.
+  const omenTestAtual = useCallback(() => presagio().omenTest, []);
 
   useEffect(() => {
     // Keep the whole tray in portrait view, preserving the camera's fixed viewing angle.
@@ -100,7 +101,7 @@ export function Cena({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> 
   useEffect(() => {
     installTestHook({
       state: () => {
-        const state = { ...arremesso(), ...useDice.getState() };
+        const state = { ...arremesso(), ...presagio(), ...useDice.getState() };
         return {
           dice: state.dice, phase: state.gesture.phase, throwId: state.throwId,
           results: state.results,
@@ -112,7 +113,7 @@ export function Cena({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> 
         };
       },
       select: (next) => definir(next),
-      rigOmen: (omen) => useDice.getState().rigOmen(omen),
+      rigOmen: (omen) => rigOmen(omen),
       bodies: () => inspecaoDoArremesso().corpos(),
       meshes: () => {
         const result: { q: [number, number, number, number] }[] = [];

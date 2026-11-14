@@ -7,12 +7,14 @@ import { customDie, FONT, FONT_URL, gemColor, inkColorOf, polyhedron, RADIUS, SY
 import { isCustom, MAX_DICE } from '../modules/regras/index';
 import { easeOut, type Pose, type Quat, type Vec3 } from '../shared/math';
 import { movimentoReduzido } from '../shared/plataforma';
-import { omenPlaying, useDice } from '../store';
+import { useDice } from '../store';
 import { arremesso, registroDeCorpos } from '../modules/arremesso/index';
 import { CAPTION, showcasePoses } from './showcase';
 import { glowMesh } from './inkGlow';
 import { highlightAt, HL_SIZE, SHOW } from './highlight';
-import { KRAKEN, krakenAt, krakenDieAt, krakenIndices, STORM, stormAt, stormDieAt, stormIndices } from './krakenMotion';
+import {
+  KRAKEN, krakenAt, krakenDieAt, krakenIndices, presagio, presagioTocando, STORM, stormAt, stormDieAt, stormIndices,
+} from '../modules/pressagios/index';
 
 type Mark = { local: Vector3; turn: Quaternion; start: Vector3; face: Vector3; scale: number }; // local, turn: the rolled numeral's place and turn in die space
 
@@ -67,7 +69,7 @@ export function Hand() {
 
   useFrame(() => {
     const numbers = numbersRef.current, glyphs = glyphsRef.current;
-    const state = { ...arremesso(), ...useDice.getState() }, phase = state.gesture.phase;
+    const state = { ...arremesso(), ...presagio(), ...useDice.getState() }, phase = state.gesture.phase;
     const current = live();
     if (!current) return;
     const now = performance.now();
@@ -134,7 +136,7 @@ export function Hand() {
     mode.current = nextMode;
     if (phase === 'settled' && showcase.current) {
       // An omen plays first: the numbers wait, unrisen, and the dice stay where they landed until it is over.
-      const waiting = omenPlaying();
+      const waiting = presagioTocando();
       if (waiting) showcase.current.at = now;
       const { at, from, to, throwId, gems, marks, above, glows, still, kraken, storm, omenAt } = showcase.current;
       const draw = (i: number, face: Vector3, q?: Quaternion, ride = 0, reveal?: number) => {

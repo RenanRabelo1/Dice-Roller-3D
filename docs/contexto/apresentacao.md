@@ -1,6 +1,6 @@
 # Apresentação do resultado: presságios, showcase, destaque
 
-Tudo que acontece em `settled`, depois do `publish`. Arquivos: `dice/omen.ts`, `scene/Omens.tsx`, `scene/Kraken.ts`, `scene/krakenMotion.ts`, `scene/Fire.ts`, `scene/fireMotion.ts`, `scene/QuebraDaMesa.tsx`, `ui/OmenOverlay.tsx`, `scene/showcase.ts`, `scene/highlight.ts`, `scene/Hand.tsx` (só a parte `settled`; a mão do arremesso é a `MaoDoArremesso` do módulo `arremesso`, montada logo antes), `ui/Controls.tsx` (painel).
+Tudo que acontece em `settled`, depois do `publish`. Arquivos: o módulo `modules/pressagios` (o estado em `store.ts`, `domain/omen.ts`, `domain/omenTest.ts`, `domain/krakenMotion.ts`, `domain/fireMotion.ts`), `scene/Omens.tsx`, `scene/Kraken.ts`, `scene/Fire.ts`, `scene/QuebraDaMesa.tsx`, `ui/OmenOverlay.tsx`, `scene/showcase.ts`, `scene/highlight.ts`, `scene/Hand.tsx` (só a parte `settled`; a mão do arremesso é a `MaoDoArremesso` do módulo `arremesso`, montada logo antes), `ui/Controls.tsx` (painel).
 
 ## Ordem em `settled`
 
@@ -10,11 +10,11 @@ publish ─► presságio? ──sim──► toca (Omens 3D + OmenOverlay HTML)
               └──não───────────────────────────────────────────────────────┴─► showcase (voo + números) ─► setShowcased(throwId)
 ```
 
-- O painel (`Controls`) **espera** o presságio: `omenPlaying(s)` (`store.ts`) = fase `settled`, presságio deste `throwId` e `omenDone !== throwId`. Recolher os dados encerra o presságio e o resultado aparece na hora.
-- `Hand.tsx` também espera: enquanto `omenPlaying`, reinicia o relógio do showcase (`showcase.current.at = now`).
-- Sincronização é toda via store, comparando `throwId`: `omen.throwId`, `omenDone`, `showcased`, `omenAt` (relógio compartilhado, `performance.now()` do publish).
+- O painel (`Controls`) **espera** o presságio: `presagioTocando()` (`modules/pressagios`; o hook é `usePresagioTocando`, em `cena.ts`) = fase `settled`, presságio deste `throwId` e `omenDone !== throwId`. Recolher os dados encerra o presságio e o resultado aparece na hora.
+- `Hand.tsx` também espera: enquanto `presagioTocando()`, reinicia o relógio do showcase (`showcase.current.at = now`).
+- Sincronização é toda via store (`presagio()` do módulo `pressagios`, `showcased` no `useDice` legado), comparando `throwId`: `omen.throwId`, `omenDone`, `showcased`, `omenAt` (relógio compartilhado, `performance.now()` do publish).
 
-## Presságios (`dice/omen.ts`)
+## Presságios (`modules/pressagios/domain/omen.ts`)
 
 Só d20 (embutido, ou importado de base d20 com `omens: true`: `isD20`) e d100 contam:
 
@@ -46,7 +46,7 @@ Desempenho (não quebrar):
 
 ## Kraken (crítico de d100)
 
-- `krakenMotion.ts` (puro, testado): `KRAKEN` = marcos (rupture 450, grab 1150, lift 1750, fling 2050, away 2650, catch 3350, shown 4350, release 5300, restored 6300, duration 6500). `krakenAt(t)` dá `broken/spread/arms/grip/reveal`; `krakenDieAt` dá a pose do d100 (erguido, sacudido, arremessado para `FAR` fora da tela, trazido de volta até a pose do showcase); `fractureCells` quebra o piso em cacos radiais que cobrem o retângulo todo.
+- `modules/pressagios/domain/krakenMotion.ts` (puro, testado): `KRAKEN` = marcos (rupture 450, grab 1150, lift 1750, fling 2050, away 2650, catch 3350, shown 4350, release 5300, restored 6300, duration 6500). `krakenAt(t)` dá `broken/spread/arms/grip/reveal`; `krakenDieAt` dá a pose do d100 (erguido, sacudido, arremessado para `FAR` fora da tela, trazido de volta até a pose do showcase); `fractureCells` quebra o piso em cacos radiais que cobrem o retângulo todo.
 - `krakenIndices(omen, dice)`: só d100 críticos, e só se **não** houver falha (dualidade vence).
 - `Kraken.ts`: modo `grab` (braço 0 agarra: corpo em Bézier cúbica + hélice enrolada no dado; os outros 9 se debatem; cacos, rachaduras, abismo) e modo `storm` (10 braços saindo do mar em volta da bandeja). Tubos com referenciais de transporte paralelo, ventosas instanciadas.
 - `QuebraDaMesa.tsx` chama, a cada quadro, `ocultarPiso(trayBrokenAt(...))` do módulo `mesa`, que esconde `tray-surface` na hora (montado antes da `<MesaNaCena/>`, então vale no mesmo quadro); o `Kraken` desenha os cacos no lugar, com as cores da mesa ativa (`Kraken.start('grab', ..., coresDaMesa())`; ver `src/modules/mesa/CLAUDE.md`). Mesa importada sem piso: o modelo inteiro some.
@@ -54,7 +54,7 @@ Desempenho (não quebrar):
 
 ## Fogo (falha de d20)
 
-- `fireMotion.ts` (puro, testado): `fireIndices` (d20 com falha, sem crítico), `fireReach` (raio até o canto mais distante), `fireAt(t, reach)` → `die/radius/tray`.
+- `modules/pressagios/domain/fireMotion.ts` (puro, testado): `fireIndices` (d20 com falha, sem crítico), `fireReach` (raio até o canto mais distante), `fireAt(t, reach)` → `die/radius/tray`.
 - `Fire.ts`: chamas como partículas na GPU (um `Points`, shader próprio em forma de língua de fogo) no feltro e em cada d20 aceso, e um plano de feltro queimado com linha de brasa. O objeto chama `fire`; o test hook expõe `burning`.
 
 ## Lado HTML (`ui/OmenOverlay.tsx`)
@@ -81,13 +81,13 @@ Em `Hand.tsx`, ao entrar em `settled`:
 
 ## Botões de teste das animações (só em `npm run dev`)
 
-`ui/OmenTests.tsx`, no canto superior esquerdo da mesa (some no build de produção: `import.meta.env.DEV`). Raio, Fogo, Kraken, Tempestade e Dualidade. O escolhido fica ligado (`store.omenTest`) até ser clicado de novo e põe na mão os dados que precisa (`withDiceFor` em `dice/omenTest.ts`).
+`ui/OmenTests.tsx`, no canto superior esquerdo da mesa (some no build de produção: `import.meta.env.DEV`). Raio, Fogo, Kraken, Tempestade e Dualidade. O escolhido fica ligado (`presagio().omenTest`, gravado por `setOmenTest`) até ser clicado de novo e põe na mão os dados que precisa (`withDiceFor` em `modules/pressagios/domain/omenTest.ts`).
 
 Os próximos arremessos **caem de verdade** no resultado: o `RollRequest` leva `bias`, e `presimulateFor` (`modules/arremesso/domain/presim.ts`) tenta as sementes seguintes até a física real dar aquele presságio (`plays`). Só o giro sorteado muda; mira, força e mão são as do jogador. Cada tentativa custa ~3–8 ms; o worker tem 6 s e a thread principal 3 s (`BIAS_BUDGET`). Sem acerto, o arremesso sai comum e avisa no console. Diferente de `rigOmen` (test hook), que força o presságio sem mudar o resultado.
 
 ## Receita: novo presságio
 
-1. Regra em `modules/regras` (`omenOf`, `OmenKind`, `omenKind`) + `src/modules/regras/tests/pressagio.test.ts`; duração em `dice/omen.ts` (`OMEN_MS`, `omenMs`) + `tests/omen.test.ts`.
+1. Regra em `modules/regras` (`omenOf`, `OmenKind`, `omenKind`) + `src/modules/regras/tests/pressagio.test.ts`; duração em `modules/pressagios/domain/omen.ts` (`OMEN_MS`, `omenMs`) + `tests/omen.test.ts`.
 2. 3D: nova classe no estilo `Bolt`/`TaiJi` dentro de `Show` (criar no construtor, aquecer em `compile`, esconder em `hide`, liberar em `dispose`). Não adicionar/remover luzes em tempo de execução.
 3. HTML: bloco em `OmenOverlay.tsx` + CSS; frase em `SAY`.
 4. E2E: `e2e/omen.spec.ts` usa `__dice.rigOmen(...)` para forçar o tipo.

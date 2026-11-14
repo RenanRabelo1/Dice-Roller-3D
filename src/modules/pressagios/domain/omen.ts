@@ -1,5 +1,5 @@
-import { omenKind, type DieKind, type Omen } from '../modules/regras/index.ts';
-import { paraRegras } from '../modules/dados/index.ts';
+import { omenKind, type DieKind, type Omen } from '../../regras/index.ts';
+import { paraRegras } from '../../dados/index.ts';
 
 // An omen is the show a roll puts on before its result appears; the rules (crit, fumble, duality) live in `regras`.
 

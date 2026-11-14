@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { PerspectiveCamera, Quaternion, Vector3 } from 'three';
 import { polyhedron } from '../src/modules/dados/index.ts';
-import { fractureCells, KRAKEN, krakenAt, krakenDieAt, krakenIndices, STORM, stormAt, stormDieAt, stormIndices, trayBrokenAt } from '../src/scene/krakenMotion';
+import { fractureCells, KRAKEN, krakenAt, krakenDieAt, krakenIndices, STORM, stormAt, stormDieAt, stormIndices, trayBrokenAt } from '../src/modules/pressagios/index.ts';
 import { showcasePoses } from '../src/scene/showcase';
 import type { Pose } from '../src/shared/math';
 

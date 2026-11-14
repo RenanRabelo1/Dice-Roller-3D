@@ -1,8 +1,8 @@
 import { MathUtils } from 'three';
-import { isD20 } from '../dice/omen';
-import type { DieKind, Omen } from '../modules/regras/index';
-import { TRAY } from '../modules/arremesso/index';
-import { easeOut, span } from '../shared/math';
+import { isD20 } from './omen.ts';
+import type { DieKind, Omen } from '../../regras/index.ts';
+import { TRAY } from '../../arremesso/index.ts';
+import { easeOut, span } from '../../../shared/math.ts';
 
 // d20 = 1. The die catches fire, the fire runs over the whole felt, and the die flies to the front still
 // burning; the tray burns out, the die burns on until it is picked up.

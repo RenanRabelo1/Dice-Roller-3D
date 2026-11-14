@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { baseOf, customKind, polyhedron, readUp, registerPoly, sortDice, toResults, unregisterCustom } from '../src/modules/dados/index.ts';
 import { resultText } from '../src/dice/notation';
 import { formatDice, parseDice, slugOf, slugProblem } from '../src/modules/selecao/index.ts';
-import { isD20 } from '../src/dice/omen';
+import { isD20 } from '../src/modules/pressagios/index.ts';
 import { omenKinds } from '../src/modules/arremesso/index.ts';
 import { omenOf } from '../src/modules/regras/index.ts';
 import { customDieOf, freeDieOf, prismTriangles } from './helpers/models';
