@@ -13,13 +13,12 @@ import { GRAVITY, HAND, MAX_RADIUS, STEP, TRAY, handPositions } from '../physics
 import type { Vec3 } from '../shared/math';
 import { useDice } from '../store';
 import { installTestHook } from './testHook';
-import { Die, gemColor } from '../scene/Die';
+import { Die } from '../scene/Die';
 import { Tray } from '../scene/Tray';
 import { Hand } from '../scene/Hand';
 import { Omens } from '../scene/Omens';
 import { MAX_DICE, omenKind } from '../modules/regras/index';
-import { customKind } from '../dice/custom';
-import { customsOf } from '../dice/polyhedra';
+import { customKind, customsOf, gemColor } from '../modules/dados/index';
 import { VORTEX, vortexCenter, vortexRadius } from '../throw/vortex';
 import { useTable } from '../scene/tableState';
 import { panoramaTexture } from '../scene/tableImages';

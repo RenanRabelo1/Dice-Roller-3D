@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { corpoDosDados } from '../src/app/historico';
-import { customKind, unregisterCustom } from '../src/dice/custom';
+import { customKind, unregisterCustom } from '../src/modules/dados/index.ts';
 import { customDieOf, freeDieOf, prismTriangles } from './helpers/models';
 
 // The shell builds each die's body from the legacy registry of imported dice (until phase 6).

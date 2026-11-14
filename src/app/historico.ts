@@ -1,6 +1,6 @@
 // ponte até a fase 6: historico assina arremesso.resultadoPublicado
-// Lives in the shell because it reads the legacy registry of imported dice, which an extracted module may not import.
-import { customDie } from '../dice/custom';
+// Lives in the shell because it joins the dados registry with the throw's results, which historico may not do (ADR 0003).
+import { customDie } from '../modules/dados/index.ts';
 import type { DieIn } from '../modules/historico/index.ts';
 import { isCustom, type DieKind } from '../modules/regras/index.ts';
 

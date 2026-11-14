@@ -7,12 +7,6 @@ import { isCustom, type DieKind } from '../modules/regras/index';
 import { MATERIAL } from '../physics/world';
 import { vortexCenter } from '../throw/vortex';
 
-// ponte até a OS-0022
-// oxlint-disable-next-line react/only-export-components
-export { FONT, FONT_URL, GEM, gemColor, SYMBOL } from '../modules/dados/index';
-// oxlint-disable-next-line react/only-export-components
-export { GemMaterial, paintGlb, usePainted } from '../modules/dados/cena';
-
 // The die's physical body; what it looks like is `dados`' AparenciaDoDado.
 export function Die({ index, kind, selection, count, color, register }: {
   index: number; kind: DieKind; selection: string; count: number; color: string;

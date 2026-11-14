@@ -11,3 +11,4 @@ export { finishOf, INK_COLORS, inkColorOf } from './domain/tinta.ts';
 // carregarModelo loads domain/modelo.ts (and the GLB/STL loaders) on demand; never re-export that file here.
 export { carregarModelo, FONT, FONT_URL, GEM, gemColor, nomeDoTipo, SYMBOL } from './domain/aparencia.ts';
 export { dentTester, hasTexture, inkTriangles, markInk } from './domain/gravacao.ts';
+export { LIMITES_DO_MODELO_SALVO } from './domain/limites.ts';

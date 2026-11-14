@@ -1,5 +1,5 @@
 import { useId } from 'react';
-import type { Finish, Ink } from '../dice/custom';
+import type { Finish, Ink } from '../modules/dados/index';
 
 const INKS: [Ink, string][] = [['auto', 'Automática'], ['ouro', 'Dourada'], ['escura', 'Escura'], ['branca', 'Branca'], ['nenhuma', 'Sem tinta']];
 const FINISHES: [Finish, string][] = [['gema', 'Gema'], ['fosco', 'Fosco']];

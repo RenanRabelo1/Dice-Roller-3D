@@ -1,5 +1,5 @@
 import { defineStore } from '../shared/db';
-import type { CustomDie } from './custom';
+import type { CustomDie } from '../modules/dados/index';
 
 const store = defineStore('customDice');
 

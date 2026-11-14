@@ -1,5 +1,5 @@
 import { Matrix4, Quaternion, Vector3 } from 'three';
-import type { Polyhedron } from '../dice/polyhedra';
+import type { Polyhedron } from '../modules/dados/index';
 import { MAX_RADIUS } from '../physics/world';
 import type { Pose, Quat, Vec3 } from '../shared/math';
 

@@ -2,12 +2,11 @@ import { useEffect, useMemo, useRef, useState, type ElementRef } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Environment, Lightformer, OrbitControls } from '@react-three/drei';
 import { BufferGeometry, Color, Float32BufferAttribute, Group, Matrix4, Mesh, Quaternion, Vector3 } from 'three';
-import { customKind, inkColorOf, type CustomDie, type Finish, type Ink, type StdBase } from '../dice/custom';
-import { askOrder, unevenOf, withReadable, checkFreeValue, checkFreeValues, checkValue, checkValues, formatOf, hasTexture, importModel, ImportError, inkOf, inkTriangles, markInk, LIMITS, normaliseValues, renumbered, suggestOpposite, type Imported } from '../dice/importer';
+import { customKind, GEM, hasTexture, inkColorOf, inkTriangles, markInk, type CustomDie, type Finish, type Ink, type Polyhedron, type StdBase } from '../modules/dados/index';
+import { askOrder, unevenOf, withReadable, checkFreeValue, checkFreeValues, checkValue, checkValues, formatOf, importModel, ImportError, inkOf, LIMITS, normaliseValues, renumbered, suggestOpposite, type Imported } from '../dice/importer';
 import { slugOf, slugProblem } from '../dice/notation';
-import type { Polyhedron } from '../dice/polyhedra';
 import { MAX_DICE, type CustomBase } from '../modules/regras/index';
-import { GEM, GemMaterial, paintGlb, usePainted } from '../scene/Die';
+import { GemMaterial, paintGlb, usePainted } from '../modules/dados/cena';
 import { useDice } from '../store';
 import { InkChoice } from './InkChoice';
 

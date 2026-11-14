@@ -1,9 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { BoxGeometry, IcosahedronGeometry } from 'three';
-import type { StdBase } from '../src/dice/custom';
 import { askOrder, checkValues, detectFree, detectPlanes, idealSolid, ImportError, importModel, inkOf, LIMITS, looksNumbered, readModel, renumbered, suggestOpposite, tierOf, unevenOf, withReadable } from '../src/dice/importer';
-import { RADIUS, polyhedron } from '../src/dice/polyhedra';
-import { inkTriangles } from '../src/modules/dados/index';
+import { inkTriangles, LIMITES_DO_MODELO_SALVO, polyhedron, RADIUS, type StdBase } from '../src/modules/dados/index';
 import type { Vec3 } from '../src/shared/math';
 import { asFile, glb, hullTriangles, modelTriangles, planesSolid, prismTriangles, shardTriangles, stl, triacontahedronNormals } from './helpers/models';
 
@@ -46,6 +44,9 @@ describe('what is not a die', () => {
   it('rejects a file over the size limit and garbage', async () => {
     await expect(readModel(new ArrayBuffer(LIMITS.bytes + 1), 'stl')).rejects.toThrow(/MB/);
     await expect(readModel(new ArrayBuffer(10), 'glb')).rejects.toThrow(ImportError);
+  });
+  it('accepts the same limits `dados` reads a saved die with, so a saved die always reads again', () => {
+    expect(LIMITS).toEqual(LIMITES_DO_MODELO_SALVO);
   });
 });
 

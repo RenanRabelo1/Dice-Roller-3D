@@ -1,12 +1,10 @@
 import { Quaternion, Vector3 } from 'three';
 import { afterEach, describe, expect, it } from 'vitest';
-import { customKind, registerPoly, unregisterCustom } from '../src/dice/custom';
+import { baseOf, customKind, polyhedron, readUp, registerPoly, sortDice, toResults, unregisterCustom } from '../src/modules/dados/index.ts';
 import { formatDice, parseDice, resultText, slugOf, slugProblem } from '../src/dice/notation';
 import { isD20 } from '../src/dice/omen';
 import { omenKinds } from '../src/dice/omenTest';
 import { omenOf } from '../src/modules/regras/index.ts';
-import { baseOf, polyhedron, sortDice } from '../src/dice/polyhedra';
-import { readUp, toResults } from '../src/dice/read';
 import { customDieOf, freeDieOf, prismTriangles } from './helpers/models';
 import { simulate } from './helpers/sim';
 import { checkFreeValue, checkFreeValues } from '../src/dice/importer';

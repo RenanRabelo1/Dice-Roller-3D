@@ -1,6 +1,4 @@
-import { customKind, customList, type CustomDie } from './custom';
-import { allKinds, baseOf, sortDice } from './polyhedra';
-import { nomeDoTipo } from '../modules/dados/index';
+import { allKinds, baseOf, customKind, customList, nomeDoTipo, sortDice, type CustomDie } from '../modules/dados/index';
 import { MAX_DICE, total as sumOf, type DieKind } from '../modules/regras/index.ts';
 
 // What may follow the "d": longest first, so "d100" wins over "d10" + "0" and "d10vampiro" over "d10v".
@@ -9,8 +7,6 @@ const AFTER_D: [string, DieKind][] = [
   ['100', 'd100'], ['20', 'd20'], ['12', 'd12'], ['10', 'd10'], ['8', 'd8'], ['6', 'd6'], ['4', 'd4'],
 ];
 const FIREBALL = 'boladefogo'; // "bola de fogo": the spell's 8d6
-
-export const dieName = nomeDoTipo; // ponte até a OS-0022
 
 // The nickname an imported die answers to in the chat ("2d20caveira"): letters and digits, starting with a letter,
 // and clear of the words the chat already reads.
@@ -29,7 +25,7 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 export const formatDice = (dice: DieKind[]): string =>
   allKinds().filter((k) => dice.includes(k)).map((k) => {
     const n = dice.filter((d) => d === k).length;
-    return k === 'coin' ? plural(n, 'moeda') : baseOf(k) === 'livre' ? `${n} ${dieName(k)}` : `${n}${dieName(k)}`;
+    return k === 'coin' ? plural(n, 'moeda') : baseOf(k) === 'livre' ? `${n} ${nomeDoTipo(k)}` : `${n}${nomeDoTipo(k)}`;
   }).join(' + ');
 
 // The result panel: the total sums the dice (coins never add up; a coins-only throw shows its faces),
@@ -43,7 +39,7 @@ export function resultText(dice: DieKind[], results: number[]): { total: string;
       : [heads && plural(heads, 'cara'), tails && plural(tails, 'coroa')].filter(Boolean).join(', ');
   const detail = results.length < 2 ? '' : allKinds().filter((k) => dice.includes(k)).map((k) => {
     const values = results.filter((_, i) => dice[i] === k);
-    return `${dieName(k)}: ${k === 'coin' ? values.map(face).join(', ') : values.join(' + ')}`;
+    return `${nomeDoTipo(k)}: ${k === 'coin' ? values.map(face).join(', ') : values.join(' + ')}`;
   }).join(' · ');
   return { total, detail };
 }

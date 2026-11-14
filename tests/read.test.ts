@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { Quaternion, Vector3 } from 'three';
-import { readUp, toResults } from '../src/dice/read';
+import { readUp, toResults } from '../src/modules/dados/index.ts';
 import type { Quat } from '../src/shared/math';
 import { detectFree, idealSolid, renumbered, withReadable } from '../src/dice/importer';
 import { asFile, freeDieOf, prismTriangles, shardTriangles } from './helpers/models';

@@ -1,5 +1,5 @@
 import RAPIER from '@dimforge/rapier3d-compat';
-import { registerPoly } from '../dice/custom';
+import { registerPoly } from '../modules/dados/index';
 import type { CustomKind } from '../modules/regras/index';
 import { BIAS_BUDGET, presimulateFor, type RollRequest, type RollResponse } from './presim';
 

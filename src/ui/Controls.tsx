@@ -1,9 +1,9 @@
 import { lazy, Suspense, useCallback, useState } from 'react';
 import { omenPlaying, useDice } from '../store';
 import { useFalha } from '../shared/plataforma';
-import { customDie, customKind, finishOf, type CustomDie } from '../dice/custom';
+import { carregarModelo, customDie, customKind, finishOf, hasTexture, nomeDoTipo, type CustomDie } from '../modules/dados/index';
 import { isCustom, KINDS, MAX_DICE, type DieKind } from '../modules/regras/index';
-import { dieName, formatDice, resultText } from '../dice/notation';
+import { formatDice, resultText } from '../dice/notation';
 import { Chat } from './Chat';
 import { InkChoice } from './InkChoice';
 import { TablePanel } from './TablePanel';
@@ -18,7 +18,7 @@ function InkButton({ die }: { die: CustomDie }) {
   const change = (patch: Partial<CustomDie>) => { void useDice.getState().updateCustom({ ...die, ...patch }); };
   return (
     <details className="ink-pop" onToggle={(e) => {
-      if (e.currentTarget.open && die.file.format === 'glb') void import('../dice/importer').then((m) => m.modelObject(die)).then((o) => import('../dice/importer').then((m) => setTextured(m.hasTexture(o))));
+      if (e.currentTarget.open && die.file.format === 'glb') void carregarModelo(die).then((o) => setTextured(hasTexture(o)));
     }}>
       <summary aria-label={`Tinta de ${die.name}`}>Tinta</summary>
       <InkChoice ink={die.ink ?? 'auto'} finish={finishOf(die)} engraved stl={die.file.format === 'stl'} textured={textured}
@@ -57,7 +57,7 @@ export function Controls() {
   const [importing, setImporting] = useState(false), [mounted, setMounted] = useState(false);
   const closeImport = useCallback(() => setImporting(false), []);
   const pick = (type: DieKind, mine = false) => {
-    const n = dice.filter((d) => d === type).length, name = dieName(type);
+    const n = dice.filter((d) => d === type).length, name = nomeDoTipo(type);
     return (
       <div className="pick" key={type}>
         <button aria-label={`Adicionar ${name}`} aria-pressed={n > 0} disabled={dice.length >= MAX_DICE}

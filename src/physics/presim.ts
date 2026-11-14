@@ -1,8 +1,7 @@
 import RAPIER from '@dimforge/rapier3d-compat';
 import { plays, type OmenTest } from '../dice/omenTest';
-import { polyhedron, type Polyhedron } from '../dice/polyhedra';
+import { polyhedron, readUp, toResults, type Polyhedron } from '../modules/dados/index';
 import type { CustomKind, DieKind } from '../modules/regras/index';
-import { readUp, toResults } from '../dice/read';
 import { initSettle, stepSettle } from '../throw/settle';
 import { applyLaunch, applySettle, bodyStates, type Launch } from './apply';
 import { DAMPING, GRAVITY, isOutside, MATERIAL, SETTLE, STEP, trayColliders } from './world';

@@ -2,16 +2,13 @@ import { Vector3, type Object3D } from 'three';
 import { ConvexHull } from 'three/examples/jsm/math/ConvexHull.js';
 import type { Vec3 } from '../shared/math';
 import { ModelError, readModel as readShared, type Model, type ModelFormat } from '../shared/modelos3d';
-import type { StdBase } from './custom';
 import { FREE_VALUES, type CustomBase } from '../modules/regras/index.ts';
-import { fromTriangles, OPPOSITE_SUM, RADIUS, type Numbering, type Polyhedron } from './polyhedra';
-import { dentTester, inkTriangles } from '../modules/dados/index';
-// ponte até a OS-0022
-export { hasTexture, inkTriangles, markInk, carregarModelo as modelObject } from '../modules/dados/index';
+import { dentTester, fromTriangles, inkTriangles, OPPOSITE_SUM, RADIUS, type Numbering, type Polyhedron, type StdBase } from '../modules/dados/index';
 
 // Turns a die model (.stl / .glb) into a polyhedron the physics and the reader can use. Pure: tested in Node.
 // The solid is rebuilt from the model's own face planes, so the collider matches the model, not a stock die.
 
+// These limits must follow `LIMITES_DO_MODELO_SALVO` in `dados`, so a saved die always reads again.
 export const LIMITS = { bytes: 10 * 1024 * 1024, triangles: 50_000, texture: 2048 };
 // Tolerances (spec 6.1.5): hull triangles within GROUP of each other are one flat face; the N biggest faces must
 // cover COVER of the hull, the next one must be under NEXT of the smallest of them, and the N must be alike

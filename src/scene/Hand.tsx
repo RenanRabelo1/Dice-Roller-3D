@@ -3,7 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import type { RapierRigidBody } from '@react-three/rapier';
 import { ArrowHelper, Color, Group, Matrix4, Mesh, MeshBasicMaterial, Plane, Quaternion, Raycaster, Vector2, Vector3, type BufferGeometry, type Object3D, type PerspectiveCamera } from 'three';
 import { Text } from 'troika-three-text';
-import { polyhedron, RADIUS } from '../dice/polyhedra';
+import { customDie, FONT, FONT_URL, gemColor, inkColorOf, polyhedron, RADIUS, SYMBOL, symbolGeometry } from '../modules/dados/index';
 import { isCustom, MAX_DICE } from '../modules/regras/index';
 import { toKinematic } from '../physics/apply';
 import { HAND } from '../physics/world';
@@ -14,10 +14,7 @@ import { charge, clampTarget } from '../throw/aim';
 import { newWhirl, ORBITS, restingPlaces, spinAngle, stepWhirl, vortexCenter } from '../throw/vortex';
 import { CAPTION, showcasePoses } from './showcase';
 import { glowMesh } from './inkGlow';
-import { customDie, inkColorOf } from '../dice/custom';
 import { highlightAt, HL_SIZE, SHOW } from './highlight';
-import { symbolGeometry } from '../dice/symbols';
-import { FONT, FONT_URL, gemColor, SYMBOL } from './Die';
 import { KRAKEN, krakenAt, krakenDieAt, krakenIndices, STORM, stormAt, stormDieAt, stormIndices } from './krakenMotion';
 
 type Mark = { local: Vector3; turn: Quaternion; start: Vector3; face: Vector3; scale: number }; // local, turn: the rolled numeral's place and turn in die space

@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { polyhedron } from '../src/dice/polyhedra';
+import { polyhedron } from '../src/modules/dados/index';
 import { detectFree, idealSolid } from '../src/dice/importer';
 import { asFile, glb, modelTriangles, prismTriangles, shardTriangles, stl, subdivided } from '../tests/helpers/models';
 

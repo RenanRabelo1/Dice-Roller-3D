@@ -1,5 +1,5 @@
-import { isCustom, omenKind, tipoParaPresagio, type DieKind, type Omen } from '../modules/regras/index.ts';
-import { customDie } from './custom';
+import { omenKind, type DieKind, type Omen } from '../modules/regras/index.ts';
+import { paraRegras } from '../modules/dados/index.ts';
 
 // An omen is the show a roll puts on before its result appears; the rules (crit, fumble, duality) live in `regras`.
 
@@ -9,8 +9,7 @@ export const OMEN_MS = { lightning: 1300, kraken: 6500, fire: 2400, storm: 4600,
 export const DUALITY_HIT = 1100; // when the two fish collide (and the screen shakes)
 
 // A d20, or an imported d20-shaped die the player asked to count as one (read from the registry of imported dice).
-export const isD20 = (kind: DieKind): boolean =>
-  kind === 'd20' || (isCustom(kind) && tipoParaPresagio({ kind, ...customDie(kind) }) === 'd20');
+export const isD20 = (kind: DieKind): boolean => paraRegras(kind) === 'd20';
 
 export function omenMs(o: Omen, dice: DieKind[]): number {
   const kind = omenKind(o);

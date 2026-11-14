@@ -45,15 +45,12 @@ src/
     historico.ts             `corpoDosDados`: corpo de cada dado (importado com base/omens do registro)
   modules/regras/          regras do jogo, puras, compartilhadas com server/        → modules/regras/CLAUDE.md
   modules/historico/       envia cada resultado à API (só com VITE_API_URL)        → server/src/modules/historico/CLAUDE.md
-  dice/                    domínio puro dos dados (sem React)                       → dados.md
-    polyhedra.ts             geometria, numeração, rótulos, `fromTriangles` (os tipos de dado vêm de `modules/regras`)
-    custom.ts                tipo `CustomDie` + registro em memória dos dados importados
+  modules/dados/           sólidos, catálogo (registro dos importados), leitura, símbolos, tinta, aparência; `index.ts` puro, `cena.ts` com componentes e hooks  → dados.md
+  dice/                    o resto do legado dos dados (sem React)                  → dados.md
     customStore.ts           IndexedDB store `customDice`
     importer.ts              .stl/.glb → poliedro (detecção, sólido ideal, calibração)
-    read.ts                  face de cima → valor; raw → resultado
     notation.ts              parser/formatador "2d10 + d100", texto do painel
     omen.ts                  regra de crítico/falha e duração dos presságios
-    symbols.ts               desenhos vetoriais (ankh, caveira, presas, cara, coroa)
   throw/                   lógica pura do arremesso                                 → arremesso.md
     gesture.ts               máquina de fases (reducer)
     aim.ts                   mira, carga, velocidade, giro com semente
