@@ -31,6 +31,8 @@ export interface Recording { frames: Pose[][]; raw: number[]; results: number[];
 // `bias` (dev test buttons only): look for a roll that plays this omen; `kinds` from omenKinds.
 export interface RollRequest { dice: DieKind[]; start: Pose[]; launch: Launch; customs: Record<CustomKind, Polyhedron>; bias?: { test: OmenTest; kinds: DieKind[] } }
 export type RollResponse = { throwId: number } & ({ rec: Recording } | { error: string });
+// The poses of the dice just before and just after a launch was applied (the test hook's `launches().last`).
+export interface UltimoLancamento { before: Pose[]; after: Pose[] }
 
 // The hand's motion at the release (its center and its swing), handed on to the throw.
 export interface HandMotion { center: Vec3; omega: Vec3 }

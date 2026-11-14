@@ -1,105 +1,31 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { EnvironmentPortal, Lightformer, PerformanceMonitor } from '@react-three/drei';
-import { Physics, useBeforePhysicsStep, type RapierRigidBody } from '@react-three/rapier';
+import { Physics, type RapierRigidBody } from '@react-three/rapier';
 import { Box3, Color, Group, Mesh, Quaternion, Texture, Vector3, type BufferGeometry, type Material, type Object3D } from 'three';
 import { Text } from 'troika-three-text';
 
 import {
-  arremesso, BIAS_BUDGET, bodyStates, criarWorkerDePresimulacao, GRAVITY, HAND, handPositions, presimulateFor, STEP, TRAY, VORTEX, vortexCenter, vortexRadius,
-  type Recording, type RollRequest, type RollResponse,
+  arremesso, GRAVITY, HAND, handPositions, STEP, TRAY, VORTEX, vortexCenter, vortexRadius,
 } from '../modules/arremesso/index';
-import { useArremesso } from '../modules/arremesso/cena';
-import { omenKinds } from '../dice/omenTest';
+import { CorpoDoDado, LoopDoArremesso, useArremesso } from '../modules/arremesso/cena';
 import type { DiceHook } from './testHook';
 import type { Vec3 } from '../shared/math';
 import { useDice } from '../store';
 import { installTestHook } from './testHook';
-import { Die } from '../scene/Die';
 import { Tray } from '../scene/Tray';
 import { Hand } from '../scene/Hand';
 import { Omens } from '../scene/Omens';
 import { MAX_DICE, omenKind } from '../modules/regras/index';
-import { customsOf, inspecao, RAIO_MAXIMO } from '../modules/dados/index';
+import { inspecao, RAIO_MAXIMO } from '../modules/dados/index';
 import { definir } from '../modules/selecao/index';
 import { inspecao as inspecaoDosImportados } from '../modules/meus-dados/index';
 import { useTable } from '../scene/tableState';
 import { panoramaTexture } from '../scene/tableImages';
-import { Guard, falha, marcarRenderizadorPorSoftware, movimentoReduzido, registrarFalha } from '../shared/plataforma';
+import { Guard, falha, marcarRenderizadorPorSoftware, movimentoReduzido } from '../shared/plataforma';
 
-const WORKER_TIMEOUT = 2000; // ms; a ten-dice recording takes well under 200 ms
 // The test-only surface preview checks numeral pixels, so it keeps the real resolution (no SwiftShader or adaptive DPR drop).
 const isPreview = () => import.meta.env.MODE === 'test' && new URLSearchParams(location.search).has('surface-preview');
-
-function ThrowLoop({ bodies, recordLaunch }: {
-  bodies: RefObject<(RapierRigidBody | null)[]>;
-  recordLaunch: (last: NonNullable<ReturnType<DiceHook['launches']>['last']>) => void;
-}) {
-  const play = useRef<{ throwId: number; request: RollRequest; rec: Recording | null; at: number; sent: number } | null>(null);
-  const worker = useRef<Worker | null>(null);
-  // A blocked, failed or silent worker still gets a real roll, here; discard cancelled selections.
-  // If the engine itself fails, the throw is dropped and the dice go back to the hand.
-  const fallback = useCallback(() => {
-    if (worker.current) console.warn('Worker da física indisponível: simulando na thread principal.');
-    worker.current?.terminate(); worker.current = null;
-    const pending = play.current, state = arremesso();
-    if (pending && !pending.rec && pending.throwId === state.throwId && state.gesture.phase === 'rolling') {
-      try { pending.rec = presimulateFor(pending.request, BIAS_BUDGET.local); } catch (error) {
-        console.error(error);
-        state.reiniciar();
-        registrarFalha('physics');
-      }
-    }
-  }, []);
-  useEffect(() => {
-    try {
-      const w = criarWorkerDePresimulacao();
-      worker.current = w;
-      w.onmessage = ({ data }: MessageEvent<RollResponse>) => {
-        const pending = play.current, state = arremesso();
-        if (!pending || data.throwId !== pending.throwId || data.throwId !== state.throwId || state.gesture.phase !== 'rolling') return;
-        if ('error' in data) fallback();
-        else pending.rec = data.rec;
-      };
-      w.onerror = (event) => { event.preventDefault(); fallback(); };
-      w.onmessageerror = fallback;
-    } catch { fallback(); }
-    return () => { worker.current?.terminate(); worker.current = null; };
-  }, [fallback]);
-  const live = () => bodies.current.filter((b): b is RapierRigidBody => b !== null && b.isValid());
-  // On release the whole roll is simulated offline from the dice's current poses, then replayed one recorded
-  // step per physics step: a real roll in real time, whose result is published the moment it ends.
-  useBeforePhysicsStep(() => {
-    const { gesture, throwId, launch, dice, publish } = arremesso(), { omenTest } = useDice.getState();
-    if (gesture.phase !== 'rolling' || !launch) return;
-    const current = live();
-    if (play.current?.throwId !== throwId) {
-      if (current.length !== dice.length) return;
-      const start = bodyStates(current).map(({ p, q }) => ({ p, q }));
-      const request: RollRequest = { dice, start, launch, customs: customsOf(dice), ...(omenTest && { bias: { test: omenTest, kinds: omenKinds(dice) } }) };
-      play.current = { throwId, request, rec: null, at: 0, sent: performance.now() };
-      registrarFalha(null);
-      if (worker.current) worker.current.postMessage(request);
-      else play.current.rec = presimulateFor(request, BIAS_BUDGET.local);
-      recordLaunch({ before: start, after: bodyStates(current).map(({ p, q }) => ({ p, q })) });
-    }
-    const { rec } = play.current;
-    if (!rec) { if (performance.now() - play.current.sent > WORKER_TIMEOUT + (play.current.request.bias ? BIAS_BUDGET.worker : 0)) fallback(); return; }
-    rec.frames[play.current.at].forEach(({ p, q }, i) => {
-      current[i].setNextKinematicTranslation({ x: p[0], y: p[1], z: p[2] });
-      current[i].setNextKinematicRotation({ x: q[0], y: q[1], z: q[2], w: q[3] });
-    });
-    if (++play.current.at === rec.frames.length) {
-      // Subscribers must see the final pose, even before this physics step has run.
-      rec.frames.at(-1)!.forEach(({ p, q }, i) => {
-        current[i].setTranslation({ x: p[0], y: p[1], z: p[2] }, true);
-        current[i].setRotation({ x: q[0], y: q[1], z: q[2], w: q[3] }, true);
-      });
-      publish(throwId, rec.results, rec.raw);
-    }
-  });
-  return null;
-}
 
 interface Pano { tex: Texture; rotation: number; intensity: number; blur: number; reflect: boolean }
 
@@ -155,6 +81,8 @@ export function Cena({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> 
   const register = useCallback((index: number, body: RapierRigidBody | null) => {
     bodies.current[index] = body;
   }, []);
+  // The dev omen test button lives in the legacy store; the throw loop reads it through this.
+  const omenTestAtual = useCallback(() => useDice.getState().omenTest, []);
 
   useEffect(() => {
     // Keep the whole tray in portrait view, preserving the camera's fixed viewing angle.
@@ -297,10 +225,10 @@ export function Cena({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> 
       <Physics gravity={GRAVITY} timeStep={STEP} interpolate={false}>
         <Tray />
         <Hand gameArea={gameArea} bodies={bodies} />
-        <ThrowLoop bodies={bodies} recordLaunch={recordLaunch} />
+        <LoopDoArremesso bodies={bodies} recordLaunch={recordLaunch} omenTest={omenTestAtual} />
         <group ref={dice}>
           {selected.map((kind, i) => (
-            <Die key={`${key}-${i}`} index={i} kind={kind} selection={key} count={selected.length}
+            <CorpoDoDado key={`${key}-${i}`} index={i} kind={kind} selection={key} count={selected.length}
               register={register} />
           ))}
         </group>

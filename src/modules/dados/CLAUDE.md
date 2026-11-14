@@ -33,7 +33,7 @@ O dado como objeto: o catálogo dos tipos jogáveis (embutidos e importados regi
 - `src/shared/events` (`createSignal`), `src/shared/math` (`Vec3`, `Quat`) e `src/shared/modelos3d` (`readModel`, leitura do arquivo do modelo).
 
 ## Fora do escopo
-- O corpo físico e o colisor do dado (`scene/Die.tsx` até a extração): `arremesso`.
+- O corpo físico e o colisor do dado (`modules/arremesso/scene/CorpoDoDado.tsx`): `arremesso`.
 - Importar, calibrar, salvar e excluir dados do jogador (quem chama `registerCustom`/`unregisterCustom`): `meus-dados`.
 - Notação e apelidos do chat: `selecao`.
 - A pose do dado no voo e o número em destaque: `vitrine`. `definirOpacidade`, `definirSombra` e `rotulos(obj)` da spec nascem nas extrações de `arremesso` e `vitrine`, que são quem os chama.

@@ -4,7 +4,7 @@ import { baseOf, customKind, polyhedron, readUp, registerPoly, sortDice, toResul
 import { resultText } from '../src/dice/notation';
 import { formatDice, parseDice, slugOf, slugProblem } from '../src/modules/selecao/index.ts';
 import { isD20 } from '../src/dice/omen';
-import { omenKinds } from '../src/dice/omenTest';
+import { omenKinds } from '../src/modules/arremesso/index.ts';
 import { omenOf } from '../src/modules/regras/index.ts';
 import { customDieOf, freeDieOf, prismTriangles } from './helpers/models';
 import { simulate } from './helpers/sim';

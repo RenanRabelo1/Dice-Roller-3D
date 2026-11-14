@@ -40,7 +40,7 @@ src/
   shared/plataforma/       falha registrada (`registrarFalha`), `Guard`, `Failure`, sonda WebGL, renderizador por software, movimento reduzido (`movimentoReduzido`, evento de mudança)  → armadilhas.md
   store.ts                 zustand: dados do arremesso (cópia da mão), fase, throwId, launch, results, omen  → arremesso.md
   app/                     casca: a cena, o window.__dice e a ponte do histórico
-    Cena.tsx                 raiz da cena, ThrowLoop (replay), câmera, DPR, test hook
+    Cena.tsx                 raiz da cena (compõe os componentes dos módulos), câmera, DPR, test hook
     testHook.ts              window.__dice (só em mode=test)                        → testes.md
     historico.ts             `corpoDosDados`: corpo de cada dado (importado com base/omens do registro)
   modules/regras/          regras do jogo, puras, compartilhadas com server/        → modules/regras/CLAUDE.md
@@ -63,7 +63,7 @@ src/
     domain/vies.ts           `plays`: se um resultado toca o presságio do botão de teste
   scene/                   componentes R3F
     Hand.tsx                 input, mão, retorno, showcase pós-resultado             → apresentacao.md
-    Die.tsx, Tray.tsx        corpo+malha de cada dado; bandeja (visual do tema da mesa)
+    Tray.tsx                 bandeja (visual do tema da mesa, dentro de `ColisoresDaBandeja`)
     table*.ts, Backdrop.tsx  mesa e fundo personalizados, .glb                      → mesa.md
     showcase.ts, highlight.ts poses e linha do tempo do "voo até a câmera"         → apresentacao.md
     Omens.tsx, Kraken.ts, krakenMotion.ts, Fire.ts, fireMotion.ts  presságios 3D   → apresentacao.md

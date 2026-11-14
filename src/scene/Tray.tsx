@@ -1,5 +1,5 @@
-import { CuboidCollider, RigidBody } from '@react-three/rapier';
-import { arremesso, MATERIAL, trayColliders } from '../modules/arremesso/index';
+import { arremesso } from '../modules/arremesso/index';
+import { ColisoresDaBandeja } from '../modules/arremesso/cena';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import type { Group, Object3D } from 'three';
@@ -15,7 +15,7 @@ const broken = () => {
   return trayBrokenAt({ phase: a.gesture.phase, throwId: a.throwId, omen: s.omen, omenDone: s.omenDone, omenAt: s.omenAt, dice: a.dice, reducedMotion: movimentoReduzido() }, performance.now());
 };
 
-// The tray's colliders are always trayColliders(); what you see comes from the active table theme (a default
+// The tray's colliders are always trayColliders() (arremesso's ColisoresDaBandeja); what you see comes from the active table theme (a default
 // build, or an imported .glb fitted to the same play area).
 export function Tray() {
   const theme = useTable((s) => s.theme);
@@ -47,12 +47,8 @@ export function Tray() {
   }, [table]);
   useFrame(() => setVisible(surface.current, !broken()));
   return (
-    <RigidBody type="fixed" colliders={false}>
-      {trayColliders().map(({ kind, center, half }, i) => (
-        <CuboidCollider key={i} args={half} position={center}
-          {...(kind === 'floor' ? MATERIAL.velvet : MATERIAL.wall)} />
-      ))}
+    <ColisoresDaBandeja>
       <primitive object={table} />
-    </RigidBody>
+    </ColisoresDaBandeja>
   );
 }

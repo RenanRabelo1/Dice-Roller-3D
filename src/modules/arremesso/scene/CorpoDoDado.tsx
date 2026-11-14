@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo } from 'react';
 import { ConvexHullCollider, RigidBody, type RapierRigidBody } from '@react-three/rapier';
-import { polyhedron } from '../modules/dados/index';
-import { AparenciaDoDado } from '../modules/dados/cena';
-import type { DieKind } from '../modules/regras/index';
-import { MATERIAL, vortexCenter } from '../modules/arremesso/index';
+import { polyhedron } from '../../dados/index.ts';
+import { AparenciaDoDado } from '../../dados/cena.ts';
+import type { DieKind } from '../../regras/index.ts';
+import { MATERIAL } from '../domain/world.ts';
+import { vortexCenter } from '../domain/vortex.ts';
 
 // The die's physical body; what it looks like is `dados`' AparenciaDoDado.
-export function Die({ index, kind, selection, count, register }: {
+export function CorpoDoDado({ index, kind, selection, count, register }: {
   index: number; kind: DieKind; selection: string; count: number;
   register: (index: number, body: RapierRigidBody | null) => void;
 }) {

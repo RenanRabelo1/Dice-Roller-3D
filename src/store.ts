@@ -2,9 +2,9 @@ import { create } from 'zustand';
 import { omenOf, type Omen } from './modules/regras/index.ts';
 import { definir, selecao } from './modules/selecao/index.ts';
 import { aoMudarMovimentoReduzido, movimentoReduzido } from './shared/plataforma';
-import { arremesso, resultadoPublicado, type OmenTest, type Phase } from './modules/arremesso/index.ts';
+import { arremesso, omenKinds, resultadoPublicado, type OmenTest, type Phase } from './modules/arremesso/index.ts';
 import { useArremesso } from './modules/arremesso/cena.ts';
-import { omenKinds, withDiceFor } from './dice/omenTest';
+import { withDiceFor } from './dice/omenTest';
 
 // What is left of the legacy store: the omen and the showcase. The throw's state is in `arremesso` (OS-0031).
 interface DiceState {

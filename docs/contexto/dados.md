@@ -1,6 +1,6 @@
 # Dados: tipos, geometria, numeração, leitura, notação
 
-Cobre o módulo `src/modules/dados/` (sólidos, catálogo, leitura, símbolos, tinta e aparência: o puro sai por `index.ts`, componentes e hooks por `cena.ts`), o que resta em `src/dice/*` (texto do resultado, presságios), `scene/Die.tsx` (corpo físico) e `ui/Controls.tsx` (painel). A notação, o chat e a mão estão em `src/modules/selecao/`; o grupo "Meus dados", o assistente e a gravação dos importados, em `src/modules/meus-dados/` (ver o `CLAUDE.md` de cada um). O domínio é puro (sem React) e testado em Node.
+Cobre o módulo `src/modules/dados/` (sólidos, catálogo, leitura, símbolos, tinta e aparência: o puro sai por `index.ts`, componentes e hooks por `cena.ts`), o que resta em `src/dice/*` (texto do resultado, presságios), `modules/arremesso/scene/CorpoDoDado.tsx` (corpo físico) e `ui/Controls.tsx` (painel). A notação, o chat e a mão estão em `src/modules/selecao/`; o grupo "Meus dados", o assistente e a gravação dos importados, em `src/modules/meus-dados/` (ver o `CLAUDE.md` de cada um). O domínio é puro (sem React) e testado em Node.
 
 ## Tipos (`modules/regras`)
 
@@ -55,14 +55,14 @@ Mapa por face (`SYMBOL` em `modules/dados/domain/solidos.ts`, por dígito do d10
 
 Face vazia ainda tem um `Label` (texto `''`) para o showcase achar a face sorteada pelo valor. Moeda: `heads`/`crown` nas tampas.
 
-## Renderização do dado (`scene/Die.tsx` + `modules/dados/scene/`)
+## Renderização do dado (`modules/arremesso/scene/CorpoDoDado.tsx` + `modules/dados/scene/`)
 
 - `<RigidBody type="kinematicPosition" ccd>` + `ConvexHullCollider` (a cena nunca simula dinâmica; ver arremesso.md).
 - Nomes de objeto usados por outros módulos e testes: `die-${i}` (grupo), `gem-${i}` (malha; **grupo** num dado importado, então a sombra liga/desliga com `traverse`, ver `shade` em `Hand.tsx`).
 - Aparência de gema (`scene/GemMaterial.tsx`) sem passe de refração: `meshPhysicalMaterial` com clearcoat, `ior`, opacidade 0,88. Moeda: metal dourado opaco.
 - Paletas (`domain/aparencia.ts`): `GEM` (cor por kind), `INK` (cor do numeral; gemas claras usam tinta escura), `FONT` (tamanho do numeral por shape), `SYMBOL` (altura do símbolo em tamanhos de fonte); `EMBER` (fogo brilha) fica em `scene/GemMaterial.tsx`.
 - **Um objeto por dado para todos os numerais**: `BatchedText` (troika) ou, em dado com símbolos, uma malha com os símbolos mesclados. Os membros ficam em `userData.labels` (testes leem dali, pela `inspecao` do módulo: `domain/inspecao.ts`).
-- `<AparenciaDoDado index kind />` não recebe registro nem cor: lê o registro do catálogo com `useSyncExternalStore(catalogoAlterado.subscribe, …)` e a cor com `gemColor(kind)`. `registerCustom` emite `registrado` (também no `atualizar` de `meus-dados`, que re-registra o mesmo `kind`: a cor, a tinta e o acabamento acompanham na hora) e `unregisterCustom` emite `removido`; `registerPoly` (worker) não emite. `scene/Die.tsx` não lê mais o store.
+- `<AparenciaDoDado index kind />` não recebe registro nem cor: lê o registro do catálogo com `useSyncExternalStore(catalogoAlterado.subscribe, …)` e a cor com `gemColor(kind)`. `registerCustom` emite `registrado` (também no `atualizar` de `meus-dados`, que re-registra o mesmo `kind`: a cor, a tinta e o acabamento acompanham na hora) e `unregisterCustom` emite `removido`; `registerPoly` (worker) não emite. `modules/arremesso/scene/CorpoDoDado.tsx` não lê mais o store.
 
 ## Notação e chat: ver [src/modules/selecao/CLAUDE.md](../../src/modules/selecao/CLAUDE.md)
 
