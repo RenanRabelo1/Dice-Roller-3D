@@ -1,7 +1,8 @@
 import { create } from 'zustand';
-import { customDie, customList, registerCustom, sortDice, unregisterCustom, type CustomDie } from './modules/dados/index.ts';
+import { customDie, customList, registerCustom, unregisterCustom, type CustomDie } from './modules/dados/index.ts';
 import { deleteCustomDie, listCustomDice, saveCustomDie } from './dice/customStore';
-import { isCustom, MAX_DICE, omenOf, type CustomKind, type DieKind, type Omen } from './modules/regras/index.ts';
+import { omenOf, type CustomKind, type DieKind, type Omen } from './modules/regras/index.ts';
+import { adicionar, definir, remover, selecao, selecaoAlterada } from './modules/selecao/index.ts';
 import type { Launch } from './physics/apply';
 import { HAND } from './physics/world';
 import type { Vec3 } from './shared/math';
@@ -13,7 +14,7 @@ import { omenKinds, withDiceFor, type OmenTest } from './dice/omenTest';
 type HandMotion = { center: Vec3; omega: Vec3 };
 
 interface DiceState {
-  dice: DieKind[]; // the selection, one entry per die
+  dice: DieKind[]; // the selection, one entry per die: a copy of selecao's hand (ponte até a OS-0025)
   gesture: GestureState;
   throwId: number;
   aim: Vec3;
@@ -67,18 +68,13 @@ export const omenPlaying = (s: Pick<DiceState, 'gesture' | 'omen' | 'omenDone' |
   s.gesture.phase === 'settled' && s.omen?.throwId === s.throwId && s.omenDone !== s.throwId;
 
 export const useDice = create<DiceState>((set, get) => ({
-  dice: ['d20'], gesture: initialGesture, throwId: 0,
+  dice: selecao(), gesture: initialGesture, throwId: 0,
   aim: [0, 0, -1], force: 0, chargeMode: savedMode(), launch: null, results: null, raw: null,
   ready: false, showcased: 0, omen: null, omenDone: 0, omenAt: 0, omenRig: null, omenTest: null, customs: [], sessionOnly: false,
-  addDie: (kind) => set((s) => (s.dice.length >= MAX_DICE ? s : { ...selection(s), dice: sortDice([...s.dice, kind]) })),
-  removeDie: (kind) => set((s) => {
-    const i = s.dice.lastIndexOf(kind);
-    return i < 0 || s.dice.length === 1 ? s : { ...selection(s), dice: s.dice.filter((_, j) => j !== i) };
-  }),
-  setDice: (dice) => set((s) => {
-    const known = dice.filter((k) => !isCustom(k) || customDie(k)).slice(0, MAX_DICE);
-    return known.length ? { ...selection(s), dice: sortDice(known) } : s;
-  }),
+  // ponte até a OS-0025: selecao changes the hand; the copy and the throw follow its event (below).
+  addDie: (kind) => adicionar(kind),
+  removeDie: (kind) => remover(kind),
+  setDice: (dice) => definir(dice),
   loadCustoms: async () => {
     try {
       const saved = await listCustomDice();
@@ -111,11 +107,9 @@ export const useDice = create<DiceState>((set, get) => ({
     const die = customDie(kind);
     if (!die) return;
     try { await deleteCustomDie(die.id); } catch { /* session-only: nothing stored */ }
+    // selecao takes the kind out of the hand (catalogoAlterado) and the copy follows, before the customs update.
     unregisterCustom(kind);
-    set((s) => {
-      const dice = s.dice.filter((k) => k !== kind);
-      return { ...selection(s), customs: customList(), dice: dice.length ? dice : ['d20'] };
-    });
+    set({ customs: customList() });
   },
   setAim: (aim) => set({ aim: [...aim] }),
   setForce: (force) => set({ force }),
@@ -128,10 +122,12 @@ export const useDice = create<DiceState>((set, get) => ({
   setOmenDone: (omenDone) => set({ omenDone }),
   rigOmen: (omenRig) => set({ omenRig }),
   // Choosing a test also puts the dice it needs in the hand (a d20, a d100, or two for duality).
-  setOmenTest: (omenTest) => set((s) => {
-    const dice = omenTest ? withDiceFor(omenTest, s.dice) : s.dice;
-    return dice === s.dice ? { omenTest } : { ...selection(s), omenTest, dice };
-  }),
+  // ponte até a OS-0025: two sets in the same tick (OS-0024, decision 7); selecao() keeps its reference when unchanged.
+  setOmenTest: (omenTest) => {
+    const dice = omenTest ? withDiceFor(omenTest, selecao()) : selecao();
+    set({ omenTest });
+    if (dice !== selecao()) definir(dice);
+  },
   input: (event, hand) => {
     let effect: Effect = { type: 'none' };
     set((s) => {
@@ -161,3 +157,7 @@ export const useDice = create<DiceState>((set, get) => ({
 // Switching reduced motion on cancels the omen being shown, in the same synchronous tick (ADR 0005). Subscribed
 // when the module loads and never cancelled: the store lives as long as the app.
 aoMudarMovimentoReduzido((v) => { if (v) useDice.setState({ omen: null }); });
+
+// ponte até a OS-0025: a change of the hand resets the throw, in the same synchronous tick (ADR 0005) and in one update,
+// so the phase, throwId, launch, result and force change together with the copy of the hand.
+selecaoAlterada.subscribe(({ dice }) => useDice.setState((s) => ({ ...selection(s), dice })));

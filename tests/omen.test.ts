@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { OMEN_MS, omenMs } from '../src/dice/omen';
 import { omenPlaying, useDice } from '../src/store';
+import { definir } from '../src/modules/selecao/index.ts';
 import { definirMovimentoReduzido } from '../src/shared/plataforma';
 
 describe('omenMs', () => {
@@ -22,7 +23,8 @@ describe('store omen', () => {
   const P = { kind: 'pointer', id: 1 } as const;
   const roll = () => { s().input({ type: 'press', source: P, at: 0, repeat: false }); s().input({ type: 'release', source: P, at: 700 }); };
   // Reduced motion lives outside the store now, so it would carry over from one test to the next.
-  beforeEach(() => { useDice.setState(useDice.getInitialState(), true); definirMovimentoReduzido(false); });
+  // The hand lives in selecao; reset it first so the copy in useDice starts equal (OS-0024, decision 8).
+  beforeEach(() => { definir(['d20']); useDice.setState(useDice.getInitialState(), true); definirMovimentoReduzido(false); });
 
   it('publish records the omen of the throw with the results', () => {
     roll(); s().publish(1, [20]);
