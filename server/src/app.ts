@@ -1,6 +1,6 @@
 import Fastify, { type FastifyServerOptions } from 'fastify';
 import cors from '@fastify/cors';
-import { CUSTOM_BASES, FREE_VALUES, KINDS } from '../../src/modules/regras/index.ts';
+import { CUSTOM_BASES, FREE_VALUES, KINDS, MAX_DICE } from '../../src/modules/regras/index.ts';
 import type { RollStore } from './rolls.ts';
 import { CUSTOM, score, type Die } from './rules.ts';
 
@@ -22,7 +22,7 @@ export function buildApp(o: { store: RollStore; ping: () => Promise<unknown>; or
         properties: {
           playerId: PLAYER,
           dice: {
-            type: 'array', minItems: 1, maxItems: 10,
+            type: 'array', minItems: 1, maxItems: MAX_DICE,
             items: {
               type: 'object', required: ['kind', 'value'], additionalProperties: false,
               properties: {

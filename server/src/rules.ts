@@ -6,7 +6,7 @@ export const CUSTOM = '^custom:[A-Za-z0-9_-]{1,64}$';
 export interface Die { kind: DieKind; value: number; base?: CustomBase; omens?: boolean }
 
 // What is kept of each die: an imported one with its solid and omen choice, a built-in one as it is.
-const clean = ({ kind, value, base, omens }: Die): Die => (isCustom(kind) ? { kind, value, base, omens: base === 'd20' && omens === true } : { kind, value });
+const clean = ({ kind, value, base, omens }: Die): Die => (isCustom(kind) ? { kind, value, base, omens: tipoParaPresagio({ kind, base, omens }) === 'd20' } : { kind, value });
 
 // What the server keeps of a throw is worked out from the dice themselves, with the game's own rules
 // (shared with the front end), never taken from the client: the total (coins never add up) and the omen.

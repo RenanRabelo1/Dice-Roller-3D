@@ -1,5 +1,5 @@
 import { ObjectId, type Collection, type Db } from 'mongodb';
-import { CUSTOM_BASES, FREE_VALUES, KINDS, type OmenKind } from '../../src/modules/regras/index.ts';
+import { CUSTOM_BASES, FREE_VALUES, KINDS, MAX_DICE, type OmenKind } from '../../src/modules/regras/index.ts';
 import { CUSTOM, type Die } from './rules.ts';
 
 // One document per throw. The dice are embedded: at most 10, always read with their throw.
@@ -17,7 +17,7 @@ const VALIDATOR = {
       playerId: { bsonType: 'string', minLength: 1, maxLength: 64 },
       createdAt: { bsonType: 'date' },
       dice: {
-        bsonType: 'array', minItems: 1, maxItems: 10,
+        bsonType: 'array', minItems: 1, maxItems: MAX_DICE,
         items: {
           bsonType: 'object', required: ['kind', 'value'], additionalProperties: false,
           properties: {

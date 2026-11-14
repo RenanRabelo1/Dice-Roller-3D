@@ -1,5 +1,6 @@
 import RAPIER from '@dimforge/rapier3d-compat';
-import { registerPoly, type CustomKind } from '../dice/custom';
+import { registerPoly } from '../dice/custom';
+import type { CustomKind } from '../modules/regras/index';
 import { BIAS_BUDGET, presimulateFor, type RollRequest, type RollResponse } from './presim';
 
 // Warm the engine while the user aims, and keep the full simulation off the render thread.

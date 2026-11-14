@@ -2,8 +2,8 @@ import { Mesh, Vector3, type BufferGeometry, type Material, type Object3D, type 
 import { ConvexHull } from 'three/examples/jsm/math/ConvexHull.js';
 import type { Vec3 } from '../shared/math';
 import { ModelError, readModel as readShared, type Model, type ModelFormat } from '../shared/modelos3d';
-import { customKind, type CustomBase, type CustomDie, type StdBase } from './custom';
-import { FREE_VALUES } from '../modules/regras/index.ts';
+import { customKind, type CustomDie, type StdBase } from './custom';
+import { FREE_VALUES, type CustomBase } from '../modules/regras/index.ts';
 import { fromTriangles, OPPOSITE_SUM, RADIUS, type Numbering, type Polyhedron } from './polyhedra';
 
 // Turns a die model (.stl / .glb) into a polyhedron the physics and the reader can use. Pure: tested in Node.

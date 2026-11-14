@@ -1,10 +1,8 @@
 import { Color } from 'three';
 import type { Vec3 } from '../shared/math';
-import { isCustom, type CustomBase, type CustomKind, type Shape } from '../modules/regras/index.ts';
+import type { CustomBase, CustomKind, Shape } from '../modules/regras/index.ts';
 import type { Polyhedron } from './polyhedra';
 
-export { isCustom };
-export type { CustomBase, CustomKind };
 export type StdBase = Exclude<CustomBase, 'livre'>; // the d4–d20 bases
 
 // Dice the player imported: a model file plus the polyhedron rebuilt from its face planes. Kept in memory here

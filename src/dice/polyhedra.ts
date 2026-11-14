@@ -9,9 +9,9 @@ import {
 } from 'three';
 import { ConvexHull } from 'three/examples/jsm/math/ConvexHull.js';
 import type { Vec3 } from '../shared/math';
-import { customBase, customKind, customList, customOrder, customPoly, isCustom, type CustomKind } from './custom';
+import { customBase, customKind, customList, customOrder, customPoly } from './custom';
 
-import { BASE, KINDS, type BuiltinKind, type DieKind, type Shape } from '../modules/regras/index.ts';
+import { BASE, isCustom, KINDS, type BuiltinKind, type CustomKind, type DieKind, type Shape } from '../modules/regras/index.ts';
 
 export type SymbolName = 'ankh' | 'crit' | 'skull' | 'fangs' | 'heads' | 'crown';
 

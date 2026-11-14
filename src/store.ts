@@ -1,8 +1,8 @@
 import { create } from 'zustand';
-import { customDie, customList, isCustom, registerCustom, unregisterCustom, type CustomDie, type CustomKind } from './dice/custom';
+import { customDie, customList, registerCustom, unregisterCustom, type CustomDie } from './dice/custom';
 import { deleteCustomDie, listCustomDice, saveCustomDie } from './dice/customStore';
 import { sortDice } from './dice/polyhedra';
-import { MAX_DICE, omenOf, type DieKind, type Omen } from './modules/regras/index.ts';
+import { isCustom, MAX_DICE, omenOf, type CustomKind, type DieKind, type Omen } from './modules/regras/index.ts';
 import type { Launch } from './physics/apply';
 import { HAND } from './physics/world';
 import type { Vec3 } from './shared/math';
