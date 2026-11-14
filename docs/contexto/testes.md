@@ -11,20 +11,20 @@
   - `models.ts`: `modelTriangles` (sólido nosso, chanfrado, girado e deslocado como um export de fatiador), `stl`, `glb`, `subdivided`, `customDieOf` (dado importado registrado).
   - `simulate({ kind|dice, count, force, target, seed, perturb? })` — roda o **mesmo** `presimulate` do app a partir das poses da mão. Use para testes de física (determinismo, fuga, timeout, seleção mista).
 - Teste novo de lógica pura: arquivo `src/<...>/tests/<x>.test.ts`, dentro do módulo, sem fixtures nem mocks de three. Os que hoje estão em `tests/` migram na extração de cada módulo.
-- O `server/vitest.config.ts` também inclui `src/**/tests/**/*.test.ts`, além de `test/**`.
+- O `server/vitest.config.ts` inclui só `src/**/tests/**/*.test.ts`. A suíte da API mora em `server/src/modules/historico/tests/api.test.ts`.
 
 ## Arquitetura — `tests/arquitetura/` (dentro do `npm test`)
 
-Imports e ciclos (regras 1 e 4 do guia, ADR 0006 parte A) e dono dos dados (regra 2, parte B, abaixo). O leitor é nosso (ADR 0009), sem `dependency-cruiser`: o `parseSync` do `@swc/core` lê cada `.ts`/`.tsx` de `src/`, `server/src` e `server/test`. A suíte leva menos de 1 s.
+Imports e ciclos (regras 1 e 4 do guia, ADR 0006 parte A) e dono dos dados (regra 2, parte B, abaixo). O leitor é nosso (ADR 0009), sem `dependency-cruiser`: o `parseSync` do `@swc/core` lê cada `.ts`/`.tsx` de `src/` e `server/src`. A suíte leva menos de 1 s.
 
 - `leitor.ts`: arestas de `import`/`export … from` (só `import type`/`export type` contam como tipo, por causa do `verbatimModuleSyntax`), `import()` com string literal e `new URL('./x', import.meta.url)` (o worker). Resolve caminho relativo com ou sem extensão e `index.ts`/`index.tsx` de pasta, e só guarda destinos `.ts`/`.tsx` (css e imagem são ignorados). **Derrubam a suíte:** import relativo que não resolve, import com grafia diferente da do disco (o Windows aceita, o Linux não), caminho absoluto `/src/...` e `import()` sem string literal. Hoje não há alias de `paths` no tsconfig; se aparecer, o leitor precisa recusá-lo também.
 - `leitor.test.ts`: prova as quatro arestas reais (estático, `import type`, `import()` de `ImportDie`, o worker de `app/Cena.tsx`) e, em `fixtures/leitor/`, cada recusa acima e o `new URL` de não-código.
-- Ciclos só são procurados em `src/`; os de `server/` entram na extração do `historico`.
+- Ciclos são procurados em `src/` e em `server/src` (e entre os dois).
 - `regras.ts` + `imports.test.ts`, sobre o código real:
-  - **ciclos** (Tarjan, contando tipo, dinâmico e worker) em dois níveis: `arquivo` e `pasta` (unidade = `src/modules/<m>`, `src/<pasta>` ou arquivo da raiz de `src/`);
+  - **ciclos** (Tarjan, contando tipo, dinâmico e worker) em dois níveis: `arquivo` e `pasta` (unidade = `src/modules/<m>`, `src/<pasta>` ou arquivo da raiz de `src/`; no servidor, `server/src/modules/<m>`, `server/src/<pasta>` ou arquivo da raiz de `server/src`);
   - `src/shared/**` não importa nada de `src/` fora de `src/shared/`;
   - de outro módulo, só `index.ts`, ou `contracts.ts` com `import type`; módulo não importa a casca (`src/main.tsx`, `src/App.tsx`, `src/app/**`); `src/modules/regras/**` não importa pacote nem arquivo fora dele (ADR 0002);
-  - `server/**` → `src/**` só para os arquivos de `SERVIDOR_PODE_IMPORTAR`; `src/**` → `server/**` só `import type` de `server/src/modules/<m>/contracts.ts`. As regras internas do `server/` (`routes.ts`, `mongodb`) entram na extração do `historico`.
+  - `server/**` → `src/**` só para os arquivos de `SERVIDOR_PODE_IMPORTAR`; `src/**` → `server/**` só `import type` de `server/src/modules/<m>/contracts.ts`. Dentro do `server/`, o `routes.ts` de um módulo só importa o próprio `service.ts`/`contracts.ts`/`repository.ts` ou algo de `server/src/shared/`, e `mongodb` só é importado por `repository.ts` e `server/src/shared/db.ts` (arquivos em `tests/` também podem, para montar o banco de teste).
 - As regras de módulo valem antes de existir módulo: `fixtures/modulos/` é uma árvore mínima (`src/`, `server/`) que viola cada regra uma vez, e o teste confere que cada uma dispara. Os fixtures são checados pelo `tsc -b` (`tsconfig.test.json`); os que não compilam de propósito (import quebrado, caminho absoluto, grafia) usam `// @ts-nocheck`.
 - Falha sai como `[regra] origem → destino (regra do guia / ADR)`.
 
@@ -47,7 +47,7 @@ Regra 2 do guia (ADR 0006 parte B; ADR 0003 pontos 2 e 5). Varre só produção:
   - um `$lookup`/`$graphLookup` cujo `from` é de outro dono (join entre domínios);
   - um `create` importado de `zustand` (com outro nome ou por namespace também) fora de `src/modules/<m>/store.ts`.
 - A falha sai como `[regra] arquivo: dado (dono esperado: …; ADR)`.
-- **Exceções:** ficam em `DADOS_LEGADO` (`config.ts`), no formato `{ arquivo, dado, motivo }`. É uma por arquivo e por dado, e cobre todas as regras que aquele arquivo quebra com aquele dado. O `dado` é o nome da store, da chave ou da coleção, ou então `indexedDB`/`zustand` para a API crua. O motivo cita o ADR ou o plano. Hoje há três grupos: o legado sem módulo, a store de falha de `shared/plataforma` (ADR 0008) e o `server/src/rolls.ts` antes da extração do `historico`. Como em `CICLOS_CONHECIDOS`, a suíte também falha com uma exceção sem uso ou repetida. Tire a entrada no mesmo commit que moveu o acesso.
+- **Exceções:** ficam em `DADOS_LEGADO` (`config.ts`), no formato `{ arquivo, dado, motivo }`. É uma por arquivo e por dado, e cobre todas as regras que aquele arquivo quebra com aquele dado. O `dado` é o nome da store, da chave ou da coleção, ou então `indexedDB`/`zustand` para a API crua. O motivo cita o ADR ou o plano. Hoje há dois grupos: o legado sem módulo e a store de falha de `shared/plataforma` (ADR 0008). Como em `CICLOS_CONHECIDOS`, a suíte também falha com uma exceção sem uso ou repetida. Tire a entrada no mesmo commit que moveu o acesso.
 - **Heurística** (ADR 0006: "pega o caso comum"). O teste procura padrões na AST. Ele não segue um nome que vem de variável de outro arquivo, um acesso por função de outro módulo nem um global renomeado. Também não vê `createStore`/`createWithEqualityFn` do zustand (só `create`) nem `$unionWith` no MongoDB (só `$lookup`/`$graphLookup`). Ainda falta a regra "nenhum `index.ts` reexporta o store cru" (ADR 0003 ponto 2, ADR 0006): entra com o primeiro módulo que tiver store. A revisão continua obrigatória.
 - `fixtures/dados/` tem o próprio `mapa.md` e viola cada regra uma vez. O teste recebe a raiz e o bloco por parâmetro.
 

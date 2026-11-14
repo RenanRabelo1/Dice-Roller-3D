@@ -38,7 +38,13 @@ describe('as regras disparam (fixtures/modulos)', () => {
     ]);
   });
   it('ciclo entre módulos, mesmo só por index.ts', () => {
-    expect(ciclos(fixture, 'pasta').map((c) => c.membros)).toEqual([['src/modules/a', 'src/modules/b']]);
+    // The server cycle of the fixture is the next test's.
+    expect(ciclos(fixture, 'pasta').map((c) => c.membros).filter((m) => m[0].startsWith('src/'))).toEqual([['src/modules/a', 'src/modules/b']]);
+  });
+  it('ciclo dentro do servidor, nos níveis de arquivo e de pasta', () => {
+    const doServidor = (nivel: 'arquivo' | 'pasta') => ciclos(fixture, nivel).map((c) => c.membros).filter((m) => m.some((f) => f.startsWith('server/')));
+    expect(doServidor('arquivo')).toEqual([['server/src/modules/z/ida.ts', 'server/src/shared/volta.ts']]);
+    expect(doServidor('pasta')).toEqual([['server/src/modules/z', 'server/src/shared']]);
   });
   it('shared importando o legado', () => {
     expect(pares('sharedIsolado')).toEqual(['src/shared/usaLegado.ts → src/dice/outro.ts']);
@@ -59,6 +65,17 @@ describe('as regras disparam (fixtures/modulos)', () => {
       'src/usaServidorValor.ts → server/src/modules/x/contracts.ts',
     ]);
     expect(fixture.arestas).toContainEqual(expect.objectContaining({ de: 'src/usaServidorTipo.ts', para: 'server/src/modules/x/contracts.ts', soTipo: true }));
+  });
+  it('routes.ts do servidor importando outro módulo e arquivo próprio fora de service/contracts/repository', () => {
+    // Its own service.ts, contracts.ts (import type), repository.ts and server/src/shared/db.ts are allowed, so they are absent.
+    expect(pares('rotasDoServidor')).toEqual([
+      'server/src/modules/x/routes.ts → server/src/modules/x/interno.ts',
+      'server/src/modules/x/routes.ts → server/src/modules/y/service.ts',
+    ]);
+  });
+  it('mongodb importado fora de repository.ts e de server/src/shared/db.ts', () => {
+    // repository.ts, shared/db.ts and the module's tests/ import it too and are allowed, so they are absent.
+    expect(pares('mongodbSoNoRepositorio')).toEqual(['server/src/modules/x/service.ts → mongodb']);
   });
   it('ciclo conhecido que sumiu e ciclo novo', () => {
     const { novos, sumidos } = conferirCiclos(

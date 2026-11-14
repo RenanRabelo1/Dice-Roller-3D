@@ -15,8 +15,9 @@ const violacao = (regra: string, referencia: string) => (a: Aresta): Violacao =>
 
 // ---- Cycles (rule 4) ----
 
-/** Unit of the `pasta` level: `src/modules/<m>`, `src/<pasta>` or the root file itself. */
-export const unidade = (f: string) => /^src\/(modules\/[^/]+|[^/]+)\//.exec(f)?.[0].slice(0, -1) ?? f;
+/** Unit of the `pasta` level: `src/modules/<m>`, `src/<pasta>` or the root file itself; the same
+ * inside `server/src` (`server/src/modules/<m>`, `server/src/<pasta>`). */
+export const unidade = (f: string) => /^(server\/)?src\/(modules\/[^/]+|[^/]+)\//.exec(f)?.[0].slice(0, -1) ?? f;
 
 export interface Ciclo { nivel: Nivel; membros: string[]; caminho: string[] }
 
@@ -54,12 +55,13 @@ function caminhoDe(viz: Map<string, Set<string>>, comp: string[]): string[] {
   return comp;
 }
 
-/** Cycles in `src/` only, counting type-only, dynamic and worker-URL edges. Cycles inside
- * `server/` are not searched yet; they come with the `historico` extraction. */
+const lido = (f: string) => dentro('src', f) || dentro('server/src', f);
+
+/** Cycles in `src/` and `server/src` (and across them), counting type-only, dynamic and worker-URL edges. */
 export function ciclos(g: Grafo, nivel: Nivel): Ciclo[] {
   const viz = new Map<string, Set<string>>();
   for (const a of internas(g)) {
-    if (!dentro('src', a.de) || !dentro('src', a.para)) continue;
+    if (!lido(a.de) || !lido(a.para)) continue;
     const de = nivel === 'arquivo' ? a.de : unidade(a.de), para = nivel === 'arquivo' ? a.para : unidade(a.para);
     if (nivel === 'pasta' && de === para) continue;
     if (!viz.has(de)) viz.set(de, new Set());
@@ -115,9 +117,7 @@ export const regrasPuras = (g: Grafo) => g.arestas.filter((a) => {
   'ADR 0002; ADR 0006')(a));
 
 /** `server/**` → `src/**` only through `SERVIDOR_PODE_IMPORTAR`; `src/**` → `server/**` only as
- * `import type` of `server/src/modules/<m>/contracts.ts` (ADR 0004). The rules inside `server/`
- * (`routes.ts` only uses its own `service.ts`/`contracts.ts`; `mongodb` only in `repository.ts`
- * and `server/src/shared/db.ts`) come with the `historico` extraction. */
+ * `import type` of `server/src/modules/<m>/contracts.ts` (ADR 0004). */
 export const fronteiraDoServidor = (g: Grafo) => [
   ...internas(g).filter((a) => dentro('server', a.de) && dentro('src', a.para) && !SERVIDOR_PODE_IMPORTAR.includes(a.para))
     .map(violacao('servidor importa de src/ fora de SERVIDOR_PODE_IMPORTAR', 'ADR 0002; ADR 0004; ADR 0006')),
@@ -125,4 +125,22 @@ export const fronteiraDoServidor = (g: Grafo) => [
     .map(violacao('src importa do servidor sem ser import type de contracts.ts', 'ADR 0004; ADR 0006')),
 ];
 
-export const REGRAS = { sharedIsolado, portaUnica, semCasca, regrasPuras, fronteiraDoServidor };
+/** A server module's `routes.ts` imports only its own `service.ts`, `contracts.ts` or `repository.ts`,
+ * or something of `server/src/shared/` (ADR 0006; OS-0018). Packages (fastify) are not edges here. */
+export const rotasDoServidor = (g: Grafo) => internas(g).filter((a) => {
+  const m = /^server\/src\/modules\/([^/]+)\/routes\.ts$/.exec(a.de)?.[1];
+  if (!m) return false;
+  const proprios = ['service.ts', 'contracts.ts', 'repository.ts'].map((f) => `server/src/modules/${m}/${f}`);
+  return !(proprios.includes(a.para) || dentro('server/src/shared', a.para));
+}).map(violacao('routes.ts do servidor importa fora do próprio service/contracts/repository e de server/src/shared', 'ADR 0006'));
+
+const ehMongodb = (p: string) => p === 'mongodb' || p.startsWith('mongodb/');
+const podeImportarMongodb = (f: string) => /^server\/src\/modules\/[^/]+\/repository\.ts$/.test(f) || f === 'server/src/shared/db.ts'
+  // Test files build their own in-memory database; the data scan skips `tests/` the same way (RAIZES_DADOS).
+  || /(^|\/)tests\//.test(f);
+
+/** `mongodb` is imported only by a module's `repository.ts` and by `server/src/shared/db.ts` (ADR 0006). */
+export const mongodbSoNoRepositorio = (g: Grafo) => g.arestas.filter((a) => a.externo && ehMongodb(a.para) && !podeImportarMongodb(a.de))
+  .map(violacao('mongodb importado fora de repository.ts e de server/src/shared/db.ts', 'ADR 0006'));
+
+export const REGRAS = { sharedIsolado, portaUnica, semCasca, regrasPuras, fronteiraDoServidor, rotasDoServidor, mongodbSoNoRepositorio };

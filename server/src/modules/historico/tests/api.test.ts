@@ -1,11 +1,12 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { MongoMemoryServer } from 'mongodb-memory-server';
+import Fastify, { type FastifyInstance } from 'fastify';
 import { MongoClient, ObjectId, type Db } from 'mongodb';
-import { buildApp } from '../src/app.ts';
-import { rollStore, rollsCollection } from '../src/rolls.ts';
+import { historicoRoutes, prepararColecao } from '../index.ts';
 
 // The real API on a real (in-memory) MongoDB: validation, the collection's own rules, the index and paging.
-let mongod: MongoMemoryServer, client: MongoClient, db: Db, app: ReturnType<typeof buildApp>;
+// Only the module's routes: the shell's health check and CORS are tested in server/src/tests/app.test.ts.
+let mongod: MongoMemoryServer, client: MongoClient, db: Db, app: FastifyInstance;
 const ana = '0b6c9a3e-4f1d-4c2a-9e8b-1a2b3c4d5e6f', bia = '7e1f0a9b-2c3d-4e5f-8a9b-0c1d2e3f4a5b';
 const post = (body: object) => app.inject({ method: 'POST', url: '/rolls', payload: body });
 const page = (query: string) => app.inject({ method: 'GET', url: `/rolls?${query}` });
@@ -14,7 +15,8 @@ beforeAll(async () => {
   mongod = await MongoMemoryServer.create();
   client = await MongoClient.connect(mongod.getUri());
   db = client.db('diceroller-test');
-  app = buildApp({ store: rollStore(await rollsCollection(db)), ping: () => db.command({ ping: 1 }), origins: ['http://localhost:5173'] });
+  app = Fastify();
+  app.register(historicoRoutes, { rolls: await prepararColecao(db) });
 }, 300_000);
 afterAll(async () => { await app?.close(); await client?.close(); await mongod?.stop(); });
 
@@ -105,13 +107,7 @@ describe('roll history API', () => {
     const free = { kind: 'custom:x', value: -5, base: 'livre', omens: false };
     const doc = { playerId: ana, createdAt: new Date(), dice: [free], total: -5, omen: null, force: null };
     await expect(old.collection('rolls').insertOne({ ...doc })).rejects.toThrow(/validation/i);
-    const rolls = await rollsCollection(old);
+    const rolls = await prepararColecao(old);
     await expect(rolls.insertOne({ ...doc } as never)).resolves.toBeDefined();
-  });
-
-  it('reports its health and lets the dev front end call it', async () => {
-    expect((await app.inject({ method: 'GET', url: '/health' })).json()).toEqual({ ok: true, db: 'up' });
-    const res = await app.inject({ method: 'OPTIONS', url: '/rolls', headers: { origin: 'http://localhost:5173', 'access-control-request-method': 'POST' } });
-    expect(res.headers['access-control-allow-origin']).toBe('http://localhost:5173');
   });
 });

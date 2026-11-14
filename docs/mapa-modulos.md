@@ -9,7 +9,7 @@ Os módulos seguem domínios de negócio, não as pastas de hoje. As decisões q
 | Módulo | Responsabilidade | Dono dos dados | Pode depender de | Estado |
 |---|---|---|---|---|
 | `regras` | As regras do jogo que o servidor também aplica: tipos de dado, faces válidas, limite de 10 dados, total (moeda não soma), crítico, falha e dualidade. Puro, sem estado (ADR 0002). | nenhum | — | concluído (OS-0014 a OS-0017) |
-| `historico` | Gravar cada arremesso publicado na API, com o jogador anônimo. Único módulo com metade no servidor (rotas, regra de gravação, coleção). | `localStorage['diceroller.player']`, coleção `rolls` | `regras`, `dados`, `arremesso` (evento) | pendente |
+| `historico` | Gravar cada arremesso publicado na API, com o jogador anônimo. Único módulo com metade no servidor (rotas, regra de gravação, coleção). | `localStorage['diceroller.player']`, coleção `rolls` | `regras`, `dados`, `arremesso` (evento) | em extração (OS-0018 aceita: servidor; OS-0019: cliente) |
 | `dados` | O dado como objeto: catálogo vivo dos tipos jogáveis (embutidos + importados registrados), sólidos, numeração, leitura da face, símbolos e aparência na cena (gema, tinta, numerais, modelo importado). | catálogo de tipos (registro em memória), caches de sólido, símbolo e modelo | `regras` | pendente |
 | `selecao` | Quais dados estão na mão: botões, chat com notação, nomes de exibição e regras de apelido. | `dice` (a seleção) | `regras`, `dados` | pendente |
 | `meus-dados` | Os dados que o jogador importa: assistente (arquivo, forma, calibração, tinta), salvar, editar tinta, excluir. Entrega cada dado salvo ao catálogo de `dados`. | IndexedDB `customDice`, a lista "Meus dados" e o aviso de sessão | `regras`, `dados`, `selecao` | pendente |

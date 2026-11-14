@@ -25,7 +25,7 @@ Uma suíte `tests/arquitetura/`, rodando no `npm test` (portanto no gate), em du
   - nenhum módulo importa a casca (`src/main.tsx`, `src/App.tsx`, `src/app/**`);
   - `src/modules/regras/**` não importa `three`, `react`, `@react-three/*`, `@dimforge/*`, `zustand` nem nada fora do próprio módulo (ADR 0002);
   - de `server/**` para `src/**`, só `src/modules/regras/index.ts`; de `src/**` para `server/**`, só `import type` de `server/src/modules/*/contracts.ts` (ADR 0004);
-  - em `server/`, `routes.ts` de um módulo só importa o próprio `service.ts`/`contracts.ts`, e `mongodb` só é importado por `repository.ts` e por `server/src/shared/db.ts`.
+  - em `server/`, `routes.ts` de um módulo só importa o próprio `service.ts`/`contracts.ts` (ampliado na OS-0018: também o próprio `repository.ts` e `server/src/shared/`, porque a rota recebe a coleção e monta o repositório), e `mongodb` só é importado por `repository.ts` e por `server/src/shared/db.ts`.
 
 **B. Dono dos dados (regra 2), com um teste próprio do Vitest.**
 

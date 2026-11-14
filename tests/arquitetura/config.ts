@@ -2,7 +2,7 @@
 // next to the ADR or plan line that allows it (ADR 0006: no exception without an ADR).
 
 /** Folders the reader walks, relative to the repo root. */
-export const RAIZES = ['src', 'server/src', 'server/test'];
+export const RAIZES = ['src', 'server/src'];
 
 export type Nivel = 'arquivo' | 'pasta';
 /** A cycle that still exists in the legacy code. `membros` is the whole strongly connected
@@ -77,9 +77,5 @@ export const DADOS_LEGADO: DadoLegado[] = [
   {
     arquivo: 'src/shared/plataforma/falha.ts', dado: 'zustand',
     motivo: 'Permitida: a falha da plataforma mora num store próprio, privado ao arquivo, em shared/plataforma, como permite o ADR 0008.',
-  },
-  {
-    arquivo: 'server/src/rolls.ts', dado: 'rolls',
-    motivo: 'Servidor antes da extração do historico: a coleção é acessada em rolls.ts, não em server/src/modules/historico/repository.ts (ADR 0004; ADR 0006; plano-refatoracao.md §8).',
   },
 ];
