@@ -20,7 +20,7 @@ O detalhe que não cabe no [CLAUDE.md](CLAUDE.md). Leia só quando a ordem manda
 | `scene/AmbienteDaMesa.tsx` | cor de fundo (`<color attach="background">`), panorama 360° e `<EnvironmentPortal>`; recebe `podeTrocar`, as luzes (`luzes`) e os `Lightformer`s (`children`) da casca |
 | `ui/FundoCss.tsx` | foto/tema pronto em CSS **atrás** do canvas (desfoque e escurecer grátis na GPU) |
 | `ui/PainelDaMesa.tsx` | painel "Personalizar mesa" (botão **Mesa**, tecla `M`, `Esc` fecha); era `src/ui/TablePanel.tsx`. O `Controls` (legado) o monta no cabeçalho |
-| `src/scene/QuebraDaMesa.tsx` (fora do módulo) | legado de `pressagios`: a cada quadro, `ocultarPiso(trayBrokenAt(...))`. A casca o monta logo antes da `<MesaNaCena/>` |
+| `src/modules/pressagios/scene/QuebraDaMesa.tsx` (fora do módulo) | de `pressagios`: a cada quadro, `ocultarPiso(trayBrokenAt(...))`. A casca o monta logo antes da `<MesaNaCena/>` |
 
 O `inspecao(scene, programas)` do `index.ts` é o `window.__dice.table()`: a casca (`app/Cena.tsx`) passa a cena e `gl.info.programs.length`. Lê o tema ativo e, na cena, as cores e a textura de `feltro` e `base`/`madeira`, a caixa da `guia-area-de-jogo` e `userData.imported` do grupo `mesa`.
 

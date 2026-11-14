@@ -1,5 +1,5 @@
 import { useEffect, type CSSProperties, type RefObject } from 'react';
-import { isD20, omenMs } from '../modules/pressagios/index';
+import { isD20, omenMs, planoDoPresagio } from '../modules/pressagios/index';
 import { usePresagio, usePresagioTocando } from '../modules/pressagios/cena';
 import { omenKind, type DieKind, type OmenKind } from '../modules/regras/index';
 import { useArremesso } from '../modules/arremesso/cena';
@@ -24,8 +24,8 @@ export function OmenOverlay({ gameArea }: { gameArea: RefObject<HTMLDivElement |
   const live = playing ? omen : null;
   const kind = live && omenKind(live);
   const has = (list: number[] | undefined, is: (die: DieKind) => boolean) => !!list?.some((i) => is(dice[i]));
-  const d100 = (die: DieKind) => die === 'd100';
-  const kraken = kind === 'crit' && has(live?.crits, d100), storm = kind === 'fumble' && has(live?.fumbles, d100);
+  // Kraken and storm come from the plan (the same for every omen, src/modules/pressagios/tests/plano.test.ts).
+  const plano = planoDoPresagio(live, dice), kraken = plano.kraken.length > 0, storm = plano.tempestade.length > 0;
   useEffect(() => {
     const area = gameArea.current;
     if (!area) return;

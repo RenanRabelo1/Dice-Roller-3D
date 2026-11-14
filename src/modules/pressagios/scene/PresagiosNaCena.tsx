@@ -5,20 +5,22 @@ import {
   ExtrudeGeometry, Group, LineSegments, Mesh, MeshBasicMaterial, MeshStandardMaterial, Path, PointLight,
   Points, Shape, Sprite, SpriteMaterial, Vector3, type Camera, type Material, type PerspectiveCamera, type Scene, type WebGLRenderer,
 } from 'three';
-import { MAX_DICE, omenKind } from '../modules/regras/index';
-import {
-  DUALITY_HIT, fireAt, fireIndices, isD20, krakenIndices, omenMs, presagio, presagioTocando, setOmenDone, stormIndices,
-} from '../modules/pressagios/index';
-import { arremesso, registroDeCorpos } from '../modules/arremesso/index';
-import { clamp01, span } from '../shared/math';
-import { Kraken } from './Kraken';
-import { coresDaMesa } from '../modules/mesa/index';
-import { Fire } from './Fire';
+import { MAX_DICE } from '../../regras/index.ts';
+import { presagio, presagioTocando, setOmenDone } from '../store.ts';
+import { DUALITY_HIT } from '../domain/omen.ts';
+import { fireAt } from '../domain/fireMotion.ts';
+import { planoDoPresagio } from '../domain/plano.ts';
+import { arremesso, registroDeCorpos } from '../../arremesso/index.ts';
+import { clamp01, span } from '../../../shared/math.ts';
+import { Kraken } from './Kraken.ts';
+import { coresDaMesa } from '../../mesa/index.ts';
+import { Fire } from './Fire.ts';
 
 // The 3D side of an omen, played after the dice settle and before the result shows: lightning on a d20 20,
 // the kraken grabbing a d100 1, fire on a d20 1, the kraken's storm on a d100 100, the yin-yang fish for
-// duality (the rain, heat and shakes are screen overlays, see OmenOverlay). Effect materials are compiled at
-// mount and hidden (0 draw calls) outside an omen. When the show ends it marks the omen done, and the result goes on.
+// duality (the rain, heat and shakes are screen overlays, see OmenOverlay). Which effect plays on which die is
+// `planoDoPresagio`. Effect materials are compiled at mount and hidden (0 draw calls) outside an omen. When the show
+// ends it marks the omen done, and the result goes on.
 
 const easeOut = (t: number) => 1 - (1 - clamp01(t)) ** 3;
 const easeIn = (t: number) => clamp01(t) ** 3;
@@ -195,9 +197,8 @@ class Show {
     if (!o || o.throwId !== s.throwId || s.gesture.phase !== 'settled') { if (this.run) this.hide(); return null; }
     if (this.run?.throwId !== o.throwId) {
       this.hide();
-      const kind = omenKind(o), positions = (indices: number[]) => indices.map(at).filter((p): p is Vector3 => !!p);
-      const lit = kind === 'crit' ? o.crits.filter((i) => isD20(s.dice[i])) : [];
-      const grab = krakenIndices(o, s.dice), storm = stormIndices(o, s.dice), fire = fireIndices(o, s.dice);
+      const plano = planoDoPresagio(o, s.dice), positions = (indices: number[]) => indices.map(at).filter((p): p is Vector3 => !!p);
+      const { raios: lit, kraken: grab, tempestade: storm, fogo: fire } = plano;
       positions(lit).forEach((p, i) => this.bolts[i].start(p));
       if (grab.length) this.kraken.start('grab', positions(grab), grab[0], coresDaMesa());
       else if (storm.length) this.kraken.start('storm', [], storm[0]);
@@ -205,7 +206,7 @@ class Show {
       const first = positions(lit)[0] ?? positions(fire)[0];
       if (first) this.light.position.copy(first).y += 1.2;
       this.light.color.set(fire.length ? '#FF7A2A' : '#CFE6FF');
-      this.run = { throwId: o.throwId, at: s.omenAt, ms: omenMs(o, s.dice), bolts: lit.length, kraken: grab.length ? 'grab' : storm.length ? 'storm' : null, fire, duality: kind === 'duality', over: false };
+      this.run = { throwId: o.throwId, at: s.omenAt, ms: plano.ms, bolts: lit.length, kraken: grab.length ? 'grab' : storm.length ? 'storm' : null, fire, duality: plano.kind === 'duality', over: false };
     }
     const r = this.run, t = now - r.at;
     if (r.fire.length) { // burns on after the show, on the dice now at the front
@@ -239,7 +240,7 @@ class Show {
   }
 }
 
-export function Omens() {
+export function PresagiosNaCena() {
   const { camera, gl, scene } = useThree();
   const show = useMemo(() => new Show(), []);
   const warmed = useRef(false);

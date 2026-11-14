@@ -61,12 +61,10 @@ src/
     domain/presim.ts         simula o arremesso inteiro offline e grava os quadros (Rapier fora da cena)
     domain/presim.worker.ts  roda presim fora da thread de render
     domain/vies.ts           `plays`: se um resultado toca o presságio do botão de teste
-  modules/pressagios/      presságios: o estado (store vanilla, `presagio()`, `presagioTocando()`, decidido em `resultadoPublicado`), a duração (`domain/omen.ts`), os botões de teste (`domain/omenTest.ts`) e o movimento do kraken, da tempestade e do fogo (`domain/krakenMotion.ts`, `domain/fireMotion.ts`); `cena.ts` com `usePresagio` e `usePresagioTocando`. A cena e o HTML ainda estão no legado  → apresentacao.md
+  modules/pressagios/      presságios: o estado (store vanilla, `presagio()`, `presagioTocando()`, decidido em `resultadoPublicado`), a duração (`domain/omen.ts`), os botões de teste (`domain/omenTest.ts`) e o movimento do kraken, da tempestade e do fogo (`domain/krakenMotion.ts`, `domain/fireMotion.ts`), que efeito em que dado (`domain/plano.ts`) e o percurso do d100 (`domain/percurso.ts`); `cena.ts` com `usePresagio`, `usePresagioTocando`, `PresagiosNaCena` e `QuebraDaMesa` (em `scene/`, com `Kraken.ts` e `Fire.ts`). O HTML ainda está no legado  → apresentacao.md
   scene/                   componentes R3F
     Hand.tsx                 só a parte `settled` (voo, números, gravação acesa); a mão é a `MaoDoArremesso`  → apresentacao.md
-    QuebraDaMesa.tsx         quando o kraken quebra a bandeja: `ocultarPiso` da `mesa` a cada quadro  → apresentacao.md
     showcase.ts, highlight.ts poses e linha do tempo do "voo até a câmera"         → apresentacao.md
-    Omens.tsx, Kraken.ts, Fire.ts  presságios 3D (o movimento está em `modules/pressagios`)   → apresentacao.md
   ui/                      HTML: Controls (cabeçalho com os componentes de selecao, Meus dados e o painel da mesa), OmenOverlay
 tests/                     Vitest (unidades puras + física Node); helpers/sim.ts
 server/                    API do histórico (Fastify + MongoDB; usa `src/modules/regras` pelo `index.ts`, roda em Node com TS nativo)

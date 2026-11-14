@@ -12,10 +12,9 @@ import { CorpoDoDado, LoopDoArremesso, MaoDoArremesso, useArremesso } from '../m
 import type { Vec3 } from '../shared/math';
 import { useDice } from '../store';
 import { presagio, rigOmen } from '../modules/pressagios/index';
+import { PresagiosNaCena, QuebraDaMesa } from '../modules/pressagios/cena';
 import { installTestHook } from './testHook';
-import { QuebraDaMesa } from '../scene/QuebraDaMesa';
 import { Hand } from '../scene/Hand';
-import { Omens } from '../scene/Omens';
 import { MAX_DICE, omenKind } from '../modules/regras/index';
 import { inspecao, RAIO_MAXIMO } from '../modules/dados/index';
 import { definir } from '../modules/selecao/index';
@@ -189,7 +188,7 @@ export function Cena({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> 
         </group>
       </Physics>
       </Guard>
-      <Omens />
+      <PresagiosNaCena />
     </>
   );
 }

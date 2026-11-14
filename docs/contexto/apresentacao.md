@@ -1,11 +1,11 @@
 # Apresentação do resultado: presságios, showcase, destaque
 
-Tudo que acontece em `settled`, depois do `publish`. Arquivos: o módulo `modules/pressagios` (o estado em `store.ts`, `domain/omen.ts`, `domain/omenTest.ts`, `domain/krakenMotion.ts`, `domain/fireMotion.ts`), `scene/Omens.tsx`, `scene/Kraken.ts`, `scene/Fire.ts`, `scene/QuebraDaMesa.tsx`, `ui/OmenOverlay.tsx`, `scene/showcase.ts`, `scene/highlight.ts`, `scene/Hand.tsx` (só a parte `settled`; a mão do arremesso é a `MaoDoArremesso` do módulo `arremesso`, montada logo antes), `ui/Controls.tsx` (painel).
+Tudo que acontece em `settled`, depois do `publish`. Arquivos: o módulo `modules/pressagios` (o estado em `store.ts`, `domain/omen.ts`, `domain/omenTest.ts`, `domain/krakenMotion.ts`, `domain/fireMotion.ts`, `domain/plano.ts`, `domain/percurso.ts`; a cena em `scene/PresagiosNaCena.tsx`, `scene/Kraken.ts`, `scene/Fire.ts`, `scene/QuebraDaMesa.tsx`, pelo `cena.ts`), `ui/OmenOverlay.tsx`, `scene/showcase.ts`, `scene/highlight.ts`, `scene/Hand.tsx` (só a parte `settled`; a mão do arremesso é a `MaoDoArremesso` do módulo `arremesso`, montada logo antes), `ui/Controls.tsx` (painel).
 
 ## Ordem em `settled`
 
 ```
-publish ─► presságio? ──sim──► toca (Omens 3D + OmenOverlay HTML) ─► setOmenDone(throwId)
+publish ─► presságio? ──sim──► toca (PresagiosNaCena 3D + OmenOverlay HTML) ─► setOmenDone(throwId)
               │                                                           │
               └──não───────────────────────────────────────────────────────┴─► showcase (voo + números) ─► setShowcased(throwId)
 ```
@@ -27,7 +27,7 @@ Só d20 (embutido, ou importado de base d20 com `omens: true`: `isD20`) e d100 c
 
 | Tipo | Efeito | Duração (`OMEN_MS`) |
 |---|---|---|
-| crit d20 | raio(s) 3D sobre cada d20 (`Bolt` em Omens.tsx) + flash branco HTML | 1300 ms |
+| crit d20 | raio(s) 3D sobre cada d20 (`Bolt` em PresagiosNaCena.tsx) + flash branco HTML | 1300 ms |
 | crit d100 | kraken: bandeja quebra, um tentáculo agarra o d100, arremessa para longe, busca de volta e o traz à frente; bandeja se restaura | 6500 ms |
 | fumble d20 | fogo: o d20 pega fogo, o fogo se espalha pela bandeja; o d20 vai à frente e **continua queimando até recolher** | 2400 ms |
 | fumble d100 | tempestade: tentáculos no mar em volta da bandeja, chuva, trovão, tela balançando; o d100 vem até você | 4600 ms |
@@ -35,7 +35,9 @@ Só d20 (embutido, ou importado de base d20 com `omens: true`: `isD20`) e d100 c
 
 `omenMs` escolhe a duração (falha com d20 e d100: a maior). Reduced motion: `publish` não cria presságio; ligar reduced motion durante um cancela (`definirMovimentoReduzido(true)`, de `shared/plataforma`; o store ouve o evento e zera `omen`). `rigOmen` (só via test hook) força o presságio dos próximos arremessos sem alterar a física.
 
-## Lado 3D (`scene/Omens.tsx`)
+## Lado 3D (`modules/pressagios/scene/PresagiosNaCena.tsx`)
+
+Que efeito em que dado é `planoDoPresagio(omen, dice)` (`domain/plano.ts`, testado): `raios` (d20 de crítico), `kraken`, `tempestade`, `fogo` e `ms`. O `PresagiosNaCena` e a camada HTML (`kraken`/`storm`) o leem.
 
 Classe `Show` montada uma vez: `Bolt` ×`MAX_DICE`, um `Kraken`, um `Fire`, um `TaiJi`, uma `PointLight` (dividida entre raio e fogo, que nunca tocam juntos). `frame()` a cada quadro decide se há presságio vivo, inicia na primeira vez (posição dos dados via `bodies`), anima por `t = now - omenAt` e devolve o `throwId` uma vez quando `t >= ms` → `setOmenDone`. O fogo continua depois disso, nos d20 já na frente, até a fase sair de `settled`.
 
@@ -48,14 +50,14 @@ Desempenho (não quebrar):
 
 - `modules/pressagios/domain/krakenMotion.ts` (puro, testado): `KRAKEN` = marcos (rupture 450, grab 1150, lift 1750, fling 2050, away 2650, catch 3350, shown 4350, release 5300, restored 6300, duration 6500). `krakenAt(t)` dá `broken/spread/arms/grip/reveal`; `krakenDieAt` dá a pose do d100 (erguido, sacudido, arremessado para `FAR` fora da tela, trazido de volta até a pose do showcase); `fractureCells` quebra o piso em cacos radiais que cobrem o retângulo todo.
 - `krakenIndices(omen, dice)`: só d100 críticos, e só se **não** houver falha (dualidade vence).
-- `Kraken.ts`: modo `grab` (braço 0 agarra: corpo em Bézier cúbica + hélice enrolada no dado; os outros 9 se debatem; cacos, rachaduras, abismo) e modo `storm` (10 braços saindo do mar em volta da bandeja). Tubos com referenciais de transporte paralelo, ventosas instanciadas.
-- `QuebraDaMesa.tsx` chama, a cada quadro, `ocultarPiso(trayBrokenAt(...))` do módulo `mesa`, que esconde `tray-surface` na hora (montado antes da `<MesaNaCena/>`, então vale no mesmo quadro); o `Kraken` desenha os cacos no lugar, com as cores da mesa ativa (`Kraken.start('grab', ..., coresDaMesa())`; ver `src/modules/mesa/CLAUDE.md`). Mesa importada sem piso: o modelo inteiro some.
-- O d100 do kraken ou da tempestade **não** faz o voo comum do showcase; o percurso dele é o do presságio (`krakenDieAt` / `stormDieAt`, `STORM` em krakenMotion.ts), e termina na pose comum do resultado.
+- `scene/Kraken.ts`: modo `grab` (braço 0 agarra: corpo em Bézier cúbica + hélice enrolada no dado; os outros 9 se debatem; cacos, rachaduras, abismo) e modo `storm` (10 braços saindo do mar em volta da bandeja). Tubos com referenciais de transporte paralelo, ventosas instanciadas.
+- `scene/QuebraDaMesa.tsx` chama, a cada quadro, `ocultarPiso(trayBrokenAt(...))` do módulo `mesa`, que esconde `tray-surface` na hora (montado antes da `<MesaNaCena/>`, então vale no mesmo quadro); o `Kraken` desenha os cacos no lugar, com as cores da mesa ativa (`Kraken.start('grab', ..., coresDaMesa())`; ver `src/modules/mesa/CLAUDE.md`). Mesa importada sem piso: o modelo inteiro some.
+- O d100 do kraken ou da tempestade **não** faz o voo comum do showcase; o percurso dele é o do presságio (`krakenDieAt` / `stormDieAt`, `STORM` em krakenMotion.ts), e termina na pose comum do resultado. O `Hand.tsx` pergunta ao módulo: `indicesComPercurso(omen, dice)` → `{ kraken, tempestade }` e `movimentoNoPresagio(i, ms, de, para, kraken, tempestade)` → `{ pose, revela } | null` (`domain/percurso.ts`).
 
 ## Fogo (falha de d20)
 
 - `modules/pressagios/domain/fireMotion.ts` (puro, testado): `fireIndices` (d20 com falha, sem crítico), `fireReach` (raio até o canto mais distante), `fireAt(t, reach)` → `die/radius/tray`.
-- `Fire.ts`: chamas como partículas na GPU (um `Points`, shader próprio em forma de língua de fogo) no feltro e em cada d20 aceso, e um plano de feltro queimado com linha de brasa. O objeto chama `fire`; o test hook expõe `burning`.
+- `scene/Fire.ts`: chamas como partículas na GPU (um `Points`, shader próprio em forma de língua de fogo) no feltro e em cada d20 aceso, e um plano de feltro queimado com linha de brasa. O objeto chama `fire`; o test hook expõe `burning`.
 
 ## Lado HTML (`ui/OmenOverlay.tsx`)
 

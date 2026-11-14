@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { Color } from 'three';
-import { shard, shardWood } from '../src/scene/Kraken';
+import { shard, shardWood } from '../cena.ts';
 
-// The kraken's shards wear the table's colours (pressagios); the table's own tests are in src/modules/mesa/tests/.
+// The kraken's shards wear the table's colours; the table's own tests are in src/modules/mesa/tests/.
 describe('kraken shards', () => {
   const rgb = (g: { getAttribute(n: string): { getX(i: number): number; getY(i: number): number; getZ(i: number): number } }, i: number) => {
     const c = g.getAttribute('color');

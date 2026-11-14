@@ -17,7 +17,7 @@ Aparência da mesa e do fundo: temas prontos, cores, texturas do feltro, foto de
 - O DOM do painel (textos, `aria-label`, roles, classes) é contrato dos E2E e do CSS; `tests/painel.test.ts` o compara com a fixture `tests/fixtures/painel-antes.json`, capturada do antigo `TablePanel`.
 
 ## Expõe
-- `index.ts`: `carregar()` (a casca chama na montagem; é o `load` do store), `mesa()` e as ações (`apply`, `edit`, `copy`, `remove`, `reset`), `coresDaMesa()`, `ocultarPiso(on)` (chamado pelo legado de `pressagios`, `QuebraDaMesa`), `temaDaMesaImportada`, `inspecao(scene, programas)` (o `table()` do test hook), `carregarArquivoDeMesa()`, `warmImageDecoder` e o domínio que o painel usa (`DEFAULT_THEME`, `PRESETS`, `LIMITS`, os `clamp*`, `colorsOf`, `disposeTable`, `reduceImage`, `preparePanorama`, `panoramaTexture`, `panoramaPicture`, `TableError`, `fileSafe`).
+- `index.ts`: `carregar()` (a casca chama na montagem; é o `load` do store), `mesa()` e as ações (`apply`, `edit`, `copy`, `remove`, `reset`), `coresDaMesa()`, `ocultarPiso(on)` (chamado por `pressagios`, no `QuebraDaMesa`), `temaDaMesaImportada`, `inspecao(scene, programas)` (o `table()` do test hook), `carregarArquivoDeMesa()`, `warmImageDecoder` e o domínio que o painel usa (`DEFAULT_THEME`, `PRESETS`, `LIMITS`, os `clamp*`, `colorsOf`, `disposeTable`, `reduceImage`, `preparePanorama`, `panoramaTexture`, `panoramaPicture`, `TableError`, `fileSafe`).
 - Tipos (`contracts.ts`): `TableState`, `TableTheme`, `Background`, `PresetName`, `MesaImportada`, `MesaInspecionada`.
 - `cena.ts`: `useMesa(sel)`; `<MesaNaCena/>` (o visual, dentro dos colisores de `arremesso`), `<AmbienteDaMesa podeTrocar luzes>{Lightformers}</AmbienteDaMesa>`, `<FundoCss/>`, `<PainelDaMesa/>` (botão **Mesa**, tecla `M`, `Esc` fecha).
 
@@ -26,7 +26,7 @@ Aparência da mesa e do fundo: temas prontos, cores, texturas do feltro, foto de
 - `src/shared`: `db` (`defineStore`), `modelos3d` (`parseGlb`, `ModelError`; limites por parâmetro), `plataforma` (`renderizadorPorSoftware`).
 
 ## Fora do escopo
-- Quando a mesa quebra e a cor dos cacos: `pressagios` (o legado `QuebraDaMesa` e o `Kraken`).
+- Quando a mesa quebra e a cor dos cacos: `pressagios` (`QuebraDaMesa` e `Kraken`, em `pressagios/scene`).
 - Os colisores: `arremesso`.
 - O DPR, as luzes, os `Lightformer`s e o momento de trocar o panorama (`podeTrocar`): casca.
 - O CSS do painel.

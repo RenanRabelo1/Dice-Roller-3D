@@ -37,8 +37,8 @@ Decidir se um resultado publicado tem presságio e mostrá-lo antes do resultado
 ### Expõe
 - `presagio()` (o tipo e os índices do arremesso atual), `presagioTocando()`, `usePresagioTocando()`.
 - `tempoDoPresagio()`.
-- `indicesComPercurso()`: os dados que não fazem o voo comum.
-- `movimentoNoPresagio(i, agora, de, para) → { pose, revela, sombra } | null`.
+- `indicesComPercurso(omen, dice) → { kraken, tempestade }`: os dados que não fazem o voo comum (OS-0039).
+- `movimentoNoPresagio(i, ms, de, para, kraken, tempestade) → { pose, revela } | null` (OS-0039); `sombra` e `fim` entram na OS-0040, para a vitrine não ler `KRAKEN`/`STORM`.
 - `forcarPresagio(omen | null)` (só em modo teste).
 - Componentes: `<PresagiosNaCena/>` (3D), `<OverlayDoPresagio gameArea />` (HTML, escreve `data-omen`, `data-kraken` e `data-storm` em `.game-area`).
 - `inspecao()`: `omen`, `omenDone`, `omenTime`, `trayBroken`, `burning`, `shards`.

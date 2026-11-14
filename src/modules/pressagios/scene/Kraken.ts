@@ -3,8 +3,8 @@ import {
   LineSegments, Mesh, MeshBasicMaterial, MeshPhysicalMaterial, MeshStandardMaterial, Object3D, TorusGeometry,
   Vector3, type Camera,
 } from 'three';
-import { fractureCells, KRAKEN, krakenAt, stormAt } from '../modules/pressagios/index';
-import { span } from '../shared/math';
+import { fractureCells, KRAKEN, krakenAt, stormAt } from '../domain/krakenMotion.ts';
+import { span } from '../../../shared/math.ts';
 
 const ARMS = 10, RINGS = 56, SIDES = 10, SUCKER_EVERY = 5;
 const SUCKERS = Math.floor((RINGS - 6) / SUCKER_EVERY) + 1; // per arm, on rings 3 … RINGS-3

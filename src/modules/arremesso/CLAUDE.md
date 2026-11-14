@@ -31,6 +31,6 @@ Do gesto ao resultado: a mira, a carga da força e o redemoinho dos dados na mã
 - Do legado, por prop-função da casca: `omenTest` (o botão de teste de presságio, que mora em `pressagios`: `presagio().omenTest`).
 
 ## Fora do escopo
-- Depois de `settled`: o presságio (`pressagios`), o voo, os números e o resultado (`vitrine`). O `Hand` e o `Omens` do legado só leem `registroDeCorpos`.
+- Depois de `settled`: o presságio (`pressagios`), o voo, os números e o resultado (`vitrine`). O `Hand` da vitrine (legado) e o `PresagiosNaCena` (`pressagios`) só leem `registroDeCorpos`.
 - `envelopeDaMao()`, `dadoNaCena` e `moverDado` da spec: adiados para a `vitrine` (OS-0034).
 - A aparência da bandeja (`mesa`), o DPR e a câmera (casca).

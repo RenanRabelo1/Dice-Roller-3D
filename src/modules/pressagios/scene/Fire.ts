@@ -1,9 +1,9 @@
 import {
   AdditiveBlending, BufferAttribute, BufferGeometry, Group, Mesh, PlaneGeometry, Points, ShaderMaterial, Vector3,
 } from 'three';
-import { MAX_DICE } from '../modules/regras/index';
-import { TRAY } from '../modules/arremesso/index';
-import { fireAt, fireReach } from '../modules/pressagios/index';
+import { MAX_DICE } from '../../regras/index.ts';
+import { TRAY } from '../../arremesso/index.ts';
+import { fireAt, fireReach } from '../domain/fireMotion.ts';
 
 const ON_FELT = 2600, PER_DIE = 90;
 

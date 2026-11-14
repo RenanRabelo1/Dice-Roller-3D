@@ -1,6 +1,7 @@
 // What goes in and out of `pressagios` (rule 3 of the guide).
-import type { Omen } from '../regras/index.ts';
+import type { Omen, OmenKind } from '../regras/index.ts';
 import type { OmenTest } from '../arremesso/index.ts';
+import type { Pose } from '../../shared/math.ts';
 
 // The omen's state (owned by `pressagios`, OS-0038): the show of the published result, its clock and the test mode.
 export interface EstadoDoPresagio {
@@ -13,3 +14,16 @@ export interface EstadoDoPresagio {
   rigOmen: (omen: Omen | null) => void;
   setOmenTest: (test: OmenTest | null) => void;
 }
+
+// Which effect plays on which die (OS-0039): die indices per effect, and how long the show lasts (0 with no omen).
+export interface PlanoDoPresagio {
+  kind: OmenKind | null;
+  raios: number[]; // lightning: the d20s of a crit
+  kraken: number[]; // the d100 of a crit without fumble
+  tempestade: number[]; // the d100 of a fumble without crit
+  fogo: number[]; // the d20s of a fumble without crit
+  ms: number;
+}
+
+// The omen's own path for a die (the kraken's or the storm's): its pose now and how much of its number shows (0 to 1).
+export interface MovimentoNoPresagio { pose: Pose; revela: number }

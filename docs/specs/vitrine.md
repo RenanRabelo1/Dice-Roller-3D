@@ -59,7 +59,7 @@ Mostrar o resultado depois de `settled`. Os dados voam até a frente da câmera 
 | De | O quê |
 |---|---|
 | `src/scene/showcase.ts`, `highlight.ts`, `inkGlow.ts` | tudo. `Pose` e `easeOut` vão para `src/shared/math` |
-| `src/scene/Hand.tsx` (o que sobrou dele na OS-0033, inteiro) | a parte `settled`. O percurso do d100 (`164-173`) sai e é substituído por `pressagios.movimentoNoPresagio` |
+| `src/scene/Hand.tsx` (o que sobrou dele na OS-0033, inteiro) | a parte `settled`. O percurso do d100 (`164-173`) sai e é substituído por `pressagios.movimentoNoPresagio` (desde a OS-0039 o `Hand.tsx` já chama `indicesComPercurso` e `movimentoNoPresagio`) |
 | `src/store.ts:25, 44` | `showcased`, `setShowcased` |
 | `src/dice/notation.ts:39-51` | `resultText`: o detalhe fica aqui e o total vem de `regras` |
 | `src/ui/Controls.tsx:52-55, 74-76` | `<output data-testid="result">` |

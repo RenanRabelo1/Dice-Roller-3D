@@ -1,5 +1,5 @@
 // The registry of the scene's die bodies and of the launches (owned by `arremesso`), without React: `CorpoDoDado`
-// registers itself, `LoopDoArremesso` and `MaoDoArremesso` read it, the legacy (`Hand`, `Omens`) and the shell
+// registers itself, `LoopDoArremesso` and `MaoDoArremesso` read it, the vitrine's legacy `Hand`, `pressagios`' `PresagiosNaCena` and the shell
 // (test hook) read it through index.ts. Slot `i` is die `i` of the current throw; a disposed body leaves `null`.
 import type { RapierRigidBody } from '@react-three/rapier';
 import type { Quat, Vec3 } from '../../../shared/math.ts';

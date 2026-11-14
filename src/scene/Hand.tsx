@@ -12,9 +12,7 @@ import { arremesso, registroDeCorpos } from '../modules/arremesso/index';
 import { CAPTION, showcasePoses } from './showcase';
 import { glowMesh } from './inkGlow';
 import { highlightAt, HL_SIZE, SHOW } from './highlight';
-import {
-  KRAKEN, krakenAt, krakenDieAt, krakenIndices, presagio, presagioTocando, STORM, stormAt, stormDieAt, stormIndices,
-} from '../modules/pressagios/index';
+import { indicesComPercurso, KRAKEN, movimentoNoPresagio, presagio, presagioTocando, STORM } from '../modules/pressagios/index';
 
 type Mark = { local: Vector3; turn: Quaternion; start: Vector3; face: Vector3; scale: number }; // local, turn: the rolled numeral's place and turn in die space
 
@@ -100,7 +98,7 @@ export function Hand() {
           { position: cam.position, quaternion: cam.quaternion, fov: cam.fov, aspect: cam.aspect }, above);
         // A d100 1 is carried off and brought back by the kraken; a d100 100 drifts to you in the storm.
         const omenNow = state.omen?.throwId === state.throwId ? state.omen : null;
-        const kraken = krakenIndices(omenNow, state.dice), storm = stormIndices(omenNow, state.dice);
+        const { kraken, tempestade: storm } = indicesComPercurso(omenNow, state.dice);
         const marks = polys.map((poly, i) => {
           const label = poly.labelList.find((l) => l.value === raw[i])!;
           const normal = new Vector3(...label.normal), up = new Vector3(...label.up);
@@ -163,13 +161,13 @@ export function Hand() {
       let done = !waiting;
       const under = new Vector3(0, -1, 0).applyQuaternion(camera.quaternion); // straight down the screen
       current.forEach((body, i) => {
-        const grabbed = kraken.includes(i), adrift = storm.includes(i);
-        if (grabbed || adrift) { // the omen moves this die, and leaves it at its result pose
-          const ms = now - omenAt, pose = grabbed ? krakenDieAt(ms, from[i], to[i]) : stormDieAt(ms, from[i], to[i]);
-          const p = new Vector3(...pose.p), q = new Quaternion(...pose.q);
+        const ms = now - omenAt, movimento = movimentoNoPresagio(i, ms, from[i], to[i], kraken, storm);
+        if (movimento) { // the omen moves this die, and leaves it at its result pose
+          const grabbed = kraken.includes(i);
+          const p = new Vector3(...movimento.pose.p), q = new Quaternion(...movimento.pose.q);
           shade(gems[i], ms <= (grabbed ? KRAKEN.grab : STORM.approach));
           pin(body, p, q);
-          draw(i, marks[i].local.clone().applyQuaternion(q).add(p), q, 1, grabbed ? krakenAt(ms).reveal : stormAt(ms).reveal);
+          draw(i, marks[i].local.clone().applyQuaternion(q).add(p), q, 1, movimento.revela);
           if (ms < (grabbed ? KRAKEN.duration : STORM.duration)) done = false;
           return;
         }

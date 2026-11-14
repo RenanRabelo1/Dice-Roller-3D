@@ -27,7 +27,7 @@ Store zustand vanilla do módulo (OS-0031), escrito só lá. Campos de `EstadoDo
 O estado do presságio (`omen`, `omenAt`, `omenDone`, `omenRig`, `omenTest`) saiu para `pressagios` na OS-0038: o store de lá assina `resultadoPublicado` e decide o presságio no mesmo tique (dois `set`, OS-0031); o `useDice` legado só tem `showcased` (vitrine). Quem precisa dos três junta `{ ...arremesso(), ...presagio(), ...useDice.getState() }`. A casca (`App.tsx`) assina o mesmo evento para gravar o histórico, depois que os módulos carregaram.
 
 - A falha `'physics'` vive em `shared/plataforma` (`falha()`, `useFalha()`), não no store; `<DicaDaFase/>` a mostra.
-- Movimento reduzido também vive em `shared/plataforma` (`movimentoReduzido()`); `MaoDoArremesso` o lê (sem balanço da mão, retorno curto com fade), como o `Hand` da vitrine, o `QuebraDaMesa` (pressagios) e o `__dice.state().reducedMotion`; o `App.tsx` chama `observarPreferenciaDoSistema`.
+- Movimento reduzido também vive em `shared/plataforma` (`movimentoReduzido()`); `MaoDoArremesso` o lê (sem balanço da mão, retorno curto com fade), como o `Hand` da vitrine, o `QuebraDaMesa` (`pressagios/scene`) e o `__dice.state().reducedMotion`; o `App.tsx` chama `observarPreferenciaDoSistema`.
 - O registro de corpos e a contagem de lançamentos (`scene/corpos.ts`) valem para o módulo inteiro e não zeram se a `Cena` for remontada (no HEAD da OS-0033 eram refs da `Cena`). Hoje a `Cena` só desmonta numa falha e não volta na mesma sessão; cada E2E abre página nova.
 
 ## Cena (`scene/`)
