@@ -19,5 +19,7 @@ export { finishOf, INK_COLORS, inkColorOf } from './domain/tinta.ts';
 export { carregarModelo, FONT, FONT_URL, GEM, gemColor, nomeDoTipo, SYMBOL } from './domain/aparencia.ts';
 export { dentTester, hasTexture, inkTriangles, markInk } from './domain/gravacao.ts';
 export { LIMITES_DO_MODELO_SALVO } from './domain/limites.ts';
+// The die in the scene, for whoever has the scene: pass the dice group or the scene to look in.
+export { dadoNaRaiz, definirOpacidade, definirSombra, gemaNaRaiz, sombraNaGema } from './domain/objeto.ts';
 // Test inspection of a die in the scene (window.__dice): pass the dice group or the scene to look in.
 export const inspecao = { rotulos, numeraisVisiveis, aparenciaDaGema };

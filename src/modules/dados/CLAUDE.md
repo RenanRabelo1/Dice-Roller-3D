@@ -25,6 +25,7 @@ O dado como objeto: o catálogo dos tipos jogáveis (embutidos e importados regi
 - `index.ts`, sólidos e leitura: `fromTriangles`, `OPPOSITE_SUM`, `RADIUS`, `RAIO_MAXIMO`, `readUp`, `toResults`, `symbolGeometry`.
 - `index.ts`, aparência pura: `GEM`, `gemColor`, `FONT`, `FONT_URL`, `SYMBOL`, `nomeDoTipo`, `finishOf`, `inkColorOf`, `INK_COLORS`, `carregarModelo` (sob demanda), `hasTexture`, `markInk`, `inkTriangles`, `dentTester`, `LIMITES_DO_MODELO_SALVO`.
 - `index.ts`, teste: `inspecao = { rotulos, numeraisVisiveis, aparenciaDaGema }`, que recebe a raiz onde procurar (`die-i`/`gem-i`) e o índice; o `window.__dice` usa.
+- `index.ts`, o dado na cena: `dadoNaRaiz`, `gemaNaRaiz`, `definirOpacidade` (todas as malhas sob `die-i`, o brilho da gravação incluído) e `definirSombra` (as malhas de `gem-i`), que recebem a raiz onde procurar e o índice; `sombraNaGema(gema, on)`, a mesma sombra sobre uma gema já achada com `gemaNaRaiz`, para quem a troca a cada quadro sem procurar na cena. Os nomes `die-i`/`gem-i` só existem dentro de `dados`.
 - Tipos (`contracts.ts`): `CustomDie`, `Polyhedron`, `Face`, `Label`, `Numbering`, `StdBase`, `SymbolName`, `Ink`, `Finish`, `RotuloNaCena`, `AparenciaDaGema`.
 - `cena.ts`: `<AparenciaDoDado index kind />` (malha e numerais, sem corpo físico), `GemMaterial`, `usePainted`, `paintGlb`.
 
@@ -36,5 +37,5 @@ O dado como objeto: o catálogo dos tipos jogáveis (embutidos e importados regi
 - O corpo físico e o colisor do dado (`modules/arremesso/scene/CorpoDoDado.tsx`): `arremesso`.
 - Importar, calibrar, salvar e excluir dados do jogador (quem chama `registerCustom`/`unregisterCustom`): `meus-dados`.
 - Notação e apelidos do chat: `selecao`.
-- A pose do dado no voo e o número em destaque: `vitrine`. `definirOpacidade`, `definirSombra` e `rotulos(obj)` da spec nascem nas extrações de `arremesso` e `vitrine`, que são quem os chama.
+- A pose do dado no voo e o número em destaque: `vitrine`.
 - Renomear as funções para os nomes em português da spec.

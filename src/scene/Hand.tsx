@@ -3,7 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import type { RapierRigidBody } from '@react-three/rapier';
 import { Color, Group, Matrix4, Mesh, MeshBasicMaterial, Quaternion, Vector3, type BufferGeometry, type Object3D, type PerspectiveCamera } from 'three';
 import { Text } from 'troika-three-text';
-import { customDie, FONT, FONT_URL, gemColor, inkColorOf, polyhedron, RADIUS, SYMBOL, symbolGeometry } from '../modules/dados/index';
+import { customDie, dadoNaRaiz, FONT, FONT_URL, gemaNaRaiz, gemColor, inkColorOf, polyhedron, RADIUS, sombraNaGema, SYMBOL, symbolGeometry } from '../modules/dados/index';
 import { isCustom, MAX_DICE } from '../modules/regras/index';
 import { easeOut, type Pose, type Quat, type Vec3 } from '../shared/math';
 import { movimentoReduzido } from '../shared/plataforma';
@@ -12,9 +12,6 @@ import { CAPTION, glowMesh, highlightAt, HL_SIZE, setShowcased, showcasePoses, S
 import { indicesComPercurso, movimentoNoPresagio, presagio, presagioTocando } from '../modules/pressagios/index';
 
 type Mark = { local: Vector3; turn: Quaternion; start: Vector3; face: Vector3; scale: number }; // local, turn: the rolled numeral's place and turn in die space
-
-// An imported die's gem is a group (a GLB has many meshes), so the shadow switch goes on its meshes.
-const shade = (gem: Object3D | undefined, on: boolean) => gem?.traverse((o) => { if (o instanceof Mesh) o.castShadow = on; });
 
 // What the hand does once the dice have settled: the flight, the rolled numbers, the engraving's glow and the omen's
 // wait. The throw part (input, aim, whirl, arrow, return) is arremesso's MaoDoArremesso, mounted right before this.
@@ -113,10 +110,10 @@ export function Hand() {
             scale: still ? 1 : poly.shape === 'coin' ? CAPTION.scale : (poly.font ?? FONT[poly.shape]) / HL_SIZE,
           };
         });
-        const gems = current.map((_, i) => scene.getObjectByName(`gem-${i}`));
+        const gems = current.map((_, i) => gemaNaRaiz(scene, i));
         const glows = above.map((a, i) => {
           if (!a) return null;
-          const die = customDie(state.dice[i] as `custom:${string}`)!, group = scene.getObjectByName(`die-${i}`);
+          const die = customDie(state.dice[i] as `custom:${string}`)!, group = dadoNaRaiz(scene, i);
           const ink = inkColorOf(die, gemColor(state.dice[i]));
           const down = polys[i].labelList.find((l) => l.value === raw[i])!.normal;
           const glow = gems[i] && group ? glowMesh(gems[i], group, polys[i].faces, down, ink ? `#${new Color(ink).lerp(new Color('#FFE38A'), 0.6).getHexString()}` : '#FFE38A', `${state.dice[i]}|${raw[i]}`) : null;
@@ -151,7 +148,7 @@ export function Hand() {
         body.setTranslation(p, false); body.setRotation(q, false); body.setNextKinematicTranslation(p); body.setNextKinematicRotation(q);
       };
       if (still) {
-        current.forEach((body, i) => { pin(body, new Vector3(...from[i].p), new Quaternion(...from[i].q)); shade(gems[i], true); });
+        current.forEach((body, i) => { pin(body, new Vector3(...from[i].p), new Quaternion(...from[i].q)); sombraNaGema(gems[i], true); });
         marks.forEach((m, i) => draw(i, m.face));
         return;
       }
@@ -161,7 +158,7 @@ export function Hand() {
         const ms = now - omenAt, movimento = movimentoNoPresagio(i, ms, from[i], to[i], kraken, storm);
         if (movimento) { // the omen moves this die, and leaves it at its result pose
           const p = new Vector3(...movimento.pose.p), q = new Quaternion(...movimento.pose.q);
-          shade(gems[i], ms <= movimento.sombra);
+          sombraNaGema(gems[i], ms <= movimento.sombra);
           pin(body, p, q);
           draw(i, marks[i].local.clone().applyQuaternion(q).add(p), q, 1, movimento.revela);
           if (ms < movimento.fim) done = false;
@@ -169,7 +166,7 @@ export function Hand() {
         }
         const t = Math.min(1, Math.max(0, (now - at - SHOW.delay - i * SHOW.stagger) / SHOW.duration));
         if (t < 1) done = false;
-        shade(gems[i], t === 0); // the shadow goes away as the die lifts off
+        sombraNaGema(gems[i], t === 0); // the shadow goes away as the die lifts off
         const e = easeOut(t);
         const p = new Vector3(...from[i].p).lerp(new Vector3(...to[i].p), e);
         p.y += Math.sin(Math.PI * t) * 0.6; // small lift so the flight reads as an arc, not a slide
