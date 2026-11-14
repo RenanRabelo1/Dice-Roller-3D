@@ -38,7 +38,7 @@ src/
   shared/db.ts             abre o IndexedDB `dice-roller` v2; cada dono declara a sua store (`defineStore`)
   main.tsx, App.tsx        casca: <Controls/> + <Canvas><Cena/></Canvas> + <OmenOverlay/>
   shared/plataforma/       falha registrada (`registrarFalha`), `Guard`, `Failure`, sonda WebGL, renderizador por software, movimento reduzido (`movimentoReduzido`, evento de mudança)  → armadilhas.md
-  store.ts                 zustand: dados do arremesso (cópia da mão), fase, throwId, launch, results, omen  → arremesso.md
+  store.ts                 zustand legado: presságio (`omen`, `omenTest`...) e `showcased`  → apresentacao.md
   app/                     casca: a cena, o window.__dice e a ponte do histórico
     Cena.tsx                 raiz da cena (compõe os componentes dos módulos), câmera, DPR, test hook
     testHook.ts              window.__dice (só em mode=test)                        → testes.md
@@ -51,7 +51,7 @@ src/
   dice/                    o resto do legado dos dados (sem React)                  → dados.md
     notation.ts              texto do painel (`resultText`); a notação está em `modules/selecao`
     omen.ts                  regra de crítico/falha e duração dos presságios
-  modules/arremesso/       arremesso: domínio, store, laço, corpos, colisores e a mão (`MaoDoArremesso`), em extração (os componentes de UI ainda no legado); `index.ts` puro, com `criarWorkerDePresimulacao`  → arremesso.md
+  modules/arremesso/       arremesso: domínio, store, laço, corpos e seu registro, colisores, a mão (`MaoDoArremesso`) e o rodapé (modo de rolagem, força, dica); `index.ts` puro, com `criarWorkerDePresimulacao`  → modules/arremesso/CLAUDE.md
     domain/gesture.ts        máquina de fases (reducer)
     domain/aim.ts            mira, carga, velocidade, giro com semente
     domain/settle.ts         quando os dados "pararam"

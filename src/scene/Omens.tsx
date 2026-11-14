@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useRef, type RefObject } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import type { RapierRigidBody } from '@react-three/rapier';
 import {
   AdditiveBlending, BufferAttribute, BufferGeometry, CanvasTexture, CylinderGeometry, DoubleSide,
   ExtrudeGeometry, Group, LineSegments, Mesh, MeshBasicMaterial, MeshStandardMaterial, Path, PointLight,
@@ -9,7 +8,7 @@ import {
 import { MAX_DICE, omenKind } from '../modules/regras/index';
 import { DUALITY_HIT, isD20, omenMs } from '../dice/omen';
 import { omenPlaying, useDice } from '../store';
-import { arremesso } from '../modules/arremesso/index';
+import { arremesso, registroDeCorpos } from '../modules/arremesso/index';
 import { krakenIndices, stormIndices } from './krakenMotion';
 import { clamp01, span } from '../shared/math';
 import { Kraken } from './Kraken';
@@ -241,7 +240,7 @@ class Show {
   }
 }
 
-export function Omens({ bodies }: { bodies: RefObject<(RapierRigidBody | null)[]> }) {
+export function Omens() {
   const { camera, gl, scene } = useThree();
   const show = useMemo(() => new Show(), []);
   const warmed = useRef(false);
@@ -252,7 +251,7 @@ export function Omens({ bodies }: { bodies: RefObject<(RapierRigidBody | null)[]
       show.compile(gl, scene, camera, true); warmed.current = true;
     }
     const pixels = gl.domElement.height / (2 * Math.tan(((camera as PerspectiveCamera).fov * Math.PI) / 360));
-    const done = show.frame(performance.now(), camera, (i) => { const b = bodies.current[i]; const p = b?.isValid() ? b.translation() : null; return p ? new Vector3(p.x, p.y, p.z) : null; }, pixels);
+    const done = show.frame(performance.now(), camera, (i) => { const b = registroDeCorpos.current[i]; const p = b?.isValid() ? b.translation() : null; return p ? new Vector3(p.x, p.y, p.z) : null; }, pixels);
     if (done !== null) useDice.getState().setOmenDone(done);
   });
   return <primitive object={show.root} />;

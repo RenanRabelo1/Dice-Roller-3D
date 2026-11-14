@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, type RefObject } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import type { RapierRigidBody } from '@react-three/rapier';
 import { Color, Group, Matrix4, Mesh, MeshBasicMaterial, Quaternion, Vector3, type BufferGeometry, type Object3D, type PerspectiveCamera } from 'three';
@@ -8,7 +8,7 @@ import { isCustom, MAX_DICE } from '../modules/regras/index';
 import { easeOut, type Pose, type Quat, type Vec3 } from '../shared/math';
 import { movimentoReduzido } from '../shared/plataforma';
 import { omenPlaying, useDice } from '../store';
-import { arremesso } from '../modules/arremesso/index';
+import { arremesso, registroDeCorpos } from '../modules/arremesso/index';
 import { CAPTION, showcasePoses } from './showcase';
 import { glowMesh } from './inkGlow';
 import { highlightAt, HL_SIZE, SHOW } from './highlight';
@@ -21,7 +21,7 @@ const shade = (gem: Object3D | undefined, on: boolean) => gem?.traverse((o) => {
 
 // What the hand does once the dice have settled: the flight, the rolled numbers, the engraving's glow and the omen's
 // wait. The throw part (input, aim, whirl, arrow, return) is arremesso's MaoDoArremesso, mounted right before this.
-export function Hand({ bodies }: { bodies: RefObject<(RapierRigidBody | null)[]> }) {
+export function Hand() {
   const { camera, scene } = useThree();
   const mode = useRef('');
   const showcase = useRef<{ at: number; throwId: number; from: Pose[]; to: Pose[]; kraken: number[]; storm: number[]; omenAt: number; gems: (Object3D | undefined)[]; marks: Mark[]; above: boolean[]; glows: (Mesh | null)[]; still?: boolean; landed?: boolean } | null>(null);
@@ -61,9 +61,9 @@ export function Hand({ bodies }: { bodies: RefObject<(RapierRigidBody | null)[]>
   const live = useCallback(() => {
     const state = arremesso();
     const expected = state.dice.length, selection = state.dice.join(',');
-    const registered = bodies.current.filter((b): b is RapierRigidBody => b !== null && b.isValid() && (b.userData as { selection?: string } | undefined)?.selection === selection);
+    const registered = registroDeCorpos.current.filter((b): b is RapierRigidBody => b !== null && b.isValid() && (b.userData as { selection?: string } | undefined)?.selection === selection);
     return state.ready && registered.length === expected ? registered : null;
-  }, [bodies]);
+  }, []);
 
   useFrame(() => {
     const numbers = numbersRef.current, glyphs = glyphsRef.current;

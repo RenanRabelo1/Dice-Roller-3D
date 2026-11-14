@@ -5,15 +5,17 @@ import { AparenciaDoDado } from '../../dados/cena.ts';
 import type { DieKind } from '../../regras/index.ts';
 import { MATERIAL } from '../domain/world.ts';
 import { vortexCenter } from '../domain/vortex.ts';
+import { registroDeCorpos } from './corpos.ts';
 
-// The die's physical body; what it looks like is `dados`' AparenciaDoDado.
-export function CorpoDoDado({ index, kind, selection, count, register }: {
+const register = (index: number, body: RapierRigidBody | null) => { registroDeCorpos.current[index] = body; };
+
+// The die's physical body, registered by itself in `registroDeCorpos`; what it looks like is `dados`' AparenciaDoDado.
+export function CorpoDoDado({ index, kind, selection, count }: {
   index: number; kind: DieKind; selection: string; count: number;
-  register: (index: number, body: RapierRigidBody | null) => void;
 }) {
-  const registerBody = useCallback((body: RapierRigidBody | null) => register(index, body), [index, register]);
+  const registerBody = useCallback((body: RapierRigidBody | null) => register(index, body), [index]);
   // Rapier's callback ref reports creation only; explicitly remove disposed bodies.
-  useEffect(() => () => register(index, null), [index, register]);
+  useEffect(() => () => register(index, null), [index]);
   const model = polyhedron(kind);
   const points = useMemo(() => model.points.flat(), [model]);
   // No CCD: the scene's dice are always kinematic (the throw is simulated offline, presim.ts has its own CCD). With CCD a

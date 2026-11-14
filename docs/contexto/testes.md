@@ -58,7 +58,7 @@ Regra 2 do guia (ADR 0006 parte B; ADR 0003 pontos 2 e 5). Varre só produção:
 - `playwright.config.ts`: Chrome instalado (`channel: 'chrome'`), WebGL por software (`--use-gl=angle --use-angle=swiftshader`), 1440×900, `workers: 1`, timeout 120 s.
 - Sobe `npm run dev:test` (Vite em `--mode test`, 127.0.0.1:5179, porta fixa). Não reusa servidor existente (nem o stub abaixo).
 - Sobe também `node e2e/api-stub.mjs` (127.0.0.1:5180): um stub da API do histórico que responde 204 a tudo, com CORS e preflight `OPTIONS`. O Vite de teste recebe `VITE_API_URL=http://127.0.0.1:5180`, então o build de teste envia o histórico (`src/modules/historico/`) e um POST que nenhum teste intercepta não gera erro de console (um 404 ou um endereço morto gerariam, e vários specs exigem console limpo). `history.spec` intercepta `http://127.0.0.1:5180/rolls` com `page.route`.
-- Em `mode === 'test'` o canvas usa `preserveDrawingBuffer` e o app expõe `window.__dice` (tipo em `src/app/testHook.ts`, instalado em `app/Cena.tsx`). `labels`, `numbersVisible` e `gemLook` chamam a `inspecao` de `dados` (`rotulos`, `numeraisVisiveis`, `aparenciaDaGema`, em `src/modules/dados/domain/inspecao.ts`).
+- Em `mode === 'test'` o canvas usa `preserveDrawingBuffer` e o app expõe `window.__dice` (tipo em `src/app/testHook.ts`, instalado em `app/Cena.tsx`). `labels`, `numbersVisible` e `gemLook` chamam a `inspecao` de `dados` (`rotulos`, `numeraisVisiveis`, `aparenciaDaGema`, em `src/modules/dados/domain/inspecao.ts`). `bodies` e `launches` vêm de `inspecao().corpos()` e `.lancamentos()` do `arremesso`, e `ready` e `previewSurface` leem o `registroDeCorpos` dele.
 
 ### `window.__dice` (DiceHook)
 

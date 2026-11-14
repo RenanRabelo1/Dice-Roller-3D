@@ -21,6 +21,9 @@ export { bodyStates, toKinematic } from './domain/apply.ts';
 export { BIAS_BUDGET, presimulate, presimulateFor } from './domain/presim.ts';
 export { omenKinds, plays } from './domain/vies.ts';
 export { newWhirl, ORBITS, restingPlaces, spinAngle, stepWhirl, VORTEX, vortexCenter, vortexRadius } from './domain/vortex.ts';
+// The registry of the scene's die bodies (CorpoDoDado registers itself) and the test mode reading: `corpos()` and
+// `lancamentos()`, the test hook's `bodies()` and `launches()`. Rapier comes in as a type only.
+export { inspecao, registroDeCorpos } from './scene/corpos.ts';
 
 // The pre-simulation worker. The shell calls this and never points at the module's files itself.
 export const criarWorkerDePresimulacao = () => new Worker(new URL('./domain/presim.worker.ts', import.meta.url), { type: 'module' });

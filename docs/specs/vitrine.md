@@ -38,7 +38,7 @@ Mostrar o resultado depois de `settled`. Os dados voam até a frente da câmera 
 - `inspecao()`: `showcased`, `highlights`, `inkGlow(i)`.
 
 ### Consome
-- `arremesso`: `fase`, `resultado`, `throwIdAtual`, `dadoNaCena`, `moverDado`.
+- `arremesso`: `fase`, `resultado`, `throwIdAtual`, `dadoNaCena`, `moverDado`. _(Nomes reais desde a OS-0031/0034: `arremesso()` dá fase, `throwId`, resultado, força e `ready`; `useArremesso(selector)` é o hook; `registroDeCorpos` e `inspecao().corpos()` são os corpos. `fase`, `resultado`, `throwIdAtual` e `corpos` da spec original não existem. `dadoNaCena`, `moverDado` e `envelopeDaMao` nascem na extração da `vitrine`.)_ Também nesta extração: `dados` ganha `definirOpacidade`/`definirSombra`/`rotulos`, e `MaoDoArremesso` (`arremesso`) e o `Hand` da vitrine deixam de procurar `die-i`/`gem-i` pelo nome.
 - `pressagios`: `presagioTocando`, `tempoDoPresagio`, `indicesComPercurso`, `movimentoNoPresagio`.
 - `dados`: `poliedro`, `simbolo`, `FONT`, `FONT_URL`, `SYMBOL`, `corDaGema`, `corDaTinta`, `tipo`, `rotulos`, `definirSombra`, `inkTriangles`.
 - `regras`: `total`.
@@ -69,6 +69,7 @@ Mostrar o resultado depois de `settled`. Os dados voam até a frente da câmera 
 - o test hook (`highlights`, `inkGlow`, `state().showcased`);
 - o trecho que procura `gem-i`/`die-i` pelo nome (`Hand.tsx`) passa a pedir a `dados` `definirOpacidade`/`definirSombra`/`rotulos`, criados nessa extração;
 - `tests/showcase.test.ts`, `highlight.test.ts` e `inkGlow.test.ts`, que movem para o módulo.
+- **Vem do `arremesso` nesta extração (adiado pela OS-0034):** `dadoNaCena(i)`, `moverDado(i, pose)` (só em `settled`, delegando a `apply`) e `envelopeDaMao()`, que a casca passa a usar no enquadramento da câmera (`app/Cena.tsx`). O `arremesso` ainda não os tem porque ninguém os chamava; hoje o `Hand` lê `registroDeCorpos` direto.
 
 ## Critérios de aceite da extração
 - `src/scene/Hand.tsx` deixa de existir: o resto vai para `arremesso` e para a casca.

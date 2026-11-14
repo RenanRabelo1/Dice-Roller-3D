@@ -2,7 +2,7 @@
 
 Rolador de dados 3D (React 19 + three/R3F + Rapier + zustand, Vite). A UI é em pt-BR. O resultado sai de uma pré-simulação física feita no arremesso e depois é reproduzido na tela. O jogo funciona sem rede; a API de histórico (`server/`, Fastify + MongoDB) é opcional.
 
-**Em refatoração para monólito modular.** O método está em [docs/guia-orquestrador.md](docs/guia-orquestrador.md); as decisões, em [docs/adr/](docs/adr/); o andamento, em [docs/plano-refatoracao.md](docs/plano-refatoracao.md); as ordens de serviço, em [docs/ordens/](docs/ordens/). A fundação está pronta. Já foram extraídos `regras`, `historico` (cliente e servidor), `dados`, `selecao` e `meus-dados`; o resto do código de negócio ainda está nas pastas antigas (`src/dice`, `throw`, `physics`, `scene`, `ui`, `api`).
+**Em refatoração para monólito modular.** O método está em [docs/guia-orquestrador.md](docs/guia-orquestrador.md); as decisões, em [docs/adr/](docs/adr/); o andamento, em [docs/plano-refatoracao.md](docs/plano-refatoracao.md); as ordens de serviço, em [docs/ordens/](docs/ordens/). A fundação está pronta. Já foram extraídos `regras`, `historico` (cliente e servidor), `dados`, `selecao`, `meus-dados` e `arremesso`; o resto do código de negócio ainda está nas pastas antigas (`src/dice`, `scene`, `ui`, `store.ts`).
 
 ## Regras (seção 2 do guia, com as adaptações dos ADRs)
 
@@ -24,7 +24,7 @@ As regras 1, 2 e 4 são verificadas por `tests/arquitetura/`, que roda no `npm t
 | `src/main.tsx`, `src/App.tsx`, `src/app/` | A casca, raiz de composição. Não é módulo e nenhum módulo a importa. `app/Cena.tsx` monta a cena; `app/testHook.ts` monta o `window.__dice` (ADR 0008) |
 | `src/shared/` | Infraestrutura: `events.ts`, `math.ts`, `db.ts` (`defineStore`), `plataforma/` (falha, Guard, WebGL, software, movimento reduzido), `modelos3d/` (GLB/STL com limites por parâmetro) |
 | `src/modules/<m>/` | Os módulos, criados a cada extração: `CLAUDE.md`, `index.ts`, `contracts.ts`, `tests/` |
-| `src/dice`, `throw`, `physics`, `scene`, `ui`, `api`, `store.ts` | O legado, que sai módulo a módulo |
+| `src/dice`, `scene`, `ui`, `store.ts` | O legado, que sai módulo a módulo |
 | `server/` | A API de histórico, um pacote à parte |
 | `tests/`, `e2e/` | A rede de segurança, os testes de arquitetura e os E2E do sistema inteiro |
 
@@ -37,7 +37,7 @@ Enquanto um módulo não é extraído, o contexto dele fica em `docs/contexto/`.
 | Tarefa | Ler |
 |---|---|
 | Primeira vez: stack, comandos, onde fica cada coisa, glossário | [visao-geral.md](docs/contexto/visao-geral.md) |
-| Mira, carga, fases, store, física, pré-simulação, worker, parada, retorno | [arremesso.md](docs/contexto/arremesso.md) |
+| Mira, carga, fases, store, física, pré-simulação, worker, parada, retorno | [src/modules/arremesso/CLAUDE.md](src/modules/arremesso/CLAUDE.md) |
 | Tipos de dado, geometria, numeração, leitura, símbolos, aparência | [src/modules/dados/CLAUDE.md](src/modules/dados/CLAUDE.md) |
 | A mão, notação e chat, apelido | [src/modules/selecao/CLAUDE.md](src/modules/selecao/CLAUDE.md) |
 | Importar dado (assistente, detecção, calibração, gravação) | [src/modules/meus-dados/CLAUDE.md](src/modules/meus-dados/CLAUDE.md) |

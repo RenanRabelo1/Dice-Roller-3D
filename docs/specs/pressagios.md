@@ -44,7 +44,7 @@ Decidir se um resultado publicado tem presságio e mostrá-lo antes do resultado
 - `inspecao()`: `omen`, `omenDone`, `omenTime`, `trayBroken`, `burning`, `shards`.
 
 ### Consome
-- `arremesso`: `resultadoPublicado`, `fase`, `throwIdAtual`, `corpos`, `dadoNaCena`.
+- `arremesso`: `resultadoPublicado`, `fase`, `throwIdAtual`, `corpos`, `dadoNaCena`. _(Nomes reais desde a OS-0031/0034: `arremesso()` dá fase, `throwId`, resultado, força e `ready`; `useArremesso(selector)` é o hook; `registroDeCorpos` e `inspecao().corpos()` são os corpos. `fase`, `resultado`, `throwIdAtual` e `corpos` da spec original não existem. `dadoNaCena`, `moverDado` e `envelopeDaMao` nascem na extração da `vitrine`.)_
 - `mesa`: `coresDaMesa`, `ocultarPiso`.
 - `dados`: `paraRegras`.
 - `regras`: `omenOf`, `omenKind`.

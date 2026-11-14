@@ -10,6 +10,7 @@ import { toKinematic } from '../domain/apply.ts';
 import { newWhirl, ORBITS, restingPlaces, spinAngle, stepWhirl, vortexCenter } from '../domain/vortex.ts';
 import { HAND } from '../domain/world.ts';
 import { arremesso } from '../store.ts';
+import { registroDeCorpos } from './corpos.ts';
 
 // An imported die's gem is a group (a GLB has many meshes), so the shadow switch goes on its meshes.
 const shade = (gem: Object3D | undefined, on: boolean) => gem?.traverse((o) => { if (o instanceof Mesh) o.castShadow = on; });
@@ -17,9 +18,7 @@ const shade = (gem: Object3D | undefined, on: boolean) => gem?.traverse((o) => {
 // The hand in the throw: pointer and keyboard input, the aim and its arrow, the whirl of the dice in the hand, the
 // hand's motion handed on to the launch, and the return to the hand. What happens in `settled` is not here.
 // Mounted right before the legacy `Hand`, so this frame runs before the showcase's, as in the single frame of old.
-export function MaoDoArremesso({ gameArea, bodies }: {
-  gameArea: RefObject<HTMLDivElement | null>; bodies: RefObject<(RapierRigidBody | null)[]>;
-}) {
+export function MaoDoArremesso({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> }) {
   const { camera, gl, scene } = useThree();
   const motion = useRef<{ center: Vec3; omega: Vec3 }>({ center: [0, HAND.y, HAND.z], omega: [0, 0, 0] });
   const previousAim = useRef<Vec3>([...arremesso().aim]);
@@ -35,9 +34,9 @@ export function MaoDoArremesso({ gameArea, bodies }: {
   const live = useCallback(() => {
     const state = arremesso();
     const expected = state.dice.length, selection = state.dice.join(',');
-    const registered = bodies.current.filter((b): b is RapierRigidBody => b !== null && b.isValid() && (b.userData as { selection?: string } | undefined)?.selection === selection);
+    const registered = registroDeCorpos.current.filter((b): b is RapierRigidBody => b !== null && b.isValid() && (b.userData as { selection?: string } | undefined)?.selection === selection);
     return state.ready && registered.length === expected ? registered : null;
-  }, [bodies]);
+  }, []);
 
   useEffect(() => {
     const area = gameArea.current;

@@ -1,15 +1,14 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { EnvironmentPortal, Lightformer, PerformanceMonitor } from '@react-three/drei';
-import { Physics, type RapierRigidBody } from '@react-three/rapier';
+import { Physics } from '@react-three/rapier';
 import { Box3, Color, Group, Mesh, Quaternion, Texture, Vector3, type BufferGeometry, type Material, type Object3D } from 'three';
 import { Text } from 'troika-three-text';
 
 import {
-  arremesso, GRAVITY, HAND, handPositions, STEP, TRAY, VORTEX, vortexCenter, vortexRadius,
+  arremesso, GRAVITY, HAND, handPositions, inspecao as inspecaoDoArremesso, registroDeCorpos, STEP, TRAY, VORTEX, vortexCenter, vortexRadius,
 } from '../modules/arremesso/index';
 import { CorpoDoDado, LoopDoArremesso, MaoDoArremesso, useArremesso } from '../modules/arremesso/cena';
-import type { DiceHook } from './testHook';
 import type { Vec3 } from '../shared/math';
 import { useDice } from '../store';
 import { installTestHook } from './testHook';
@@ -61,12 +60,7 @@ export function Cena({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> 
     setPano(wanted.current);
   });
   const info = useRef(gl.info);
-  const bodies = useRef<(RapierRigidBody | null)[]>([]);
-  const launches = useRef<ReturnType<DiceHook['launches']>>({ count: 0, last: null });
   const dice = useRef<Group>(null);
-  const recordLaunch = useCallback((last: NonNullable<ReturnType<DiceHook['launches']>['last']>) => {
-    launches.current = { count: launches.current.count + 1, last };
-  }, []);
   const adjustDpr = (scale: number) => {
     if (isPreview()) return;
     desiredDpr.current = Math.min(maxDpr.current, Math.max(0.35, desiredDpr.current * scale));
@@ -78,9 +72,6 @@ export function Cena({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> 
     if (gesture.phase !== 'hand' && !(gesture.phase === 'settled' && showcased === throwId)) return;
     setDpr(desiredDpr.current);
   });
-  const register = useCallback((index: number, body: RapierRigidBody | null) => {
-    bodies.current[index] = body;
-  }, []);
   // The dev omen test button lives in the legacy store; the throw loop reads it through this.
   const omenTestAtual = useCallback(() => useDice.getState().omenTest, []);
 
@@ -130,7 +121,7 @@ export function Cena({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> 
         return {
           dice: state.dice, phase: state.gesture.phase, throwId: state.throwId,
           results: state.results,
-          ready: state.ready && state.dice.join(',') === key && bodies.current.filter((b) => b?.isValid()).length === selected.length,
+          ready: state.ready && state.dice.join(',') === key && registroDeCorpos.current.filter((b) => b?.isValid()).length === selected.length,
           error: falha(), aim: state.aim, showcased: state.showcased,
           omen: state.omen?.throwId === state.throwId ? omenKind(state.omen) : null, omenDone: state.omenDone, reducedMotion: movimentoReduzido(),
           omenTime: performance.now() - state.omenAt, trayBroken: scene.getObjectByName('tray-surface')?.visible === false,
@@ -139,14 +130,11 @@ export function Cena({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> 
       },
       select: (next) => definir(next),
       rigOmen: (omen) => useDice.getState().rigOmen(omen),
-      bodies: () => bodies.current.filter((body): body is RapierRigidBody => body !== null && body.isValid()).map((body) => {
-        const p = body.translation(), q = body.rotation();
-        return { handle: body.handle, p: [p.x, p.y, p.z], q: [q.x, q.y, q.z, q.w], type: body.bodyType() };
-      }),
+      bodies: () => inspecaoDoArremesso().corpos(),
       meshes: () => {
         const result: { q: [number, number, number, number] }[] = [];
         dice.current?.updateWorldMatrix(true, true);
-        for (let i = 0; i < bodies.current.length; i++) {
+        for (let i = 0; i < registroDeCorpos.current.length; i++) {
           const gem = dice.current?.getObjectByName(`gem-${i}`);
           if (gem) result.push({ q: gem.getWorldQuaternion(new Quaternion()).toArray() });
         }
@@ -163,7 +151,7 @@ export function Cena({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> 
         const glow = scene.getObjectByName(`ink-glow-${index}`) as Mesh | undefined;
         return glow ? { visible: glow.visible, triangles: glow.geometry.getAttribute('position').count / 3, opacity: (glow.material as Material).opacity } : null;
       },
-      launches: () => launches.current,
+      launches: () => inspecaoDoArremesso().lancamentos(),
       customs: () => inspecaoDosImportados(),
       table: () => {
         const t = useTable.getState().theme, mesh = (name: string) => scene.getObjectByName(name), hex = (o?: Object3D) => {
@@ -189,7 +177,7 @@ export function Cena({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> 
       },
       previewSurface: (index, p, q) => {
         if (import.meta.env.MODE !== 'test' || !new URLSearchParams(location.search).has('surface-preview') || arremesso().gesture.phase !== 'hand') throw new Error('Surface preview is only available in the test preview scene');
-        const body = bodies.current[index];
+        const body = registroDeCorpos.current[index];
         if (!body) throw new Error(`Die ${index} is not registered`);
         body.setTranslation({ x: p[0], y: p[1], z: p[2] }, true);
         body.setRotation({ x: q[0], y: q[1], z: q[2], w: q[3] }, true);
@@ -224,18 +212,17 @@ export function Cena({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> 
       <Guard kind="physics">
       <Physics gravity={GRAVITY} timeStep={STEP} interpolate={false}>
         <Tray />
-        <MaoDoArremesso gameArea={gameArea} bodies={bodies} />
-        <Hand bodies={bodies} />
-        <LoopDoArremesso bodies={bodies} recordLaunch={recordLaunch} omenTest={omenTestAtual} />
+        <MaoDoArremesso gameArea={gameArea} />
+        <Hand />
+        <LoopDoArremesso omenTest={omenTestAtual} />
         <group ref={dice}>
           {selected.map((kind, i) => (
-            <CorpoDoDado key={`${key}-${i}`} index={i} kind={kind} selection={key} count={selected.length}
-              register={register} />
+            <CorpoDoDado key={`${key}-${i}`} index={i} kind={kind} selection={key} count={selected.length} />
           ))}
         </group>
       </Physics>
       </Guard>
-      <Omens bodies={bodies} />
+      <Omens />
     </>
   );
 }
