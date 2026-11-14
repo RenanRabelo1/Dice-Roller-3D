@@ -1,7 +1,7 @@
 import { Matrix4, Quaternion, Vector3 } from 'three';
-import type { Polyhedron } from '../modules/dados/index';
-import { RAIO_MAXIMO } from '../modules/dados/index';
-import type { Pose, Quat, Vec3 } from '../shared/math';
+import type { Polyhedron } from '../../dados/index.ts';
+import { RAIO_MAXIMO } from '../../dados/index.ts';
+import type { Pose, Quat, Vec3 } from '../../../shared/math.ts';
 
 export interface View { position: Vector3; quaternion: Quaternion; fov: number; aspect: number }
 

@@ -66,7 +66,7 @@ Face vazia ainda tem um `Label` (texto `''`) para o showcase achar a face sortea
 
 ## Notação e chat: ver [src/modules/selecao/CLAUDE.md](../../src/modules/selecao/CLAUDE.md)
 
-Painel (`dice/notation.ts`): `resultText(dice, results)` → `{ total, detail }`: total soma dados (moedas nunca somam; só moedas → "Cara", "2 caras, 1 coroa"). `nomeDoTipo(kind)` (de `dados`, `domain/aparencia.ts`) → nome de exibição. `Controls.tsx` monta o cabeçalho com os componentes de `selecao`, o `<MeusDados/>` e o `<Importacao/>` de `meus-dados` (os importados com `<BotaoDeDado kind/>`, tinta, 🗑 e **Importar dado**; o assistente sob demanda) e o painel `data-testid="result"` com as dicas por fase.
+Painel (`modules/vitrine/domain/painel.ts`, pelo `index` da `vitrine`; o `<output data-testid="result">` é o `<PainelDoResultado/>` da `vitrine`): `resultText(dice, results)` → `{ total, detail }`: total soma dados (moedas nunca somam; só moedas → "Cara", "2 caras, 1 coroa"). `nomeDoTipo(kind)` (de `dados`, `domain/aparencia.ts`) → nome de exibição. `Controls.tsx` monta o cabeçalho com os componentes de `selecao`, o `<MeusDados/>` e o `<Importacao/>` de `meus-dados` (os importados com `<BotaoDeDado kind/>`, tinta, 🗑 e **Importar dado**; o assistente sob demanda) e o painel `data-testid="result"` com as dicas por fase.
 
 ## Dados importados (`modules/dados/domain/catalogo.ts`, `modules/meus-dados/`: `domain/importador.ts`, `domain/montagem.ts`, `ui/AssistenteDeImportacao.tsx`)
 

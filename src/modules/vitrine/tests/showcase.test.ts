@@ -1,10 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { PerspectiveCamera, Quaternion, Vector3 } from 'three';
-import { customKind, polyhedron, unregisterCustom } from '../src/modules/dados/index.ts';
-import type { DieKind } from '../src/modules/regras/index.ts';
-import { CAPTION, showcasePoses } from '../src/scene/showcase';
-import { HL_SIZE } from '../src/scene/highlight';
-import { freeDieOf, prismTriangles, shardTriangles } from './helpers/models';
+import { customKind, polyhedron, unregisterCustom } from '../../dados/index.ts';
+import type { DieKind } from '../../regras/index.ts';
+import { CAPTION, HL_SIZE, showcasePoses } from '../index.ts';
+import { freeDieOf, prismTriangles, shardTriangles } from '../../../../tests/helpers/models.ts';
 
 const camera = (aspect: number) => {
   const c = new PerspectiveCamera(40, aspect);

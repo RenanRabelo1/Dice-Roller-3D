@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { BufferGeometry, Float32BufferAttribute, Group, Mesh } from 'three';
-import { glowMesh, upInk } from '../src/scene/inkGlow';
+import { glowMesh, upInk } from '../index.ts';
 
 const unit = (deg: number): [number, number, number] => [Math.sin((deg * Math.PI) / 180), Math.cos((deg * Math.PI) / 180), 0]; // deg from straight up
 const faceAt = (deg: number) => ({ normal: unit(deg), center: unit(deg) });

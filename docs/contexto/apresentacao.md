@@ -1,6 +1,6 @@
 # Apresentação do resultado: showcase, destaque
 
-Tudo que acontece em `settled`, depois do `publish`, e ainda não foi extraído (a futura `vitrine`). Arquivos: `scene/showcase.ts`, `scene/highlight.ts`, `scene/Hand.tsx` (só a parte `settled`; a mão do arremesso é a `MaoDoArremesso` do módulo `arremesso`, montada logo antes), `ui/Controls.tsx` (painel).
+Tudo que acontece em `settled`, depois do `publish` (o módulo `vitrine`, em extração). Arquivos: `modules/vitrine/domain/showcase.ts`, `highlight.ts`, `inkGlow.ts` e `painel.ts` (`resultText`), o estado `showcased` (`modules/vitrine/store.ts`, lido por `vitrine()`, `vitrineConcluida(throwId)` e `useVitrine`), o painel `<PainelDoResultado/>` (`modules/vitrine/ui/`, montado pelo `ui/Controls.tsx`) e, ainda no legado, `scene/Hand.tsx` (só a parte `settled`; a mão do arremesso é a `MaoDoArremesso` do módulo `arremesso`, montada logo antes).
 
 **Presságios** (raio, kraken, fogo, tempestade, dualidade; o 3D, a camada HTML e o CSS dela, os botões de teste): o módulo `pressagios`, em [src/modules/pressagios/CLAUDE.md](../../src/modules/pressagios/CLAUDE.md), com o detalhe em [NOTAS.md](../../src/modules/pressagios/NOTAS.md).
 
@@ -12,11 +12,11 @@ publish ─► presságio? ──sim──► toca (PresagiosNaCena 3D + Overlay
               └──não───────────────────────────────────────────────────────┴─► showcase (voo + números) ─► setShowcased(throwId)
 ```
 
-- O painel (`Controls`) **espera** o presságio: `presagioTocando()` (`modules/pressagios`; o hook é `usePresagioTocando`, em `cena.ts`) = fase `settled`, presságio deste `throwId` e `omenDone !== throwId`. Recolher os dados encerra o presságio e o resultado aparece na hora.
+- O painel (`<PainelDoResultado/>`) **espera** o presságio: `presagioTocando()` (`modules/pressagios`; o hook é `usePresagioTocando`, em `cena.ts`) = fase `settled`, presságio deste `throwId` e `omenDone !== throwId`. Recolher os dados encerra o presságio e o resultado aparece na hora.
 - `Hand.tsx` também espera: enquanto `presagioTocando()`, reinicia o relógio do showcase (`showcase.current.at = now`).
-- Sincronização é toda via store (`presagio()` do módulo `pressagios`, `showcased` no `useDice` legado), comparando `throwId`: `omen.throwId`, `omenDone`, `showcased`, `omenAt` (relógio compartilhado, `performance.now()` do publish).
+- Sincronização é toda via store (`presagio()` do módulo `pressagios`, `vitrine()` do módulo `vitrine`), comparando `throwId`: `omen.throwId`, `omenDone`, `showcased`, `omenAt` (relógio compartilhado, `performance.now()` do publish).
 
-## Showcase (`scene/showcase.ts` + `Hand.tsx`)
+## Showcase (`modules/vitrine/domain/showcase.ts` + `scene/Hand.tsx`)
 
 `showcasePoses(polys, raw, view)`: fileira(s) na frente da câmera (5 colunas em paisagem, 3 em retrato), na ordem do resultado, cada dado girado para a face sorteada olhar a câmera com o número em pé. Usa `raw` (valor físico), nunca relê o dado.
 
@@ -28,9 +28,9 @@ Em `Hand.tsx`, ao entrar em `settled`:
 - **moeda** voa como os dados e mostra o desenho; o texto "Cara"/"Coroa" fica **embaixo** dela (`CAPTION` em showcase.ts), e as fileiras com moeda se afastam para o texto não encostar na de baixo;
 - dado com símbolo (Vampiro) sobe o símbolo (`symbolGeometry`) em vez do número;
 - ao pousar, fixa a pose exata a cada quadro; reporta `setShowcased` um quadro depois de pousar;
-- **dado de forma livre gravado** (`readsDown` + `printed`): vista de cima, como na calibração (`showcasePoses(..., above)`); a gravação de cima acende (`inkGlow.ts`: `upInk` escolhe os triângulos de tinta voltados para cima, `glowMesh` monta a malha `ink-glow-i`, que pulsa no ritmo do destaque) no lugar do número solto; sem gravação achada, o número fica na frente do dado, no tamanho `FONT.livre`. A geometria do brilho fica guardada por `kind|valor`;
+- **dado de forma livre gravado** (`readsDown` + `printed`): vista de cima, como na calibração (`showcasePoses(..., above)`); a gravação de cima acende (`modules/vitrine/domain/inkGlow.ts`: `upInk` escolhe os triângulos de tinta voltados para cima, `glowMesh` monta a malha `ink-glow-i`, que pulsa no ritmo do destaque) no lugar do número solto; sem gravação achada, o número fica na frente do dado, no tamanho `FONT.livre`. A geometria do brilho fica guardada por `kind|valor`;
 - reduced motion: sem voo, o número só aparece acima do dado.
 
-## Destaque (`scene/highlight.ts`)
+## Destaque (`modules/vitrine/domain/highlight.ts`)
 
 `highlightAt(ms, i, start, face, faceScale)` → posição/opacidade/escala/brilho do número flutuante. O número "gruda" na face cedo no voo para nunca aparecerem dois números. Depois pulsa (0,9 Hz). Os números são `Text` do troika num grupo `result-highlights`, `depthTest: false`, `renderOrder` 20 — sempre por cima.

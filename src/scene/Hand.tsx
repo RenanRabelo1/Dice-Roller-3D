@@ -7,11 +7,8 @@ import { customDie, FONT, FONT_URL, gemColor, inkColorOf, polyhedron, RADIUS, SY
 import { isCustom, MAX_DICE } from '../modules/regras/index';
 import { easeOut, type Pose, type Quat, type Vec3 } from '../shared/math';
 import { movimentoReduzido } from '../shared/plataforma';
-import { useDice } from '../store';
 import { arremesso, registroDeCorpos } from '../modules/arremesso/index';
-import { CAPTION, showcasePoses } from './showcase';
-import { glowMesh } from './inkGlow';
-import { highlightAt, HL_SIZE, SHOW } from './highlight';
+import { CAPTION, glowMesh, highlightAt, HL_SIZE, setShowcased, showcasePoses, SHOW, vitrine } from '../modules/vitrine/index';
 import { indicesComPercurso, movimentoNoPresagio, presagio, presagioTocando } from '../modules/pressagios/index';
 
 type Mark = { local: Vector3; turn: Quaternion; start: Vector3; face: Vector3; scale: number }; // local, turn: the rolled numeral's place and turn in die space
@@ -67,7 +64,7 @@ export function Hand() {
 
   useFrame(() => {
     const numbers = numbersRef.current, glyphs = glyphsRef.current;
-    const state = { ...arremesso(), ...presagio(), ...useDice.getState() }, phase = state.gesture.phase;
+    const state = { ...arremesso(), ...presagio(), ...vitrine() }, phase = state.gesture.phase;
     const current = live();
     if (!current) return;
     const now = performance.now();
@@ -80,7 +77,7 @@ export function Hand() {
       const landed = mode.current === nextMode ? showcase.current?.from : undefined;
       dropGlows();
       showcase.current = null;
-      if (!state.raw) state.setShowcased(state.throwId);
+      if (!state.raw) setShowcased(state.throwId);
       else {
         const raw = state.raw;
         const polys = state.dice.map((d) => polyhedron(d));
@@ -128,7 +125,7 @@ export function Hand() {
           return glow;
         });
         showcase.current = { at: now, throwId: state.throwId, from, to, kraken, storm, omenAt: state.omenAt, marks, above, glows, still, gems };
-        if (still) state.setShowcased(state.throwId);
+        if (still) setShowcased(state.throwId);
       }
     }
     mode.current = nextMode;
@@ -192,7 +189,7 @@ export function Hand() {
         else draw(i, marks[i].local.clone().applyQuaternion(q).add(p), q, Math.min(1, t / 0.35)); // the rolled numeral where the die is now
       });
       // Report "shown" one frame after landing, once the scene has rendered the pinned poses.
-      if (done && showcase.current.landed && state.showcased !== throwId) state.setShowcased(throwId);
+      if (done && showcase.current.landed && state.showcased !== throwId) setShowcased(throwId);
       if (done) showcase.current.landed = true;
       return;
     }

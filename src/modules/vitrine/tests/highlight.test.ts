@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { Vector3 } from 'three';
-import { highlightAt, SHOW } from '../src/scene/highlight';
+import { highlightAt, SHOW } from '../index.ts';
 
 const start = new Vector3(1, 1, 1), face = new Vector3(0, 6, 4);
 

@@ -34,7 +34,7 @@ Quais dados estão na mão do jogador e como ele os escolhe: os botões de cada 
 - `src/shared/events` (`createSignal`).
 
 ## Fora do escopo
-- O que acontece com o arremesso quando a mão muda: o `arremesso` reage a `selecaoAlterada` (hoje, o `store.ts` legado).
+- O que acontece com o arremesso quando a mão muda: o `arremesso` reage a `selecaoAlterada` (o `store.ts` do `arremesso`).
 - Importar, editar a tinta e excluir dados (`Importar dado`, `InkButton`, a lixeira): `meus-dados`.
 - O texto do resultado (`resultText`), `RollMode` e a força: `vitrine` e `arremesso`.
 - Renomear as funções para os nomes em português da spec (`lerNotacao`, `formatar`, `problemaDoApelido`, `sugerirApelido`).

@@ -1,5 +1,5 @@
-import { allKinds, nomeDoTipo } from '../modules/dados/index';
-import { total as sumOf, type DieKind } from '../modules/regras/index.ts';
+import { allKinds, nomeDoTipo } from '../../dados/index.ts';
+import { total as sumOf, type DieKind } from '../../regras/index.ts';
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 

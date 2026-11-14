@@ -36,10 +36,6 @@ export interface DadoLegado { arquivo: string; dado: string; motivo: string }
 
 export const DADOS_LEGADO: DadoLegado[] = [
   {
-    arquivo: 'src/store.ts', dado: 'zustand',
-    motivo: 'Legado: o store único useDice, que some módulo a módulo na extração (ADR 0003, ponto 2 e Consequências; plano-refatoracao.md §8).',
-  },
-  {
     arquivo: 'src/shared/plataforma/falha.ts', dado: 'zustand',
     motivo: 'Permitida: a falha da plataforma mora num store próprio, privado ao arquivo, em shared/plataforma, como permite o ADR 0008.',
   },

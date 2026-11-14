@@ -1,5 +1,5 @@
 import { Vector3 } from 'three';
-import { clamp01, easeOut } from '../shared/math';
+import { clamp01, easeOut } from '../../../shared/math.ts';
 
 // Showcase timeline (ms from the moment the dice settle): the rolled number rises over its die, then
 // ~1 s after settling each die flies to the camera (staggered) and the number lands on its face and glows.

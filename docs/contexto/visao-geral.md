@@ -12,7 +12,7 @@ Rolador de dados 3D no navegador. O jogador escolhe dados (botões ou chat com n
 | @react-three/rapier | 2.2 | física na cena (Rapier 0.19.2 por baixo) |
 | @dimforge/rapier3d-compat | **0.19.2 fixo** (dev) | física offline (pré-simulação, worker, testes Node) |
 | troika-three-text | 0.52.5 fixo | numerais nas faces (`BatchedText`) e números em destaque |
-| zustand | 5 | um store vanilla por módulo (`src/modules/<m>/store.ts`) e o resto do legado (`src/store.ts`) |
+| zustand | 5 | um store vanilla por módulo (`src/modules/<m>/store.ts`) |
 | Vite 8 / TypeScript 7 / oxlint | — | build e lint |
 | Vitest 4.1 / Playwright 1.65 | fixos | unit (Node) / E2E (Chrome + SwiftShader) |
 
@@ -38,7 +38,6 @@ src/
   shared/db.ts             abre o IndexedDB `dice-roller` v2; cada dono declara a sua store (`defineStore`)
   main.tsx, App.tsx        casca: <Controls/> + <Canvas><Cena/></Canvas> + <OverlayDoPresagio/> (de `pressagios`)
   shared/plataforma/       falha registrada (`registrarFalha`), `Guard`, `Failure`, sonda WebGL, renderizador por software, movimento reduzido (`movimentoReduzido`, evento de mudança)  → armadilhas.md
-  store.ts                 zustand legado: só `showcased`, da vitrine  → apresentacao.md
   app/                     casca: a cena, o window.__dice e a ponte do histórico
     Cena.tsx                 raiz da cena (compõe os componentes dos módulos), câmera, DPR, test hook
     testHook.ts              window.__dice (só em mode=test)                        → testes.md
@@ -49,8 +48,6 @@ src/
   modules/selecao/         a mão (store vanilla), notação e apelido, chat e botões de dado; `index.ts` puro, `cena.ts` com hook e componentes  → modules/selecao/CLAUDE.md
   modules/meus-dados/      os dados do jogador: lista e `sessionOnly` (store vanilla), gravação (`repository.ts`, store `customDice`), importador (`domain/importador.ts`, .stl/.glb → poliedro, sob demanda por `carregarImportador`), `montarDado`; `cena.ts` com `useMeusDados`, `InkChoice` e o `AssistenteDeImportacao` (lazy)  → dados.md
   modules/mesa/            mesa e fundo: tema, texturas, panorama, mesa padrão, `.glb` (`domain/tableFile.ts`, sob demanda por `carregarArquivoDeMesa`), gravação (`repository.ts`, store `tables`, `mesa.ativa`), estado (store vanilla, `mesa()`, `coresDaMesa()`), `ocultarPiso`; `cena.ts` com `useMesa`, `MesaNaCena` (a bandeja visível), `AmbienteDaMesa` (cor de fundo, panorama, mapa de reflexo), `FundoCss` (foto, tema pronto) e `PainelDaMesa` (o painel "Personalizar mesa")  → modules/mesa/CLAUDE.md
-  dice/                    o resto do legado dos dados (sem React)                  → dados.md
-    notation.ts              texto do painel (`resultText`); a notação está em `modules/selecao`
   modules/arremesso/       arremesso: domínio, store, laço, corpos e seu registro, colisores, a mão (`MaoDoArremesso`) e o rodapé (modo de rolagem, força, dica); `index.ts` puro, com `criarWorkerDePresimulacao`  → modules/arremesso/CLAUDE.md
     domain/gesture.ts        máquina de fases (reducer)
     domain/aim.ts            mira, carga, velocidade, giro com semente
@@ -62,10 +59,10 @@ src/
     domain/presim.worker.ts  roda presim fora da thread de render
     domain/vies.ts           `plays`: se um resultado toca o presságio do botão de teste
   modules/pressagios/      presságios: o estado (store vanilla, `presagio()`, `presagioTocando()`, decidido em `resultadoPublicado`), a duração (`domain/omen.ts`), os botões de teste (`domain/omenTest.ts`) e o movimento do kraken, da tempestade e do fogo (`domain/krakenMotion.ts`, `domain/fireMotion.ts`), que efeito em que dado (`domain/plano.ts`) e o percurso do d100 (`domain/percurso.ts`); `cena.ts` com `usePresagio`, `usePresagioTocando`, `PresagiosNaCena` e `QuebraDaMesa` (em `scene/`, com `Kraken.ts` e `Fire.ts`), `OverlayDoPresagio` (com `ui/presagios.css`) e `BotoesDeTeste` (em `ui/`); `inspecao` para o test hook  → src/modules/pressagios/CLAUDE.md
+  modules/vitrine/         vitrine (em extração): poses do voo (`domain/showcase.ts`), destaque (`domain/highlight.ts`), gravação acesa (`domain/inkGlow.ts`), texto do painel (`domain/painel.ts`, `resultText`), o estado `showcased` (store vanilla, `vitrine()`, `vitrineConcluida()`); `cena.ts` com `useVitrine` e `PainelDoResultado`  → apresentacao.md
   scene/                   componentes R3F
     Hand.tsx                 só a parte `settled` (voo, números, gravação acesa); a mão é a `MaoDoArremesso`  → apresentacao.md
-    showcase.ts, highlight.ts poses e linha do tempo do "voo até a câmera"         → apresentacao.md
-  ui/                      HTML: Controls (cabeçalho com os componentes de selecao, Meus dados e o painel da mesa)
+  ui/                      HTML: Controls (cabeçalho com os componentes de selecao, Meus dados e o painel da mesa; rodapé com o do arremesso e o painel do resultado, da vitrine)
 tests/                     Vitest (unidades puras + física Node); helpers/sim.ts
 server/                    API do histórico (Fastify + MongoDB; usa `src/modules/regras` pelo `index.ts`, roda em Node com TS nativo)
 e2e/                       Playwright; usa window.__dice

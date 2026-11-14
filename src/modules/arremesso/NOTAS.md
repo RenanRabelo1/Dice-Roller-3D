@@ -24,7 +24,7 @@ Store zustand vanilla do módulo (OS-0031), escrito só lá. Campos de `EstadoDo
 - `gesture`, `throwId`, `aim`, `force`, `launch`, `results`, `raw` (o valor de cima por corpo: dígito do d10, vértice do d4), `ready`.
 - `chargeMode`: `'relative'` (padrão) ou `'static'`, escolhido no `<ModoDeRolagem/>` e lembrado em `localStorage['diceroller.rolagem']` (`repository.ts`).
 
-O estado do presságio (`omen`, `omenAt`, `omenDone`, `omenRig`, `omenTest`) saiu para `pressagios` na OS-0038: o store de lá assina `resultadoPublicado` e decide o presságio no mesmo tique (dois `set`, OS-0031); o `useDice` legado só tem `showcased` (vitrine). Quem precisa dos três junta `{ ...arremesso(), ...presagio(), ...useDice.getState() }`. A casca (`App.tsx`) assina o mesmo evento para gravar o histórico, depois que os módulos carregaram.
+O estado do presságio (`omen`, `omenAt`, `omenDone`, `omenRig`, `omenTest`) saiu para `pressagios` na OS-0038: o store de lá assina `resultadoPublicado` e decide o presságio no mesmo tique (dois `set`, OS-0031); o `showcased` é da `vitrine` (`vitrine()`, OS-0041; o `useDice` legado deixou de existir). Quem precisa dos três junta `{ ...arremesso(), ...presagio(), ...vitrine() }`. A casca (`App.tsx`) assina o mesmo evento para gravar o histórico, depois que os módulos carregaram.
 
 - A falha `'physics'` vive em `shared/plataforma` (`falha()`, `useFalha()`), não no store; `<DicaDaFase/>` a mostra.
 - Movimento reduzido também vive em `shared/plataforma` (`movimentoReduzido()`); `MaoDoArremesso` o lê (sem balanço da mão, retorno curto com fade), como o `Hand` da vitrine, o `QuebraDaMesa` (`pressagios/scene`) e o `__dice.state().reducedMotion`; o `App.tsx` chama `observarPreferenciaDoSistema`.

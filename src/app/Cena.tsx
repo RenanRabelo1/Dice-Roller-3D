@@ -10,7 +10,7 @@ import {
 } from '../modules/arremesso/index';
 import { CorpoDoDado, LoopDoArremesso, MaoDoArremesso, useArremesso } from '../modules/arremesso/cena';
 import type { Vec3 } from '../shared/math';
-import { useDice } from '../store';
+import { vitrine, vitrineConcluida } from '../modules/vitrine/index';
 import { inspecao as inspecaoDoPresagio, presagio, rigOmen } from '../modules/pressagios/index';
 import { PresagiosNaCena, QuebraDaMesa } from '../modules/pressagios/cena';
 import { installTestHook } from './testHook';
@@ -28,8 +28,8 @@ const isPreview = () => import.meta.env.MODE === 'test' && new URLSearchParams(l
 
 // Between animations (phase `hand`, or the showcase done): the DPR and the table's panorama change only then.
 const entreAnimacoes = () => {
-  const { gesture, throwId } = arremesso(), { showcased } = useDice.getState();
-  return gesture.phase === 'hand' || (gesture.phase === 'settled' && showcased === throwId);
+  const { gesture, throwId } = arremesso();
+  return gesture.phase === 'hand' || (gesture.phase === 'settled' && vitrineConcluida(throwId));
 };
 
 export function Cena({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> }) {
@@ -100,13 +100,13 @@ export function Cena({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> 
   useEffect(() => {
     installTestHook({
       state: () => {
-        const state = { ...arremesso(), ...useDice.getState() };
+        const state = arremesso(), { showcased } = vitrine();
         const { omen, omenDone, omenTime, trayBroken, burning } = inspecaoDoPresagio(scene); // the omen's fields, from pressagios
         return {
           dice: state.dice, phase: state.gesture.phase, throwId: state.throwId,
           results: state.results,
           ready: state.ready && state.dice.join(',') === key && registroDeCorpos.current.filter((b) => b?.isValid()).length === selected.length,
-          error: falha(), aim: state.aim, showcased: state.showcased,
+          error: falha(), aim: state.aim, showcased,
           omen, omenDone, reducedMotion: movimentoReduzido(), omenTime, trayBroken, burning, force: state.force,
         };
       },

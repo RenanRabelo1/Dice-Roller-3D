@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resultText } from '../src/dice/notation';
+import { resultText } from '../index.ts';
 
 // The notation moved to src/modules/selecao/tests/notacao.test.ts; the result text stays until vitrine/regras take it.
 describe('resultText', () => {
