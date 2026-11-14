@@ -3,7 +3,7 @@ import type { CustomDie, Polyhedron } from '../contracts.ts';
 import { createSignal } from '../../../shared/events.ts';
 import { build, SYMBOL } from './solidos.ts';
 
-// The registry of imported dice (hydrated from IndexedDB by customStore.ts); the worker registers only the solids.
+// The registry of imported dice (hydrated from IndexedDB by meus-dados); the worker registers only the solids.
 const dice = new Map<CustomKind, CustomDie>();
 const polys = new Map<CustomKind, Polyhedron>();
 

@@ -20,6 +20,7 @@ import { Omens } from '../scene/Omens';
 import { MAX_DICE, omenKind } from '../modules/regras/index';
 import { customKind, customsOf, inspecao } from '../modules/dados/index';
 import { definir } from '../modules/selecao/index';
+import { meusDados } from '../modules/meus-dados/index';
 import { VORTEX, vortexCenter, vortexRadius } from '../throw/vortex';
 import { useTable } from '../scene/tableState';
 import { panoramaTexture } from '../scene/tableImages';
@@ -234,7 +235,7 @@ export function Cena({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> 
         return glow ? { visible: glow.visible, triangles: glow.geometry.getAttribute('position').count / 3, opacity: (glow.material as Material).opacity } : null;
       },
       launches: () => launches.current,
-      customs: () => useDice.getState().customs.map((d) => ({ kind: customKind(d.id), id: d.id, name: d.name, slug: d.slug, base: d.base, printed: d.printed })),
+      customs: () => meusDados().customs.map((d) => ({ kind: customKind(d.id), id: d.id, name: d.name, slug: d.slug, base: d.base, printed: d.printed })),
       table: () => {
         const t = useTable.getState().theme, mesh = (name: string) => scene.getObjectByName(name), hex = (o?: Object3D) => {
           const m = o instanceof Mesh ? (Array.isArray(o.material) ? o.material[0] : o.material) as { color?: Color; map?: unknown } : null;

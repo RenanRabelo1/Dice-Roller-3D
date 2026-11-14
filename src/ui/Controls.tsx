@@ -5,6 +5,8 @@ import { carregarModelo, customDie, customKind, finishOf, hasTexture, nomeDoTipo
 import type { CustomKind } from '../modules/regras/index';
 import { resultText } from '../dice/notation';
 import { BotaoDeDado, BotoesDeDados, Chat, ResumoDaMao } from '../modules/selecao/cena';
+import { atualizar, excluir } from '../modules/meus-dados/index';
+import { useMeusDados } from '../modules/meus-dados/cena';
 import { InkChoice } from './InkChoice';
 import { TablePanel } from './TablePanel';
 
@@ -15,7 +17,7 @@ const ImportDie = lazy(() => import('./ImportDie').then((m) => ({ default: m.Imp
 // The ink and finish of one imported die, changed in place (nothing is imported again).
 function InkButton({ die }: { die: CustomDie }) {
   const [textured, setTextured] = useState(false);
-  const change = (patch: Partial<CustomDie>) => { void useDice.getState().updateCustom({ ...die, ...patch }); };
+  const change = (patch: Partial<CustomDie>) => { void atualizar({ ...die, ...patch }); };
   return (
     <details className="ink-pop" onToggle={(e) => {
       if (e.currentTarget.open && die.file.format === 'glb') void carregarModelo(die).then((o) => setTextured(hasTexture(o)));
@@ -53,7 +55,7 @@ function Force() {
 }
 
 export function Controls() {
-  const customs = useDice((s) => s.customs);
+  const { customs } = useMeusDados();
   const [importing, setImporting] = useState(false), [mounted, setMounted] = useState(false);
   const closeImport = useCallback(() => setImporting(false), []);
   // An imported die: selecao's add/remove pair, then the ink and the bin (of meus-dados, still here).
@@ -64,7 +66,7 @@ export function Controls() {
         <BotaoDeDado kind={type} />
         {customDie(type)?.printed && <InkButton die={customDie(type)!} />}
         <button className="remove" aria-label={`Excluir ${name}`}
-          onClick={() => { if (confirm(`Excluir ${name} deste navegador? Isso não pode ser desfeito.`)) void useDice.getState().removeCustom(type); }}>🗑</button>
+          onClick={() => { if (confirm(`Excluir ${name} deste navegador? Isso não pode ser desfeito.`)) void excluir(type); }}>🗑</button>
       </div>
     );
   };

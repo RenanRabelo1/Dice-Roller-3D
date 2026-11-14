@@ -25,7 +25,7 @@ export interface Numbering { values?: number[]; turns?: number[] }
 export type StdBase = Exclude<CustomBase, 'livre'>; // the d4–d20 bases
 
 // Dice the player imported: a model file plus the polyhedron rebuilt from its face planes. Kept in memory by the
-// catalogue (hydrated from IndexedDB by customStore.ts); polyhedron(kind) and the worker read the polyhedra through it.
+// catalogue (hydrated from IndexedDB by meus-dados); polyhedron(kind) and the worker read the polyhedra through it.
 export interface CustomDie {
   version: 1;
   id: string;

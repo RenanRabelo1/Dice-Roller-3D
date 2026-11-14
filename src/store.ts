@@ -1,7 +1,5 @@
 import { create } from 'zustand';
-import { customDie, customList, registerCustom, unregisterCustom, type CustomDie } from './modules/dados/index.ts';
-import { deleteCustomDie, listCustomDice, saveCustomDie } from './dice/customStore';
-import { omenOf, type CustomKind, type DieKind, type Omen } from './modules/regras/index.ts';
+import { omenOf, type DieKind, type Omen } from './modules/regras/index.ts';
 import { definir, selecao, selecaoAlterada } from './modules/selecao/index.ts';
 import type { Launch } from './physics/apply';
 import { HAND } from './physics/world';
@@ -30,12 +28,6 @@ interface DiceState {
   omenAt: number; // shared animation clock, starting when the physical result is published
   omenRig: Omen | null; // test mode only: forces the omen of the next throws
   omenTest: OmenTest | null; // dev test buttons: the next throws land on faces that play this omen (real physics)
-  customs: CustomDie[]; // the player's imported dice, in creation order
-  sessionOnly: boolean; // IndexedDB is unavailable: imported dice last until the page closes
-  loadCustoms: () => Promise<void>;
-  addCustom: (die: CustomDie) => Promise<string | null>; // null, or why it could not be saved
-  updateCustom: (die: CustomDie) => Promise<string | null>; // save a changed die (e.g. its ink); the selection stays
-  removeCustom: (kind: CustomKind) => Promise<void>;
   reiniciar: () => void; // resets the throw with the same hand (the dice go back to the hand)
   setAim: (aim: Vec3) => void;
   setForce: (force: number) => void;
@@ -65,47 +57,11 @@ const selection = (s: DiceState) => ({
 export const omenPlaying = (s: Pick<DiceState, 'gesture' | 'omen' | 'omenDone' | 'throwId'>) =>
   s.gesture.phase === 'settled' && s.omen?.throwId === s.throwId && s.omenDone !== s.throwId;
 
-export const useDice = create<DiceState>((set, get) => ({
+export const useDice = create<DiceState>((set) => ({
   dice: selecao(), gesture: initialGesture, throwId: 0,
   aim: [0, 0, -1], force: 0, chargeMode: savedMode(), launch: null, results: null, raw: null,
-  ready: false, showcased: 0, omen: null, omenDone: 0, omenAt: 0, omenRig: null, omenTest: null, customs: [], sessionOnly: false,
+  ready: false, showcased: 0, omen: null, omenDone: 0, omenAt: 0, omenRig: null, omenTest: null,
   reiniciar: () => set((s) => selection(s)),
-  loadCustoms: async () => {
-    try {
-      const saved = await listCustomDice();
-      saved.forEach(registerCustom);
-      set({ customs: customList(), sessionOnly: false });
-    } catch { set({ sessionOnly: true }); }
-  },
-  addCustom: async (die) => {
-    let failure: string | null = null;
-    try { await saveCustomDie(die); } catch (e) {
-      // A full disk loses the die; no IndexedDB at all just keeps it for this session.
-      if (e instanceof DOMException && e.name === 'QuotaExceededError') return 'Não coube no armazenamento do navegador. Libere espaço ou use um modelo menor.';
-      failure = 'session';
-    }
-    registerCustom(die);
-    set({ customs: customList(), sessionOnly: failure !== null || get().sessionOnly });
-    return null;
-  },
-  updateCustom: async (die) => {
-    // Applied at once (the controls and the scene follow the store), saved after; a failed save keeps it for this session.
-    registerCustom(die);
-    set({ customs: customList() });
-    try { await saveCustomDie(die); } catch (e) {
-      set({ sessionOnly: true });
-      if (e instanceof DOMException && e.name === 'QuotaExceededError') return 'Não coube no armazenamento do navegador; a mudança vale só nesta sessão.';
-    }
-    return null;
-  },
-  removeCustom: async (kind) => {
-    const die = customDie(kind);
-    if (!die) return;
-    try { await deleteCustomDie(die.id); } catch { /* session-only: nothing stored */ }
-    // selecao takes the kind out of the hand (catalogoAlterado) and the copy follows, before the customs update.
-    unregisterCustom(kind);
-    set({ customs: customList() });
-  },
   setAim: (aim) => set({ aim: [...aim] }),
   setForce: (force) => set({ force }),
   setChargeMode: (chargeMode) => {

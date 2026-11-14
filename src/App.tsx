@@ -11,12 +11,13 @@ import { useTable } from './scene/tableState';
 import { warmImageDecoder } from './scene/tableImages';
 import { registrarArremesso } from './modules/historico/index.ts';
 import { corpoDosDados } from './app/historico';
+import { carregar } from './modules/meus-dados/index.ts';
 
 export default function App() {
   const gameArea = useRef<HTMLDivElement>(null);
   const error = useFalha();
   useState(() => { if (!hasWebGL()) registrarFalha('webgl'); }); // before the first Canvas render
-  useEffect(() => { void useDice.getState().loadCustoms(); void useTable.getState().load(); warmImageDecoder(); }, []);
+  useEffect(() => { void carregar(); void useTable.getState().load(); warmImageDecoder(); }, []);
   useEffect(() => observarPreferenciaDoSistema(), []);
   // Every published result goes to the roll history (when the app has an API address; see src/modules/historico).
   // ponte até a fase 6: historico assina arremesso.resultadoPublicado

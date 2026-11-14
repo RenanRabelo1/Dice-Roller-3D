@@ -9,7 +9,7 @@ O jogador muda o fundo e a aparência da bandeja, salva no navegador e exporta/i
 | `scene/tableTheme.ts` | puro: `TableTheme`, `DEFAULT_THEME` (= a mesa de antes), temas prontos (`PRESETS`, gradientes CSS), `LIMITS`, `checkTheme`, `extrasOf`/`readExtras` (o tema que viaja no `.glb`) |
 | `scene/tableState.ts` | zustand `useTable`: tema ativo, mesas salvas, `sessionOnly`, `colors` (cores que a mesa realmente mostra; o kraken usa) |
 | `scene/tableStore.ts` | IndexedDB store `tables` + id ativo em `localStorage['mesa.ativa']` |
-| `shared/db.ts` | abertura única do banco `dice-roller` **v2**; não conhece nome de store: `tableStore.ts` declara `tables` e `customStore.ts` declara `customDice` com `defineStore`; o upgrade só cria o que falta |
+| `shared/db.ts` | abertura única do banco `dice-roller` **v2**; não conhece nome de store: `tableStore.ts` declara `tables` e `modules/meus-dados/repository.ts` declara `customDice` com `defineStore`; o upgrade só cria o que falta |
 | `scene/tableTextures.ts`, `tableImages.ts` | texturas do feltro (veludo/couro desenhadas em canvas, ou a imagem do jogador) e redução de imagens (foto ≤ 4096 px, textura ≤ 2048 px) |
 | `scene/tableBuild.ts` | monta a mesa padrão (`defaultTable`, `buildDefault`), nomes (`roleOf`, `find`), `colorsOf`, `disposeTable`; carregado junto com a cena |
 | `scene/tableFile.ts` | **sob demanda** (traz GLTFLoader/Exporter): `exportTable`, `readTable` → `cleanTable` → `fitTable`, `buildFor` (qualquer tema) |

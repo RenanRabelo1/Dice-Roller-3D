@@ -1,6 +1,7 @@
-import { defineStore } from '../shared/db';
-import type { CustomDie } from '../modules/dados/index';
+import { defineStore } from '../../shared/db.ts';
+import type { CustomDie } from '../dados/index.ts';
 
+// Declared when the module loads, before the first open of the database (armadilhas.md): never load this file with import().
 const store = defineStore('customDice');
 
 // Where imported dice live between visits (store `customDice`, opened by shared/db.ts); callers treat a failure as "this session only".

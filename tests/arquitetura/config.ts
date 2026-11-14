@@ -42,10 +42,6 @@ export interface DadoLegado { arquivo: string; dado: string; motivo: string }
 
 export const DADOS_LEGADO: DadoLegado[] = [
   {
-    arquivo: 'src/dice/customStore.ts', dado: 'customDice',
-    motivo: 'Legado sem módulo: a store é de meus-dados, que ainda não foi extraído. Vai para src/modules/meus-dados/repository.ts (ADR 0003 ponto 5; plano-refatoracao.md §8).',
-  },
-  {
     arquivo: 'src/scene/tableStore.ts', dado: 'tables',
     motivo: 'Legado sem módulo: a store é da mesa, que ainda não foi extraída. Vai para src/modules/mesa/repository.ts (ADR 0003 ponto 5; plano-refatoracao.md §8).',
   },

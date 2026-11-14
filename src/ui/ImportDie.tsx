@@ -8,7 +8,8 @@ import { adicionar, slugOf, slugProblem } from '../modules/selecao/index';
 import { useSelecao } from '../modules/selecao/cena';
 import { MAX_DICE, type CustomBase } from '../modules/regras/index';
 import { GemMaterial, paintGlb, usePainted } from '../modules/dados/cena';
-import { useDice } from '../store';
+import { salvar } from '../modules/meus-dados/index';
+import { useMeusDados } from '../modules/meus-dados/cena';
 import { InkChoice } from './InkChoice';
 
 type Step = 'file' | 'shape' | 'numbers' | 'save';
@@ -103,7 +104,7 @@ function Preview({ loaded, color, orient, face, plain, dressed, ink, finish, pri
 }
 
 export function ImportDie({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const customs = useDice((s) => s.customs), sessionOnly = useDice((s) => s.sessionOnly), selected = useSelecao();
+  const { customs, sessionOnly } = useMeusDados(), selected = useSelecao();
   const [step, setStep] = useState<Step>('file');
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [error, setError] = useState('');
@@ -274,7 +275,7 @@ export function ImportDie({ open, onClose }: { open: boolean; onClose: () => voi
       ...(printed ? { ink: textured && ink !== 'nenhuma' ? 'escura' as const : ink } : {}), ...(loaded.format === 'stl' ? { finish: surface } : {}),
     };
     setBusy(true);
-    const failure = await useDice.getState().addCustom(die);
+    const failure = await salvar(die);
     setBusy(false);
     if (failure) { setError(failure); return; }
     if (selected.length < MAX_DICE) adicionar(customKind(die.id));
