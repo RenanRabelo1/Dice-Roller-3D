@@ -2,11 +2,9 @@ import { lazy, Suspense, useCallback, useState } from 'react';
 import { omenPlaying, useDice } from '../store';
 import { useFalha } from '../shared/plataforma';
 import { carregarModelo, customDie, customKind, finishOf, hasTexture, nomeDoTipo, type CustomDie } from '../modules/dados/index';
-import { isCustom, KINDS, MAX_DICE, type DieKind } from '../modules/regras/index';
+import type { CustomKind } from '../modules/regras/index';
 import { resultText } from '../dice/notation';
-import { adicionar, formatDice, remover } from '../modules/selecao/index';
-import { useSelecao } from '../modules/selecao/cena';
-import { Chat } from './Chat';
+import { BotaoDeDado, BotoesDeDados, Chat, ResumoDaMao } from '../modules/selecao/cena';
 import { InkChoice } from './InkChoice';
 import { TablePanel } from './TablePanel';
 
@@ -55,20 +53,18 @@ function Force() {
 }
 
 export function Controls() {
-  const dice = useSelecao(), customs = useDice((s) => s.customs);
+  const customs = useDice((s) => s.customs);
   const [importing, setImporting] = useState(false), [mounted, setMounted] = useState(false);
   const closeImport = useCallback(() => setImporting(false), []);
-  const pick = (type: DieKind, mine = false) => {
-    const n = dice.filter((d) => d === type).length, name = nomeDoTipo(type);
+  // An imported die: selecao's add/remove pair, then the ink and the bin (of meus-dados, still here).
+  const mine = (type: CustomKind) => {
+    const name = nomeDoTipo(type);
     return (
       <div className="pick" key={type}>
-        <button aria-label={`Adicionar ${name}`} aria-pressed={n > 0} disabled={dice.length >= MAX_DICE}
-          onClick={() => adicionar(type)}>{n ? formatDice(dice.filter((d) => d === type)) : name}</button>
-        {n > 0 && <button className="remove" aria-label={`Remover ${name}`} disabled={dice.length === 1}
-          onClick={() => remover(type)}>−</button>}
-        {mine && isCustom(type) && customDie(type)?.printed && <InkButton die={customDie(type)!} />}
-        {mine && <button className="remove" aria-label={`Excluir ${name}`}
-          onClick={() => { if (confirm(`Excluir ${name} deste navegador? Isso não pode ser desfeito.`)) void useDice.getState().removeCustom(type as `custom:${string}`); }}>🗑</button>}
+        <BotaoDeDado kind={type} />
+        {customDie(type)?.printed && <InkButton die={customDie(type)!} />}
+        <button className="remove" aria-label={`Excluir ${name}`}
+          onClick={() => { if (confirm(`Excluir ${name} deste navegador? Isso não pode ser desfeito.`)) void useDice.getState().removeCustom(type); }}>🗑</button>
       </div>
     );
   };
@@ -80,14 +76,12 @@ export function Controls() {
     <>
       <header className="controls panel">
         <h1>Rolador de dados</h1>
-        <div className="selection" role="group" aria-label="Dados">
-          {KINDS.map((type) => pick(type))}
-        </div>
+        <BotoesDeDados />
         <div className="selection" role="group" aria-label="Meus dados">
-          {customs.map((d) => pick(customKind(d.id), true))}
+          {customs.map((d) => mine(customKind(d.id)))}
           <button aria-expanded={importing} aria-controls="import-die" onClick={() => { setMounted(true); setImporting((o) => !o); }}>Importar dado</button>
         </div>
-        <p className="pool" aria-live="polite">{formatDice(dice)}</p>
+        <ResumoDaMao />
         <Chat />
         <TablePanel />
         {mounted && <Suspense fallback={null}><ImportDie open={importing} onClose={closeImport} /></Suspense>}

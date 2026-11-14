@@ -1,7 +1,6 @@
-// Scene door of `selecao` (ADR 0010): the React hooks. Everything pure is in index.ts.
-import { useStore } from 'zustand';
-import type { DieKind } from '../regras/index.ts';
-import { store } from './store.ts';
-
-// The hand, re-rendering when it changes.
-export const useSelecao = (): DieKind[] => useStore(store, (s) => s.dice);
+// Scene door of `selecao` (ADR 0010): the React hooks and components. Everything pure is in index.ts.
+export { useSelecao } from './ui/useSelecao.tsx';
+export { BotaoDeDado } from './ui/BotaoDeDado.tsx';
+export { BotoesDeDados } from './ui/BotoesDeDados.tsx';
+export { ResumoDaMao } from './ui/ResumoDaMao.tsx';
+export { Chat } from './ui/Chat.tsx';

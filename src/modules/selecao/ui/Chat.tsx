@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { definir, formatDice, parseDice } from '../modules/selecao/index';
+import { formatDice, parseDice } from '../domain/notacao.ts';
+import { definir } from '../store.ts';
 
 type Line = { id: number; from: 'you' | 'app'; text: string; error?: boolean };
 

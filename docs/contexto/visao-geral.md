@@ -38,7 +38,7 @@ src/
   shared/db.ts             abre o IndexedDB `dice-roller` v2; cada dono declara a sua store (`defineStore`)
   main.tsx, App.tsx        casca: <Controls/> + <Canvas><Cena/></Canvas> + <OmenOverlay/>
   shared/plataforma/       falha registrada (`registrarFalha`), `Guard`, `Failure`, sonda WebGL, renderizador por software, movimento reduzido (`movimentoReduzido`, evento de mudança)  → armadilhas.md
-  store.ts                 zustand: seleção, fase, throwId, launch, results, omen  → arremesso.md
+  store.ts                 zustand: dados do arremesso (cópia da mão), fase, throwId, launch, results, omen  → arremesso.md
   app/                     casca: a cena, o window.__dice e a ponte do histórico
     Cena.tsx                 raiz da cena, ThrowLoop (replay), câmera, DPR, test hook
     testHook.ts              window.__dice (só em mode=test)                        → testes.md
@@ -46,6 +46,7 @@ src/
   modules/regras/          regras do jogo, puras, compartilhadas com server/        → modules/regras/CLAUDE.md
   modules/historico/       envia cada resultado à API (só com VITE_API_URL)        → server/src/modules/historico/CLAUDE.md
   modules/dados/           sólidos, catálogo (registro dos importados), leitura, símbolos, tinta, aparência; `index.ts` puro, `cena.ts` com componentes e hooks  → dados.md
+  modules/selecao/         a mão (store vanilla), notação e apelido, chat e botões de dado; `index.ts` puro, `cena.ts` com hook e componentes  → modules/selecao/CLAUDE.md
   dice/                    o resto do legado dos dados (sem React)                  → dados.md
     customStore.ts           IndexedDB store `customDice`
     importer.ts              .stl/.glb → poliedro (detecção, sólido ideal, calibração)
@@ -67,7 +68,7 @@ src/
     table*.ts, Backdrop.tsx  mesa e fundo personalizados, .glb                      → mesa.md
     showcase.ts, highlight.ts poses e linha do tempo do "voo até a câmera"         → apresentacao.md
     Omens.tsx, Kraken.ts, krakenMotion.ts, Fire.ts, fireMotion.ts  presságios 3D   → apresentacao.md
-  ui/                      HTML: Controls (seleção + painel), Chat, OmenOverlay, ImportDie (assistente, carregado sob demanda),
+  ui/                      HTML: Controls (cabeçalho com os componentes de selecao, Meus dados, painel), OmenOverlay, ImportDie (assistente, carregado sob demanda),
                            TablePanel (mesa e fundo)
 tests/                     Vitest (unidades puras + física Node); helpers/sim.ts
 server/                    API do histórico (Fastify + MongoDB; usa `src/modules/regras` pelo `index.ts`, roda em Node com TS nativo)
