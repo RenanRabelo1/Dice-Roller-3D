@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { BoxGeometry, IcosahedronGeometry } from 'three';
 import type { StdBase } from '../src/dice/custom';
-import { askOrder, checkValues, detectFree, detectPlanes, idealSolid, ImportError, importModel, inkOf, inkTriangles, LIMITS, looksNumbered, readModel, renumbered, suggestOpposite, tierOf, unevenOf, withReadable } from '../src/dice/importer';
+import { askOrder, checkValues, detectFree, detectPlanes, idealSolid, ImportError, importModel, inkOf, LIMITS, looksNumbered, readModel, renumbered, suggestOpposite, tierOf, unevenOf, withReadable } from '../src/dice/importer';
 import { RADIUS, polyhedron } from '../src/dice/polyhedra';
+import { inkTriangles } from '../src/modules/dados/index';
 import type { Vec3 } from '../src/shared/math';
 import { asFile, glb, hullTriangles, modelTriangles, planesSolid, prismTriangles, shardTriangles, stl, triacontahedronNormals } from './helpers/models';
 

@@ -21,5 +21,5 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["tests", "src/**/tests", "e2e", "playwright.config.ts"]
+  "include": ["tests", "src/**/tests", "src/troika-three-text.d.ts", "e2e", "playwright.config.ts"]
 }

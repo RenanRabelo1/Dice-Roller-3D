@@ -32,9 +32,18 @@ describe('as regras disparam (fixtures/modulos)', () => {
   const pares = (nome: keyof typeof REGRAS) => REGRAS[nome](fixture).map((v) => `${v.de} → ${v.para}`).sort();
 
   it('import interno de outro módulo e contracts.ts sem import type', () => {
+    // a/permitido.ts → c/cena.ts (the scene door, ADR 0010) is allowed, so it is absent.
+    expect(fixture.arestas).toContainEqual(expect.objectContaining({ de: 'src/modules/a/permitido.ts', para: 'src/modules/c/cena.ts' }));
     expect(pares('portaUnica')).toEqual([
       'src/modules/a/contratoComValor.ts → src/modules/b/contracts.ts',
       'src/modules/a/index.ts → src/modules/b/interno.ts',
+    ]);
+  });
+  it('index.ts alcançando react ou @react-three/*, direto ou por arquivo do módulo (ADR 0010)', () => {
+    // import type of react (index.ts) and cena.ts, which index.ts does not reach, are allowed, so they are absent.
+    expect(pares('indexSemReact')).toEqual([
+      'src/modules/c/comReact.ts → react',
+      'src/modules/c/index.ts → @react-three/fiber',
     ]);
   });
   it('ciclo entre módulos, mesmo só por index.ts', () => {
@@ -56,6 +65,8 @@ describe('as regras disparam (fixtures/modulos)', () => {
     expect(pares('moduloSemLegado')).toEqual([
       'src/modules/a/casca.ts → src/App.tsx',
       'src/modules/a/legado.ts → src/dice/outro.ts',
+      'src/modules/a/legadoDinamico.ts → src/dice/outro.ts',
+      'src/modules/a/legadoTipo.ts → src/dice/outro.ts',
       'src/modules/regras/fora.ts → src/dice/kinds.ts',
     ]);
   });

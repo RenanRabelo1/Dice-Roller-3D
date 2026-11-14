@@ -6,7 +6,7 @@ Rolador de dados 3D (React 19 + three/R3F + Rapier + zustand, Vite). A UI é em 
 
 ## Regras (seção 2 do guia, com as adaptações dos ADRs)
 
-1. **Porta única.** De fora, um módulo (`src/modules/<m>/`) só é acessado pelo `index.ts`. O `contracts.ts` pode ser importado só com `import type`.
+1. **Porta única.** De fora, um módulo (`src/modules/<m>/`) só é acessado pelo `index.ts`. O `contracts.ts` pode ser importado só com `import type`. Um módulo com cena tem uma segunda porta, `cena.ts`, para componentes e hooks React. O `index.ts` continua puro, sem React, para o worker e os testes em Node (ADR 0010).
 2. **Dono dos dados.** Cada dado tem um módulo dono, registrado no bloco `donos-dos-dados` do [mapa](docs/mapa-modulos.md). Isso vale para stores zustand, stores do IndexedDB, chaves do `localStorage` e a coleção `rolls`. Ninguém lê o store de outro módulo (ADR 0003).
 3. **Contratos tipados.** Tudo o que entra e sai de um módulo está em `contracts.ts`. O frontend importa do servidor só os tipos (ADR 0004).
 4. **Sem ciclos.** Quando dois módulos precisam reagir um ao outro, a comunicação passa pelo sinal síncrono de `src/shared/events.ts` (ADR 0005).

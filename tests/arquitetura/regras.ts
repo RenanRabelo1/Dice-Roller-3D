@@ -93,19 +93,45 @@ export const sharedIsolado = (g: Grafo) => internas(g)
   .filter((a) => dentro('src/shared', a.de) && dentro('src', a.para) && !dentro('src/shared', a.para))
   .map(violacao('shared importa fora de src/shared', 'regra 1 do guia; ADR 0006'));
 
-/** From another module only its `index.ts`, or its `contracts.ts` as `import type`. */
+/** From another module only its doors: `index.ts` (pure), `cena.ts` (components and hooks, ADR 0010), or its
+ * `contracts.ts` as `import type`. */
 export const portaUnica = (g: Grafo) => internas(g).filter((a) => {
   const de = moduloDe(a.de), para = moduloDe(a.para);
   if (!de || !para || de === para) return false;
   const arquivo = a.para.slice(`src/modules/${para}/`.length);
-  return !(arquivo === 'index.ts' || (arquivo === 'contracts.ts' && a.soTipo));
-}).map(violacao('porta única: de outro módulo só index.ts, ou contracts.ts com import type', 'regra 1 do guia; ADR 0006'));
+  return !(arquivo === 'index.ts' || arquivo === 'cena.ts' || (arquivo === 'contracts.ts' && a.soTipo));
+}).map(violacao('porta única: de outro módulo só index.ts, cena.ts, ou contracts.ts com import type', 'regra 1 do guia; ADR 0006; ADR 0010'));
+
+const ehReact = (p: string) => p === 'react' || p.startsWith('react/') || p.startsWith('@react-three/');
+
+/** The closure of each module's `index.ts` (the files of its own module it reaches, `import()` included) imports
+ * neither `react` nor `@react-three/*`: the worker and the Node tests load only the pure half (ADR 0010).
+ * `import type` is erased, so it is neither followed nor counted. */
+export const indexSemReact = (g: Grafo) => {
+  const saidas = new Map<string, Aresta[]>();
+  for (const a of g.arestas) if (!a.soTipo) saidas.set(a.de, [...(saidas.get(a.de) ?? []), a]);
+  const viu = new Set<string>(), erros: Aresta[] = [];
+  for (const porta of g.arquivos.filter((f) => /^src\/modules\/[^/]+\/index\.ts$/.test(f))) {
+    const m = moduloDe(porta), fila = [porta];
+    while (fila.length) {
+      const f = fila.shift()!;
+      if (viu.has(f)) continue;
+      viu.add(f);
+      for (const a of saidas.get(f) ?? []) {
+        if (a.externo) { if (ehReact(a.para)) erros.push(a); }
+        else if (moduloDe(a.para) === m) fila.push(a.para);
+      }
+    }
+  }
+  return erros.map(violacao('index.ts alcança react ou @react-three/* dentro do módulo', 'ADR 0010'));
+};
 
 /** No module imports the shell (`src/main.tsx`, `src/App.tsx`, `src/app/**`). */
 export const semCasca = (g: Grafo) => internas(g).filter((a) => moduloDe(a.de) && ehCasca(a.para))
   .map(violacao('módulo importa a casca', 'regra 1 do guia; ADR 0006'));
 
-/** A module file imports, inside `src/`, only its own module, another module (its door: see `portaUnica`) or
+/** A module file imports, inside `src/`, only its own module, another module (its doors, `index.ts` or `cena.ts`: see
+ * `portaUnica`) or
  * `src/shared/**`. Legacy (`src/dice`, `scene`, `physics`, `throw`, `ui`, `api`, `store.ts`, `testHook`…) and shell fail.
  * Packages and the server (`fronteiraDoServidor`) are outside `src/`, so not this rule's. */
 export const moduloSemLegado = (g: Grafo) => internas(g).filter((a) => {
@@ -151,4 +177,4 @@ const podeImportarMongodb = (f: string) => /^server\/src\/modules\/[^/]+\/reposi
 export const mongodbSoNoRepositorio = (g: Grafo) => g.arestas.filter((a) => a.externo && ehMongodb(a.para) && !podeImportarMongodb(a.de))
   .map(violacao('mongodb importado fora de repository.ts e de server/src/shared/db.ts', 'ADR 0006'));
 
-export const REGRAS = { sharedIsolado, portaUnica, semCasca, moduloSemLegado, regrasPuras, fronteiraDoServidor, rotasDoServidor, mongodbSoNoRepositorio };
+export const REGRAS = { sharedIsolado, portaUnica, indexSemReact, semCasca, moduloSemLegado, regrasPuras, fronteiraDoServidor, rotasDoServidor, mongodbSoNoRepositorio };

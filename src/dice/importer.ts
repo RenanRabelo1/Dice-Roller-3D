@@ -1,10 +1,13 @@
-import { Mesh, Vector3, type BufferGeometry, type Material, type Object3D, type Texture } from 'three';
+import { Vector3, type Object3D } from 'three';
 import { ConvexHull } from 'three/examples/jsm/math/ConvexHull.js';
 import type { Vec3 } from '../shared/math';
 import { ModelError, readModel as readShared, type Model, type ModelFormat } from '../shared/modelos3d';
-import { customKind, type CustomDie, type StdBase } from './custom';
+import type { StdBase } from './custom';
 import { FREE_VALUES, type CustomBase } from '../modules/regras/index.ts';
 import { fromTriangles, OPPOSITE_SUM, RADIUS, type Numbering, type Polyhedron } from './polyhedra';
+import { dentTester, inkTriangles } from '../modules/dados/index';
+// ponte até a OS-0022
+export { hasTexture, inkTriangles, markInk, carregarModelo as modelObject } from '../modules/dados/index';
 
 // Turns a die model (.stl / .glb) into a polyhedron the physics and the reader can use. Pure: tested in Node.
 // The solid is rebuilt from the model's own face planes, so the collider matches the model, not a stock die.
@@ -278,32 +281,8 @@ export function withReadable(poly: Polyhedron, readable: Vec3[] | null): Polyhed
 }
 
 // Does the model have numerals cut into (or raised from) its faces? A numeral leaves vertices well below the plane
-// of a face, in the middle of it. An edge chamfer also sits below the planes, but near an edge, so it does not count.
-const DENT = 0.01, INTERIOR = 0.08, MIN_DENTS = 8;
-// A free-form die's numerals often sit on narrow faces, close to an edge. Measured on a real D5 shard: edge chamfers stay
-// within 0.021 R of the second face, numerals start at 0.046 R. (d4–d20 keep INTERIOR.)
-const INTERIOR_FREE = 0.03;
-// Is this model point sunk into the middle of a face (a numeral), by the rule above? `at(k)` is its coordinate k.
-function dentTester({ poly, fit }: Solid): (at: (k: number) => number) => boolean {
-  const R = RADIUS[poly.shape], interior = poly.shape === 'livre' ? INTERIOR_FREE : INTERIOR;
-  const planes = poly.faces.map((f) => ({ n: f.normal, d: dot3(f.normal, f.center) }));
-  return (at) => {
-    const p: Vec3 = [0, 1, 2].map((k) => (at(k) - fit.center[k]) * fit.scale) as Vec3;
-    const slack = planes.map((pl) => pl.d - dot3(pl.n, p)).sort((a, b) => a - b);
-    return slack[0] > DENT * R && slack[1] > interior * R;
-  };
-}
-
-// Ink mask per triangle (9 numbers each in `positions`): 1 when the middle of the triangle is cut into a face
-// (a numeral), 0 elsewhere. Per triangle, not per vertex, so the edge of a numeral stays sharp once painted.
-export function inkTriangles(positions: ArrayLike<number>, solid: Solid): Uint8Array {
-  const dent = dentTester(solid), out = new Uint8Array(Math.floor(positions.length / 9));
-  for (let t = 0; t < out.length; t++) {
-    const i = t * 9;
-    out[t] = dent((k) => (positions[i + k] + positions[i + 3 + k] + positions[i + 6 + k]) / 3) ? 1 : 0;
-  }
-  return out;
-}
+// of a face, in the middle of it (dados' dentTester); a numbered model shows at least MIN_DENTS such vertices.
+const MIN_DENTS = 8;
 
 // The same mask spread over the vertices of each triangle, for the preview: 3 floats (grey) per vertex.
 export function inkOf(positions: ArrayLike<number>, solid: Solid): Float32Array {
@@ -405,39 +384,3 @@ export async function importModel(bytes: ArrayBuffer, format: ModelFormat, mode:
   const solid = idealSolid(base, planes);
   return { base, ...solid, triangles: model.triangles, object: model.object, hasNumbers: looksNumbered(model.positions, solid) };
 }
-
-// --- showing the model in the scene -----------------------------------------------------------------------------
-
-const loaded = new Map<string, Promise<Object3D>>();
-// The model's own meshes, parsed once per die; callers clone it.
-export function modelObject(die: CustomDie): Promise<Object3D> {
-  const key = customKind(die.id);
-  let p = loaded.get(key);
-  if (!p) { p = readModel(die.file.bytes, die.file.format).then((m) => (die.printed ? markInk(m.object, { poly: die.poly, fit: die.fit }) : m.object)); loaded.set(key, p); }
-  return p;
-}
-
-// Marks which triangles of each mesh are engraved numerals (`geometry.userData.ink`, 1 per triangle), once per die.
-// It lives on the geometry, which a cloned mesh shares; Object3D.clone would copy a typed array in userData as JSON.
-// The meshes are made non-indexed first, so triangle t owns vertices 3t..3t+2 and a colour attribute can follow it.
-export function markInk(root: Object3D, solid: Solid): Object3D {
-  root.updateWorldMatrix(true, true);
-  const v = new Vector3();
-  root.traverse((o) => {
-    if (!(o instanceof Mesh)) return;
-    if (o.geometry.index) o.geometry = (o.geometry as BufferGeometry).toNonIndexed();
-    const pos = (o.geometry as BufferGeometry).getAttribute('position'), flat = new Float32Array(pos.count * 3);
-    for (let i = 0; i < pos.count; i++) v.fromBufferAttribute(pos, i).applyMatrix4(o.matrixWorld).toArray(flat, i * 3);
-    o.geometry.userData.ink = inkTriangles(flat, solid);
-  });
-  return root;
-}
-// Does any material of the model carry a texture of its own? (Then only dark ink or none suits it.)
-export const hasTexture = (root: Object3D): boolean => {
-  let found = false;
-  root.traverse((o) => {
-    if (o instanceof Mesh) for (const m of Array.isArray(o.material) ? o.material : [o.material]) if ((m as Material & { map?: Texture | null }).map) found = true;
-  });
-  return found;
-};
-export const forgetModel = (kind: string) => { loaded.delete(kind); };

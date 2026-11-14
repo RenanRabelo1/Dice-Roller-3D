@@ -1,6 +1,7 @@
-import { customDie, customKind, customList, type CustomDie } from './custom';
+import { customKind, customList, type CustomDie } from './custom';
 import { allKinds, baseOf, sortDice } from './polyhedra';
-import { isCustom, MAX_DICE, total as sumOf, type DieKind } from '../modules/regras/index.ts';
+import { nomeDoTipo } from '../modules/dados/index';
+import { MAX_DICE, total as sumOf, type DieKind } from '../modules/regras/index.ts';
 
 // What may follow the "d": longest first, so "d100" wins over "d10" + "0" and "d10vampiro" over "d10v".
 const AFTER_D: [string, DieKind][] = [
@@ -9,11 +10,7 @@ const AFTER_D: [string, DieKind][] = [
 ];
 const FIREBALL = 'boladefogo'; // "bola de fogo": the spell's 8d6
 
-const CUSTOM: Partial<Record<DieKind, string>> = { vtm: 'd10 Vampiro', hunger: 'd10 Fome', fire: 'd6 Fogo', coin: 'Moeda' };
-export const dieName = (kind: DieKind): string => {
-  if (isCustom(kind)) return baseOf(kind) === 'livre' ? customDie(kind)?.name ?? '?' : `${baseOf(kind)} ${customDie(kind)?.name ?? '?'}`; // "d20 Caveira", a free-form die only "Caveira"
-  return CUSTOM[kind] ?? kind;
-};
+export const dieName = nomeDoTipo; // ponte até a OS-0022
 
 // The nickname an imported die answers to in the chat ("2d20caveira"): letters and digits, starting with a letter,
 // and clear of the words the chat already reads.
