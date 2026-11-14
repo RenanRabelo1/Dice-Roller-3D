@@ -39,11 +39,12 @@ src/
   main.tsx, App.tsx        casca: <Controls/> + <Canvas><Cena/></Canvas> + <OmenOverlay/>
   shared/plataforma/       falha registrada (`registrarFalha`), `Guard`, `Failure`, sonda WebGL, renderizador por software, movimento reduzido (`movimentoReduzido`, evento de mudança)  → armadilhas.md
   store.ts                 zustand: seleção, fase, throwId, launch, results, omen  → arremesso.md
-  api/history.ts           envia cada resultado à API (só com VITE_API_URL)
-  app/                     casca: a cena e o window.__dice
+  app/                     casca: a cena, o window.__dice e a ponte do histórico
     Cena.tsx                 raiz da cena, ThrowLoop (replay), câmera, DPR, test hook
     testHook.ts              window.__dice (só em mode=test)                        → testes.md
+    historico.ts             `corpoDosDados`: corpo de cada dado (importado com base/omens do registro)
   modules/regras/          regras do jogo, puras, compartilhadas com server/        → modules/regras/CLAUDE.md
+  modules/historico/       envia cada resultado à API (só com VITE_API_URL)        → server/src/modules/historico/CLAUDE.md
   dice/                    domínio puro dos dados (sem React)                       → dados.md
     polyhedra.ts             geometria, numeração, rótulos, `fromTriangles` (os tipos de dado vêm de `modules/regras`)
     custom.ts                tipo `CustomDie` + registro em memória dos dados importados

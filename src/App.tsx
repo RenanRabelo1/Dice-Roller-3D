@@ -9,7 +9,8 @@ import { Backdrop } from './scene/Backdrop';
 import { Failure, Guard, hasWebGL, observarPreferenciaDoSistema, registrarFalha, useFalha } from './shared/plataforma';
 import { useTable } from './scene/tableState';
 import { warmImageDecoder } from './scene/tableImages';
-import { saveRoll } from './api/history';
+import { registrarArremesso } from './modules/historico/index.ts';
+import { corpoDosDados } from './app/historico';
 
 export default function App() {
   const gameArea = useRef<HTMLDivElement>(null);
@@ -17,9 +18,10 @@ export default function App() {
   useState(() => { if (!hasWebGL()) registrarFalha('webgl'); }); // before the first Canvas render
   useEffect(() => { void useDice.getState().loadCustoms(); void useTable.getState().load(); warmImageDecoder(); }, []);
   useEffect(() => observarPreferenciaDoSistema(), []);
-  // Every published result goes to the roll history (when the app has an API address; see src/api/history).
+  // Every published result goes to the roll history (when the app has an API address; see src/modules/historico).
+  // ponte até a fase 6: historico assina arremesso.resultadoPublicado
   useEffect(() => useDice.subscribe((s, prev) => {
-    if (s.results && s.results !== prev.results) saveRoll(s.dice, s.results, s.force);
+    if (s.results && s.results !== prev.results) registrarArremesso({ dice: corpoDosDados(s.dice, s.results), force: s.force });
   }), []);
   return (
     <main className="app">

@@ -24,7 +24,7 @@ Imports e ciclos (regras 1 e 4 do guia, ADR 0006 parte A) e dono dos dados (regr
   - **ciclos** (Tarjan, contando tipo, dinâmico e worker) em dois níveis: `arquivo` e `pasta` (unidade = `src/modules/<m>`, `src/<pasta>` ou arquivo da raiz de `src/`; no servidor, `server/src/modules/<m>`, `server/src/<pasta>` ou arquivo da raiz de `server/src`);
   - `src/shared/**` não importa nada de `src/` fora de `src/shared/`;
   - de outro módulo, só `index.ts`, ou `contracts.ts` com `import type`; módulo não importa a casca (`src/main.tsx`, `src/App.tsx`, `src/app/**`); `src/modules/regras/**` não importa pacote nem arquivo fora dele (ADR 0002);
-  - `server/**` → `src/**` só para os arquivos de `SERVIDOR_PODE_IMPORTAR`; `src/**` → `server/**` só `import type` de `server/src/modules/<m>/contracts.ts`. Dentro do `server/`, o `routes.ts` de um módulo só importa o próprio `service.ts`/`contracts.ts`/`repository.ts` ou algo de `server/src/shared/`, e `mongodb` só é importado por `repository.ts` e `server/src/shared/db.ts` (arquivos em `tests/` também podem, para montar o banco de teste).
+  - `server/**` → `src/**` só para os arquivos de `SERVIDOR_PODE_IMPORTAR`; `src/**` → `server/**` só `import type` de `server/src/modules/<m>/contracts.ts`. Dentro do `server/`, o `routes.ts` de um módulo só importa o próprio `service.ts`/`contracts.ts`/`repository.ts` ou algo de `server/src/shared/`, e `mongodb` só é importado por `repository.ts` e `server/src/shared/db.ts` (arquivos em `server/src/**/tests/` também podem, para montar o banco de teste).
 - As regras de módulo valem antes de existir módulo: `fixtures/modulos/` é uma árvore mínima (`src/`, `server/`) que viola cada regra uma vez, e o teste confere que cada uma dispara. Os fixtures são checados pelo `tsc -b` (`tsconfig.test.json`); os que não compilam de propósito (import quebrado, caminho absoluto, grafia) usam `// @ts-nocheck`.
 - Falha sai como `[regra] origem → destino (regra do guia / ADR)`.
 
@@ -57,7 +57,7 @@ Regra 2 do guia (ADR 0006 parte B; ADR 0003 pontos 2 e 5). Varre só produção:
 
 - `playwright.config.ts`: Chrome instalado (`channel: 'chrome'`), WebGL por software (`--use-gl=angle --use-angle=swiftshader`), 1440×900, `workers: 1`, timeout 120 s.
 - Sobe `npm run dev:test` (Vite em `--mode test`, 127.0.0.1:5179, porta fixa). Não reusa servidor existente (nem o stub abaixo).
-- Sobe também `node e2e/api-stub.mjs` (127.0.0.1:5180): um stub da API do histórico que responde 204 a tudo, com CORS e preflight `OPTIONS`. O Vite de teste recebe `VITE_API_URL=http://127.0.0.1:5180`, então o build de teste envia o histórico (`src/api/history.ts`) e um POST que nenhum teste intercepta não gera erro de console (um 404 ou um endereço morto gerariam, e vários specs exigem console limpo). `history.spec` intercepta `http://127.0.0.1:5180/rolls` com `page.route`.
+- Sobe também `node e2e/api-stub.mjs` (127.0.0.1:5180): um stub da API do histórico que responde 204 a tudo, com CORS e preflight `OPTIONS`. O Vite de teste recebe `VITE_API_URL=http://127.0.0.1:5180`, então o build de teste envia o histórico (`src/modules/historico/`) e um POST que nenhum teste intercepta não gera erro de console (um 404 ou um endereço morto gerariam, e vários specs exigem console limpo). `history.spec` intercepta `http://127.0.0.1:5180/rolls` com `page.route`.
 - Em `mode === 'test'` o canvas usa `preserveDrawingBuffer` e o app expõe `window.__dice` (tipo em `src/app/testHook.ts`, instalado em `app/Cena.tsx`).
 
 ### `window.__dice` (DiceHook)

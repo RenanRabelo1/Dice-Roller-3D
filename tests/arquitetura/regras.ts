@@ -136,8 +136,8 @@ export const rotasDoServidor = (g: Grafo) => internas(g).filter((a) => {
 
 const ehMongodb = (p: string) => p === 'mongodb' || p.startsWith('mongodb/');
 const podeImportarMongodb = (f: string) => /^server\/src\/modules\/[^/]+\/repository\.ts$/.test(f) || f === 'server/src/shared/db.ts'
-  // Test files build their own in-memory database; the data scan skips `tests/` the same way (RAIZES_DADOS).
-  || /(^|\/)tests\//.test(f);
+  // The server's test files build their own in-memory database; only `server/src/**/tests/` is let through.
+  || /^server\/src\/(.+\/)?tests\//.test(f);
 
 /** `mongodb` is imported only by a module's `repository.ts` and by `server/src/shared/db.ts` (ADR 0006). */
 export const mongodbSoNoRepositorio = (g: Grafo) => g.arestas.filter((a) => a.externo && ehMongodb(a.para) && !podeImportarMongodb(a.de))

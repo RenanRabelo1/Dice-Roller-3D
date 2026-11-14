@@ -59,10 +59,6 @@ export const DADOS_LEGADO: DadoLegado[] = [
     motivo: 'Legado sem módulo: a chave é da mesa, que ainda não foi extraída. Vai para src/modules/mesa/repository.ts (ADR 0003 ponto 5; plano-refatoracao.md §8).',
   },
   {
-    arquivo: 'src/api/history.ts', dado: 'diceroller.player',
-    motivo: 'Legado sem módulo: a chave é do historico, que ainda não foi extraído. Vai para src/modules/historico/repository.ts (ADR 0003 ponto 5; plano-refatoracao.md §8).',
-  },
-  {
     arquivo: 'src/store.ts', dado: 'diceroller.rolagem',
     motivo: 'Legado sem módulo: o modo de rolagem é do arremesso, que ainda não foi extraído. Vai para src/modules/arremesso/repository.ts (ADR 0003 ponto 5; plano-refatoracao.md §8).',
   },
