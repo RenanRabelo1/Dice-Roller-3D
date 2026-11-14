@@ -1,28 +1,18 @@
-import { create } from 'zustand';
-import { activeId, deleteTable, listTables, saveTable, setActiveId } from './tableStore';
-import { DEFAULT_ID, DEFAULT_THEME, type TableTheme } from './tableTheme';
+// The table's state (owned by `mesa`): a vanilla zustand store, written only here, read outside through `mesa()` and
+// `useMesa()` (cena.ts).
+import { createStore } from 'zustand/vanilla';
+import type { TableState } from './contracts.ts';
+// Imported statically: its defineStore must run before the database opens (armadilhas.md).
+import { activeId, deleteTable, listTables, saveTable, setActiveId } from './repository.ts';
+import { DEFAULT_ID, DEFAULT_THEME, type TableTheme } from './domain/tableTheme.ts';
 
 // The active table and the saved ones. The active theme is always a saved record (except the built-in default),
 // so editing it updates the record; saves are debounced because colour pickers fire on every drag.
-export interface TableState {
-  theme: TableTheme;
-  tables: TableTheme[];
-  sessionOnly: boolean;
-  colors: { felt: string; wood: string }; // what the table really shows (an imported model's own colours); the kraken's shards use these
-  load(): Promise<void>;
-  apply(theme: TableTheme): void;        // make this theme active (adding it to the saved ones)
-  edit(patch: Partial<Pick<TableTheme, 'background' | 'felt' | 'wood' | 'name'>>): void;
-  copy(): void;                          // save the active one as a new table
-  remove(id: string): void;
-  reset(): void;
-  setColors(c: { felt: string; wood: string }): void;
-}
-
 const newId = () => (globalThis.crypto?.randomUUID?.() ?? `m-${Date.now()}-${Math.random().toString(36).slice(2)}`);
 let timer: ReturnType<typeof setTimeout> | undefined;
 let unsaved: (() => void) | undefined; // the debounced write still waiting, if any
 
-export const useTable = create<TableState>((set, get) => {
+export const store = createStore<TableState>((set, get) => {
   const persist = (t: TableTheme, now = false) => {
     if (t.id === DEFAULT_ID) return;
     const write = () => { unsaved = undefined; clearTimeout(timer); return saveTable(t).catch(() => set({ sessionOnly: true })); };
@@ -68,6 +58,10 @@ export const useTable = create<TableState>((set, get) => {
     setColors: (colors) => set({ colors }),
   };
 });
+
+export const mesa = (): TableState => store.getState();
+
+export const { load, apply, edit, copy, remove, reset, setColors } = store.getState();
 
 // Closing the tab within the debounce window still saves the last change (best effort: IndexedDB may not finish).
 if (typeof addEventListener === 'function') addEventListener('pagehide', () => unsaved?.());

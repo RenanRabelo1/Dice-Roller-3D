@@ -6,13 +6,14 @@ O jogador muda o fundo e a aparência da bandeja, salva no navegador e exporta/i
 
 | Arquivo | Papel |
 |---|---|
-| `scene/tableTheme.ts` | puro: `TableTheme`, `DEFAULT_THEME` (= a mesa de antes), temas prontos (`PRESETS`, gradientes CSS), `LIMITS`, `checkTheme`, `extrasOf`/`readExtras` (o tema que viaja no `.glb`) |
-| `scene/tableState.ts` | zustand `useTable`: tema ativo, mesas salvas, `sessionOnly`, `colors` (cores que a mesa realmente mostra; o kraken usa) |
-| `scene/tableStore.ts` | IndexedDB store `tables` + id ativo em `localStorage['mesa.ativa']` |
-| `shared/db.ts` | abertura única do banco `dice-roller` **v2**; não conhece nome de store: `tableStore.ts` declara `tables` e `modules/meus-dados/repository.ts` declara `customDice` com `defineStore`; o upgrade só cria o que falta |
-| `scene/tableTextures.ts`, `tableImages.ts` | texturas do feltro (veludo/couro desenhadas em canvas, ou a imagem do jogador) e redução de imagens (foto ≤ 4096 px, textura ≤ 2048 px) |
-| `scene/tableBuild.ts` | monta a mesa padrão (`defaultTable`, `buildDefault`), nomes (`roleOf`, `find`), `colorsOf`, `disposeTable`; carregado junto com a cena |
-| `scene/tableFile.ts` | **sob demanda** (traz GLTFLoader/Exporter): `exportTable`, `readTable` → `cleanTable` → `fitTable`, `buildFor` (qualquer tema) |
+| `modules/mesa/index.ts`, `cena.ts` | portas do módulo `mesa` (em extração): `index.ts` puro (`mesa()`, as ações, o domínio que o legado usa, `carregarArquivoDeMesa`); `cena.ts` com `useMesa(sel)` |
+| `modules/mesa/domain/tableTheme.ts` | puro: `TableTheme`, `DEFAULT_THEME` (= a mesa de antes), temas prontos (`PRESETS`, gradientes CSS), `LIMITS`, `checkTheme`, `extrasOf`/`readExtras` (o tema que viaja no `.glb`) |
+| `modules/mesa/store.ts` | store zustand vanilla (`mesa()` fora do React, `useMesa` em `ui/useMesa.tsx`): tema ativo, mesas salvas, `sessionOnly`, `colors` (cores que a mesa realmente mostra; o kraken usa) |
+| `modules/mesa/repository.ts` | IndexedDB store `tables` + id ativo em `localStorage['mesa.ativa']` |
+| `shared/db.ts` | abertura única do banco `dice-roller` **v2**; não conhece nome de store: `modules/mesa/repository.ts` declara `tables` e `modules/meus-dados/repository.ts` declara `customDice` com `defineStore`; o upgrade só cria o que falta |
+| `modules/mesa/domain/tableTextures.ts`, `tableImages.ts` | texturas do feltro (veludo/couro desenhadas em canvas, ou a imagem do jogador) e redução de imagens (foto ≤ 4096 px, textura ≤ 2048 px) |
+| `modules/mesa/domain/tableBuild.ts` | monta a mesa padrão (`defaultTable`, `buildDefault`), nomes (`roleOf`, `find`), `colorsOf`, `disposeTable`; carregado junto com a cena |
+| `modules/mesa/domain/tableFile.ts` | **sob demanda** por `carregarArquivoDeMesa()` (traz GLTFLoader/Exporter): `exportTable`, `readTable` → `cleanTable` → `fitTable`, `buildFor` (qualquer tema) |
 | `scene/Tray.tsx` | colisores fixos + a mesa visível do tema; esconde `tray-surface` na quebra do kraken |
 | `scene/Backdrop.tsx` | foto/tema pronto em CSS **atrás** do canvas (desfoque e escurecer grátis na GPU) |
 | `ui/TablePanel.tsx` | painel "Personalizar mesa" (botão **Mesa**, tecla `M`, `Esc` fecha) |
@@ -23,7 +24,7 @@ O jogador muda o fundo e a aparência da bandeja, salva no navegador e exporta/i
 - **Mesa:** `Tray` desenha `buildDefault(tema)` na hora (cores/texturas geradas) e, se o tema tem modelo ou imagem de feltro, troca pelo `buildFor(tema)` quando decodifica. Nomes na cena: grupo `mesa` → `tray-surface` (base + `feltro`), `moldura` (4 paredes), `guia-area-de-jogo` (caixa 14 × 1,5 × 9, invisível), `fundo` (só no arquivo).
 - A cor do feltro multiplica a textura. Ao escolher uma imagem própria o painel põe o feltro em `#FFFFFF` (a imagem aparece como é) e avisa que a cor tinge; veludo e couro mantêm a cor.
 - **Tema ativo = registro salvo.** Editar a mesa padrão cria "Minha mesa"; editar grava com atraso de 300 ms (e no `pagehide`). Sem IndexedDB vale só na sessão (`sessionOnly`, o painel avisa).
-- **Kraken:** `Kraken.start(..., useTable.colors)`: cacos com o feltro da mesa e a madeira "iluminada" (`shardWood`; a madeira padrão dá `#815435`, igual a antes). Sem nó `piso`, o modelo inteiro some na quebra (o grupo raiz vira `tray-surface`).
+- **Kraken:** `Kraken.start(..., mesa().colors)`: cacos com o feltro da mesa e a madeira "iluminada" (`shardWood`; a madeira padrão dá `#815435`, igual a antes). Sem nó `piso`, o modelo inteiro some na quebra (o grupo raiz vira `tray-surface`).
 
 ## Exportar e importar (`.glb` autocontido)
 

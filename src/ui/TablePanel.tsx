@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { colorsOf, disposeTable } from '../scene/tableBuild';
-import { panoramaPicture, panoramaTexture, preparePanorama, reduceImage, TableError } from '../scene/tableImages';
-import { useTable } from '../scene/tableState';
-import { clampBlur, clampDim, clampIntensity, clampPanoramaBlur, clampRotation, clampTile, DEFAULT_THEME, fileSafe, LIMITS, PRESETS, type Background, type PresetName, type TableTheme } from '../scene/tableTheme';
+import {
+  carregarArquivoDeMesa, clampBlur, clampDim, clampIntensity, clampPanoramaBlur, clampRotation, clampTile, colorsOf, DEFAULT_THEME, disposeTable, fileSafe, LIMITS,
+  panoramaPicture, panoramaTexture, preparePanorama, PRESETS, reduceImage, TableError, type Background, type PresetName, type TableTheme,
+} from '../modules/mesa/index';
+import { useMesa } from '../modules/mesa/cena';
 
 const typing = (el: EventTarget | null) =>
   el instanceof HTMLElement && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName));
@@ -11,7 +12,7 @@ type Pending = { theme: TableTheme; warnings: string[] };
 
 // Side sheet "Personalizar mesa" (header button or the M key): backdrop, felt/wood, and the table file (export/import).
 export function TablePanel() {
-  const { theme, tables, sessionOnly, edit, apply, copy, remove, reset } = useTable();
+  const { theme, tables, sessionOnly, edit, apply, copy, remove, reset } = useMesa();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
@@ -51,7 +52,7 @@ export function TablePanel() {
   const setBackground = (background: Background) => edit({ background });
 
   const exportFile = () => task('Preparando arquivo…', async () => {
-    const { buildFor, exportTable } = await import('../scene/tableFile');
+    const { buildFor, exportTable } = await carregarArquivoDeMesa();
     const { CanvasTexture } = await import('three');
     const group = await buildFor(theme);
     const map = bg.kind === 'image' ? new CanvasTexture(await createImageBitmap(bg.image)) : bg.kind === 'panorama' ? new CanvasTexture(await panoramaPicture(bg)) : null;
@@ -69,7 +70,7 @@ export function TablePanel() {
   const importFile = (file: File | undefined) => file && task('Lendo a mesa…', async () => {
     if (!file.name.toLowerCase().endsWith('.glb')) throw new TableError('Use um arquivo .glb (exporte como glTF Binário).');
     const bytes = await file.arrayBuffer();
-    const { readTable } = await import('../scene/tableFile');
+    const { readTable } = await carregarArquivoDeMesa();
     const read = await readTable(bytes);
     const colors = colorsOf(read.group) ?? { felt: DEFAULT_THEME.felt.color, wood: DEFAULT_THEME.wood.color };
     disposeTable(read.group);

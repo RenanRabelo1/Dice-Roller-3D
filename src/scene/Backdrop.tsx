@@ -1,11 +1,11 @@
 import { useEffect, useState, type CSSProperties } from 'react';
-import { useTable } from './tableState';
-import { PRESETS } from './tableTheme';
+import { PRESETS } from '../modules/mesa/index';
+import { useMesa } from '../modules/mesa/cena';
 
 // A photo or ready-made backdrop lives behind the (transparent) canvas as plain CSS: blur and dimming cost the GPU nothing.
 // A plain colour or a 360° panorama is the scene's own background (Stage), so nothing renders here for them.
 export function Backdrop() {
-  const bg = useTable((s) => s.theme.background);
+  const bg = useMesa((s) => s.theme.background);
   const image = bg.kind === 'image' ? bg.image : null;
   const [url, setUrl] = useState<string | null>(null);
   useEffect(() => {

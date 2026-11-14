@@ -1,5 +1,5 @@
-import { defineStore } from '../shared/db';
-import type { TableTheme } from './tableTheme';
+import { defineStore } from '../../shared/db.ts';
+import type { TableTheme } from './domain/tableTheme.ts';
 
 const store = defineStore('tables');
 

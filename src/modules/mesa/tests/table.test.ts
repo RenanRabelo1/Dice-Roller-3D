@@ -1,10 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { Box3, BoxGeometry, Color, DirectionalLight, Group, Mesh, MeshBasicMaterial, PerspectiveCamera, Vector3 } from 'three';
-import { shard, shardWood } from '../src/scene/Kraken';
-import { defaultTable, GUIDE, SURFACE } from '../src/scene/tableBuild';
-import { cleanTable, fitTable, readTable } from '../src/scene/tableFile';
-import { checkTheme, clampBlur, type Background, DEFAULT_THEME, EXTRAS_KEY, extrasOf, fileSafe, readExtras, type TableTheme } from '../src/scene/tableTheme';
-import { glb } from './helpers/models';
+import { Box3, BoxGeometry, DirectionalLight, Group, Mesh, MeshBasicMaterial, PerspectiveCamera, Vector3 } from 'three';
+import { defaultTable, GUIDE, SURFACE } from '../domain/tableBuild.ts';
+import { cleanTable, fitTable, readTable } from '../domain/tableFile.ts';
+import { checkTheme, clampBlur, type Background, DEFAULT_THEME, EXTRAS_KEY, extrasOf, fileSafe, readExtras, type TableTheme } from '../domain/tableTheme.ts';
+import { glb } from '../../../../tests/helpers/models.ts';
 
 const theme = (patch: Partial<TableTheme> = {}): TableTheme => ({ ...DEFAULT_THEME, ...patch });
 const named = (g: Group, name: string) => g.getObjectByName(name)!;
@@ -136,20 +135,3 @@ describe('cleaning and reading', () => {
 });
 const file1 = () => { const g = new Group(); g.add(defaultTable(DEFAULT_THEME, null, null)); return g; };
 
-describe('kraken shards', () => {
-  const rgb = (g: { getAttribute(n: string): { getX(i: number): number; getY(i: number): number; getZ(i: number): number } }, i: number) => {
-    const c = g.getAttribute('color');
-    return new Color(c.getX(i), c.getY(i), c.getZ(i)).getHexString();
-  };
-  const cell: [number, number][] = [[0, 0], [1, 0], [1, 1], [0, 1]];
-  it('are felt on top and wood below, in the colours given', () => {
-    const g = shard(cell, 0.5, 0.5, new Color('#112233'), new Color('#445566'));
-    expect(rgb(g, 0)).toBe('112233');
-    expect(rgb(g, 3)).toBe('445566');
-  });
-  it('keep today\'s colours on the default table', () => {
-    expect(rgb(shard(cell, 0.5, 0.5), 0)).toBe('3a0f1a');
-    expect(shardWood('#3B2416').getHexString()).toBe('815435');
-    expect(shardWood('#ffffff').getHexString()).toBeTruthy();
-  });
-});

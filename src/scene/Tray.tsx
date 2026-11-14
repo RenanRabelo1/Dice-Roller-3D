@@ -6,8 +6,8 @@ import type { Group, Object3D } from 'three';
 import { movimentoReduzido } from '../shared/plataforma';
 import { useDice } from '../store';
 import { trayBrokenAt } from './krakenMotion';
-import { buildDefault, colorsOf, disposeTable, SURFACE } from './tableBuild';
-import { useTable } from './tableState';
+import { buildDefault, carregarArquivoDeMesa, colorsOf, disposeTable, mesa, SURFACE } from '../modules/mesa/index';
+import { useMesa } from '../modules/mesa/cena';
 
 const setVisible = (o: Object3D, visible: boolean) => { o.visible = visible; };
 const broken = () => {
@@ -18,7 +18,7 @@ const broken = () => {
 // The tray's colliders are always trayColliders() (arremesso's ColisoresDaBandeja); what you see comes from the active table theme (a default
 // build, or an imported .glb fitted to the same play area).
 export function Tray() {
-  const theme = useTable((s) => s.theme);
+  const theme = useMesa((s) => s.theme);
   const { gl, camera, scene } = useThree();
   const texture = typeof theme.felt.texture === 'string' ? theme.felt.texture : 'liso';
   const slow = !!theme.model || typeof theme.felt.texture === 'object'; // needs decoding before it can show
@@ -30,12 +30,12 @@ export function Tray() {
     if (!slow) return;
     let alive = true;
     // Compile its shaders off the main thread before it replaces the table, so the swap never stalls a frame.
-    import('./tableFile').then((m) => m.buildFor(theme)).then(async (group) => { await gl.compileAsync(group, camera, scene).catch(() => {}); return group; }).then((group) => { if (alive) setLoaded({ theme, group }); else disposeTable(group); }, () => { if (alive) setLoaded(null); });
+    carregarArquivoDeMesa().then((m) => m.buildFor(theme)).then(async (group) => { await gl.compileAsync(group, camera, scene).catch(() => {}); return group; }).then((group) => { if (alive) setLoaded({ theme, group }); else disposeTable(group); }, () => { if (alive) setLoaded(null); });
     return () => { alive = false; };
   }, [theme, slow, gl, camera, scene]);
   useEffect(() => () => { if (loaded) disposeTable(loaded.group); }, [loaded]);
   const table: Object3D = slow && loaded?.theme === theme ? loaded.group : quick;
-  useEffect(() => { useTable.getState().setColors(colorsOf(table) ?? { felt: theme.felt.color, wood: theme.wood.color }); }, [table, theme]);
+  useEffect(() => { mesa().setColors(colorsOf(table) ?? { felt: theme.felt.color, wood: theme.wood.color }); }, [table, theme]);
   // The floor that the kraken hides: a new table's floor gets the right visibility at once (not a frame later), and
   // the one leaving the scene is left whole.
   const surface = useRef<Object3D>(table);

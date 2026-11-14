@@ -19,8 +19,8 @@ import { MAX_DICE, omenKind } from '../modules/regras/index';
 import { inspecao, RAIO_MAXIMO } from '../modules/dados/index';
 import { definir } from '../modules/selecao/index';
 import { inspecao as inspecaoDosImportados } from '../modules/meus-dados/index';
-import { useTable } from '../scene/tableState';
-import { panoramaTexture } from '../scene/tableImages';
+import { mesa, panoramaTexture } from '../modules/mesa/index';
+import { useMesa } from '../modules/mesa/cena';
 import { Guard, falha, marcarRenderizadorPorSoftware, movimentoReduzido } from '../shared/plataforma';
 
 // The test-only surface preview checks numeral pixels, so it keeps the real resolution (no SwiftShader or adaptive DPR drop).
@@ -30,7 +30,7 @@ interface Pano { tex: Texture; rotation: number; intensity: number; blur: number
 
 export function Cena({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> }) {
   const selected = useArremesso((state) => state.dice);
-  const background = useTable((state) => state.theme.background);
+  const background = useMesa((state) => state.theme.background);
   const key = selected.join(',');
   const { camera, size, scene, gl, setDpr, viewport: { initialDpr, dpr } } = useThree();
   const desiredDpr = useRef(initialDpr), maxDpr = useRef(initialDpr);
@@ -154,7 +154,7 @@ export function Cena({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> 
       launches: () => inspecaoDoArremesso().lancamentos(),
       customs: () => inspecaoDosImportados(),
       table: () => {
-        const t = useTable.getState().theme, mesh = (name: string) => scene.getObjectByName(name), hex = (o?: Object3D) => {
+        const t = mesa().theme, mesh = (name: string) => scene.getObjectByName(name), hex = (o?: Object3D) => {
           const m = o instanceof Mesh ? (Array.isArray(o.material) ? o.material[0] : o.material) as { color?: Color; map?: unknown } : null;
           return m?.color ? { color: `#${m.color.getHexString()}`, textured: !!m.map && !(m.map as { userData?: { placeholder?: boolean } }).userData?.placeholder } : null;
         };
@@ -165,7 +165,7 @@ export function Cena({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> 
           id: t.id, name: t.name, background: t.background.kind, backgroundColor: t.background.kind === 'color' ? t.background.color : null,
           felt: felt?.color ?? null, feltTextured: felt?.textured ?? false, wood: wood?.color ?? null, model: !!t.model,
           guide: box ? { size: box.getSize(new Vector3()).toArray(), center: box.getCenter(new Vector3()).toArray() } : null,
-          saved: useTable.getState().tables.length,
+          saved: mesa().tables.length,
           imported: (scene.getObjectByName('mesa') ?? scene.getObjectByName('tray-surface'))?.userData.imported === true,
         };
       },

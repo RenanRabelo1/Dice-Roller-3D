@@ -36,20 +36,8 @@ export interface DadoLegado { arquivo: string; dado: string; motivo: string }
 
 export const DADOS_LEGADO: DadoLegado[] = [
   {
-    arquivo: 'src/scene/tableStore.ts', dado: 'tables',
-    motivo: 'Legado sem módulo: a store é da mesa, que ainda não foi extraída. Vai para src/modules/mesa/repository.ts (ADR 0003 ponto 5; plano-refatoracao.md §8).',
-  },
-  {
-    arquivo: 'src/scene/tableStore.ts', dado: 'mesa.ativa',
-    motivo: 'Legado sem módulo: a chave é da mesa, que ainda não foi extraída. Vai para src/modules/mesa/repository.ts (ADR 0003 ponto 5; plano-refatoracao.md §8).',
-  },
-  {
     arquivo: 'src/store.ts', dado: 'zustand',
     motivo: 'Legado: o store único useDice, que some módulo a módulo na extração (ADR 0003, ponto 2 e Consequências; plano-refatoracao.md §8).',
-  },
-  {
-    arquivo: 'src/scene/tableState.ts', dado: 'zustand',
-    motivo: 'Legado: o store useTable da mesa, que ainda não foi extraída. Vai para src/modules/mesa/store.ts (ADR 0003 ponto 2; plano-refatoracao.md §8).',
   },
   {
     arquivo: 'src/shared/plataforma/falha.ts', dado: 'zustand',

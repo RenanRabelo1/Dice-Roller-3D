@@ -12,7 +12,7 @@ import { arremesso, registroDeCorpos } from '../modules/arremesso/index';
 import { krakenIndices, stormIndices } from './krakenMotion';
 import { clamp01, span } from '../shared/math';
 import { Kraken } from './Kraken';
-import { useTable } from './tableState';
+import { mesa } from '../modules/mesa/index';
 import { Fire } from './Fire';
 import { fireAt, fireIndices } from './fireMotion';
 
@@ -200,7 +200,7 @@ class Show {
       const lit = kind === 'crit' ? o.crits.filter((i) => isD20(s.dice[i])) : [];
       const grab = krakenIndices(o, s.dice), storm = stormIndices(o, s.dice), fire = fireIndices(o, s.dice);
       positions(lit).forEach((p, i) => this.bolts[i].start(p));
-      if (grab.length) this.kraken.start('grab', positions(grab), grab[0], useTable.getState().colors);
+      if (grab.length) this.kraken.start('grab', positions(grab), grab[0], mesa().colors);
       else if (storm.length) this.kraken.start('storm', [], storm[0]);
       if (fire.length) this.fire.start(fire, positions(fire));
       const first = positions(lit)[0] ?? positions(fire)[0];

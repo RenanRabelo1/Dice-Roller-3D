@@ -48,6 +48,7 @@ src/
   modules/dados/           sólidos, catálogo (registro dos importados), leitura, símbolos, tinta, aparência; `index.ts` puro, `cena.ts` com componentes e hooks  → dados.md
   modules/selecao/         a mão (store vanilla), notação e apelido, chat e botões de dado; `index.ts` puro, `cena.ts` com hook e componentes  → modules/selecao/CLAUDE.md
   modules/meus-dados/      os dados do jogador: lista e `sessionOnly` (store vanilla), gravação (`repository.ts`, store `customDice`), importador (`domain/importador.ts`, .stl/.glb → poliedro, sob demanda por `carregarImportador`), `montarDado`; `cena.ts` com `useMeusDados`, `InkChoice` e o `AssistenteDeImportacao` (lazy)  → dados.md
+  modules/mesa/            mesa e fundo (em extração): tema, texturas, panorama, mesa padrão, `.glb` (`domain/tableFile.ts`, sob demanda por `carregarArquivoDeMesa`), gravação (`repository.ts`, store `tables`, `mesa.ativa`), estado (store vanilla, `mesa()`); `cena.ts` com `useMesa`  → mesa.md
   dice/                    o resto do legado dos dados (sem React)                  → dados.md
     notation.ts              texto do painel (`resultText`); a notação está em `modules/selecao`
     omen.ts                  regra de crítico/falha e duração dos presságios
@@ -64,7 +65,7 @@ src/
   scene/                   componentes R3F
     Hand.tsx                 só a parte `settled` (voo, números, gravação acesa); a mão é a `MaoDoArremesso`  → apresentacao.md
     Tray.tsx                 bandeja (visual do tema da mesa, dentro de `ColisoresDaBandeja`)
-    table*.ts, Backdrop.tsx  mesa e fundo personalizados, .glb                      → mesa.md
+    Backdrop.tsx             fundo em CSS (foto, tema pronto), lê `useMesa`          → mesa.md
     showcase.ts, highlight.ts poses e linha do tempo do "voo até a câmera"         → apresentacao.md
     Omens.tsx, Kraken.ts, krakenMotion.ts, Fire.ts, fireMotion.ts  presságios 3D   → apresentacao.md
   ui/                      HTML: Controls (cabeçalho com os componentes de selecao, Meus dados, painel), OmenOverlay,

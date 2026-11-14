@@ -1,5 +1,5 @@
 import { CanvasTexture, RepeatWrapping, SRGBColorSpace, Texture } from 'three';
-import type { FeltTexture } from './tableTheme';
+import type { FeltTexture } from './tableTheme.ts';
 
 // Felt textures: the two made by the app are greyscale canvases (they multiply the felt colour); the player's own
 // image repeats. The felt is 14 x 9 and one tile covers `tile` units.

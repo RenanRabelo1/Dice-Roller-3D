@@ -1,10 +1,10 @@
 import { Box3, Camera, Group, Light, Mesh, MeshBasicMaterial, MeshStandardMaterial, Scene, Texture, Vector3, type BufferGeometry, type Object3D } from 'three';
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js';
-import { ModelError, parseGlb } from '../shared/modelos3d';
-import { TRAY } from '../modules/arremesso/index';
-import { backdrop, buildDefault, find, GUIDE, isPlaceholder, roleOf, shade, SURFACE } from './tableBuild';
-import { blobOfImage, isOpaque, TableError } from './tableImages';
-import { EXTRAS_KEY, extrasOf, LIMITS, readExtras, type TableTheme, type ThemeExtras } from './tableTheme';
+import { ModelError, parseGlb } from '../../../shared/modelos3d/index.ts';
+import { TRAY } from '../../arremesso/index.ts';
+import { backdrop, buildDefault, find, GUIDE, isPlaceholder, roleOf, shade, SURFACE } from './tableBuild.ts';
+import { blobOfImage, isOpaque, TableError } from './tableImages.ts';
+import { EXTRAS_KEY, extrasOf, LIMITS, readExtras, type TableTheme, type ThemeExtras } from './tableTheme.ts';
 
 const PANORAMA_NODE = 'fundo-360'; // the hidden plane that carries the 360° picture in the file
 

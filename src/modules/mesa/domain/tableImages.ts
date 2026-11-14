@@ -1,6 +1,6 @@
 import { CanvasTexture, DataTexture, DataUtils, EquirectangularReflectionMapping, FloatType, HalfFloatType, RGBAFormat, SRGBColorSpace, Texture } from 'three';
-import { LIMITS } from './tableTheme';
-import { renderizadorPorSoftware } from '../shared/plataforma';
+import { LIMITS } from './tableTheme.ts';
+import { renderizadorPorSoftware } from '../../../shared/plataforma/index.ts';
 
 // Browser-only image helpers (canvas / createImageBitmap). Photos and textures are re-encoded smaller before saving.
 export class TableError extends Error {} // the message is shown to the player, in pt-BR

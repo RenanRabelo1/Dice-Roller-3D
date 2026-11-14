@@ -1,7 +1,7 @@
 import { BoxGeometry, DataTexture, Group, Material, Mesh, MeshBasicMaterial, MeshStandardMaterial, PlaneGeometry, SRGBColorSpace, type Object3D, type Texture } from 'three';
-import { TRAY, trayColliders } from '../modules/arremesso/index';
-import { feltMap } from './tableTextures';
-import { EXTRAS_KEY, extrasOf, type TableTheme } from './tableTheme';
+import { TRAY, trayColliders } from '../../arremesso/index.ts';
+import { feltMap } from './tableTextures.ts';
+import { EXTRAS_KEY, extrasOf, type TableTheme } from './tableTheme.ts';
 
 
 // The table as a 3D object: built from a theme, exported to a .glb, and imported back (cleaned, fitted, checked).
