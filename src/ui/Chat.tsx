@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { formatDice, parseDice } from '../dice/notation';
-import { useDice } from '../store';
+import { definir, formatDice, parseDice } from '../modules/selecao/index';
 
 type Line = { id: number; from: 'you' | 'app'; text: string; error?: boolean };
 
@@ -34,7 +33,7 @@ export function Chat() {
     const said = text.trim();
     if (!said) return;
     const r = parseDice(said);
-    if ('dice' in r) useDice.getState().setDice(r.dice);
+    if ('dice' in r) definir(r.dice);
     const id = nextId.current += 2;
     setLines((l) => [...l, { id, from: 'you' as const, text: said },
       'dice' in r ? { id: id + 1, from: 'app' as const, text: `Na mão: ${formatDice(r.dice)}` } : { id: id + 1, from: 'app' as const, text: r.error, error: true }].slice(-20));

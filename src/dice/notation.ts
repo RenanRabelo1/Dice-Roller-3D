@@ -1,9 +1,6 @@
 import { allKinds, nomeDoTipo } from '../modules/dados/index';
 import { total as sumOf, type DieKind } from '../modules/regras/index.ts';
 
-// ponte até a OS-0025: the notation lives in selecao.
-export { formatDice, parseDice, slugOf, slugProblem } from '../modules/selecao/index';
-
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
 // The result panel: the total sums the dice (coins never add up; a coins-only throw shows its faces),

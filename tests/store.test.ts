@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useDice } from '../src/store';
-import { definir, selecao } from '../src/modules/selecao/index.ts';
+import { adicionar, definir, selecao } from '../src/modules/selecao/index.ts';
 import type { Vec3 } from '../src/shared/math';
 
 const s = () => useDice.getState();
@@ -11,7 +11,7 @@ beforeEach(() => { definir(['d20']); useDice.setState(useDice.getInitialState(),
 describe('store', () => {
   it('a selection change resets phase, results and launch and bumps throwId', () => {
     s().input({ type: 'press', source: P, at: 0, repeat: false });
-    s().setDice(['d6']);
+    definir(['d6']);
     expect(s().gesture.phase).toBe('hand'); expect(s().throwId).toBe(1);
     expect(s().launch).toBeNull(); expect(s().results).toBeNull();
   });
@@ -39,23 +39,34 @@ describe('store', () => {
     s().setOmenTest(null);
     expect(s()).toMatchObject({ omenTest: null, dice: ['d20', 'd100'] });
   });
-  it('one setDice changes the hand and resets the throw in a single update (selecaoAlterada, same tick)', () => {
+  it('one definir changes the hand and resets the throw in a single update (selecaoAlterada, same tick)', () => {
     s().input({ type: 'press', source: P, at: 0, repeat: false });
     s().input({ type: 'release', source: P, at: 700 });
     s().publish(1, [5]);
     const states: ReturnType<typeof s>[] = [];
     const off = useDice.subscribe((st) => states.push(st));
-    s().setDice(['d6', 'd8']);
+    definir(['d6', 'd8']);
     off();
     expect(states).toHaveLength(1);
     expect(states[0]).toMatchObject({ dice: ['d6', 'd8'], throwId: 2, gesture: { phase: 'hand' }, launch: null, results: null, force: 0 });
     expect(s().dice).toEqual(selecao());
   });
+  it('reiniciar resets the throw with the same hand: phase, throwId, launch, results and force change, dice stays', () => {
+    s().input({ type: 'press', source: P, at: 0, repeat: false });
+    s().input({ type: 'release', source: P, at: 700 });
+    s().publish(1, [5]);
+    s().setForce(0.6);
+    const dice = s().dice;
+    s().reiniciar();
+    expect(s()).toMatchObject({ throwId: 2, gesture: { phase: 'hand' }, launch: null, results: null, force: 0 });
+    expect(s().dice).toBe(dice);
+    expect(selecao()).toEqual(['d20']);
+  });
   it('choosing an animation test puts its dice in the hand of selecao, not only in the copy', () => {
     s().setOmenTest('kraken');
     expect(selecao()).toEqual(['d20', 'd100']);
     expect(s()).toMatchObject({ omenTest: 'kraken', dice: ['d20', 'd100'], throwId: 1 });
-    s().addDie('d6');
+    adicionar('d6');
     expect(selecao()).toEqual(['d6', 'd20', 'd100']); // the d100 the test brought stays
     s().setOmenTest('kraken'); // already has its dice: the hand and the throw stay
     expect(s()).toMatchObject({ omenTest: 'kraken', dice: ['d6', 'd20', 'd100'], throwId: 2 });
@@ -88,7 +99,7 @@ describe('store', () => {
     s().input({ type: 'press', source: P, at: 0, repeat: false });
     s().input({ type: 'release', source: P, at: 700 });
     s().setForce(0.8);
-    s().setDice(['d20', 'd20']);
+    definir(['d20', 'd20']);
     s().publish(1, [5]);
     expect(s()).toMatchObject({ throwId: 2, dice: ['d20', 'd20'], force: 0, gesture: { phase: 'hand' }, launch: null, results: null });
     s().input({ type: 'press', source: P, at: 0, repeat: false });
@@ -96,7 +107,7 @@ describe('store', () => {
     s().publish(1, [5]);
     expect(s().results).toBeNull();
     s().publish(3, [6]);
-    s().setDice(['d6']);
+    definir(['d6']);
     expect(s()).toMatchObject({ throwId: 4, force: 0, results: null, gesture: { phase: 'hand' } });
   });
   it('retains copied results through return and clears them on the next throw', () => {

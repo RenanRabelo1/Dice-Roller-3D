@@ -58,7 +58,7 @@ Verificado no código. O detalhe e as linhas estão no diagnóstico, §6.
 | Dado | Quem escreve hoje | Dono | Como os outros obtêm ou mudam |
 |---|---|---|---|
 | `gesture`, `throwId`, `launch`, `results`, `force` | `selection()` da seleção, `input` do arremesso, `publish` | `arremesso` | `selecao` não escreve mais. `arremesso` assina `selecaoAlterada` e se reinicia |
-| `dice` (seleção) | `addDie`/`removeDie`/`setDice` e `removeCustom` | `selecao` | `meus-dados` exclui no catálogo de `dados`, e `selecao` reage a `catalogoAlterado` |
+| `dice` (seleção) | `selecao.adicionar/remover/definir` (OS-0024/0025); o store legado guarda a cópia como dados do arremesso | `selecao` (a mão); a cópia, `arremesso` | `meus-dados` exclui no catálogo de `dados`, e `selecao` reage a `catalogoAlterado` |
 | `omen`, `omenAt` | `publish` (arremesso) e `setReducedMotion` | `pressagios` | `pressagios` assina `resultadoPublicado` e `movimentoReduzidoAlterado`. Os outros leem `presagioTocando()` e `tempoDoPresagio()` |
 | `error` | `App` (WebGL), `Guard` (renderizador/física), `app/Cena` (física) | `shared/plataforma` | `registrarFalha(tipo)` (o primeiro vence, como hoje) e `falha()` |
 | `reducedMotion` | `App` | `shared/plataforma` | `movimentoReduzido()` e o evento acima |

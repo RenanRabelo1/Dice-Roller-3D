@@ -19,6 +19,7 @@ import { Hand } from '../scene/Hand';
 import { Omens } from '../scene/Omens';
 import { MAX_DICE, omenKind } from '../modules/regras/index';
 import { customKind, customsOf, inspecao } from '../modules/dados/index';
+import { definir } from '../modules/selecao/index';
 import { VORTEX, vortexCenter, vortexRadius } from '../throw/vortex';
 import { useTable } from '../scene/tableState';
 import { panoramaTexture } from '../scene/tableImages';
@@ -43,7 +44,7 @@ function ThrowLoop({ bodies, recordLaunch }: {
     if (pending && !pending.rec && pending.throwId === state.throwId && state.gesture.phase === 'rolling') {
       try { pending.rec = presimulateFor(pending.request, BIAS_BUDGET.local); } catch (error) {
         console.error(error);
-        state.setDice(state.dice);
+        state.reiniciar();
         registrarFalha('physics');
       }
     }
@@ -206,7 +207,7 @@ export function Cena({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> 
           burning: scene.getObjectByName('fire')?.visible === true, force: state.force,
         };
       },
-      select: (next) => useDice.getState().setDice(next),
+      select: (next) => definir(next),
       rigOmen: (omen) => useDice.getState().rigOmen(omen),
       bodies: () => bodies.current.filter((body): body is RapierRigidBody => body !== null && body.isValid()).map((body) => {
         const p = body.translation(), q = body.rotation();

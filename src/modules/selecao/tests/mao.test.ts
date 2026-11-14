@@ -5,7 +5,7 @@ import { customKind, polyhedron, registerCustom, unregisterCustom, type CustomDi
 beforeEach(() => definir(['d20']));
 
 describe('mão', () => {
-  // Moved from tests/store.test.ts (addDie/removeDie are now adicionar/remover).
+  // Moved from tests/store.test.ts, where the legacy store's actions built the hand.
   it('builds a mixed selection: sorted, 1 to 10 dice', () => {
     adicionar('d100'); adicionar('d4'); adicionar('d12');
     expect(selecao()).toEqual(['d4', 'd12', 'd20', 'd100']);

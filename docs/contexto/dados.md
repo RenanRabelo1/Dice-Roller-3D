@@ -64,7 +64,7 @@ Face vazia ainda tem um `Label` (texto `''`) para o showcase achar a face sortea
 - **Um objeto por dado para todos os numerais**: `BatchedText` (troika) ou, em dado com símbolos, uma malha com os símbolos mesclados. Os membros ficam em `userData.labels` (testes leem dali, pela `inspecao` do módulo: `domain/inspecao.ts`).
 - `<AparenciaDoDado index kind />` não recebe registro nem cor: lê o registro do catálogo com `useSyncExternalStore(catalogoAlterado.subscribe, …)` e a cor com `gemColor(kind)`. `registerCustom` emite `registrado` (também no `updateCustom` do store, que re-registra o mesmo `kind`: a cor, a tinta e o acabamento acompanham na hora) e `unregisterCustom` emite `removido`; `registerPoly` (worker) não emite. `scene/Die.tsx` não lê mais o store.
 
-## Notação e painel (`dice/notation.ts`)
+## Notação (`modules/selecao/domain/notacao.ts`) e painel (`dice/notation.ts`)
 
 `parseDice(text, customs = customList())` → `{ dice }` ou `{ error }` (mensagens em pt-BR):
 - Ignora espaços, `+` e caixa. Aceita `2d10 + d100` e compacto `2d10d100d4`.
@@ -75,7 +75,7 @@ Face vazia ainda tem um `Label` (texto `''`) para o showcase achar a face sortea
 
 `formatDice(dice)` → `"2d10 + 1d10 Vampiro + 2 moedas"`. `nomeDoTipo(kind)` (de `dados`, `domain/aparencia.ts`) → nome de exibição. `resultText(dice, results)` → `{ total, detail }`: total soma dados (moedas nunca somam; só moedas → "Cara", "2 caras, 1 coroa").
 
-UI: `Controls.tsx` (um botão por kind + "−"; grupo "Meus dados" com os importados, 🗑 e **Importar dado**; painel `data-testid="result"`, dicas por fase) e `Chat.tsx` (tecla `C` abre, `Esc` fecha, Enter/Aplicar → `setDice`).
+UI: `Controls.tsx` (um botão por kind + "−"; grupo "Meus dados" com os importados, 🗑 e **Importar dado**; painel `data-testid="result"`, dicas por fase) e `Chat.tsx` (tecla `C` abre, `Esc` fecha, Enter/Aplicar → `definir` de `selecao`).
 
 ## Dados importados (`modules/dados/domain/catalogo.ts`, `dice/importer.ts`, `customStore.ts`, `ui/ImportDie.tsx`)
 
@@ -122,7 +122,7 @@ Dados "shard" têm faces longas numeradas e pontas lapidadas em camadas de facet
 
 1. `modules/regras` (`contracts.ts` e `domain/catalogo.ts`): incluir em `BuiltinKind` e `KINDS` (posição = ordem na UI); `BASE`; se for shape novo, `Shape` e `SIDES`. `modules/dados/domain/solidos.ts`: se for shape novo, `RADIUS`, `rawTriangles`/construtor e `OPPOSITE_SUM`. Símbolos → `SYMBOL` (`domain/solidos.ts`) + `SymbolName` (`contracts.ts`) + desenho em `domain/simbolos.ts`.
 2. `modules/dados/domain/aparencia.ts`: `GEM` (obrigatório, é `Record`), `FONT` se shape novo, `INK` se preciso; `EMBER` em `modules/dados/scene/GemMaterial.tsx`.
-3. `notation.ts`: sufixo em `AFTER_D` (mantendo do mais longo ao mais curto) e nome em `CUSTOM` (`modules/dados/domain/aparencia.ts`); atualizar a mensagem de erro e a dica do `Chat.tsx`.
+3. `modules/selecao/domain/notacao.ts`: sufixo em `AFTER_D` (mantendo do mais longo ao mais curto) e nome em `CUSTOM` (`modules/dados/domain/aparencia.ts`); atualizar a mensagem de erro e a dica do `Chat.tsx`.
 4. `modules/dados/domain/leitura.ts`: só se a regra de valor mudar.
 5. `physics/world.ts`: `DAMPING` se o corpo rolar demais; `MAX_RADIUS` se o raio passar de 0,9.
 6. `omen.ts`: só se o dado deve disparar presságio.

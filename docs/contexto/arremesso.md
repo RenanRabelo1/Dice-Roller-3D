@@ -21,7 +21,7 @@ hand --press--> charging --release(mesma origem)--> rolling --published--> settl
 
 Um store zustand `useDice`. Campos que importam:
 
-- `dice: DieKind[]` — seleção, um item por dado, sempre ordenada por `KINDS` (`sortDice`), 1..`MAX_DICE` (10).
+- `dice: DieKind[]` — os dados do arremesso corrente, alinhados com `results`/`raw`: cópia da mão (`selecao`) recebida por `selecaoAlterada`, ordenada (`sortDice`), 1..`MAX_DICE` (10).
 - `gesture`, `throwId`, `aim`, `force`, `launch`, `results`, `raw`.
 - `chargeMode` — `'relative'` (padrão) ou `'static'`, escolhido no canto inferior esquerdo (`RollMode` em `Controls.tsx`) e lembrado no `localStorage` (`diceroller.rolagem`).
 - `omen`, `omenAt`, `omenDone`, `showcased` — sincronizam apresentação (ver apresentacao.md); `omenPlaying(s)` diz se o presságio deste arremesso está na tela.
@@ -30,7 +30,7 @@ Um store zustand `useDice`. Campos que importam:
 
 Regras:
 
-- Toda mudança de seleção (`addDie`/`removeDie`/`setDice`) passa por `selection()`: fase volta a `hand`, `throwId++`, limpa `launch`/`results`/`force`.
+- Toda mudança da mão (`adicionar`/`remover`/`definir` de `selecao`, que emitem `selecaoAlterada`) e o `reiniciar` passam por `selection()`: fase volta a `hand`, `throwId++`, limpa `launch`/`results`/`force`.
 - `input(event, hand?)` roda o reducer; se o efeito é `throw`, cria **num único `set`** o `Launch` com `throwId` novo, semente `crypto.getRandomValues`, cópia do `aim`, força e movimento da mão.
 - `publish(throwId, results, raw)` só tem efeito se `throwId` é o atual **e** a fase é `rolling`. Publica resultado + presságio + transição `published` juntos (um snapshot só para os assinantes).
 

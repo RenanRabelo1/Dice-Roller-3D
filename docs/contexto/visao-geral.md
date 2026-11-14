@@ -49,7 +49,7 @@ src/
   dice/                    o resto do legado dos dados (sem React)                  → dados.md
     customStore.ts           IndexedDB store `customDice`
     importer.ts              .stl/.glb → poliedro (detecção, sólido ideal, calibração)
-    notation.ts              parser/formatador "2d10 + d100", texto do painel
+    notation.ts              texto do painel (`resultText`); a notação está em `modules/selecao`
     omen.ts                  regra de crítico/falha e duração dos presságios
   throw/                   lógica pura do arremesso                                 → arremesso.md
     gesture.ts               máquina de fases (reducer)

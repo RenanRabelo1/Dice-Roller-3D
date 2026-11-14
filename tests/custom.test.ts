@@ -1,7 +1,8 @@
 import { Quaternion, Vector3 } from 'three';
 import { afterEach, describe, expect, it } from 'vitest';
 import { baseOf, customKind, polyhedron, readUp, registerPoly, sortDice, toResults, unregisterCustom } from '../src/modules/dados/index.ts';
-import { formatDice, parseDice, resultText, slugOf, slugProblem } from '../src/dice/notation';
+import { resultText } from '../src/dice/notation';
+import { formatDice, parseDice, slugOf, slugProblem } from '../src/modules/selecao/index.ts';
 import { isD20 } from '../src/dice/omen';
 import { omenKinds } from '../src/dice/omenTest';
 import { omenOf } from '../src/modules/regras/index.ts';

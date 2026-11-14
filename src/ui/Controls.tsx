@@ -3,7 +3,9 @@ import { omenPlaying, useDice } from '../store';
 import { useFalha } from '../shared/plataforma';
 import { carregarModelo, customDie, customKind, finishOf, hasTexture, nomeDoTipo, type CustomDie } from '../modules/dados/index';
 import { isCustom, KINDS, MAX_DICE, type DieKind } from '../modules/regras/index';
-import { formatDice, resultText } from '../dice/notation';
+import { resultText } from '../dice/notation';
+import { adicionar, formatDice, remover } from '../modules/selecao/index';
+import { useSelecao } from '../modules/selecao/cena';
 import { Chat } from './Chat';
 import { InkChoice } from './InkChoice';
 import { TablePanel } from './TablePanel';
@@ -53,7 +55,7 @@ function Force() {
 }
 
 export function Controls() {
-  const dice = useDice((s) => s.dice), customs = useDice((s) => s.customs);
+  const dice = useSelecao(), customs = useDice((s) => s.customs);
   const [importing, setImporting] = useState(false), [mounted, setMounted] = useState(false);
   const closeImport = useCallback(() => setImporting(false), []);
   const pick = (type: DieKind, mine = false) => {
@@ -61,19 +63,19 @@ export function Controls() {
     return (
       <div className="pick" key={type}>
         <button aria-label={`Adicionar ${name}`} aria-pressed={n > 0} disabled={dice.length >= MAX_DICE}
-          onClick={() => useDice.getState().addDie(type)}>{n ? formatDice(dice.filter((d) => d === type)) : name}</button>
+          onClick={() => adicionar(type)}>{n ? formatDice(dice.filter((d) => d === type)) : name}</button>
         {n > 0 && <button className="remove" aria-label={`Remover ${name}`} disabled={dice.length === 1}
-          onClick={() => useDice.getState().removeDie(type)}>−</button>}
+          onClick={() => remover(type)}>−</button>}
         {mine && isCustom(type) && customDie(type)?.printed && <InkButton die={customDie(type)!} />}
         {mine && <button className="remove" aria-label={`Excluir ${name}`}
           onClick={() => { if (confirm(`Excluir ${name} deste navegador? Isso não pode ser desfeito.`)) void useDice.getState().removeCustom(type as `custom:${string}`); }}>🗑</button>}
       </div>
     );
   };
-  const phase = useDice((s) => s.gesture.phase), results = useDice((s) => s.results);
+  const phase = useDice((s) => s.gesture.phase), results = useDice((s) => s.results), thrown = useDice((s) => s.dice); // thrown: the dice behind `results`
   const waiting = useDice(omenPlaying); // the result shows once its omen has played (or the dice are picked up)
   const failed = useFalha() === 'physics';
-  const text = results && !waiting && resultText(dice, results);
+  const text = results && !waiting && resultText(thrown, results);
   return (
     <>
       <header className="controls panel">
