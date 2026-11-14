@@ -1,13 +1,12 @@
 import { create } from 'zustand';
 import { omenOf, type DieKind, type Omen } from './modules/regras/index.ts';
 import { definir, selecao, selecaoAlterada } from './modules/selecao/index.ts';
-import type { Launch } from './physics/apply';
-import { HAND } from './physics/world';
 import type { Vec3 } from './shared/math';
 import { aoMudarMovimentoReduzido, movimentoReduzido } from './shared/plataforma';
-import { initialGesture, reduce, type Effect, type GestureEvent, type GestureState } from './throw/gesture';
-import type { ChargeMode } from './throw/aim';
-import { omenKinds, withDiceFor, type OmenTest } from './dice/omenTest';
+import {
+  HAND, initialGesture, reduce, type ChargeMode, type Effect, type GestureEvent, type GestureState, type Launch, type OmenTest,
+} from './modules/arremesso/index.ts';
+import { omenKinds, withDiceFor } from './dice/omenTest';
 
 type HandMotion = { center: Vec3; omega: Vec3 };
 

@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { omenKinds, plays, withDiceFor } from '../src/dice/omenTest';
-import { presimulate, presimulateFor, type RollRequest } from '../src/physics/presim';
-import { handPositions } from '../src/physics/world';
+import { omenKinds, withDiceFor } from '../src/dice/omenTest';
+import { handPositions, plays, presimulate, presimulateFor, type RollRequest } from '../src/modules/arremesso/index.ts';
 import type { Quat, Vec3 } from '../src/shared/math';
 import type { DieKind } from '../src/modules/regras/index.ts';
 import { initRapier } from './helpers/sim';

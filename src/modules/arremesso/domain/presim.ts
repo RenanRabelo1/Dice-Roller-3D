@@ -1,17 +1,12 @@
 import RAPIER from '@dimforge/rapier3d-compat';
-import { plays, type OmenTest } from '../dice/omenTest';
-import { polyhedron, readUp, toResults, type Polyhedron } from '../modules/dados/index';
-import type { CustomKind, DieKind } from '../modules/regras/index';
-import { initSettle, stepSettle } from '../throw/settle';
-import { applyLaunch, applySettle, bodyStates, type Launch } from './apply';
-import { DAMPING, GRAVITY, isOutside, MATERIAL, SETTLE, STEP, trayColliders } from './world';
-import type { Pose } from '../shared/math';
-
-export interface Recording { frames: Pose[][]; raw: number[]; results: number[]; timedOut: boolean; escaped: boolean; recovered: boolean }
-// `customs`: the imported dice of the selection, because the worker has no registry of its own.
-// `bias` (dev test buttons only): look for a roll that plays this omen; `kinds` from omenKinds.
-export interface RollRequest { dice: DieKind[]; start: Pose[]; launch: Launch; customs: Record<CustomKind, Polyhedron>; bias?: { test: OmenTest; kinds: DieKind[] } }
-export type RollResponse = { throwId: number } & ({ rec: Recording } | { error: string });
+import type { Pose } from '../../../shared/math.ts';
+import { polyhedron, readUp, toResults } from '../../dados/index.ts';
+import type { DieKind } from '../../regras/index.ts';
+import type { Launch, Recording, RollRequest } from '../contracts.ts';
+import { applyLaunch, applySettle, bodyStates } from './apply.ts';
+import { initSettle, stepSettle } from './settle.ts';
+import { plays } from './vies.ts';
+import { DAMPING, GRAVITY, isOutside, MATERIAL, SETTLE, STEP, trayColliders } from './world.ts';
 
 // Runs the whole throw offline with the real engine and the real inputs (hand poses, aim, force, spin),
 // recording one pose per body per step. The screen then replays a genuine roll whose result is already

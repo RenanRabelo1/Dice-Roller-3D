@@ -5,13 +5,12 @@ import { ArrowHelper, Color, Group, Matrix4, Mesh, MeshBasicMaterial, Plane, Qua
 import { Text } from 'troika-three-text';
 import { customDie, FONT, FONT_URL, gemColor, inkColorOf, polyhedron, RADIUS, SYMBOL, symbolGeometry } from '../modules/dados/index';
 import { isCustom, MAX_DICE } from '../modules/regras/index';
-import { toKinematic } from '../physics/apply';
-import { HAND } from '../physics/world';
 import { easeOut, type Pose, type Quat, type Vec3 } from '../shared/math';
 import { movimentoReduzido } from '../shared/plataforma';
 import { omenPlaying, useDice } from '../store';
-import { charge, clampTarget } from '../throw/aim';
-import { newWhirl, ORBITS, restingPlaces, spinAngle, stepWhirl, vortexCenter } from '../throw/vortex';
+import {
+  charge, clampTarget, HAND, newWhirl, ORBITS, restingPlaces, spinAngle, stepWhirl, toKinematic, vortexCenter,
+} from '../modules/arremesso/index';
 import { CAPTION, showcasePoses } from './showcase';
 import { glowMesh } from './inkGlow';
 import { highlightAt, HL_SIZE, SHOW } from './highlight';
@@ -29,7 +28,7 @@ export function Hand({ gameArea, bodies }: {
   const motion = useRef<{ center: Vec3; omega: Vec3 }>({ center: [0, HAND.y, HAND.z], omega: [0, 0, 0] });
   const previousAim = useRef<Vec3>([...useDice.getState().aim]);
   const handX = useRef(0);
-  // The dice in the hand swirl as one whirlwind (see throw/vortex); it outlives a selection change.
+  // The dice in the hand swirl as one whirlwind (see arremesso/domain/vortex); it outlives a selection change.
   const whirl = useRef(newWhirl(vortexCenter(1, 0)));
   const whirled = useRef({ identity: '', count: 0 });
   const rotations = useRef<Quaternion[]>([]);

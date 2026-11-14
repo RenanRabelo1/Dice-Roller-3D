@@ -1,16 +1,5 @@
-import { charge, type ChargeMode } from './aim';
-
-export type Phase = 'hand' | 'charging' | 'rolling' | 'settled' | 'returning';
-export type Source = { kind: 'pointer'; id: number } | { kind: 'key' };
-export type GestureEvent =
-  | { type: 'press'; source: Source; at: number; repeat: boolean }
-  | { type: 'release'; source: Source; at: number; mode?: ChargeMode } // mode: how the charge moved (relative by default)
-  | { type: 'cancel' }
-  | { type: 'published' }
-  | { type: 'returned' }
-  | { type: 'selection' };
-export interface GestureState { phase: Phase; source: Source | null; chargeStart: number }
-export type Effect = { type: 'none' } | { type: 'throw'; force: number } | { type: 'return' };
+import type { Effect, GestureEvent, GestureState, Source } from '../contracts.ts';
+import { charge } from './aim.ts';
 
 export const initialGesture: GestureState = { phase: 'hand', source: null, chargeStart: 0 };
 

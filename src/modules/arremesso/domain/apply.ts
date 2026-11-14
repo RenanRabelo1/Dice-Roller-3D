@@ -1,12 +1,11 @@
 import { RigidBodyType } from '@dimforge/rapier3d-compat';
 import type { RigidBody } from '@dimforge/rapier3d-compat';
-import { launchVelocity, spin } from '../throw/aim';
-import type { BodyState, SettleAction } from '../throw/settle';
-import type { Quat, Vec3 } from '../shared/math';
+import type { Quat, Vec3 } from '../../../shared/math.ts';
+import type { Launch } from '../contracts.ts';
+import { launchVelocity, spin } from './aim.ts';
+import type { BodyState, SettleAction } from './settle.ts';
 
 // The single place that changes Rapier body types, velocities and poses (scene and Node tests alike).
-
-export interface Launch { throwId: number; seed: number; target: Vec3; force: number; handCenter: Vec3; handOmega: Vec3 }
 
 const v = ([x, y, z]: Vec3) => ({ x, y, z });
 const ZERO = { x: 0, y: 0, z: 0 };

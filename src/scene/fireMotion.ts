@@ -1,7 +1,7 @@
 import { MathUtils } from 'three';
 import { isD20 } from '../dice/omen';
 import type { DieKind, Omen } from '../modules/regras/index';
-import { TRAY } from '../physics/world';
+import { TRAY } from '../modules/arremesso/index';
 import { easeOut, span } from '../shared/math';
 
 // d20 = 1. The die catches fire, the fire runs over the whole felt, and the die flies to the front still

@@ -5,11 +5,12 @@ import { Physics, useBeforePhysicsStep, type RapierRigidBody } from '@react-thre
 import { Box3, Color, Group, Mesh, Quaternion, Texture, Vector3, type BufferGeometry, type Material, type Object3D } from 'three';
 import { Text } from 'troika-three-text';
 
-import { bodyStates } from '../physics/apply';
-import { BIAS_BUDGET, presimulateFor, type Recording, type RollRequest, type RollResponse } from '../physics/presim';
+import {
+  BIAS_BUDGET, bodyStates, criarWorkerDePresimulacao, GRAVITY, HAND, handPositions, presimulateFor, STEP, TRAY, VORTEX, vortexCenter, vortexRadius,
+  type Recording, type RollRequest, type RollResponse,
+} from '../modules/arremesso/index';
 import { omenKinds } from '../dice/omenTest';
 import type { DiceHook } from './testHook';
-import { GRAVITY, HAND, MAX_RADIUS, STEP, TRAY, handPositions } from '../physics/world';
 import type { Vec3 } from '../shared/math';
 import { useDice } from '../store';
 import { installTestHook } from './testHook';
@@ -18,10 +19,9 @@ import { Tray } from '../scene/Tray';
 import { Hand } from '../scene/Hand';
 import { Omens } from '../scene/Omens';
 import { MAX_DICE, omenKind } from '../modules/regras/index';
-import { customsOf, inspecao } from '../modules/dados/index';
+import { customsOf, inspecao, RAIO_MAXIMO } from '../modules/dados/index';
 import { definir } from '../modules/selecao/index';
 import { inspecao as inspecaoDosImportados } from '../modules/meus-dados/index';
-import { VORTEX, vortexCenter, vortexRadius } from '../throw/vortex';
 import { useTable } from '../scene/tableState';
 import { panoramaTexture } from '../scene/tableImages';
 import { Guard, falha, marcarRenderizadorPorSoftware, movimentoReduzido, registrarFalha } from '../shared/plataforma';
@@ -52,7 +52,7 @@ function ThrowLoop({ bodies, recordLaunch }: {
   }, []);
   useEffect(() => {
     try {
-      const w = new Worker(new URL('../physics/presim.worker.ts', import.meta.url), { type: 'module' });
+      const w = criarWorkerDePresimulacao();
       worker.current = w;
       w.onmessage = ({ data }: MessageEvent<RollResponse>) => {
         const pending = play.current, state = useDice.getState();
@@ -169,9 +169,9 @@ export function Cena({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> 
       }
       // Fit the largest hand (20 bodies), so selection never changes the camera.
       for (const p of handPositions(HAND.cols * 4, 0)) {
-        for (const x of [-MAX_RADIUS, MAX_RADIUS]) {
-          for (const y of [-MAX_RADIUS, MAX_RADIUS]) {
-            for (const z of [-MAX_RADIUS, MAX_RADIUS]) corners.push([p[0] + x, p[1] + y, p[2] + z]);
+        for (const x of [-RAIO_MAXIMO, RAIO_MAXIMO]) {
+          for (const y of [-RAIO_MAXIMO, RAIO_MAXIMO]) {
+            for (const z of [-RAIO_MAXIMO, RAIO_MAXIMO]) corners.push([p[0] + x, p[1] + y, p[2] + z]);
           }
         }
       }
@@ -179,7 +179,7 @@ export function Cena({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> 
       for (const side of [-1, 1]) {
         const c = vortexCenter(MAX_DICE, side * TRAY.halfWidth), R = vortexRadius(MAX_DICE);
         for (const x of [-1, 1]) for (const y of [-1, 1]) for (const z of [-1, 1]) {
-          corners.push(c.map((v, k) => v + [x, y, z][k] * (R * VORTEX.squash[k] + MAX_RADIUS)) as Vec3);
+          corners.push(c.map((v, k) => v + [x, y, z][k] * (R * VORTEX.squash[k] + RAIO_MAXIMO)) as Vec3);
         }
       }
       const halfFov = Math.tan(20 * Math.PI / 180) * 0.94;

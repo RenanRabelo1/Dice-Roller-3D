@@ -1,20 +1,18 @@
-import { LAUNCH, MAX_RADIUS, SPIN, TRAY } from '../physics/world';
-import type { Vec3 } from '../shared/math';
+import type { Vec3 } from '../../../shared/math.ts';
+import { RAIO_MAXIMO } from '../../dados/index.ts';
+import type { ChargeMode } from '../contracts.ts';
+import { LAUNCH, SPIN, TRAY } from './world.ts';
 
 const CHARGE_HALF_CYCLE_MS = 700;
 
 /** Keeps the aim target on the tray floor, a die radius away from the walls. */
 export function clampTarget([x, , z]: Vec3): Vec3 {
-  const mx = TRAY.halfWidth - MAX_RADIUS;
-  const mz = TRAY.halfDepth - MAX_RADIUS;
+  const mx = TRAY.halfWidth - RAIO_MAXIMO;
+  const mz = TRAY.halfDepth - RAIO_MAXIMO;
   return [Math.min(mx, Math.max(-mx, x)), 0, Math.min(mz, Math.max(-mz, z))];
 }
 
-// How the charge moves while it is held. 'relative': up and down, 0 → 1 → 0 every 1400 ms (time the release).
-// 'static': up to 1 in 700 ms, then it stays there until the release. 1 is the strongest throw the tray is
-// tuned for (LAUNCH.maxSpeed), the same top the relative charge reaches.
-export type ChargeMode = 'relative' | 'static';
-
+// How the charge moves while it is held: see ChargeMode in contracts.ts.
 export function charge(ms: number, mode: ChargeMode = 'relative'): number {
   if (mode === 'static') return Math.min(1, Math.max(0, ms / CHARGE_HALF_CYCLE_MS));
   return 1 - Math.abs(((ms / CHARGE_HALF_CYCLE_MS) % 2) - 1);

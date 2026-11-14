@@ -1,5 +1,5 @@
 import { CuboidCollider, RigidBody } from '@react-three/rapier';
-import { MATERIAL, trayColliders } from '../physics/world';
+import { MATERIAL, trayColliders } from '../modules/arremesso/index';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import type { Group, Object3D } from 'three';

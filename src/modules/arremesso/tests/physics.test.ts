@@ -1,11 +1,12 @@
 import { afterEach, beforeAll, describe, it, expect } from 'vitest';
 import RAPIER, { RigidBodyType } from '@dimforge/rapier3d-compat';
-import { BASE, KINDS } from '../src/modules/regras/index.ts';
-import { clampTarget, launchVelocity, spin } from '../src/throw/aim';
-import { applyLaunch, applySettle, bodyStates, toKinematic } from '../src/physics/apply';
-import { isOutside, MAX_RADIUS, SETTLE } from '../src/physics/world';
-import type { Quat, Vec3 } from '../src/shared/math';
-import { initRapier, simulate } from './helpers/sim';
+import { RAIO_MAXIMO } from '../../dados/index.ts';
+import { BASE, KINDS } from '../../regras/index.ts';
+import { clampTarget, launchVelocity, spin } from '../domain/aim.ts';
+import { applyLaunch, applySettle, bodyStates, toKinematic } from '../domain/apply.ts';
+import { isOutside, SETTLE } from '../domain/world.ts';
+import type { Quat, Vec3 } from '../../../shared/math.ts';
+import { initRapier, simulate } from '../../../../tests/helpers/sim.ts';
 
 const T = 180_000;
 
@@ -109,7 +110,7 @@ describe.each(KINDS.filter((k) => BASE[k] === k))('%s × 10', (kind) => {
     expect(r.results).toHaveLength(10);
     r.results.forEach((v) => { expect(v).toBeGreaterThanOrEqual(1); expect(v).toBeLessThanOrEqual(kind === 'coin' ? 2 : Number(kind.slice(1))); });
     expect(r.frames.every((f) => f.length === r.bodies)).toBe(true);
-    r.final.forEach((p) => expect(isOutside(p, MAX_RADIUS)).toBe(false));
+    r.final.forEach((p) => expect(isOutside(p, RAIO_MAXIMO)).toBe(false));
   }, T);
 });
 
@@ -132,7 +133,7 @@ describe('edges', () => {
     const r = await simulate({ kind: 'd6', count: 2, force: 0.5, target: [0, 0, 0], seed: 1,
       perturb: (s, b) => { if (s === 30) b[0].setTranslation({ x: 20, y: 1, z: 0 }, true); } });
     expect(r.recovered).toBe(true);
-    r.final.forEach((p) => expect(isOutside(p, MAX_RADIUS)).toBe(false));
+    r.final.forEach((p) => expect(isOutside(p, RAIO_MAXIMO)).toBe(false));
   }, T);
   it('a body kept moving is revealed at the cap and frozen', async () => {
     const r = await simulate({ kind: 'd6', count: 2, force: 0.5, target: [0, 0, 0], seed: 1,

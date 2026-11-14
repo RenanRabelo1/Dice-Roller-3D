@@ -3,8 +3,7 @@ import { ConvexHullCollider, RigidBody, type RapierRigidBody } from '@react-thre
 import { polyhedron } from '../modules/dados/index';
 import { AparenciaDoDado } from '../modules/dados/cena';
 import type { DieKind } from '../modules/regras/index';
-import { MATERIAL } from '../physics/world';
-import { vortexCenter } from '../throw/vortex';
+import { MATERIAL, vortexCenter } from '../modules/arremesso/index';
 
 // The die's physical body; what it looks like is `dados`' AparenciaDoDado.
 export function Die({ index, kind, selection, count, register }: {

@@ -1,5 +1,5 @@
 import { BoxGeometry, DataTexture, Group, Material, Mesh, MeshBasicMaterial, MeshStandardMaterial, PlaneGeometry, SRGBColorSpace, type Object3D, type Texture } from 'three';
-import { TRAY, trayColliders } from '../physics/world';
+import { TRAY, trayColliders } from '../modules/arremesso/index';
 import { feltMap } from './tableTextures';
 import { EXTRAS_KEY, extrasOf, type TableTheme } from './tableTheme';
 

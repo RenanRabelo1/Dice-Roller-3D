@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { reduce, initialGesture, type GestureState, type Phase, type Source } from '../src/throw/gesture';
+import type { GestureState, Phase, Source } from '../contracts.ts';
+import { reduce, initialGesture } from '../domain/gesture.ts';
 
 const P1 = { kind: 'pointer', id: 1 } as const, P2 = { kind: 'pointer', id: 2 } as const, KEY = { kind: 'key' } as const;
 const at = (phase: Phase): GestureState => ({ ...initialGesture, phase });

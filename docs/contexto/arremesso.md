@@ -1,12 +1,12 @@
 # Arremesso: input → física → resultado
 
-Cobre `store.ts`, `throw/*`, `physics/*`, `app/Cena.tsx` (ThrowLoop) e a parte de input/mão de `scene/Hand.tsx`. O que acontece **depois** de publicar está em [apresentacao.md](apresentacao.md).
+Cobre `store.ts`, o domínio do arremesso em `src/modules/arremesso/` (`domain/*`, porta `index.ts`, tipos em `contracts.ts`; antes `throw/*` e `physics/*`), `app/Cena.tsx` (ThrowLoop) e a parte de input/mão de `scene/Hand.tsx`. O que acontece **depois** de publicar está em [apresentacao.md](apresentacao.md).
 
 ## Ideia central
 
 O resultado é decidido **no momento do arremesso**, não lido ao vivo. Ao soltar, o arremesso inteiro é simulado offline com o Rapier real (`presimulate`), gravando uma pose por corpo por passo. A cena então **reproduz** a gravação, um quadro gravado por passo físico, e publica o resultado no último quadro. É uma rolagem física de verdade, mostrada em tempo real, cujo valor já é conhecido.
 
-## Fases (`throw/gesture.ts`, reducer puro)
+## Fases (`arremesso/domain/gesture.ts`, reducer puro)
 
 ```
 hand --press--> charging --release(mesma origem)--> rolling --published--> settled --press--> returning --returned--> hand
@@ -36,10 +36,10 @@ Regras:
 
 ## Linha do tempo de um arremesso
 
-1. **Mira** — `Hand.tsx` faz raycast do ponteiro no plano y=0 e grava `clampTarget(hit)`. Setas movem 0,5. Os dados na mão (cinemáticos) giram num redemoinho (`throw/vortex.ts`): cada um numa órbita inclinada (planos de Fibonacci, `ORBITS`) e girando no próprio eixo, separados entre si; o centro segue `aim.x` e a velocidade cresce com a carga. A mão balança conforme a velocidade da mira (`omega`).
+1. **Mira** — `Hand.tsx` faz raycast do ponteiro no plano y=0 e grava `clampTarget(hit)`. Setas movem 0,5. Os dados na mão (cinemáticos) giram num redemoinho (`arremesso/domain/vortex.ts`): cada um numa órbita inclinada (planos de Fibonacci, `ORBITS`) e girando no próprio eixo, separados entre si; o centro segue `aim.x` e a velocidade cresce com a carga. A mão balança conforme a velocidade da mira (`omega`).
 2. **Carga** — `pointerdown`/Espaço → `press`. A cada quadro `force = charge(agora - chargeStart, chargeMode)`: **relativa** = onda triangular 0→1→0, ciclo 1400 ms; **estática** = sobe até 1 em 700 ms e fica em 1 (o máximo de `LAUNCH`, com o redemoinho na velocidade máxima) até soltar. A seta (`ArrowHelper`) muda de cor/tamanho com a força.
 3. **Soltura** — `release` → store cria `Launch` com `handCenter`/`handOmega` reais.
-4. **Pré-simulação** — `ThrowLoop` (em `app/Cena.tsx`, dentro de `useBeforePhysicsStep`) detecta `throwId` novo, captura as poses atuais dos corpos e manda `RollRequest { dice, start, launch, customs, bias? }` ao worker (`presim.worker.ts`); `bias` só existe com um botão de teste de presságio ligado (`omenTest`) e faz `presimulateFor` procurar, dentro de `BIAS_BUDGET`, uma semente que produza aquele presságio. Sem worker, ou sem resposta em 2 s (`WORKER_TIMEOUT`, mais `BIAS_BUDGET.worker` com `bias`) → `presimulateFor` síncrono na thread principal (fallback); se ele também falhar, os dados voltam à mão com `error: 'physics'`.
+4. **Pré-simulação** — `ThrowLoop` (em `app/Cena.tsx`, dentro de `useBeforePhysicsStep`) detecta `throwId` novo, captura as poses atuais dos corpos e manda `RollRequest { dice, start, launch, customs, bias? }` ao worker (`arremesso/domain/presim.worker.ts`, criado por `criarWorkerDePresimulacao()` do `index.ts`); `bias` só existe com um botão de teste de presságio ligado (`omenTest`) e faz `presimulateFor` procurar, dentro de `BIAS_BUDGET`, uma semente que produza aquele presságio. Sem worker, ou sem resposta em 2 s (`WORKER_TIMEOUT`, mais `BIAS_BUDGET.worker` com `bias`) → `presimulateFor` síncrono na thread principal (fallback); se ele também falhar, os dados voltam à mão com `error: 'physics'`.
 5. **Replay** — a cada passo físico aplica `rec.frames[at]` via `setNextKinematicTranslation/Rotation`. Os corpos da cena continuam **cinemáticos** o tempo todo; quem simula dinâmica é só o mundo offline.
 6. **Publicação** — no último quadro, fixa a pose final com `setTranslation/setRotation` **antes** de `publish(throwId, rec.results, rec.raw)`.
 7. **Settled** → apresentação (presságio, voo, números). Clique/Espaço → `returning`.
@@ -47,7 +47,7 @@ Regras:
 
 Descartes por `throwId`: resposta do worker de arremesso antigo, publish atrasado, seleção trocada no meio — tudo comparado com `useDice.getState().throwId` e fase `rolling`.
 
-## Pré-simulação (`physics/presim.ts`)
+## Pré-simulação (`arremesso/domain/presim.ts`)
 
 `presimulate(dice, start, launch, perturb?) → Recording { frames, raw, results, timedOut, escaped, recovered }`
 
@@ -55,10 +55,10 @@ Descartes por `throwId`: resposta do worker de arremesso antigo, publish atrasad
 - Colisor: `convexHull(poly.points)`; moeda usa `roundCylinder` (casco fino balança para sempre).
 - `applyLaunch`: torna dinâmico, velocidade linear `launchVelocity(handCenter, target, force)`, angular = giro da mão + `spin(seed, i)`.
 - Loop até `SETTLE.timeoutSteps` (240 = 4 s): `world.step()` → trava rotação de moeda lenta e deitada → `stepSettle` → `applySettle` → grava quadro. No `reveal`, lê `readUp` de cada pose e converte com `toResults` (dado de forma livre, `readsDown`: lê a face de baixo, ver dados.md).
-- Determinístico: mesmos inputs → mesma gravação (testado em `tests/physics.test.ts`).
+- Determinístico: mesmos inputs → mesma gravação (testado em `src/modules/arremesso/tests/physics.test.ts`).
 - `perturb` existe só para testes (forçar fuga/timeout).
 
-## Parada (`throw/settle.ts`, puro)
+## Parada (`arremesso/domain/settle.ts`, puro)
 
 `stepSettle(state, { throwId, phase, radii, bodies })` → `wait | recover | reveal`. Prioridade:
 
@@ -70,11 +70,11 @@ Descartes por `throwId`: resposta do worker de arremesso antigo, publish atrasad
 
 Não lê faces: o valor sai das poses do `reveal`.
 
-## Aplicação nos corpos (`physics/apply.ts`)
+## Aplicação nos corpos (`arremesso/domain/apply.ts`)
 
 Único lugar que muda tipo de corpo, velocidade e pose — usado pela cena e pelos testes Node. `applyLaunch`, `toKinematic`, `applySettle`, `bodyStates`.
 
-## Constantes (`physics/world.ts`)
+## Constantes (`arremesso/domain/world.ts`)
 
 | Constante | Valor | Uso |
 |---|---|---|
@@ -85,12 +85,12 @@ Não lê faces: o valor sai das poses do `reveal`.
 | `SPIN` | 10–25 rad/s | `spin` |
 | `SETTLE` | 240 passos, 12 calmos, 0,08 / 0,15 | `stepSettle` |
 | `HAND` | y 3, z 3, espaçamento 1,9, 5 colunas | `handPositions` (testes de física), `clampHandX` |
-| `VORTEX` (`throw/vortex.ts`) | raio, ritmo, ganho com a carga | redemoinho da mão (`stepWhirl`, `spinAngle`) |
+| `VORTEX` (`arremesso/domain/vortex.ts`) | raio, ritmo, ganho com a carga | redemoinho da mão (`stepWhirl`, `spinAngle`) |
 | `DAMPING` | d100 e moeda | rolam demais sem amortecimento |
-| `MAX_RADIUS` | 0,9 | precisa bater com `max(RADIUS)` (há teste) |
+| `RAIO_MAXIMO` (de `dados`) | 0,9 | precisa bater com `max(RADIUS)` (há teste) |
 
 Ajuste de "sensação" do arremesso = mexer aqui. Os testes de física usam os mesmos valores.
 
 ## Worker
 
-`new Worker(new URL('../physics/presim.worker.ts', import.meta.url), { type: 'module' })`. `customs` (`customsOf(dice)`) leva o poliedro de cada dado importado da seleção; o worker os registra com `registerPoly` antes de `presimulate` (ele não tem o registro do app; o fallback síncrono tem). Inicializa o Rapier assim que a cena monta (aquece enquanto o jogador mira). Erro de init, `onerror` ou `onmessageerror` → `fallback()` termina o worker e simula na thread principal. Acrescenta ~2,4 MB ao build (WASM do Rapier).
+`criarWorkerDePresimulacao()` (no `index.ts` do módulo: `new Worker(new URL('./domain/presim.worker.ts', import.meta.url), { type: 'module' })`); a casca não aponta para o arquivo do worker. `customs` (`customsOf(dice)`) leva o poliedro de cada dado importado da seleção; o worker os registra com `registerPoly` antes de `presimulate` (ele não tem o registro do app; o fallback síncrono tem). Inicializa o Rapier assim que a cena monta (aquece enquanto o jogador mira). Erro de init, `onerror` ou `onmessageerror` → `fallback()` termina o worker e simula na thread principal. Acrescenta ~2,4 MB ao build (WASM do Rapier).

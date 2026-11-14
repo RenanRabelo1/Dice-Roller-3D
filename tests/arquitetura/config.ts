@@ -10,13 +10,7 @@ export type Nivel = 'arquivo' | 'pasta';
  * Remove the entry in the same commit that breaks the cycle; the suite fails until you do. */
 export interface CicloConhecido { nivel: Nivel; membros: string[]; motivo: string }
 
-export const CICLOS_CONHECIDOS: CicloConhecido[] = [
-  {
-    nivel: 'pasta',
-    membros: ['src/physics', 'src/throw'],
-    motivo: 'mapa-modulos.md, "Ciclos de hoje", linha "pastas dice ↔ physics ↔ throw" (o lado dice saiu na F-3): TRAY/LAUNCH/SETTLE/HAND moram em physics/world.ts, que o throw/ lê, e physics/apply.ts lê throw/. Some quando throw/ + physics/ virarem o módulo arremesso (plano-refatoracao.md §8).',
-  },
-];
+export const CICLOS_CONHECIDOS: CicloConhecido[] = [];
 
 /** `server/**` → `src/**`: only the door of the pure `regras` module (ADR 0002, ADR 0004). */
 export const SERVIDOR_PODE_IMPORTAR = ['src/modules/regras/index.ts'];

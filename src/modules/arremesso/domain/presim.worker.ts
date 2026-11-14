@@ -1,7 +1,8 @@
 import RAPIER from '@dimforge/rapier3d-compat';
-import { registerPoly } from '../modules/dados/index';
-import type { CustomKind } from '../modules/regras/index';
-import { BIAS_BUDGET, presimulateFor, type RollRequest, type RollResponse } from './presim';
+import { registerPoly } from '../../dados/index.ts';
+import type { CustomKind } from '../../regras/index.ts';
+import type { RollRequest, RollResponse } from '../contracts.ts';
+import { BIAS_BUDGET, presimulateFor } from './presim.ts';
 
 // Warm the engine while the user aims, and keep the full simulation off the render thread.
 const ready = RAPIER.init().then(() => null, (error: unknown) => String(error));

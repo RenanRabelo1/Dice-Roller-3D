@@ -35,7 +35,7 @@ Dado personalizado = mesmo corpo/numeração/leitura do `BASE`; muda só a apar�
 - 6 e 9 ganham ponto (`6.`, `9.`) em d10/d12/d20/d100.
 - `numbering` opcional (`values` por face, d4: por vértice; `turns` em passos de 360°/lados) troca valores e gira o numeral: é assim que a calibração de dado importado entra. A oposta é a face mais oposta (exata nos dados embutidos, a mais próxima num modelo).
 
-`RADIUS` (circunraio) por shape; `MAX_RADIUS` em `physics/world.ts` deve ser o máximo.
+`RADIUS` (circunraio) por shape; `RAIO_MAXIMO` (de `modules/dados`) deve ser o máximo.
 
 ## Leitura (`modules/dados/domain/leitura.ts`)
 
@@ -115,6 +115,6 @@ Dados "shard" têm faces longas numeradas e pontas lapidadas em camadas de facet
 2. `modules/dados/domain/aparencia.ts`: `GEM` (obrigatório, é `Record`), `FONT` se shape novo, `INK` se preciso; `EMBER` em `modules/dados/scene/GemMaterial.tsx`.
 3. `modules/selecao/domain/notacao.ts`: sufixo em `AFTER_D` (mantendo do mais longo ao mais curto) e nome em `CUSTOM` (`modules/dados/domain/aparencia.ts`); atualizar a mensagem de erro e a dica de `modules/selecao/ui/Chat.tsx`.
 4. `modules/dados/domain/leitura.ts`: só se a regra de valor mudar.
-5. `physics/world.ts`: `DAMPING` se o corpo rolar demais; `MAX_RADIUS` se o raio passar de 0,9.
+5. `modules/arremesso/domain/world.ts`: `DAMPING` se o corpo rolar demais; `RAIO_MAXIMO` (`modules/dados/domain/solidos.ts`) se o raio passar de 0,9.
 6. `omen.ts`: só se o dado deve disparar presságio.
 7. Testes: `src/modules/dados/tests/polyhedra.test.ts` e `read.test.ts`, `tests/notation.test.ts`, e um caso em `e2e/smoke.spec.ts` ("every supported selection").

@@ -1,6 +1,6 @@
-import { MAX_DICE } from '../modules/regras/index';
-import { HAND, TRAY } from '../physics/world';
-import type { Vec3 } from '../shared/math';
+import type { Vec3 } from '../../../shared/math.ts';
+import { MAX_DICE } from '../../regras/index.ts';
+import { HAND, TRAY } from './world.ts';
 
 // The hand as a whirlwind. One die waits alone, spinning. More dice gather into an atom-like whirl:
 // each on its own tilted orbit (half of them going the other way round) and spinning about its own axis.
@@ -14,7 +14,7 @@ export const VORTEX = {
   grow: 6, // 1/s: how fast the whirl widens or narrows as dice join or leave
   bob: 0.08, // a lone die's float
 };
-const REACH = 0.9; // the largest die's radius (MAX_RADIUS), kept clear of the walls and the felt
+const REACH = 0.9; // the largest die's radius (RAIO_MAXIMO of dados), kept clear of the walls and the felt
 const MARGIN = 0.1;
 
 export const vortexRadius = (n: number) => (n < 2 ? 0 : 0.75 + 0.13 * n);

@@ -1,6 +1,6 @@
 # Mesa e fundo personalizados
 
-O jogador muda o fundo e a aparência da bandeja, salva no navegador e exporta/importa a mesa como `.glb`. Spec: `docs/superpowers/specs/2026-11-11-mesa-e-fundo-design.md` (implementada, fases 1 e 2). **Regra de ouro:** a mesa é só o que se vê. Colisores = `trayColliders()` (`physics/world.ts`), nunca derivados do arquivo; resultados e física não mudam.
+O jogador muda o fundo e a aparência da bandeja, salva no navegador e exporta/importa a mesa como `.glb`. Spec: `docs/superpowers/specs/2026-11-11-mesa-e-fundo-design.md` (implementada, fases 1 e 2). **Regra de ouro:** a mesa é só o que se vê. Colisores = `trayColliders()` (`modules/arremesso/domain/world.ts`), nunca derivados do arquivo; resultados e física não mudam.
 
 ## Arquivos
 

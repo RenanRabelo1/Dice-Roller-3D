@@ -51,16 +51,16 @@ src/
   dice/                    o resto do legado dos dados (sem React)                  → dados.md
     notation.ts              texto do painel (`resultText`); a notação está em `modules/selecao`
     omen.ts                  regra de crítico/falha e duração dos presságios
-  throw/                   lógica pura do arremesso                                 → arremesso.md
-    gesture.ts               máquina de fases (reducer)
-    aim.ts                   mira, carga, velocidade, giro com semente
-    settle.ts                quando os dados "pararam"
-    vortex.ts                redemoinho dos dados na mão
-  physics/                 Rapier fora da cena                                      → arremesso.md
-    world.ts                 constantes (bandeja, materiais, mão) e geometria da mão
-    apply.ts                 único lugar que muda tipo/velocidade/pose de corpo
-    presim.ts                simula o arremesso inteiro offline e grava os quadros
-    presim.worker.ts         roda presim fora da thread de render
+  modules/arremesso/       domínio do arremesso (em extração; store, cena e componentes ainda no legado); `index.ts` puro, com `criarWorkerDePresimulacao`  → arremesso.md
+    domain/gesture.ts        máquina de fases (reducer)
+    domain/aim.ts            mira, carga, velocidade, giro com semente
+    domain/settle.ts         quando os dados "pararam"
+    domain/vortex.ts         redemoinho dos dados na mão
+    domain/world.ts          constantes (bandeja, materiais, mão) e geometria da mão
+    domain/apply.ts          único lugar que muda tipo/velocidade/pose de corpo
+    domain/presim.ts         simula o arremesso inteiro offline e grava os quadros (Rapier fora da cena)
+    domain/presim.worker.ts  roda presim fora da thread de render
+    domain/vies.ts           `plays`: se um resultado toca o presságio do botão de teste
   scene/                   componentes R3F
     Hand.tsx                 input, mão, retorno, showcase pós-resultado             → apresentacao.md
     Die.tsx, Tray.tsx        corpo+malha de cada dado; bandeja (visual do tema da mesa)
@@ -84,7 +84,7 @@ docs/performance-coins.md  diagnóstico de desempenho com várias moedas
 |---|---|
 | `DieKind` | tipo escolhível: `BuiltinKind` (`d4 d6 d8 d10 d12 d20 d100 vtm hunger fire coin`) ou `custom:<uuid>` (dado importado) |
 | `Shape` | corpo físico real; `baseOf(kind)` mapeia kind → shape (`vtm`/`hunger` → d10, `fire` → d6, importado → a base reconhecida) |
-| fase | `hand → charging → rolling → settled → returning → hand` (`throw/gesture.ts`) |
+| fase | `hand → charging → rolling → settled → returning → hand` (`modules/arremesso/domain/gesture.ts`) |
 | `throwId` | contador que invalida tudo que é de um arremesso/seleção anterior |
 | `Launch` | snapshot imutável do arremesso (semente, alvo, força, pose/giro da mão) |
 | `raw` | valor físico da face de cima (dígito 0–9 do d10, vértice do d4, 1/2 da moeda) |

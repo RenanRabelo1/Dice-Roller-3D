@@ -6,7 +6,7 @@ import { BotoesDeDados, Chat, ResumoDaMao } from '../modules/selecao/cena';
 import { Importacao, MeusDados } from '../modules/meus-dados/cena';
 import { TablePanel } from './TablePanel';
 
-// Bottom left: how the charge moves while you hold (see throw/aim.ts).
+// Bottom left: how the charge moves while you hold (see arremesso/domain/aim.ts).
 const MODES = [
   ['relative', 'Relativa', 'A força sobe e desce enquanto você segura: solte na hora certa.'],
   ['static', 'Estática', 'A força só sobe, até o máximo, e fica no máximo até você soltar.'],

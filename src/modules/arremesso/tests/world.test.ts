@@ -1,25 +1,26 @@
 import { describe, it, expect } from 'vitest';
-import { TRAY, MAX_RADIUS, trayColliders, handPositions, clampHandX, recoveryPoint, isOutside } from '../src/physics/world';
-import type { Vec3 } from '../src/shared/math';
+import { RAIO_MAXIMO } from '../../dados/index.ts';
+import { TRAY, trayColliders, handPositions, clampHandX, recoveryPoint, isOutside } from '../domain/world.ts';
+import type { Vec3 } from '../../../shared/math.ts';
 
 const dist = (a: Vec3, b: Vec3) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 const within = (p: Vec3, r: number) =>
   Math.abs(p[0]) <= TRAY.halfWidth - r && Math.abs(p[2]) <= TRAY.halfDepth - r && p[1] - r >= 0 && p[1] + r <= TRAY.lidY;
-const apart = (ps: Vec3[]) => ps.every((a, i) => ps.slice(i + 1).every((b) => dist(a, b) >= 2 * MAX_RADIUS));
+const apart = (ps: Vec3[]) => ps.every((a, i) => ps.slice(i + 1).every((b) => dist(a, b) >= 2 * RAIO_MAXIMO));
 
 describe('world', () => {
   it('hand positions stay inside the tray projection, above the walls, without overlap', () => {
     for (let n = 1; n <= 20; n++) for (const x of [-99, 0, 99]) {
       const ps = handPositions(n, clampHandX(x, n));
       expect(ps).toHaveLength(n);
-      ps.forEach((p) => { expect(within(p, MAX_RADIUS)).toBe(true); expect(p[1] - MAX_RADIUS).toBeGreaterThan(TRAY.wallHeight); });
+      ps.forEach((p) => { expect(within(p, RAIO_MAXIMO)).toBe(true); expect(p[1] - RAIO_MAXIMO).toBeGreaterThan(TRAY.wallHeight); });
       expect(apart(ps)).toBe(true);
     }
   });
   it('recovery points are inside and do not overlap', () => {
     for (let n = 1; n <= 20; n++) {
       const ps = Array.from({ length: n }, (_, i) => recoveryPoint(i, n));
-      ps.forEach((p) => expect(within(p, MAX_RADIUS)).toBe(true));
+      ps.forEach((p) => expect(within(p, RAIO_MAXIMO)).toBe(true));
       expect(apart(ps)).toBe(true);
     }
   });

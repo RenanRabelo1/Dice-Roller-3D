@@ -30,7 +30,7 @@ async function launch(page: Page, naturalOne = false) {
         }
       }
       throw new Error('No physical d100=1 fixture found');
-    }, { storePath: '/src/store.ts', presimPath: '/src/physics/presim.ts' });
+    }, { storePath: '/src/store.ts', presimPath: '/src/modules/arremesso/index.ts' });
     expect(seed).toBeGreaterThanOrEqual(0);
   }
   for (let i = 0; i < 160; i++) {

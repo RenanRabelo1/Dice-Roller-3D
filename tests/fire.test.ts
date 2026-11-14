@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { TRAY } from '../src/physics/world';
+import { TRAY } from '../src/modules/arremesso/index.ts';
 import { FIRE, fireAt, fireIndices, fireReach } from '../src/scene/fireMotion';
 
 describe('d20 = 1: the die catches fire and the fire takes the tray', () => {

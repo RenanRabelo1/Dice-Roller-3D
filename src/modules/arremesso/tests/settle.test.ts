@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { initSettle, stepSettle, type BodyState } from '../src/throw/settle';
-import { recoveryPoint, SETTLE } from '../src/physics/world';
-import type { Quat, Vec3 } from '../src/shared/math';
+import { initSettle, stepSettle, type BodyState } from '../domain/settle.ts';
+import { recoveryPoint, SETTLE } from '../domain/world.ts';
+import type { Quat, Vec3 } from '../../../shared/math.ts';
 
 const Q: Quat = [0, 0, 0, 1];
 const body = (moving: boolean, p: Vec3 = [0, 0.5, 0], q = Q): BodyState => ({ p, q, speed: moving ? 1 : 0, spin: moving ? 1 : 0 });

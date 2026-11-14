@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { clampTarget, charge, launchVelocity, spin, rng } from '../src/throw/aim';
+import { clampTarget, charge, launchVelocity, spin, rng } from '../domain/aim.ts';
 
 const len = (v: number[]) => Math.hypot(...v);
 

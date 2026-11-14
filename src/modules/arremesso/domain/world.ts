@@ -1,5 +1,5 @@
-import type { Vec3 } from '../shared/math';
-import { RAIO_MAXIMO } from '../modules/dados/index';
+import type { Vec3 } from '../../../shared/math.ts';
+import { RAIO_MAXIMO } from '../../dados/index.ts';
 
 export const STEP = 1 / 60;
 export const GRAVITY: Vec3 = [0, -40, 0];
@@ -20,7 +20,6 @@ export const SPIN = { min: 10, max: 25 };
 // Stopped = every body under `speed` (units/s) and `spin` (rad/s) for `calmSteps` steps; hard cap at `timeoutSteps`.
 export const SETTLE = { timeoutSteps: 240, calmSteps: 12, speed: 0.08, spin: 0.15 };
 export const HAND = { y: 3, z: 3, spacing: 1.9, cols: 5, pull: 0.6 };
-export const MAX_RADIUS = RAIO_MAXIMO; // ponte até a extração de arremesso
 
 export interface Box {
   kind: 'floor' | 'wall' | 'lid';
@@ -45,7 +44,7 @@ export function trayColliders(): Box[] {
 const span = (bodies: number) => (Math.min(bodies, HAND.cols) - 1) / 2;
 
 export function clampHandX(x: number, bodies: number): number {
-  const limit = TRAY.halfWidth - MAX_RADIUS - span(bodies) * HAND.spacing;
+  const limit = TRAY.halfWidth - RAIO_MAXIMO - span(bodies) * HAND.spacing;
   return Math.max(-limit, Math.min(limit, x));
 }
 

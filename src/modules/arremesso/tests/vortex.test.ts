@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { HAND, TRAY } from '../src/physics/world';
-import type { Vec3 } from '../src/shared/math';
-import { ORBITS, VORTEX, newWhirl, restingPlaces, spinAngle, stepWhirl, vortexCenter, vortexRadius } from '../src/throw/vortex';
+import { HAND, TRAY } from '../domain/world.ts';
+import type { Vec3 } from '../../../shared/math.ts';
+import { ORBITS, VORTEX, newWhirl, restingPlaces, spinAngle, stepWhirl, vortexCenter, vortexRadius } from '../domain/vortex.ts';
 
 const dot = (a: Vec3, b: Vec3) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 const dist = (a: Vec3, b: Vec3) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);

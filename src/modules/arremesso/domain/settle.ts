@@ -1,6 +1,6 @@
-import { isOutside, recoveryPoint, SETTLE } from '../physics/world';
-import type { Quat, Vec3 } from '../shared/math';
-import type { Phase } from './gesture';
+import type { Quat, Vec3 } from '../../../shared/math.ts';
+import type { Phase } from '../contracts.ts';
+import { isOutside, recoveryPoint, SETTLE } from './world.ts';
 
 export interface BodyState { p: Vec3; q: Quat; speed: number; spin: number }
 export interface SettleState { throwId: number; expected: number; steps: number; calm: number; done: boolean }

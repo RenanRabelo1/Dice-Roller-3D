@@ -1,0 +1,33 @@
+// Types of `arremesso`: the gesture's phases and events, the charge, the launch and the pre-simulation's request
+// and recording, and the omen a dev test throw looks for.
+import type { Pose, Vec3 } from '../../shared/math.ts';
+import type { CustomKind, DieKind } from '../regras/index.ts';
+import type { Polyhedron } from '../dados/index.ts';
+
+export type Phase = 'hand' | 'charging' | 'rolling' | 'settled' | 'returning';
+export type Source = { kind: 'pointer'; id: number } | { kind: 'key' };
+export type GestureEvent =
+  | { type: 'press'; source: Source; at: number; repeat: boolean }
+  | { type: 'release'; source: Source; at: number; mode?: ChargeMode } // mode: how the charge moved (relative by default)
+  | { type: 'cancel' }
+  | { type: 'published' }
+  | { type: 'returned' }
+  | { type: 'selection' };
+export interface GestureState { phase: Phase; source: Source | null; chargeStart: number }
+export type Effect = { type: 'none' } | { type: 'throw'; force: number } | { type: 'return' };
+
+// How the charge moves while it is held. 'relative': up and down, 0 → 1 → 0 every 1400 ms (time the release).
+// 'static': up to 1 in 700 ms, then it stays there until the release. 1 is the strongest throw the tray is
+// tuned for (LAUNCH.maxSpeed), the same top the relative charge reaches.
+export type ChargeMode = 'relative' | 'static';
+
+export interface Launch { throwId: number; seed: number; target: Vec3; force: number; handCenter: Vec3; handOmega: Vec3 }
+
+// Test buttons (dev only): the next throws land on faces that call the chosen omen (see presimulateFor).
+export type OmenTest = 'lightning' | 'fire' | 'kraken' | 'storm' | 'duality';
+
+export interface Recording { frames: Pose[][]; raw: number[]; results: number[]; timedOut: boolean; escaped: boolean; recovered: boolean }
+// `customs`: the imported dice of the selection, because the worker has no registry of its own.
+// `bias` (dev test buttons only): look for a roll that plays this omen; `kinds` from omenKinds.
+export interface RollRequest { dice: DieKind[]; start: Pose[]; launch: Launch; customs: Record<CustomKind, Polyhedron>; bias?: { test: OmenTest; kinds: DieKind[] } }
+export type RollResponse = { throwId: number } & ({ rec: Recording } | { error: string });

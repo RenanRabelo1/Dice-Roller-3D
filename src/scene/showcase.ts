@@ -1,11 +1,11 @@
 import { Matrix4, Quaternion, Vector3 } from 'three';
 import type { Polyhedron } from '../modules/dados/index';
-import { MAX_RADIUS } from '../physics/world';
+import { RAIO_MAXIMO } from '../modules/dados/index';
 import type { Pose, Quat, Vec3 } from '../shared/math';
 
 export interface View { position: Vector3; quaternion: Quaternion; fov: number; aspect: number }
 
-const SPACING = 2 * MAX_RADIUS + 0.2;
+const SPACING = 2 * RAIO_MAXIMO + 0.2;
 const MIN_DISTANCE = 6; // one die must not fill the screen
 // A coin's Cara/Coroa sits under the coin (size relative to the floating number, gap under the rim); rows with
 // coins move apart by `room` so the name clears the row below.

@@ -83,7 +83,7 @@ Em `Hand.tsx`, ao entrar em `settled`:
 
 `ui/OmenTests.tsx`, no canto superior esquerdo da mesa (some no build de produção: `import.meta.env.DEV`). Raio, Fogo, Kraken, Tempestade e Dualidade. O escolhido fica ligado (`store.omenTest`) até ser clicado de novo e põe na mão os dados que precisa (`withDiceFor` em `dice/omenTest.ts`).
 
-Os próximos arremessos **caem de verdade** no resultado: o `RollRequest` leva `bias`, e `presimulateFor` (`physics/presim.ts`) tenta as sementes seguintes até a física real dar aquele presságio (`plays`). Só o giro sorteado muda; mira, força e mão são as do jogador. Cada tentativa custa ~3–8 ms; o worker tem 6 s e a thread principal 3 s (`BIAS_BUDGET`). Sem acerto, o arremesso sai comum e avisa no console. Diferente de `rigOmen` (test hook), que força o presságio sem mudar o resultado.
+Os próximos arremessos **caem de verdade** no resultado: o `RollRequest` leva `bias`, e `presimulateFor` (`modules/arremesso/domain/presim.ts`) tenta as sementes seguintes até a física real dar aquele presságio (`plays`). Só o giro sorteado muda; mira, força e mão são as do jogador. Cada tentativa custa ~3–8 ms; o worker tem 6 s e a thread principal 3 s (`BIAS_BUDGET`). Sem acerto, o arremesso sai comum e avisa no console. Diferente de `rigOmen` (test hook), que força o presságio sem mudar o resultado.
 
 ## Receita: novo presságio
 
