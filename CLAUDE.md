@@ -2,7 +2,7 @@
 
 Rolador de dados 3D (React 19 + three/R3F + Rapier + zustand, Vite). A UI é em pt-BR. O resultado sai de uma pré-simulação física feita no arremesso e depois é reproduzido na tela. O jogo funciona sem rede; a API de histórico (`server/`, Fastify + MongoDB) é opcional.
 
-**Em refatoração para monólito modular.** O método está em [docs/guia-orquestrador.md](docs/guia-orquestrador.md); as decisões, em [docs/adr/](docs/adr/); o andamento, em [docs/plano-refatoracao.md](docs/plano-refatoracao.md); as ordens de serviço, em [docs/ordens/](docs/ordens/). A fundação está pronta. Já foram extraídos `regras`, `historico` (cliente e servidor), `dados` e `selecao`; o resto do código de negócio ainda está nas pastas antigas (`src/dice`, `throw`, `physics`, `scene`, `ui`, `api`).
+**Em refatoração para monólito modular.** O método está em [docs/guia-orquestrador.md](docs/guia-orquestrador.md); as decisões, em [docs/adr/](docs/adr/); o andamento, em [docs/plano-refatoracao.md](docs/plano-refatoracao.md); as ordens de serviço, em [docs/ordens/](docs/ordens/). A fundação está pronta. Já foram extraídos `regras`, `historico` (cliente e servidor), `dados`, `selecao` e `meus-dados`; o resto do código de negócio ainda está nas pastas antigas (`src/dice`, `throw`, `physics`, `scene`, `ui`, `api`).
 
 ## Regras (seção 2 do guia, com as adaptações dos ADRs)
 
@@ -40,7 +40,8 @@ Enquanto um módulo não é extraído, o contexto dele fica em `docs/contexto/`.
 | Mira, carga, fases, store, física, pré-simulação, worker, parada, retorno | [arremesso.md](docs/contexto/arremesso.md) |
 | Tipos de dado, geometria, numeração, leitura, símbolos, aparência | [src/modules/dados/CLAUDE.md](src/modules/dados/CLAUDE.md) |
 | A mão, notação e chat, apelido | [src/modules/selecao/CLAUDE.md](src/modules/selecao/CLAUDE.md) |
-| Importação, **adicionar dado** | [dados.md](docs/contexto/dados.md) |
+| Importar dado (assistente, detecção, calibração, gravação) | [src/modules/meus-dados/CLAUDE.md](src/modules/meus-dados/CLAUDE.md) |
+| **Adicionar um tipo de dado** e o detalhe dos importados | [dados.md](docs/contexto/dados.md) |
 | Depois do resultado: presságios (raio, kraken, fogo, tempestade, dualidade), voo até a câmera, números em destaque | [apresentacao.md](docs/contexto/apresentacao.md) |
 | Vitest, Playwright, `window.__dice`, testes de arquitetura, gate | [testes.md](docs/contexto/testes.md) |
 | Fundo, mesa (cores, textura), exportar e importar mesa `.glb`, kraken nos cacos | [mesa.md](docs/contexto/mesa.md) |

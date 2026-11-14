@@ -1,29 +1,10 @@
-import { Suspense, useCallback, useState } from 'react';
 import { omenPlaying, useDice } from '../store';
 import { useFalha } from '../shared/plataforma';
-import { carregarModelo, customDie, customKind, finishOf, hasTexture, nomeDoTipo, type CustomDie } from '../modules/dados/index';
-import type { CustomKind } from '../modules/regras/index';
 import { resultText } from '../dice/notation';
-import { BotaoDeDado, BotoesDeDados, Chat, ResumoDaMao } from '../modules/selecao/cena';
-import { atualizar, excluir } from '../modules/meus-dados/index';
-// AssistenteDeImportacao is lazy: the importer (and the model loaders) only load when the player opens it.
-import { AssistenteDeImportacao, InkChoice, useMeusDados } from '../modules/meus-dados/cena';
+import { BotoesDeDados, Chat, ResumoDaMao } from '../modules/selecao/cena';
+// Importacao mounts the wizard on demand: the importer (and the model loaders) only load when the player opens it.
+import { Importacao, MeusDados } from '../modules/meus-dados/cena';
 import { TablePanel } from './TablePanel';
-
-// The ink and finish of one imported die, changed in place (nothing is imported again).
-function InkButton({ die }: { die: CustomDie }) {
-  const [textured, setTextured] = useState(false);
-  const change = (patch: Partial<CustomDie>) => { void atualizar({ ...die, ...patch }); };
-  return (
-    <details className="ink-pop" onToggle={(e) => {
-      if (e.currentTarget.open && die.file.format === 'glb') void carregarModelo(die).then((o) => setTextured(hasTexture(o)));
-    }}>
-      <summary aria-label={`Tinta de ${die.name}`}>Tinta</summary>
-      <InkChoice ink={die.ink ?? 'auto'} finish={finishOf(die)} engraved stl={die.file.format === 'stl'} textured={textured}
-        onInk={(ink) => change({ ink })} onFinish={(finish) => change({ finish })} />
-    </details>
-  );
-}
 
 // Bottom left: how the charge moves while you hold (see throw/aim.ts).
 const MODES = [
@@ -51,21 +32,6 @@ function Force() {
 }
 
 export function Controls() {
-  const { customs } = useMeusDados();
-  const [importing, setImporting] = useState(false), [mounted, setMounted] = useState(false);
-  const closeImport = useCallback(() => setImporting(false), []);
-  // An imported die: selecao's add/remove pair, then the ink and the bin (of meus-dados, still here).
-  const mine = (type: CustomKind) => {
-    const name = nomeDoTipo(type);
-    return (
-      <div className="pick" key={type}>
-        <BotaoDeDado kind={type} />
-        {customDie(type)?.printed && <InkButton die={customDie(type)!} />}
-        <button className="remove" aria-label={`Excluir ${name}`}
-          onClick={() => { if (confirm(`Excluir ${name} deste navegador? Isso não pode ser desfeito.`)) void excluir(type); }}>🗑</button>
-      </div>
-    );
-  };
   const phase = useDice((s) => s.gesture.phase), results = useDice((s) => s.results), thrown = useDice((s) => s.dice); // thrown: the dice behind `results`
   const waiting = useDice(omenPlaying); // the result shows once its omen has played (or the dice are picked up)
   const failed = useFalha() === 'physics';
@@ -75,14 +41,11 @@ export function Controls() {
       <header className="controls panel">
         <h1>Rolador de dados</h1>
         <BotoesDeDados />
-        <div className="selection" role="group" aria-label="Meus dados">
-          {customs.map((d) => mine(customKind(d.id)))}
-          <button aria-expanded={importing} aria-controls="import-die" onClick={() => { setMounted(true); setImporting((o) => !o); }}>Importar dado</button>
-        </div>
+        <MeusDados />
         <ResumoDaMao />
         <Chat />
         <TablePanel />
-        {mounted && <Suspense fallback={null}><AssistenteDeImportacao open={importing} onClose={closeImport} /></Suspense>}
+        <Importacao />
       </header>
       <footer className="status panel">
         <RollMode />

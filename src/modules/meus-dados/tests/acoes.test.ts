@@ -55,10 +55,11 @@ describe('meus-dados: ações', () => {
   });
 
   it('salvar que grava registra e mantém sessionOnly', async () => {
+    store.setState({ sessionOnly: true }); // a save that works does not turn the session warning off
     const d = die('m-ok');
     expect(await salvar(d)).toBeNull();
     expect(saveCustomDie).toHaveBeenCalledWith(d);
-    expect(meusDados()).toEqual({ customs: [d], sessionOnly: false });
+    expect(meusDados()).toEqual({ customs: [d], sessionOnly: true });
   });
 
   it('atualizar aplica antes de gravar', async () => {
@@ -89,8 +90,12 @@ describe('meus-dados: ações', () => {
     const a = die('m-x'), b = die('m-y');
     await salvar(a);
     await salvar(b);
+    // The record is deleted first; the kind leaves the catalogue after (OS-0027, decisão 4).
+    let inCatalogueWhileDeleting: CustomDie | undefined;
+    vi.mocked(deleteCustomDie).mockImplementation(async () => { inCatalogueWhileDeleting = customDie(customKind('m-x')); });
     await excluir(customKind('m-x'));
     expect(deleteCustomDie).toHaveBeenCalledWith('m-x');
+    expect(inCatalogueWhileDeleting).toBe(a);
     expect(customDie(customKind('m-x'))).toBeUndefined();
     expect(meusDados().customs).toEqual([b]);
   });

@@ -1,6 +1,6 @@
 // Types of `meus-dados`: the player's imported dice as the module keeps them.
 import type { CustomDie, Finish, Ink, Polyhedron } from '../dados/index.ts';
-import type { CustomBase } from '../regras/index.ts';
+import type { CustomBase, CustomKind } from '../regras/index.ts';
 
 /** The "Meus dados" list and whether the browser keeps them (what `meusDados()` and `useMeusDados()` give). */
 export interface MeusDados {
@@ -17,4 +17,15 @@ export interface PedidoDeMontagem {
   printed: boolean; omens: boolean; color: string; ink: Ink; surface: Finish;
   textured: boolean; // a GLB with its own texture
   poly: Polyhedron; // the final, numbered solid
+}
+
+/** The import wizard: `montado` turns true on the first opening and stays (the lazy chunk is loaded once). */
+export interface EstadoDoAssistente {
+  importando: boolean; // the wizard is open
+  montado: boolean; // the wizard has been opened at least once
+}
+
+/** One saved die as the test hook (`window.__dice.customs()`) sees it: what `inspecao()` gives. */
+export interface DadoInspecionado {
+  kind: CustomKind; id: string; name: string; slug: string; base: CustomBase; printed: boolean;
 }
