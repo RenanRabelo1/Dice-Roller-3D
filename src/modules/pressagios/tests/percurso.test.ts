@@ -19,13 +19,19 @@ describe('indicesComPercurso: the dice the omen carries itself (no ordinary flig
 describe('movimentoNoPresagio: where the omen holds the die, and how much of its number shows', () => {
   it('the kraken grabs, flings and brings the die back', () => {
     for (const ms of [0, KRAKEN.grab + 100, KRAKEN.fling + 200, KRAKEN.catch + 400, KRAKEN.shown, KRAKEN.duration]) {
-      expect(movimentoNoPresagio(1, ms, de, para, [1], [])).toEqual({ pose: krakenDieAt(ms, de, para), revela: krakenAt(ms).reveal });
+      expect(movimentoNoPresagio(1, ms, de, para, [1], [])).toEqual(
+        { pose: krakenDieAt(ms, de, para), revela: krakenAt(ms).reveal, sombra: KRAKEN.grab, fim: KRAKEN.duration });
     }
   });
   it('the storm drifts the die to the screen', () => {
     for (const ms of [0, STORM.approach + 300, STORM.arrive - 200, STORM.duration]) {
-      expect(movimentoNoPresagio(0, ms, de, para, [], [0])).toEqual({ pose: stormDieAt(ms, de, para), revela: stormAt(ms).reveal });
+      expect(movimentoNoPresagio(0, ms, de, para, [], [0])).toEqual(
+        { pose: stormDieAt(ms, de, para), revela: stormAt(ms).reveal, sombra: STORM.approach, fim: STORM.duration });
     }
+  });
+  it('the shadow goes at the grab (1150 ms) or the approach (600 ms); the path ends at 6500 or 4600 ms', () => {
+    expect(movimentoNoPresagio(1, 0, de, para, [1], [])).toMatchObject({ sombra: 1150, fim: 6500 });
+    expect(movimentoNoPresagio(0, 0, de, para, [], [0])).toMatchObject({ sombra: 600, fim: 4600 });
   });
   it('null for a die the omen does not move', () => {
     expect(movimentoNoPresagio(0, 1000, de, para, [1], [2])).toBeNull();

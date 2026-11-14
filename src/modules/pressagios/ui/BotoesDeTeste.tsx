@@ -1,10 +1,11 @@
 import { useState, type RefObject } from 'react';
-import { OMEN_TESTS, setOmenTest } from '../modules/pressagios/index';
-import { usePresagio } from '../modules/pressagios/cena';
+import { OMEN_TESTS } from '../domain/omenTest.ts';
+import { setOmenTest } from '../store.ts';
+import { usePresagio } from './usePresagio.tsx';
 
 // Dev only (see App): a side panel to see each omen at will. The chosen one stays on for the next throws,
 // which land on the faces that call it (real physics, see presimulateFor), until it is clicked again.
-export function OmenTests({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> }) {
+export function BotoesDeTeste({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> }) {
   const [open, setOpen] = useState(false);
   const test = usePresagio((s) => s.omenTest);
   return (

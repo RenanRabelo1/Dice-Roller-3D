@@ -1,8 +1,10 @@
 import { useEffect, type CSSProperties, type RefObject } from 'react';
-import { isD20, omenMs, planoDoPresagio } from '../modules/pressagios/index';
-import { usePresagio, usePresagioTocando } from '../modules/pressagios/cena';
-import { omenKind, type DieKind, type OmenKind } from '../modules/regras/index';
-import { useArremesso } from '../modules/arremesso/cena';
+import { omenKind, type OmenKind } from '../../regras/index.ts';
+import { useArremesso } from '../../arremesso/cena.ts';
+import { omenMs } from '../domain/omen.ts';
+import { planoDoPresagio } from '../domain/plano.ts';
+import { usePresagio, usePresagioTocando } from './usePresagio.tsx';
+import './presagios.css';
 
 // The screen side of an omen: a white flash as the lightning strikes, the deep dark while the kraken is up,
 // heat while the felt burns, the storm (dark sea, slanting rain, a far-off flash, the screen rocking like a
@@ -19,12 +21,11 @@ const RAIN = (() => {
 })();
 const SAY: Record<OmenKind, string> = { crit: 'Crítico!', fumble: 'Falha crítica!', duality: 'Dualidade: crítico e falha!' };
 
-export function OmenOverlay({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> }) {
+export function OverlayDoPresagio({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> }) {
   const playing = usePresagioTocando(), omen = usePresagio((s) => s.omen), dice = useArremesso((s) => s.dice);
   const live = playing ? omen : null;
   const kind = live && omenKind(live);
-  const has = (list: number[] | undefined, is: (die: DieKind) => boolean) => !!list?.some((i) => is(dice[i]));
-  // Kraken and storm come from the plan (the same for every omen, src/modules/pressagios/tests/plano.test.ts).
+  // Which effect on which die comes from the plan (the same for every omen as the old calculation: tests/plano.test.ts).
   const plano = planoDoPresagio(live, dice), kraken = plano.kraken.length > 0, storm = plano.tempestade.length > 0;
   useEffect(() => {
     const area = gameArea.current;
@@ -38,9 +39,9 @@ export function OmenOverlay({ gameArea }: { gameArea: RefObject<HTMLDivElement |
   return (
     <>
       <div key={live.throwId} className="omen" style={{ '--ms': `${omenMs(live, dice)}ms` } as CSSProperties} aria-hidden="true">
-        {kind === 'crit' && has(live.crits, isD20) && <div className="omen-flash" />}
+        {plano.raios.length > 0 && <div className="omen-flash" />}
         {kraken && <div className="omen-deep" />}
-        {kind === 'fumble' && has(live.fumbles, isD20) && <div className="omen-heat" />}
+        {plano.fogo.length > 0 && <div className="omen-heat" />}
         {storm && <>
           <div className="omen-sea" />
           <div className="omen-rain">

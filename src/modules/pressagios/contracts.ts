@@ -25,5 +25,16 @@ export interface PlanoDoPresagio {
   ms: number;
 }
 
-// The omen's own path for a die (the kraken's or the storm's): its pose now and how much of its number shows (0 to 1).
-export interface MovimentoNoPresagio { pose: Pose; revela: number }
+// The omen's own path for a die (the kraken's or the storm's): its pose now and how much of its number shows (0 to 1);
+// `sombra`, the ms into the omen until which the die keeps its shadow, and `fim`, the ms at which the path ends (OS-0040).
+export interface MovimentoNoPresagio { pose: Pose; revela: number; sombra: number; fim: number }
+
+// What the test hook reads of the omen (`window.__dice.state()` and `shards()`), off its state and the scene (OS-0040).
+export interface PresagioInspecionado {
+  omen: OmenKind | null; // the omen of the current throw
+  omenDone: number;
+  omenTime: number; // ms since the omen's clock started
+  trayBroken: boolean;
+  burning: boolean;
+  shards: { felt: string; wood: string } | null; // colours of the kraken's first floor shard
+}

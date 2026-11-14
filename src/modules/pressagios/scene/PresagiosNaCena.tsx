@@ -18,7 +18,7 @@ import { Fire } from './Fire.ts';
 
 // The 3D side of an omen, played after the dice settle and before the result shows: lightning on a d20 20,
 // the kraken grabbing a d100 1, fire on a d20 1, the kraken's storm on a d100 100, the yin-yang fish for
-// duality (the rain, heat and shakes are screen overlays, see OmenOverlay). Which effect plays on which die is
+// duality (the rain, heat and shakes are screen overlays, see OverlayDoPresagio). Which effect plays on which die is
 // `planoDoPresagio`. Effect materials are compiled at mount and hidden (0 draw calls) outside an omen. When the show
 // ends it marks the omen done, and the result goes on.
 

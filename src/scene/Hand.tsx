@@ -12,7 +12,7 @@ import { arremesso, registroDeCorpos } from '../modules/arremesso/index';
 import { CAPTION, showcasePoses } from './showcase';
 import { glowMesh } from './inkGlow';
 import { highlightAt, HL_SIZE, SHOW } from './highlight';
-import { indicesComPercurso, KRAKEN, movimentoNoPresagio, presagio, presagioTocando, STORM } from '../modules/pressagios/index';
+import { indicesComPercurso, movimentoNoPresagio, presagio, presagioTocando } from '../modules/pressagios/index';
 
 type Mark = { local: Vector3; turn: Quaternion; start: Vector3; face: Vector3; scale: number }; // local, turn: the rolled numeral's place and turn in die space
 
@@ -163,12 +163,11 @@ export function Hand() {
       current.forEach((body, i) => {
         const ms = now - omenAt, movimento = movimentoNoPresagio(i, ms, from[i], to[i], kraken, storm);
         if (movimento) { // the omen moves this die, and leaves it at its result pose
-          const grabbed = kraken.includes(i);
           const p = new Vector3(...movimento.pose.p), q = new Quaternion(...movimento.pose.q);
-          shade(gems[i], ms <= (grabbed ? KRAKEN.grab : STORM.approach));
+          shade(gems[i], ms <= movimento.sombra);
           pin(body, p, q);
           draw(i, marks[i].local.clone().applyQuaternion(q).add(p), q, 1, movimento.revela);
-          if (ms < (grabbed ? KRAKEN.duration : STORM.duration)) done = false;
+          if (ms < movimento.fim) done = false;
           return;
         }
         const t = Math.min(1, Math.max(0, (now - at - SHOW.delay - i * SHOW.stagger) / SHOW.duration));

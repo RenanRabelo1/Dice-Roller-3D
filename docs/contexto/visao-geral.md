@@ -36,7 +36,7 @@ Gate de entrega usado no projeto: build → lint → test → e2e, todos verdes.
 ```
 src/
   shared/db.ts             abre o IndexedDB `dice-roller` v2; cada dono declara a sua store (`defineStore`)
-  main.tsx, App.tsx        casca: <Controls/> + <Canvas><Cena/></Canvas> + <OmenOverlay/>
+  main.tsx, App.tsx        casca: <Controls/> + <Canvas><Cena/></Canvas> + <OverlayDoPresagio/> (de `pressagios`)
   shared/plataforma/       falha registrada (`registrarFalha`), `Guard`, `Failure`, sonda WebGL, renderizador por software, movimento reduzido (`movimentoReduzido`, evento de mudança)  → armadilhas.md
   store.ts                 zustand legado: só `showcased`, da vitrine  → apresentacao.md
   app/                     casca: a cena, o window.__dice e a ponte do histórico
@@ -61,11 +61,11 @@ src/
     domain/presim.ts         simula o arremesso inteiro offline e grava os quadros (Rapier fora da cena)
     domain/presim.worker.ts  roda presim fora da thread de render
     domain/vies.ts           `plays`: se um resultado toca o presságio do botão de teste
-  modules/pressagios/      presságios: o estado (store vanilla, `presagio()`, `presagioTocando()`, decidido em `resultadoPublicado`), a duração (`domain/omen.ts`), os botões de teste (`domain/omenTest.ts`) e o movimento do kraken, da tempestade e do fogo (`domain/krakenMotion.ts`, `domain/fireMotion.ts`), que efeito em que dado (`domain/plano.ts`) e o percurso do d100 (`domain/percurso.ts`); `cena.ts` com `usePresagio`, `usePresagioTocando`, `PresagiosNaCena` e `QuebraDaMesa` (em `scene/`, com `Kraken.ts` e `Fire.ts`). O HTML ainda está no legado  → apresentacao.md
+  modules/pressagios/      presságios: o estado (store vanilla, `presagio()`, `presagioTocando()`, decidido em `resultadoPublicado`), a duração (`domain/omen.ts`), os botões de teste (`domain/omenTest.ts`) e o movimento do kraken, da tempestade e do fogo (`domain/krakenMotion.ts`, `domain/fireMotion.ts`), que efeito em que dado (`domain/plano.ts`) e o percurso do d100 (`domain/percurso.ts`); `cena.ts` com `usePresagio`, `usePresagioTocando`, `PresagiosNaCena` e `QuebraDaMesa` (em `scene/`, com `Kraken.ts` e `Fire.ts`), `OverlayDoPresagio` (com `ui/presagios.css`) e `BotoesDeTeste` (em `ui/`); `inspecao` para o test hook  → src/modules/pressagios/CLAUDE.md
   scene/                   componentes R3F
     Hand.tsx                 só a parte `settled` (voo, números, gravação acesa); a mão é a `MaoDoArremesso`  → apresentacao.md
     showcase.ts, highlight.ts poses e linha do tempo do "voo até a câmera"         → apresentacao.md
-  ui/                      HTML: Controls (cabeçalho com os componentes de selecao, Meus dados e o painel da mesa), OmenOverlay
+  ui/                      HTML: Controls (cabeçalho com os componentes de selecao, Meus dados e o painel da mesa)
 tests/                     Vitest (unidades puras + física Node); helpers/sim.ts
 server/                    API do histórico (Fastify + MongoDB; usa `src/modules/regras` pelo `index.ts`, roda em Node com TS nativo)
 e2e/                       Playwright; usa window.__dice

@@ -25,6 +25,11 @@ describe('the omen state', () => {
     expect(during).toEqual([{ throwId, crits: [0], fumbles: [] }]);
     expect(presagio().omenAt).toBeGreaterThan(0);
     expect(presagioTocando()).toBe(true);
+    // It keeps playing (the result waits) until the scene reports the show over for this throw.
+    store.getState().setOmenDone(throwId - 1);
+    expect(presagioTocando()).toBe(true);
+    store.getState().setOmenDone(throwId);
+    expect(presagioTocando()).toBe(false);
   });
   it('is null with reduced motion', () => {
     definirMovimentoReduzido(true);

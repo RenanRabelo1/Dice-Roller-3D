@@ -10,7 +10,7 @@ Combinado com o usuário em 2026-11-11. As três foram especificadas pela sessã
 
 Implementado (2026-11-12): **dado de forma livre voa até a frente no resultado** — [2026-11-12-forma-livre-voa-design.md](superpowers/specs/2026-11-12-forma-livre-voa-design.md).
 
-A ideia do "abraço de tentáculos no 100 do d100" foi coberta pelo PR #4 do Renan: o 100 agora é a tempestade, com tentáculos saindo do mar em volta da bandeja (ver apresentacao.md).
+A ideia do "abraço de tentáculos no 100 do d100" foi coberta pelo PR #4 do Renan: o 100 agora é a tempestade, com tentáculos saindo do mar em volta da bandeja (ver `src/modules/pressagios/NOTAS.md`).
 
 Pedido em 2026-11-12, ainda sem spec: **refatoração visual do site** (seção 4) e **duas correções** (seção 5, não fazem parte da refatoração visual).
 
@@ -53,7 +53,7 @@ As notas abaixo são o contexto original que gerou as specs; valem as specs.
   2. **Destacar o que fica para cima**, não a face de apoio. "Face oposta" nem sempre existe: num shard de 5 ou 7 lados, oposta a uma face longa fica uma **aresta**, entre duas faces. Então destacar a face (ou as faces) cuja normal aponta mais para cima, e marcar a face de apoio só de leve, encostada no chão.
   3. **Pergunta:** "Com o dado caído assim, que número você lê em cima?".
   4. A prévia girando continua no passo de antes (escolher modelo e cor); a pose acima só no passo de numerar.
-- **De onde parte:** estilos em `src/index.css` (sem biblioteca de componentes), UI em `src/ui/` (`Controls`, `OmenOverlay`, `OmenTests`) e nos módulos (`selecao/ui`, `meus-dados/ui`, `arremesso/ui`, `mesa/ui`). Mapa em `docs/contexto/visao-geral.md`.
+- **De onde parte:** estilos em `src/index.css` (sem biblioteca de componentes), UI em `src/ui/` (`Controls`) e nos módulos (`selecao/ui`, `meus-dados/ui`, `arremesso/ui`, `mesa/ui`, `pressagios/ui`, com o CSS do presságio em `pressagios/ui/presagios.css`). Mapa em `docs/contexto/visao-geral.md`.
 - **Cuidados:** os E2E acham os controles por papel e nome acessível (`getByRole('button', { name: … })`, `getByLabel`); manter os textos e papéis ou atualizar os testes junto. Não mexer no canvas 3D nem no desempenho (`docs/contexto/armadilhas.md`).
 - **Perguntas para a spec:** direção visual (referências, paleta, tipografia)? Tudo de uma vez ou por painel? Mobile primeiro? Vale um design system mínimo (tokens de cor, espaçamento, botões) antes das telas?
 

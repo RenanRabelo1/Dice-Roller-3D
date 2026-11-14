@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, type RefObject } from 
 import { useFrame, useThree } from '@react-three/fiber';
 import { Lightformer, PerformanceMonitor } from '@react-three/drei';
 import { Physics } from '@react-three/rapier';
-import { Color, Group, Mesh, Quaternion, type BufferGeometry, type Material } from 'three';
+import { Group, Mesh, Quaternion, type Material } from 'three';
 import { Text } from 'troika-three-text';
 
 import {
@@ -11,11 +11,11 @@ import {
 import { CorpoDoDado, LoopDoArremesso, MaoDoArremesso, useArremesso } from '../modules/arremesso/cena';
 import type { Vec3 } from '../shared/math';
 import { useDice } from '../store';
-import { presagio, rigOmen } from '../modules/pressagios/index';
+import { inspecao as inspecaoDoPresagio, presagio, rigOmen } from '../modules/pressagios/index';
 import { PresagiosNaCena, QuebraDaMesa } from '../modules/pressagios/cena';
 import { installTestHook } from './testHook';
 import { Hand } from '../scene/Hand';
-import { MAX_DICE, omenKind } from '../modules/regras/index';
+import { MAX_DICE } from '../modules/regras/index';
 import { inspecao, RAIO_MAXIMO } from '../modules/dados/index';
 import { definir } from '../modules/selecao/index';
 import { inspecao as inspecaoDosImportados } from '../modules/meus-dados/index';
@@ -100,15 +100,14 @@ export function Cena({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> 
   useEffect(() => {
     installTestHook({
       state: () => {
-        const state = { ...arremesso(), ...presagio(), ...useDice.getState() };
+        const state = { ...arremesso(), ...useDice.getState() };
+        const { omen, omenDone, omenTime, trayBroken, burning } = inspecaoDoPresagio(scene); // the omen's fields, from pressagios
         return {
           dice: state.dice, phase: state.gesture.phase, throwId: state.throwId,
           results: state.results,
           ready: state.ready && state.dice.join(',') === key && registroDeCorpos.current.filter((b) => b?.isValid()).length === selected.length,
           error: falha(), aim: state.aim, showcased: state.showcased,
-          omen: state.omen?.throwId === state.throwId ? omenKind(state.omen) : null, omenDone: state.omenDone, reducedMotion: movimentoReduzido(),
-          omenTime: performance.now() - state.omenAt, trayBroken: scene.getObjectByName('tray-surface')?.visible === false,
-          burning: scene.getObjectByName('fire')?.visible === true, force: state.force,
+          omen, omenDone, reducedMotion: movimentoReduzido(), omenTime, trayBroken, burning, force: state.force,
         };
       },
       select: (next) => definir(next),
@@ -137,12 +136,7 @@ export function Cena({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> 
       launches: () => inspecaoDoArremesso().lancamentos(),
       customs: () => inspecaoDosImportados(),
       table: () => inspecaoDaMesa(scene, info.current.programs?.length ?? 0),
-      shards: () => {
-        const piece = scene.getObjectByName('kraken-fragments')?.children[0] as Mesh | undefined;
-        const c = (piece?.geometry as BufferGeometry | undefined)?.getAttribute('color');
-        const hex = (i: number) => (c ? `#${new Color(c.getX(i), c.getY(i), c.getZ(i)).getHexString()}` : null);
-        return c ? { felt: hex(0)!, wood: hex(3)! } : null;
-      },
+      shards: () => inspecaoDoPresagio(scene).shards,
       previewSurface: (index, p, q) => {
         if (import.meta.env.MODE !== 'test' || !new URLSearchParams(location.search).has('surface-preview') || arremesso().gesture.phase !== 'hand') throw new Error('Surface preview is only available in the test preview scene');
         const body = registroDeCorpos.current[index];

@@ -39,7 +39,7 @@ Mostrar o resultado depois de `settled`. Os dados voam até a frente da câmera 
 
 ### Consome
 - `arremesso`: `fase`, `resultado`, `throwIdAtual`, `dadoNaCena`, `moverDado`. _(Nomes reais desde a OS-0031/0034: `arremesso()` dá fase, `throwId`, resultado, força e `ready`; `useArremesso(selector)` é o hook; `registroDeCorpos` e `inspecao().corpos()` são os corpos. `fase`, `resultado`, `throwIdAtual` e `corpos` da spec original não existem. `dadoNaCena`, `moverDado` e `envelopeDaMao` nascem na extração da `vitrine`.)_ Também nesta extração: `dados` ganha `definirOpacidade`/`definirSombra`/`rotulos`, e `MaoDoArremesso` (`arremesso`) e o `Hand` da vitrine deixam de procurar `die-i`/`gem-i` pelo nome.
-- `pressagios`: `presagioTocando`, `tempoDoPresagio`, `indicesComPercurso`, `movimentoNoPresagio`.
+- `pressagios`: `presagioTocando`, `tempoDoPresagio`, `indicesComPercurso`, `movimentoNoPresagio`. _(`tempoDoPresagio` não existe: a vitrine lê `presagio().omenAt`.)_
 - `dados`: `poliedro`, `simbolo`, `FONT`, `FONT_URL`, `SYMBOL`, `corDaGema`, `corDaTinta`, `tipo`, `rotulos`, `definirSombra`, `inkTriangles`.
 - `regras`: `total`.
 - `src/shared/plataforma`: `movimentoReduzido`.

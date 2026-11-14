@@ -2,8 +2,7 @@ import { Suspense, useEffect, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Cena } from './app/Cena';
 import { Controls } from './ui/Controls';
-import { OmenOverlay } from './ui/OmenOverlay';
-import { OmenTests } from './ui/OmenTests';
+import { BotoesDeTeste, OverlayDoPresagio } from './modules/pressagios/cena.ts';
 import { resultadoPublicado } from './modules/arremesso/index.ts';
 import { Failure, Guard, hasWebGL, observarPreferenciaDoSistema, registrarFalha, useFalha } from './shared/plataforma';
 import { carregar as carregarMesa, warmImageDecoder } from './modules/mesa/index.ts';
@@ -39,8 +38,8 @@ export default function App() {
         </Guard>
       )}
       <Failure />
-      <OmenOverlay gameArea={gameArea} />
-      {import.meta.env.DEV && <OmenTests gameArea={gameArea} />}
+      <OverlayDoPresagio gameArea={gameArea} />
+      {import.meta.env.DEV && <BotoesDeTeste gameArea={gameArea} />}
     </div>
     </main>
   );
