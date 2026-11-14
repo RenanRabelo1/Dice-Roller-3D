@@ -9,6 +9,7 @@ import {
 import { MAX_DICE, omenKind } from '../modules/regras/index';
 import { DUALITY_HIT, isD20, omenMs } from '../dice/omen';
 import { omenPlaying, useDice } from '../store';
+import { arremesso } from '../modules/arremesso/index';
 import { krakenIndices, stormIndices } from './krakenMotion';
 import { clamp01, span } from '../shared/math';
 import { Kraken } from './Kraken';
@@ -191,7 +192,7 @@ class Show {
   }
   hide() { this.bolts.forEach((b) => b.hide()); this.kraken.hide(); this.fire.hide(); this.taiji.hide(); this.light.intensity = 0; this.run = null; }
   frame(now: number, camera: Camera, at: (i: number) => Vector3 | null, pixels: number): number | null {
-    const s = useDice.getState(), o = s.omen;
+    const s = { ...arremesso(), ...useDice.getState() }, o = s.omen;
     // This throw's omen, while its dice lie settled (after the show only the fire is left).
     if (!o || o.throwId !== s.throwId || s.gesture.phase !== 'settled') { if (this.run) this.hide(); return null; }
     if (this.run?.throwId !== o.throwId) {
@@ -216,7 +217,7 @@ class Show {
       const flicker = 0.75 + 0.25 * Math.sin(t / 45) * Math.sin(t / 73);
       this.light.intensity = (6 + 18 * fireAt(t, 1).tray) * fireAt(t, 1).die * flicker;
     }
-    if (r.over || !omenPlaying(s)) return null;
+    if (r.over || !omenPlaying()) return null;
     let striking = false;
     for (let i = 0; i < r.bolts; i++) striking = this.bolts[i].update(t, camera.position) || striking;
     if (r.kraken) this.kraken.update(t, camera, at);

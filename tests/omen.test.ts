@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { OMEN_MS, omenMs } from '../src/dice/omen';
 import { omenPlaying, useDice } from '../src/store';
+import { arremesso, resultadoPublicado } from '../src/modules/arremesso/index.ts';
+// Test only: the reset of the throw's state has no door (OS-0031).
+import { store } from '../src/modules/arremesso/store.ts';
 import { definir } from '../src/modules/selecao/index.ts';
 import { definirMovimentoReduzido } from '../src/shared/plataforma';
 
@@ -19,13 +22,25 @@ describe('omenMs', () => {
 });
 
 describe('store omen', () => {
-  const s = () => useDice.getState();
+  const s = () => ({ ...arremesso(), ...useDice.getState() });
   const P = { kind: 'pointer', id: 1 } as const;
   const roll = () => { s().input({ type: 'press', source: P, at: 0, repeat: false }); s().input({ type: 'release', source: P, at: 700 }); };
   // Reduced motion lives outside the store now, so it would carry over from one test to the next.
-  // The hand lives in selecao; reset it first so the copy in useDice starts equal (OS-0024, decision 8).
-  beforeEach(() => { definir(['d20']); useDice.setState(useDice.getInitialState(), true); definirMovimentoReduzido(false); });
+  // The hand lives in selecao; reset it first so the copy in the throw starts equal (OS-0024, decision 8).
+  beforeEach(() => {
+    definir(['d20']); store.setState(store.getInitialState(), true); useDice.setState(useDice.getInitialState(), true); definirMovimentoReduzido(false);
+  });
 
+  it('the omen is filled in the same synchronous tick as the publication (resultadoPublicado)', () => {
+    roll();
+    const during: unknown[] = [];
+    const off = resultadoPublicado.subscribe(() => during.push(useDice.getState().omen));
+    s().publish(1, [20]);
+    off();
+    expect(during).toEqual([{ throwId: 1, crits: [0], fumbles: [] }]);
+    expect(useDice.getState().omen).toEqual({ throwId: 1, crits: [0], fumbles: [] });
+    expect(useDice.getState().omenAt).toBeGreaterThan(0);
+  });
   it('publish records the omen of the throw with the results', () => {
     roll(); s().publish(1, [20]);
     expect(s().omen).toEqual({ throwId: 1, crits: [0], fumbles: [] });
@@ -35,10 +50,10 @@ describe('store omen', () => {
   });
   it('picking the dice up ends the omen, so the result shows at once', () => {
     roll(); s().publish(1, [20]);
-    expect(omenPlaying(s())).toBe(true);
+    expect(omenPlaying()).toBe(true);
     s().input({ type: 'press', source: P, at: 0, repeat: false }); // pick up while it plays
     expect(s().gesture.phase).toBe('returning');
-    expect(omenPlaying(s())).toBe(false);
+    expect(omenPlaying()).toBe(false);
     expect(s().results).toEqual([20]);
   });
   it('a plain roll has no omen', () => {

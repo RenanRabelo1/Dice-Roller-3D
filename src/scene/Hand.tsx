@@ -9,7 +9,7 @@ import { easeOut, type Pose, type Quat, type Vec3 } from '../shared/math';
 import { movimentoReduzido } from '../shared/plataforma';
 import { omenPlaying, useDice } from '../store';
 import {
-  charge, clampTarget, HAND, newWhirl, ORBITS, restingPlaces, spinAngle, stepWhirl, toKinematic, vortexCenter,
+  arremesso, charge, clampTarget, HAND, newWhirl, ORBITS, restingPlaces, spinAngle, stepWhirl, toKinematic, vortexCenter,
 } from '../modules/arremesso/index';
 import { CAPTION, showcasePoses } from './showcase';
 import { glowMesh } from './inkGlow';
@@ -26,7 +26,7 @@ export function Hand({ gameArea, bodies }: {
 }) {
   const { camera, gl, scene } = useThree();
   const motion = useRef<{ center: Vec3; omega: Vec3 }>({ center: [0, HAND.y, HAND.z], omega: [0, 0, 0] });
-  const previousAim = useRef<Vec3>([...useDice.getState().aim]);
+  const previousAim = useRef<Vec3>([...arremesso().aim]);
   const handX = useRef(0);
   // The dice in the hand swirl as one whirlwind (see arremesso/domain/vortex); it outlives a selection change.
   const whirl = useRef(newWhirl(vortexCenter(1, 0)));
@@ -71,7 +71,7 @@ export function Hand({ gameArea, bodies }: {
   const arrow = useRef<ArrowHelper>(null);
   const preview = import.meta.env.MODE === 'test' && new URLSearchParams(location.search).has('surface-preview');
   const live = useCallback(() => {
-    const state = useDice.getState();
+    const state = arremesso();
     const expected = state.dice.length, selection = state.dice.join(',');
     const registered = bodies.current.filter((b): b is RapierRigidBody => b !== null && b.isValid() && (b.userData as { selection?: string } | undefined)?.selection === selection);
     return state.ready && registered.length === expected ? registered : null;
@@ -82,27 +82,27 @@ export function Hand({ gameArea, bodies }: {
     if (!area) return;
     const ray = new Raycaster(), ndc = new Vector2(), hit = new Vector3();
     const floor = new Plane(new Vector3(0, 1, 0), 0);
-    const cancel = () => useDice.getState().input({ type: 'cancel' });
+    const cancel = () => arremesso().input({ type: 'cancel' });
     const cancelPointer = (e: PointerEvent) => {
-      const { phase, source } = useDice.getState().gesture;
+      const { phase, source } = arremesso().gesture;
       if (phase === 'charging' && source?.kind === 'pointer' && source.id === e.pointerId) cancel();
     };
     const down = (e: PointerEvent) => {
       // Only the table starts a throw: a press on a panel laid over it (the animation tests) belongs to that panel.
       if (e.button !== 0 || !live() || (e.target !== area && !(e.target instanceof HTMLCanvasElement))) return;
-      const state = useDice.getState();
+      const state = arremesso();
       if (state.gesture.phase !== 'hand' && state.gesture.phase !== 'settled') return;
       area.focus({ preventScroll: true });
       state.input({ type: 'press', source: { kind: 'pointer', id: e.pointerId }, at: performance.now(), repeat: false });
-      const { phase, source } = useDice.getState().gesture;
+      const { phase, source } = arremesso().gesture;
       if (phase === 'charging' && source?.kind === 'pointer' && source.id === e.pointerId) area.setPointerCapture(e.pointerId);
     };
     const up = (e: PointerEvent) => {
-      useDice.getState().input({ type: 'release', source: { kind: 'pointer', id: e.pointerId }, at: performance.now() }, motion.current);
+      arremesso().input({ type: 'release', source: { kind: 'pointer', id: e.pointerId }, at: performance.now() }, motion.current);
       if (area.hasPointerCapture(e.pointerId)) area.releasePointerCapture(e.pointerId);
     };
     const move = (e: PointerEvent) => {
-      const state = useDice.getState();
+      const state = arremesso();
       if (state.gesture.phase !== 'hand' && state.gesture.phase !== 'charging') return;
       const rect = gl.domElement.getBoundingClientRect();
       ndc.set((e.clientX - rect.left) / rect.width * 2 - 1, -(e.clientY - rect.top) / rect.height * 2 + 1);
@@ -113,10 +113,10 @@ export function Hand({ gameArea, bodies }: {
       if (e.target !== area) return;
       if (e.code === 'Space') {
         e.preventDefault();
-        if (!e.repeat && live()) useDice.getState().input({ type: 'press', source: { kind: 'key' }, at: performance.now(), repeat: false });
+        if (!e.repeat && live()) arremesso().input({ type: 'press', source: { kind: 'key' }, at: performance.now(), repeat: false });
       } else if (e.key.startsWith('Arrow')) {
         e.preventDefault();
-        const state = useDice.getState(), aim: Vec3 = [...state.aim];
+        const state = arremesso(), aim: Vec3 = [...state.aim];
         if (e.key === 'ArrowLeft') aim[0] -= 0.5;
         if (e.key === 'ArrowRight') aim[0] += 0.5;
         if (e.key === 'ArrowUp') aim[2] -= 0.5;
@@ -127,7 +127,7 @@ export function Hand({ gameArea, bodies }: {
     const keyup = (e: KeyboardEvent) => {
       if (e.target === area && e.code === 'Space') {
         e.preventDefault();
-        useDice.getState().input({ type: 'release', source: { kind: 'key' }, at: performance.now() }, motion.current);
+        arremesso().input({ type: 'release', source: { kind: 'key' }, at: performance.now() }, motion.current);
       }
     };
     area.addEventListener('pointerdown', down); area.addEventListener('pointerup', up);
@@ -146,7 +146,7 @@ export function Hand({ gameArea, bodies }: {
 
   useFrame((_, elapsed) => {
     const numbers = numbersRef.current, glyphs = glyphsRef.current;
-    const state = useDice.getState(), phase = state.gesture.phase;
+    const state = { ...arremesso(), ...useDice.getState() }, phase = state.gesture.phase;
     const marker = arrow.current!;
     const current = live();
     marker.visible = !preview && !!current && (phase === 'hand' || phase === 'charging');
@@ -247,7 +247,7 @@ export function Hand({ gameArea, bodies }: {
     mode.current = nextMode;
     if (phase === 'settled' && showcase.current) {
       // An omen plays first: the numbers wait, unrisen, and the dice stay where they landed until it is over.
-      const waiting = omenPlaying(state);
+      const waiting = omenPlaying();
       if (waiting) showcase.current.at = now;
       const { at, from, to, throwId, gems, marks, above, glows, still, kraken, storm, omenAt } = showcase.current;
       const draw = (i: number, face: Vector3, q?: Quaternion, ride = 0, reveal?: number) => {

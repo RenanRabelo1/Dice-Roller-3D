@@ -11,7 +11,7 @@ Quais dados estão na mão do jogador e como ele os escolhe: os botões de cada 
 - `definir(dice)` descarta importados fora do catálogo, corta em `MAX_DICE` e recusa lista vazia.
 - Toda chamada aceita emite `selecaoAlterada` (`{ dice }`), mesmo quando a mão não muda; a recusa não muda nada e não emite.
 - Quando um tipo sai do catálogo (`catalogoAlterado` com `removido`), ele sai da mão e o módulo sempre emite, mesmo sem o tipo na mão. Se a mão esvaziar, volta a `['d20']`.
-- A cópia `dice` no store legado (`useDice`) é a dos dados do arremesso, alinhada com `results`, e não a mão: ela chega por `selecaoAlterada` e vai com o `arremesso`. Para a mão, use `selecao()` ou `useSelecao()`.
+- A cópia `dice` no store do `arremesso` (`arremesso().dice`, `useArremesso`) é a dos dados do arremesso, alinhada com `results`, e não a mão: ela chega por `selecaoAlterada`. Para a mão, use `selecao()` ou `useSelecao()`.
 - Notação (`parseDice`): ignora espaços, `+` e caixa. Aceita `2d10 + d100` e a forma compacta `2d10d100d4`.
   - Sufixos depois do `d`, do mais longo ao mais curto: `10vampiro`, `10fome`, `6fogo`, `10v`, `100`, `20`, `12`, `10`, `8`, `6`, `4` e cada `<faces><apelido>` importado (`20caveira`).
   - Dado de forma livre é escrito só com o apelido (`caveira`, `2caveira`), lido antes do `d`.

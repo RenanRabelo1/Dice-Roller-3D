@@ -6,9 +6,10 @@ import { Box3, Color, Group, Mesh, Quaternion, Texture, Vector3, type BufferGeom
 import { Text } from 'troika-three-text';
 
 import {
-  BIAS_BUDGET, bodyStates, criarWorkerDePresimulacao, GRAVITY, HAND, handPositions, presimulateFor, STEP, TRAY, VORTEX, vortexCenter, vortexRadius,
+  arremesso, BIAS_BUDGET, bodyStates, criarWorkerDePresimulacao, GRAVITY, HAND, handPositions, presimulateFor, STEP, TRAY, VORTEX, vortexCenter, vortexRadius,
   type Recording, type RollRequest, type RollResponse,
 } from '../modules/arremesso/index';
+import { useArremesso } from '../modules/arremesso/cena';
 import { omenKinds } from '../dice/omenTest';
 import type { DiceHook } from './testHook';
 import type { Vec3 } from '../shared/math';
@@ -41,7 +42,7 @@ function ThrowLoop({ bodies, recordLaunch }: {
   const fallback = useCallback(() => {
     if (worker.current) console.warn('Worker da física indisponível: simulando na thread principal.');
     worker.current?.terminate(); worker.current = null;
-    const pending = play.current, state = useDice.getState();
+    const pending = play.current, state = arremesso();
     if (pending && !pending.rec && pending.throwId === state.throwId && state.gesture.phase === 'rolling') {
       try { pending.rec = presimulateFor(pending.request, BIAS_BUDGET.local); } catch (error) {
         console.error(error);
@@ -55,7 +56,7 @@ function ThrowLoop({ bodies, recordLaunch }: {
       const w = criarWorkerDePresimulacao();
       worker.current = w;
       w.onmessage = ({ data }: MessageEvent<RollResponse>) => {
-        const pending = play.current, state = useDice.getState();
+        const pending = play.current, state = arremesso();
         if (!pending || data.throwId !== pending.throwId || data.throwId !== state.throwId || state.gesture.phase !== 'rolling') return;
         if ('error' in data) fallback();
         else pending.rec = data.rec;
@@ -69,7 +70,7 @@ function ThrowLoop({ bodies, recordLaunch }: {
   // On release the whole roll is simulated offline from the dice's current poses, then replayed one recorded
   // step per physics step: a real roll in real time, whose result is published the moment it ends.
   useBeforePhysicsStep(() => {
-    const { gesture, throwId, launch, dice, publish, omenTest } = useDice.getState();
+    const { gesture, throwId, launch, dice, publish } = arremesso(), { omenTest } = useDice.getState();
     if (gesture.phase !== 'rolling' || !launch) return;
     const current = live();
     if (play.current?.throwId !== throwId) {
@@ -103,7 +104,7 @@ function ThrowLoop({ bodies, recordLaunch }: {
 interface Pano { tex: Texture; rotation: number; intensity: number; blur: number; reflect: boolean }
 
 export function Cena({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> }) {
-  const selected = useDice((state) => state.dice);
+  const selected = useArremesso((state) => state.dice);
   const background = useTable((state) => state.theme.background);
   const key = selected.join(',');
   const { camera, size, scene, gl, setDpr, viewport: { initialDpr, dpr } } = useThree();
@@ -127,7 +128,7 @@ export function Cena({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> 
   }, [background]);
   useFrame((state) => {
     if (wanted.current === pano) return;
-    const { gesture, showcased, throwId } = useDice.getState();
+    const { gesture, throwId } = arremesso(), { showcased } = useDice.getState();
     if (gesture.phase !== 'hand' && !(gesture.phase === 'settled' && showcased === throwId)) return;
     if (wanted.current) state.scene.background = wanted.current.tex;
     else if (pano && state.scene.background === pano.tex) state.scene.background = null; // a colour background attaches itself
@@ -146,7 +147,7 @@ export function Cena({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> 
   };
   useFrame(() => {
     if (desiredDpr.current === dpr) return;
-    const { gesture, showcased, throwId } = useDice.getState();
+    const { gesture, throwId } = arremesso(), { showcased } = useDice.getState();
     // Resizing the backing buffer can stall a software renderer: do it between animations.
     if (gesture.phase !== 'hand' && !(gesture.phase === 'settled' && showcased === throwId)) return;
     setDpr(desiredDpr.current);
@@ -197,7 +198,7 @@ export function Cena({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> 
   useEffect(() => {
     installTestHook({
       state: () => {
-        const state = useDice.getState();
+        const state = { ...arremesso(), ...useDice.getState() };
         return {
           dice: state.dice, phase: state.gesture.phase, throwId: state.throwId,
           results: state.results,
@@ -259,7 +260,7 @@ export function Cena({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> 
         return c ? { felt: hex(0)!, wood: hex(3)! } : null;
       },
       previewSurface: (index, p, q) => {
-        if (import.meta.env.MODE !== 'test' || !new URLSearchParams(location.search).has('surface-preview') || useDice.getState().gesture.phase !== 'hand') throw new Error('Surface preview is only available in the test preview scene');
+        if (import.meta.env.MODE !== 'test' || !new URLSearchParams(location.search).has('surface-preview') || arremesso().gesture.phase !== 'hand') throw new Error('Surface preview is only available in the test preview scene');
         const body = bodies.current[index];
         if (!body) throw new Error(`Die ${index} is not registered`);
         body.setTranslation({ x: p[0], y: p[1], z: p[2] }, true);
@@ -268,7 +269,7 @@ export function Cena({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> 
         body.setNextKinematicRotation({ x: q[0], y: q[1], z: q[2], w: q[3] });
       },
     });
-    useDice.getState().setReady();
+    arremesso().setReady();
   }, [camera, gameArea, key, selected, scene]);
 
 

@@ -1,4 +1,6 @@
-import { omenPlaying, useDice } from '../store';
+import { useOmenPlaying } from '../store';
+import { setChargeMode } from '../modules/arremesso/index';
+import { useArremesso } from '../modules/arremesso/cena';
 import { useFalha } from '../shared/plataforma';
 import { resultText } from '../dice/notation';
 import { BotoesDeDados, Chat, ResumoDaMao } from '../modules/selecao/cena';
@@ -12,13 +14,13 @@ const MODES = [
   ['static', 'Estática', 'A força só sobe, até o máximo, e fica no máximo até você soltar.'],
 ] as const;
 function RollMode() {
-  const mode = useDice((s) => s.chargeMode);
+  const mode = useArremesso((s) => s.chargeMode);
   return (
     <div className="roll-mode" role="radiogroup" aria-label="Rolagem">
       <span aria-hidden="true">Rolagem</span>
       {MODES.map(([value, name, hint]) => (
         <label key={value} title={hint}>
-          <input type="radio" name="roll-mode" value={value} checked={mode === value} onChange={() => useDice.getState().setChargeMode(value)} />
+          <input type="radio" name="roll-mode" value={value} checked={mode === value} onChange={() => setChargeMode(value)} />
           {name}
         </label>
       ))}
@@ -27,13 +29,13 @@ function RollMode() {
 }
 
 function Force() {
-  const force = useDice((s) => s.force);
+  const force = useArremesso((s) => s.force);
   return <progress aria-label="Força" max={1} value={force} />;
 }
 
 export function Controls() {
-  const phase = useDice((s) => s.gesture.phase), results = useDice((s) => s.results), thrown = useDice((s) => s.dice); // thrown: the dice behind `results`
-  const waiting = useDice(omenPlaying); // the result shows once its omen has played (or the dice are picked up)
+  const phase = useArremesso((s) => s.gesture.phase), results = useArremesso((s) => s.results), thrown = useArremesso((s) => s.dice); // thrown: the dice behind `results`
+  const waiting = useOmenPlaying(); // the result shows once its omen has played (or the dice are picked up)
   const failed = useFalha() === 'physics';
   const text = results && !waiting && resultText(thrown, results);
   return (

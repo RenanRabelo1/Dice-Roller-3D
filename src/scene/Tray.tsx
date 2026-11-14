@@ -1,5 +1,5 @@
 import { CuboidCollider, RigidBody } from '@react-three/rapier';
-import { MATERIAL, trayColliders } from '../modules/arremesso/index';
+import { arremesso, MATERIAL, trayColliders } from '../modules/arremesso/index';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import type { Group, Object3D } from 'three';
@@ -11,8 +11,8 @@ import { useTable } from './tableState';
 
 const setVisible = (o: Object3D, visible: boolean) => { o.visible = visible; };
 const broken = () => {
-  const s = useDice.getState();
-  return trayBrokenAt({ phase: s.gesture.phase, throwId: s.throwId, omen: s.omen, omenDone: s.omenDone, omenAt: s.omenAt, dice: s.dice, reducedMotion: movimentoReduzido() }, performance.now());
+  const a = arremesso(), s = useDice.getState();
+  return trayBrokenAt({ phase: a.gesture.phase, throwId: a.throwId, omen: s.omen, omenDone: s.omenDone, omenAt: s.omenAt, dice: a.dice, reducedMotion: movimentoReduzido() }, performance.now());
 };
 
 // The tray's colliders are always trayColliders(); what you see comes from the active table theme (a default

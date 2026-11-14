@@ -4,7 +4,7 @@ import { Cena } from './app/Cena';
 import { Controls } from './ui/Controls';
 import { OmenOverlay } from './ui/OmenOverlay';
 import { OmenTests } from './ui/OmenTests';
-import { useDice } from './store';
+import { resultadoPublicado } from './modules/arremesso/index.ts';
 import { Backdrop } from './scene/Backdrop';
 import { Failure, Guard, hasWebGL, observarPreferenciaDoSistema, registrarFalha, useFalha } from './shared/plataforma';
 import { useTable } from './scene/tableState';
@@ -21,8 +21,8 @@ export default function App() {
   useEffect(() => observarPreferenciaDoSistema(), []);
   // Every published result goes to the roll history (when the app has an API address; see src/modules/historico).
   // ponte até a fase 6: historico assina arremesso.resultadoPublicado
-  useEffect(() => useDice.subscribe((s, prev) => {
-    if (s.results && s.results !== prev.results) registrarArremesso({ dice: corpoDosDados(s.dice, s.results), force: s.force });
+  useEffect(() => resultadoPublicado.subscribe(({ dice, results, force }) => {
+    registrarArremesso({ dice: corpoDosDados(dice, results), force });
   }), []);
   return (
     <main className="app">

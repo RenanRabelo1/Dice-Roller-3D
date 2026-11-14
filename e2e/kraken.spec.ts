@@ -20,17 +20,18 @@ async function launch(page: Page, naturalOne = false) {
   if (naturalOne) {
     // Choose a real physical roll, without changing a face or publishing a fabricated result.
     const seed = await page.evaluate(async ({ storePath, presimPath }) => {
-      const { useDice } = await import(storePath), { presimulate } = await import(presimPath);
-      const state = useDice.getState(), start = window.__dice.bodies().map(({ p, q }) => ({ p, q }));
+      // Test only: the throw's store of the module, by URL (OS-0031, decision 7).
+      const { store } = await import(storePath), { presimulate } = await import(presimPath);
+      const state = store.getState(), start = window.__dice.bodies().map(({ p, q }) => ({ p, q }));
       for (let seed = 0; seed < 2000; seed++) {
         const launch = { ...state.launch, seed };
         if (presimulate(state.dice, start, launch).results[0] === 1) {
-          useDice.setState({ launch });
+          store.setState({ launch });
           return seed;
         }
       }
       throw new Error('No physical d100=1 fixture found');
-    }, { storePath: '/src/store.ts', presimPath: '/src/modules/arremesso/index.ts' });
+    }, { storePath: '/src/modules/arremesso/store.ts', presimPath: '/src/modules/arremesso/index.ts' });
     expect(seed).toBeGreaterThanOrEqual(0);
   }
   for (let i = 0; i < 160; i++) {

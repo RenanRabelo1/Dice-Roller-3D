@@ -31,3 +31,31 @@ export interface Recording { frames: Pose[][]; raw: number[]; results: number[];
 // `bias` (dev test buttons only): look for a roll that plays this omen; `kinds` from omenKinds.
 export interface RollRequest { dice: DieKind[]; start: Pose[]; launch: Launch; customs: Record<CustomKind, Polyhedron>; bias?: { test: OmenTest; kinds: DieKind[] } }
 export type RollResponse = { throwId: number } & ({ rec: Recording } | { error: string });
+
+// The hand's motion at the release (its center and its swing), handed on to the throw.
+export interface HandMotion { center: Vec3; omega: Vec3 }
+
+// What `publish` announces, synchronously, right after the result is in the state (ADR 0005).
+// `dice` are the dice of the throw, aligned with `results`/`raw`.
+export interface ResultadoPublicado { throwId: number; dice: DieKind[]; results: number[]; raw: number[] | null; force: number }
+
+// The throw's state and actions, owned by the module (store.ts). Read outside through arremesso() and useArremesso().
+export interface EstadoDoArremesso {
+  dice: DieKind[]; // the dice of the current throw, aligned with results/raw: a copy of the hand, received by selecaoAlterada
+  gesture: GestureState;
+  throwId: number;
+  aim: Vec3;
+  force: number;
+  chargeMode: ChargeMode; // how the charge moves while held (the player's choice, remembered by the browser)
+  launch: Launch | null;
+  results: number[] | null;
+  raw: number[] | null; // per-body up value behind `results` (d10 digit, d4 vertex)
+  ready: boolean;
+  reiniciar: () => void; // resets the throw with the same hand (the dice go back to the hand)
+  setAim: (aim: Vec3) => void;
+  setForce: (force: number) => void;
+  setChargeMode: (mode: ChargeMode) => void;
+  setReady: () => void;
+  input: (event: GestureEvent, hand?: HandMotion) => Effect;
+  publish: (throwId: number, results: number[], raw?: number[]) => void;
+}
