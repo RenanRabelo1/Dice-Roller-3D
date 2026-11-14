@@ -96,6 +96,7 @@ Do gesto ao resultado. O módulo cuida da mira, da carga da força e do redemoin
 **Pontos de chamada a trocar:**
 - os legados de vitrine e presságio, que ainda estão em `Hand.tsx`, `Omens.tsx` e `Tray.tsx`;
 - o test hook;
+- o trecho que procura `gem-i`/`die-i` pelo nome (`Hand.tsx`) passa a pedir a `dados` `definirOpacidade`/`definirSombra`/`rotulos`, criados nessa extração;
 - os E2E `kraken.spec.ts:33` e `coin-performance.spec.ts`, que importam `/src/store.ts` e `/src/physics/presim.ts` por URL e têm o caminho atualizado na mesma ordem;
 - os testes de `aim`, `gesture`, `settle`, `vortex`, `world`, `physics` e `store` (a parte do gesto), que movem para o módulo; `tests/helpers/sim.ts` passa a importar do `index.ts`.
 

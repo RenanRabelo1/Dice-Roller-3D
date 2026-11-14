@@ -1,7 +1,7 @@
 import type { Object3D } from 'three';
 import { readModel } from '../../../shared/modelos3d/index.ts';
 import type { CustomDie } from '../contracts.ts';
-import { customKind } from './catalogo.ts';
+import { catalogoAlterado, customKind } from './catalogo.ts';
 import { markInk } from './gravacao.ts';
 import { LIMITES_DO_MODELO_SALVO } from './limites.ts';
 
@@ -20,3 +20,5 @@ export function modelObject(die: CustomDie): Promise<Object3D> {
 }
 
 export const forgetModel = (kind: string) => { loaded.delete(kind); };
+// A removed kind frees its parsed model (memory only; nothing the player sees changes). A re-registered kind keeps it.
+catalogoAlterado.subscribe(({ kind, mudanca }) => { if (mudanca === 'removido') forgetModel(kind); });

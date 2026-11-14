@@ -44,3 +44,9 @@ export interface CustomDie {
 
 export type Ink = 'auto' | 'ouro' | 'escura' | 'branca' | 'nenhuma';
 export type Finish = 'gema' | 'fosco';
+
+// What the test inspection (domain/inspecao.ts) reads of a die in the scene.
+// A numeral or symbol on a face, in world space; text is the numeral, the symbol's name, or '' on a blank face.
+export interface RotuloNaCena { text: string; value: number; position: Vec3; normal: Vec3 }
+// One mesh of the gem: shown, material type, opaque, vertex-painted, and the colour of its first inked vertex.
+export interface AparenciaDaGema { shown: boolean; material: string; opaque: boolean; painted: boolean; ink: number[] | null }

@@ -1,13 +1,13 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useThree } from '@react-three/fiber';
 import { BatchedText, Text } from 'troika-three-text';
 import { BufferGeometry, Float32BufferAttribute, Matrix4, Mesh, MeshBasicMaterial, Object3D, Vector3, type Group, type Material } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { Vec3 } from '../../../shared/math.ts';
-import type { DieKind } from '../../regras/index.ts';
+import { isCustom, type DieKind } from '../../regras/index.ts';
 import type { CustomDie, Label, Polyhedron } from '../contracts.ts';
-import { carregarModelo, FONT, FONT_URL, numeralInk, SYMBOL, type NumeralInk } from '../domain/aparencia.ts';
-import { polyhedron } from '../domain/catalogo.ts';
+import { carregarModelo, FONT, FONT_URL, gemColor, numeralInk, SYMBOL, type NumeralInk } from '../domain/aparencia.ts';
+import { catalogoAlterado, customDie, polyhedron } from '../domain/catalogo.ts';
 import { symbolGeometry } from '../domain/simbolos.ts';
 import { finishOf, inkColorOf } from '../domain/tinta.ts';
 import { GemMaterial } from './GemMaterial.tsx';
@@ -86,8 +86,12 @@ function useModel(die: CustomDie | undefined) {
 }
 
 // The die as it shows (gem, numerals, symbols, the player's model and its ink), without a physical body: whoever owns
-// the body puts this inside it. `custom` is the imported die's record (undefined for a built-in kind).
-export function AparenciaDoDado({ index, kind, color, custom }: { index: number; kind: DieKind; color: string; custom?: CustomDie }) {
+// the body puts this inside it. An imported kind follows its record in the catalogue: an edit in "Meus dados" re-registers
+// it and the die shows the new colour, ink and finish at once.
+export function AparenciaDoDado({ index, kind }: { index: number; kind: DieKind }) {
+  // The catalogue keeps the same record between emissions, so the snapshot is stable.
+  const custom = useSyncExternalStore(catalogoAlterado.subscribe, () => (isCustom(kind) ? customDie(kind) : undefined));
+  const color = gemColor(kind);
   const model = polyhedron(kind);
   const geometry = useMemo(() => {
     const result = new BufferGeometry();

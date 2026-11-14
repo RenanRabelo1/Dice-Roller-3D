@@ -67,6 +67,7 @@ Mostrar o resultado depois de `settled`. Os dados voam até a frente da câmera 
 **Pontos de chamada a trocar:**
 - a casca (o predicado "entre animações", hoje em `app/Cena.tsx` (era `Stage.tsx:128` e `:148`), vira uma função da casca);
 - o test hook (`highlights`, `inkGlow`, `state().showcased`);
+- o trecho que procura `gem-i`/`die-i` pelo nome (`Hand.tsx`) passa a pedir a `dados` `definirOpacidade`/`definirSombra`/`rotulos`, criados nessa extração;
 - `tests/showcase.test.ts`, `highlight.test.ts` e `inkGlow.test.ts`, que movem para o módulo.
 
 ## Critérios de aceite da extração

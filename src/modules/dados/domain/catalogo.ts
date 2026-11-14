@@ -1,5 +1,6 @@
 import { BASE, isCustom, KINDS, tipoParaPresagio, type CustomKind, type DieKind, type Shape } from '../../regras/index.ts';
 import type { CustomDie, Polyhedron } from '../contracts.ts';
+import { createSignal } from '../../../shared/events.ts';
 import { build, SYMBOL } from './solidos.ts';
 
 // The registry of imported dice (hydrated from IndexedDB by customStore.ts); the worker registers only the solids.
@@ -13,13 +14,23 @@ const customPoly = (kind: CustomKind): Polyhedron | undefined => polys.get(kind)
 const customOrder = (kind: CustomKind): number => [...dice.keys()].indexOf(kind);
 const customBase = (kind: CustomKind): Shape | undefined => polys.get(kind)?.shape;
 
+// Tells when an imported kind is registered (again, on an edit) or removed (ADR 0005): the catalogue owns the instance,
+// index.ts exposes only `subscribe`. The worker's registerPoly does not emit. Pure, so the worker's bundle drops it.
+export const catalogoAlterado = /* @__PURE__ */ createSignal<{ kind: CustomKind; mudanca: 'registrado' | 'removido' }>();
+
 export function registerCustom(die: CustomDie): void {
-  dice.set(customKind(die.id), die);
-  polys.set(customKind(die.id), die.poly);
+  const kind = customKind(die.id);
+  dice.set(kind, die);
+  polys.set(kind, die.poly);
+  catalogoAlterado.emit({ kind, mudanca: 'registrado' });
 }
 // The worker only needs the solid.
 export const registerPoly = (kind: CustomKind, poly: Polyhedron): void => { polys.set(kind, poly); };
-export function unregisterCustom(kind: CustomKind): void { dice.delete(kind); polys.delete(kind); }
+export function unregisterCustom(kind: CustomKind): void {
+  dice.delete(kind);
+  polys.delete(kind);
+  catalogoAlterado.emit({ kind, mudanca: 'removido' });
+}
 
 const cache = new Map<DieKind, Polyhedron>();
 export function polyhedron(kind: DieKind): Polyhedron {

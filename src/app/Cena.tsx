@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObje
 import { useFrame, useThree } from '@react-three/fiber';
 import { EnvironmentPortal, Lightformer, PerformanceMonitor } from '@react-three/drei';
 import { Physics, useBeforePhysicsStep, type RapierRigidBody } from '@react-three/rapier';
-import { Box3, Color, Group, Matrix4, Mesh, Quaternion, Texture, Vector3, type BufferGeometry, type Material, type Object3D } from 'three';
+import { Box3, Color, Group, Mesh, Quaternion, Texture, Vector3, type BufferGeometry, type Material, type Object3D } from 'three';
 import { Text } from 'troika-three-text';
 
 import { bodyStates } from '../physics/apply';
@@ -18,7 +18,7 @@ import { Tray } from '../scene/Tray';
 import { Hand } from '../scene/Hand';
 import { Omens } from '../scene/Omens';
 import { MAX_DICE, omenKind } from '../modules/regras/index';
-import { customKind, customsOf, gemColor } from '../modules/dados/index';
+import { customKind, customsOf, inspecao } from '../modules/dados/index';
 import { VORTEX, vortexCenter, vortexRadius } from '../throw/vortex';
 import { useTable } from '../scene/tableState';
 import { panoramaTexture } from '../scene/tableImages';
@@ -192,8 +192,6 @@ export function Cena({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> 
     camera.lookAt(0, 0, 0);
   }, [camera, size.width, size.height]);
 
-  const numbersOf = (index: number) => dice.current?.getObjectByName(`die-${index}`)?.children.find((o) => o.userData.labels);
-
   useEffect(() => {
     installTestHook({
       state: () => {
@@ -223,36 +221,10 @@ export function Cena({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> 
         }
         return result;
       },
-      labels: (index) => {
-        const result: ReturnType<DiceHook['labels']> = [];
-        const batch = numbersOf(index);
-        if (!batch) return result;
-        batch.updateWorldMatrix(true, false);
-        // BatchedText members are not scene children: world matrix = batch matrix × member matrix.
-        for (const label of batch.userData.labels as Object3D[]) {
-          label.updateMatrix();
-          const world = new Matrix4().multiplyMatrices(batch.matrixWorld, label.matrix);
-          result.push({
-            text: label.userData.text, value: label.userData.value,
-            position: new Vector3().setFromMatrixPosition(world).toArray(),
-            normal: new Vector3(0, 0, 1).transformDirection(world).toArray(),
-          });
-        }
-        return result;
-      },
+      labels: (index) => (dice.current ? inspecao.rotulos(dice.current, index) : []),
       camera: () => camera.position.toArray(),
-      numbersVisible: (index) => numbersOf(index)?.visible ?? false,
-      gemLook: (index) => {
-        const out: ReturnType<DiceHook['gemLook']> = [];
-        scene.getObjectByName(`gem-${index}`)?.traverse((o) => {
-          if (!(o instanceof Mesh)) return;
-          const m = (Array.isArray(o.material) ? o.material[0] : o.material) as Material & { vertexColors?: boolean };
-          const mask = o.geometry.userData.ink as Uint8Array | undefined, color = o.geometry.getAttribute('color');
-          const t = mask ? mask.indexOf(1) : -1;
-          out.push({ shown: o.visible, material: m.type, opaque: !m.transparent || m.opacity === 1, painted: !!m.vertexColors, ink: color && t >= 0 ? [color.getX(t * 3), color.getY(t * 3), color.getZ(t * 3)] : null });
-        });
-        return out;
-      },
+      numbersVisible: (index) => (dice.current ? inspecao.numeraisVisiveis(dice.current, index) : false),
+      gemLook: (index) => inspecao.aparenciaDaGema(scene, index),
       highlights: () => (scene.getObjectByName('result-highlights')?.children ?? []).map((o) => ({
         text: o instanceof Text ? o.text : null, visible: o.visible, position: o.position.toArray(),
       })),
@@ -325,7 +297,7 @@ export function Cena({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> 
         <ThrowLoop bodies={bodies} recordLaunch={recordLaunch} />
         <group ref={dice}>
           {selected.map((kind, i) => (
-            <Die key={`${key}-${i}`} index={i} kind={kind} selection={key} count={selected.length} color={gemColor(kind)}
+            <Die key={`${key}-${i}`} index={i} kind={kind} selection={key} count={selected.length}
               register={register} />
           ))}
         </group>
