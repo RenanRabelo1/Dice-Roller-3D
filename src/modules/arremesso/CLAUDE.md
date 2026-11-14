@@ -1,6 +1,6 @@
 # Módulo `arremesso`
 
-Duas portas (ADR 0010): `index.ts`, puro e sem React (o worker e os testes em Node), e `cena.ts`, com o hook e os componentes. Tipos em `contracts.ts`, regras puras em `domain/` (`gesture`, `aim`, `vortex`, `world`, `apply`, `presim`, `settle`, `vies`), o estado em `store.ts`, a chave do `localStorage` em `repository.ts`, a cena em `scene/` e o rodapé em `ui/`. O worker (`domain/presim.worker.ts`) só nasce por `criarWorkerDePresimulacao()` do `index.ts`. O detalhe (linha do tempo, pré-simulação, parada, constantes, worker) está em [NOTAS.md](NOTAS.md): leia só quando a ordem mandar.
+Duas portas (ADR 0010): `index.ts`, puro e sem React (o worker e os testes em Node), e `cena.ts`, com o hook e os componentes. Tipos em `contracts.ts`, regras puras em `domain/` (`gesture`, `aim`, `vortex`, `world`, `apply`, `mover` (o único não puro: lê o store e o registro de corpos), `envelope`, `presim`, `settle`, `vies`), o estado em `store.ts`, a chave do `localStorage` em `repository.ts`, a cena em `scene/` e o rodapé em `ui/`. O worker (`domain/presim.worker.ts`) só nasce por `criarWorkerDePresimulacao()` do `index.ts`. O detalhe (linha do tempo, pré-simulação, parada, constantes, worker) está em [NOTAS.md](NOTAS.md): leia só quando a ordem mandar.
 
 ## Responsabilidade
 Do gesto ao resultado: a mira, a carga da força e o redemoinho dos dados na mão. Na soltura, simula o arremesso inteiro com o Rapier (no worker ou, no fallback, na thread principal), reproduz a gravação na cena e publica o resultado no último quadro. Depois leva os dados de volta à mão. É dono de: o estado do arremesso (`store.ts`, escrito só ali); a chave `localStorage['diceroller.rolagem']` (o `chargeMode`); o registro de corpos (`registroDeCorpos`, em `scene/corpos.ts`); o worker e o estado do replay (`LoopDoArremesso`); e o registro de lançamentos (`registrarLancamento`).
@@ -19,18 +19,18 @@ Do gesto ao resultado: a mira, a carga da força e o redemoinho dos dados na mã
 - O DOM do rodapé (`ModoDeRolagem`, `BarraDeForca`, `DicaDaFase`) é contrato dos E2E e do CSS; `tests/componentes.test.ts` o compara com o rodapé legado.
 
 ## Expõe
-- `index.ts`: `arremesso()` e as ações (`input`, `publish`, `reiniciar`, `setAim`, `setForce`, `setChargeMode`, `setReady`); `assinarArremesso`; `resultadoPublicado` (só `subscribe`); `registroDeCorpos`; `inspecao()` → `{ corpos(), lancamentos() }` (os `bodies()`/`launches()` do test hook); `criarWorkerDePresimulacao`; o domínio puro (`reduce`, `charge`, `clampTarget`, `TRAY`, `trayColliders`, `HAND`, `STEP`, `GRAVITY`, `presimulate`, `presimulateFor`, `omenKinds`, `plays`, o redemoinho...).
+- `index.ts`: `arremesso()` e as ações (`input`, `publish`, `reiniciar`, `setAim`, `setForce`, `setChargeMode`, `setReady`); `assinarArremesso`; `resultadoPublicado` (só `subscribe`); `registroDeCorpos`; `moverDado(i, pose, fixar = true)` (só em `settled`, a única escrita de pose nessa fase, por `apply.ts`; noutra fase ou em vaga vazia não faz nada); `envelopeDaMao()` (os pontos extremos da maior mão e do redemoinho, para o enquadramento da câmera da casca); `inspecao()` → `{ corpos(), lancamentos() }` (os `bodies()`/`launches()` do test hook); `criarWorkerDePresimulacao`; o domínio puro (`reduce`, `charge`, `clampTarget`, `TRAY`, `trayColliders`, `HAND`, `STEP`, `GRAVITY`, `presimulate`, `presimulateFor`, `omenKinds`, `plays`, o redemoinho...).
 - Tipos (`contracts.ts`): `EstadoDoArremesso`, `ResultadoPublicado`, `Phase`, `Launch`, `RollRequest`, `Recording`, `UltimoLancamento`, `OmenTest` e os do gesto.
 - `cena.ts`: `useArremesso(selector)`; `<LoopDoArremesso omenTest/>`, `<MaoDoArremesso gameArea/>`, `<CorpoDoDado/>` (registra-se sozinho), `<ColisoresDaBandeja/>`; `<ModoDeRolagem/>`, `<BarraDeForca/>` (quem monta decide quando aparece), `<DicaDaFase/>` (textos por fase e o aviso de física).
 
 ## Consome
 - `selecao`: `selecao`, `selecaoAlterada`.
-- `dados`: `polyhedron`, `readUp`, `toResults`, `customsOf`, `registerPoly`, `paraRegras`, `RAIO_MAXIMO`, `<AparenciaDoDado/>`. A `MaoDoArremesso` ainda procura `die-i`/`gem-i` pelo nome para opacidade e sombra; `definirOpacidade`/`definirSombra` de `dados` chegam com a `vitrine`.
+- `dados`: `polyhedron`, `readUp`, `toResults`, `customsOf`, `registerPoly`, `paraRegras`, `RAIO_MAXIMO`, `definirOpacidade`, `definirSombra` (a `MaoDoArremesso` não procura `die-i`/`gem-i` pelo nome), `<AparenciaDoDado/>`.
 - `regras`: `MAX_DICE`, `omenKind`, `omenOf` e os tipos de dado.
 - `src/shared`: `events` (`createSignal`), `math`, `plataforma` (`movimentoReduzido`, `registrarFalha`, `useFalha`).
 - Do legado, por prop-função da casca: `omenTest` (o botão de teste de presságio, que mora em `pressagios`: `presagio().omenTest`).
 
 ## Fora do escopo
-- Depois de `settled`: o presságio (`pressagios`), o voo, os números e o resultado (`vitrine`). O `Hand` da vitrine (legado) e o `PresagiosNaCena` (`pressagios`) só leem `registroDeCorpos`.
-- `envelopeDaMao()`, `dadoNaCena` e `moverDado` da spec: adiados para a `vitrine` (OS-0034).
+- Depois de `settled`: o presságio (`pressagios`), o voo, os números e o resultado (`vitrine`). O `Hand` da vitrine (legado) lê `registroDeCorpos` e move só por `moverDado`; o `PresagiosNaCena` (`pressagios`) só lê.
+- `dadoNaCena` da spec não existe: ninguém o chama (o `Hand` usa `dadoNaRaiz` de `dados`), OS-0043.
 - A aparência da bandeja (`mesa`), o DPR e a câmera (casca).

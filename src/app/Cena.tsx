@@ -6,7 +6,7 @@ import { Group, Mesh, Quaternion, type Material } from 'three';
 import { Text } from 'troika-three-text';
 
 import {
-  arremesso, GRAVITY, HAND, handPositions, inspecao as inspecaoDoArremesso, registroDeCorpos, STEP, TRAY, VORTEX, vortexCenter, vortexRadius,
+  arremesso, envelopeDaMao, GRAVITY, inspecao as inspecaoDoArremesso, registroDeCorpos, STEP, TRAY,
 } from '../modules/arremesso/index';
 import { CorpoDoDado, LoopDoArremesso, MaoDoArremesso, useArremesso } from '../modules/arremesso/cena';
 import type { Vec3 } from '../shared/math';
@@ -15,8 +15,7 @@ import { inspecao as inspecaoDoPresagio, presagio, rigOmen } from '../modules/pr
 import { PresagiosNaCena, QuebraDaMesa } from '../modules/pressagios/cena';
 import { installTestHook } from './testHook';
 import { Hand } from '../scene/Hand';
-import { MAX_DICE } from '../modules/regras/index';
-import { inspecao, RAIO_MAXIMO } from '../modules/dados/index';
+import { inspecao } from '../modules/dados/index';
 import { definir } from '../modules/selecao/index';
 import { inspecao as inspecaoDosImportados } from '../modules/meus-dados/index';
 import { inspecao as inspecaoDaMesa } from '../modules/mesa/index';
@@ -70,21 +69,8 @@ export function Cena({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> 
           for (const z of [-TRAY.halfDepth - TRAY.wallThickness, TRAY.halfDepth + TRAY.wallThickness]) corners.push([x, y, z]);
         }
       }
-      // Fit the largest hand (20 bodies), so selection never changes the camera.
-      for (const p of handPositions(HAND.cols * 4, 0)) {
-        for (const x of [-RAIO_MAXIMO, RAIO_MAXIMO]) {
-          for (const y of [-RAIO_MAXIMO, RAIO_MAXIMO]) {
-            for (const z of [-RAIO_MAXIMO, RAIO_MAXIMO]) corners.push([p[0] + x, p[1] + y, p[2] + z]);
-          }
-        }
-      }
-      // ...and the widest whirl, aimed to either side.
-      for (const side of [-1, 1]) {
-        const c = vortexCenter(MAX_DICE, side * TRAY.halfWidth), R = vortexRadius(MAX_DICE);
-        for (const x of [-1, 1]) for (const y of [-1, 1]) for (const z of [-1, 1]) {
-          corners.push(c.map((v, k) => v + [x, y, z][k] * (R * VORTEX.squash[k] + RAIO_MAXIMO)) as Vec3);
-        }
-      }
+      // Fit the largest hand (20 bodies) and the widest whirl, so selection never changes the camera (arremesso).
+      corners.push(...envelopeDaMao());
       const halfFov = Math.tan(20 * Math.PI / 180) * 0.94;
       for (const [x, y, z] of corners) {
         const depth = (14 * y + 10 * z) / distance;

@@ -18,6 +18,9 @@ export { initialGesture, reduce } from './domain/gesture.ts';
 export { charge, clampTarget } from './domain/aim.ts';
 export { GRAVITY, HAND, handPositions, MATERIAL, STEP, TRAY, trayColliders } from './domain/world.ts';
 export { bodyStates, toKinematic } from './domain/apply.ts';
+// In `settled`, the only pose write (the showcase), through apply.ts; and the hand's extreme points for the camera fit.
+export { moverDado } from './domain/mover.ts';
+export { envelopeDaMao } from './domain/envelope.ts';
 export { BIAS_BUDGET, presimulate, presimulateFor } from './domain/presim.ts';
 export { omenKinds, plays } from './domain/vies.ts';
 export { newWhirl, ORBITS, restingPlaces, spinAngle, stepWhirl, VORTEX, vortexCenter, vortexRadius } from './domain/vortex.ts';

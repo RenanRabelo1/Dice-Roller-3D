@@ -7,7 +7,7 @@ import { customDie, dadoNaRaiz, FONT, FONT_URL, gemaNaRaiz, gemColor, inkColorOf
 import { isCustom, MAX_DICE } from '../modules/regras/index';
 import { easeOut, type Pose, type Quat, type Vec3 } from '../shared/math';
 import { movimentoReduzido } from '../shared/plataforma';
-import { arremesso, registroDeCorpos } from '../modules/arremesso/index';
+import { arremesso, moverDado, registroDeCorpos } from '../modules/arremesso/index';
 import { CAPTION, glowMesh, highlightAt, HL_SIZE, setShowcased, showcasePoses, SHOW, vitrine } from '../modules/vitrine/index';
 import { indicesComPercurso, movimentoNoPresagio, presagio, presagioTocando } from '../modules/pressagios/index';
 
@@ -144,22 +144,21 @@ export function Hand() {
         const facing = q ? camera.quaternion.clone().slerp(q.clone().multiply(m.turn), ride) : camera.quaternion;
         for (const o of [n, g]) { o.position.copy(h.p); o.quaternion.copy(facing); }
       };
-      const pin = (body: RapierRigidBody, p: Vector3, q: Quaternion) => {
-        body.setTranslation(p, false); body.setRotation(q, false); body.setNextKinematicTranslation(p); body.setNextKinematicRotation(q);
-      };
+      // The pose goes through arremesso's moverDado, the only pose write in settled; `fixar` also sets it at once.
+      const pin = (i: number, p: Vector3, q: Quaternion, fixar = true) => moverDado(i, { p: p.toArray(), q: q.toArray() }, fixar);
       if (still) {
-        current.forEach((body, i) => { pin(body, new Vector3(...from[i].p), new Quaternion(...from[i].q)); sombraNaGema(gems[i], true); });
+        current.forEach((_, i) => { pin(i, new Vector3(...from[i].p), new Quaternion(...from[i].q)); sombraNaGema(gems[i], true); });
         marks.forEach((m, i) => draw(i, m.face));
         return;
       }
       let done = !waiting;
       const under = new Vector3(0, -1, 0).applyQuaternion(camera.quaternion); // straight down the screen
-      current.forEach((body, i) => {
+      current.forEach((_, i) => {
         const ms = now - omenAt, movimento = movimentoNoPresagio(i, ms, from[i], to[i], kraken, storm);
         if (movimento) { // the omen moves this die, and leaves it at its result pose
           const p = new Vector3(...movimento.pose.p), q = new Quaternion(...movimento.pose.q);
           sombraNaGema(gems[i], ms <= movimento.sombra);
-          pin(body, p, q);
+          pin(i, p, q);
           draw(i, marks[i].local.clone().applyQuaternion(q).add(p), q, 1, movimento.revela);
           if (ms < movimento.fim) done = false;
           return;
@@ -172,9 +171,7 @@ export function Hand() {
         p.y += Math.sin(Math.PI * t) * 0.6; // small lift so the flight reads as an arc, not a slide
         const q = new Quaternion(...from[i].q).slerp(new Quaternion(...to[i].q), e);
         // Landed: pin the exact pose every frame (physics steps can lag frames on slow GPUs).
-        if (t === 1) { body.setTranslation(p, false); body.setRotation(q, false); }
-        body.setNextKinematicTranslation(p);
-        body.setNextKinematicRotation(q);
+        pin(i, p, q, t === 1);
         if (above[i]) { // seen from above: its engraving glows, or (none found) the number floats in front of it
           const glow = glows[i];
           if (glow) (glow.material as MeshBasicMaterial).opacity = t * highlightAt(now - at, i, marks[i].start, marks[i].face, marks[i].scale).glow;

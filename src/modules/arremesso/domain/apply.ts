@@ -20,6 +20,15 @@ function pose(b: RigidBody, p: Vec3, q: Quat) {
   b.setRotation({ x: q[0], y: q[1], z: q[2], w: q[3] }, true);
 }
 
+// A kinematic body to a pose without waking it: `fixar` also sets it at once (physics steps can lag frames), and
+// the next kinematic pose always follows. The showcase's move in `settled` (moverDado, domain/mover.ts).
+export function moverCorpo(b: RigidBody, p: Vec3, q: Quat, fixar: boolean): void {
+  const t = v(p), r = { x: q[0], y: q[1], z: q[2], w: q[3] };
+  if (fixar) { b.setTranslation(t, false); b.setRotation(r, false); }
+  b.setNextKinematicTranslation(t);
+  b.setNextKinematicRotation(r);
+}
+
 export function bodyStates(bodies: RigidBody[]): BodyState[] {
   return bodies.map((b) => {
     const t = b.translation();

@@ -46,7 +46,7 @@ O estado do presságio (`omen`, `omenAt`, `omenDone`, `omenRig`, `omenTest`) sai
 4. **Pré-simulação**: o `LoopDoArremesso` detecta `throwId` novo, captura as poses atuais dos corpos e manda `RollRequest { dice, start, launch, customs, bias? }` ao worker. `bias` só existe com um botão de teste de presságio ligado (`omenTest`, prop-função da casca; `kinds` vem de `omenKinds`) e faz `presimulateFor` procurar, dentro de `BIAS_BUDGET`, uma semente que produza aquele presságio. Sem worker, ou sem resposta em 2 s (`WORKER_TIMEOUT`), → `presimulateFor` síncrono (fallback); se ele também falhar, os dados voltam à mão com `error: 'physics'`. Logo depois grava o lançamento (`registrarLancamento`).
 5. **Replay**: a cada passo físico aplica `rec.frames[at]` via `setNextKinematicTranslation/Rotation`. Quem simula dinâmica é só o mundo offline.
 6. **Publicação**: no último quadro, fixa a pose final com `setTranslation/setRotation` **antes** de `publish(throwId, rec.results, rec.raw)`.
-7. **Settled** → apresentação (presságio, voo, números). Clique/Espaço → `returning`.
+7. **Settled** → apresentação (presságio, voo, números). Nessa fase só `moverDado(i, pose, fixar)` (`domain/mover.ts` → `moverCorpo` de `apply.ts`) mexe na pose: o `Hand` da vitrine a chama para o voo e para fixar a pose (`fixar`: `setTranslation`/`setRotation` sem acordar e, sempre, `setNextKinematic*`). Clique/Espaço → `returning`.
 8. **Retorno**: interpola as poses até os lugares do redemoinho (`restingPlaces`), fixa a pose final e só então emite `returned`.
 
 Descartes por `throwId`: resposta do worker de arremesso antigo, publish atrasado, seleção trocada no meio; tudo comparado com `arremesso().throwId` e fase `rolling`.
@@ -75,7 +75,7 @@ Não lê faces: o valor sai das poses do `reveal`.
 
 ## Aplicação nos corpos (`domain/apply.ts`)
 
-Único lugar que muda tipo de corpo, velocidade e pose, usado pela cena e pelos testes Node: `applyLaunch`, `toKinematic`, `applySettle`, `bodyStates`.
+Único lugar que muda tipo de corpo, velocidade e pose, usado pela cena e pelos testes Node: `applyLaunch`, `toKinematic`, `applySettle`, `bodyStates`, `moverCorpo`. O `moverDado` (só em `settled`, pelo registro de corpos) mora em `domain/mover.ts` e delega a `moverCorpo`: fica fora de `apply.ts` para o worker (`presim` → `apply`) não puxar o store. `domain/envelope.ts` (`envelopeDaMao`) dá à casca os pontos extremos da mão (20 corpos com `RAIO_MAXIMO`) e do redemoinho de `MAX_DICE` mirado aos dois lados; a casca só faz a conta da câmera.
 
 ## Constantes (`domain/world.ts`)
 

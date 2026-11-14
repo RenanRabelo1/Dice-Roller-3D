@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, type RefObject } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import type { RapierRigidBody } from '@react-three/rapier';
-import { ArrowHelper, Color, Mesh, Plane, Quaternion, Raycaster, Vector2, Vector3, type Object3D } from 'three';
-import { polyhedron } from '../../dados/index.ts';
+import { ArrowHelper, Color, Plane, Quaternion, Raycaster, Vector2, Vector3 } from 'three';
+import { definirOpacidade, definirSombra, polyhedron } from '../../dados/index.ts';
 import type { Quat, Vec3 } from '../../../shared/math.ts';
 import { movimentoReduzido } from '../../../shared/plataforma/index.ts';
 import { charge, clampTarget } from '../domain/aim.ts';
@@ -11,9 +11,6 @@ import { newWhirl, ORBITS, restingPlaces, spinAngle, stepWhirl, vortexCenter } f
 import { HAND } from '../domain/world.ts';
 import { arremesso } from '../store.ts';
 import { registroDeCorpos } from './corpos.ts';
-
-// An imported die's gem is a group (a GLB has many meshes), so the shadow switch goes on its meshes.
-const shade = (gem: Object3D | undefined, on: boolean) => gem?.traverse((o) => { if (o instanceof Mesh) o.castShadow = on; });
 
 // The hand in the throw: pointer and keyboard input, the aim and its arrow, the whirl of the dice in the hand, the
 // hand's motion handed on to the launch, and the return to the hand. What happens in `settled` is not here.
@@ -115,12 +112,10 @@ export function MaoDoArremesso({ gameArea }: { gameArea: RefObject<HTMLDivElemen
     const identity = state.dice.join(',');
     const active = phase === 'hand' || phase === 'charging';
     const nextMode = active ? `${identity}-hand` : `${identity}-${phase}`;
-    const setOpacity = (opacity: number) => {
-      for (let i = 0; i < current.length; i++) scene.getObjectByName(`die-${i}`)?.traverse((object) => {
-        if (object instanceof Mesh) for (const material of Array.isArray(object.material) ? object.material : [object.material]) material.opacity = opacity;
-      });
-    };
-    const shadows = (on: boolean) => { for (let i = 0; i < current.length; i++) shade(scene.getObjectByName(`gem-${i}`), on); };
+    // The die's objects come from `dados`. Shadows switch only on the way into the hand; the opacity also goes
+    // every frame of the return (as before, a lookup per die, for the 150-400 ms of it).
+    const setOpacity = (opacity: number) => { for (let i = 0; i < current.length; i++) definirOpacidade(scene, i, opacity); };
+    const shadows = (on: boolean) => { for (let i = 0; i < current.length; i++) definirSombra(scene, i, on); };
     if (active && mode.current !== nextMode) {
       shadows(true);
       toKinematic(current);
