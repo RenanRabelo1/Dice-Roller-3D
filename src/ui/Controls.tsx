@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useState } from 'react';
+import { Suspense, useCallback, useState } from 'react';
 import { omenPlaying, useDice } from '../store';
 import { useFalha } from '../shared/plataforma';
 import { carregarModelo, customDie, customKind, finishOf, hasTexture, nomeDoTipo, type CustomDie } from '../modules/dados/index';
@@ -6,13 +6,9 @@ import type { CustomKind } from '../modules/regras/index';
 import { resultText } from '../dice/notation';
 import { BotaoDeDado, BotoesDeDados, Chat, ResumoDaMao } from '../modules/selecao/cena';
 import { atualizar, excluir } from '../modules/meus-dados/index';
-import { useMeusDados } from '../modules/meus-dados/cena';
-import { InkChoice } from './InkChoice';
+// AssistenteDeImportacao is lazy: the importer (and the model loaders) only load when the player opens it.
+import { AssistenteDeImportacao, InkChoice, useMeusDados } from '../modules/meus-dados/cena';
 import { TablePanel } from './TablePanel';
-
-// The importer (and the model loaders) only load when the player opens it.
-const ImportDie = lazy(() => import('./ImportDie').then((m) => ({ default: m.ImportDie })));
-
 
 // The ink and finish of one imported die, changed in place (nothing is imported again).
 function InkButton({ die }: { die: CustomDie }) {
@@ -86,7 +82,7 @@ export function Controls() {
         <ResumoDaMao />
         <Chat />
         <TablePanel />
-        {mounted && <Suspense fallback={null}><ImportDie open={importing} onClose={closeImport} /></Suspense>}
+        {mounted && <Suspense fallback={null}><AssistenteDeImportacao open={importing} onClose={closeImport} /></Suspense>}
       </header>
       <footer className="status panel">
         <RollMode />

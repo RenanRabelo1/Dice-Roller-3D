@@ -1,9 +1,9 @@
 import { Vector3, type Object3D } from 'three';
 import { ConvexHull } from 'three/examples/jsm/math/ConvexHull.js';
-import type { Vec3 } from '../shared/math';
-import { ModelError, readModel as readShared, type Model, type ModelFormat } from '../shared/modelos3d';
-import { FREE_VALUES, type CustomBase } from '../modules/regras/index.ts';
-import { dentTester, fromTriangles, inkTriangles, OPPOSITE_SUM, RADIUS, type Numbering, type Polyhedron, type StdBase } from '../modules/dados/index';
+import type { Vec3 } from '../../../shared/math.ts';
+import { ModelError, readModel as readShared, type Model, type ModelFormat } from '../../../shared/modelos3d/index.ts';
+import { FREE_VALUES, SIDES, type CustomBase } from '../../regras/index.ts';
+import { dentTester, fromTriangles, inkTriangles, OPPOSITE_SUM, RADIUS, type Numbering, type Polyhedron, type StdBase } from '../../dados/index.ts';
 
 // Turns a die model (.stl / .glb) into a polyhedron the physics and the reader can use. Pure: tested in Node.
 // The solid is rebuilt from the model's own face planes, so the collider matches the model, not a stock die.
@@ -14,16 +14,15 @@ export const LIMITS = { bytes: 10 * 1024 * 1024, triangles: 50_000, texture: 204
 // cover COVER of the hull, the next one must be under NEXT of the smallest of them, and the N must be alike
 // within EVEN (a squashed box is no die). OPPOSITE: dot product that counts as "facing away".
 const GROUP = Math.cos((3 * Math.PI) / 180), OPPOSITE = -0.995, COVER = 0.6, NEXT = 0.25, EVEN = 0.5;
-const SIDES: StdBase[] = ['d4', 'd6', 'd8', 'd10', 'd12', 'd20'];
-const FACES: Record<StdBase, number> = { d4: 4, d6: 6, d8: 8, d10: 10, d12: 12, d20: 20 };
+const BASES: StdBase[] = ['d4', 'd6', 'd8', 'd10', 'd12', 'd20'];
 
 // The message is shown to the player, in pt-BR. `code` lets the wizard offer another way in.
 export class ImportError extends Error {
   code?: 'nao-padrao';
   constructor(message: string, code?: 'nao-padrao') { super(message); this.code = code; }
 }
-export type { Model, ModelFormat } from '../shared/modelos3d';
-export { formatOf } from '../shared/modelos3d';
+export type { Model, ModelFormat } from '../../../shared/modelos3d/index.ts';
+export { formatOf } from '../../../shared/modelos3d/index.ts';
 
 // --- reading the file -------------------------------------------------------------------------------------------
 
@@ -80,8 +79,8 @@ function flatFaces(positions: Float32Array): { n: Vector3; d: number; area: numb
 
 export function detectPlanes(positions: Float32Array): { base: StdBase; planes: Plane[] } {
   const faces = flatFaces(positions), total = faces.reduce((s, f) => s + f.area, 0);
-  for (const base of SIDES) {
-    const N = FACES[base];
+  for (const base of BASES) {
+    const N = SIDES[base];
     if (faces.length < N) continue;
     const top = faces.slice(0, N), smallest = top[N - 1].area;
     if (top.reduce((s, f) => s + f.area, 0) < COVER * total) continue;
@@ -233,10 +232,10 @@ export function idealSolid(base: CustomBase, found: Plane[]): Solid {
     faces++;
     tris.push(...fan(facePolygon({ n, d }, on)));
   }
-  if (faces !== FACES[base]) throw refuse('tem faces que não fecham um sólido');
+  if (faces !== SIDES[base]) throw refuse('tem faces que não fecham um sólido');
   const scale = RADIUS[base] / Math.max(...pts.map((p) => Math.hypot(...p)));
   const poly = fromTriangles(base, tris.map((p) => [p[0] * scale, p[1] * scale, p[2] * scale]));
-  if (poly.faces.length !== FACES[base]) throw refuse('tem faces que não fecham um sólido');
+  if (poly.faces.length !== SIDES[base]) throw refuse('tem faces que não fecham um sólido');
   return { poly, fit: { center, scale } };
 }
 
@@ -309,11 +308,11 @@ export function looksNumbered(positions: Float32Array, solid: Solid): boolean {
 export const normaliseValues = (base: StdBase, values: number[]): number[] => values.map((v) => (base === 'd10' && v === 10 ? 0 : v));
 // One value on its own: is it a number this die can show?
 export function checkValue(base: StdBase, value: number): string | null {
-  const n = FACES[base], first = base === 'd10' ? 0 : 1, v = normaliseValues(base, [value])[0];
+  const n = SIDES[base], first = base === 'd10' ? 0 : 1, v = normaliseValues(base, [value])[0];
   return Number.isInteger(v) && v >= first && v < first + n ? null : `Os números vão de ${first} a ${first + n - 1}${base === 'd10' ? ' (ou 10 no lugar do 0)' : ''}.`;
 }
 export function checkValues(base: StdBase, values: number[]): string | null {
-  const n = FACES[base], got = normaliseValues(base, values);
+  const n = SIDES[base], got = normaliseValues(base, values);
   const range = values.map((v) => checkValue(base, v)).find(Boolean);
   if (range) return range;
   const seen = new Set<number>();

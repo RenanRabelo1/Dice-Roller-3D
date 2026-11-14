@@ -3,7 +3,7 @@ import type { Vec3 } from '../shared/math';
 
 // Triangles of an engraved model that face up when the die rests on the face whose outward normal is `down`
 // (die space): inked (mask = 1) and cut into a solid face that looks within ~60° of straight up. The face is the one
-// the triangle sits closest below (as `dentTester` in importer.ts reads it), so a numeral lights whole or not at all,
+// the triangle sits closest below (as `dentTester` in dados/domain/gravacao.ts reads it), so a numeral lights whole or not at all,
 // whatever the slope of its walls. `centers`: 3 numbers per triangle.
 export const UP_INK = 0.5; // ponytail: fixed cone; tune if real models light too little or too much
 export function upInk(centers: ArrayLike<number>, mask: Uint8Array, faces: { normal: Vec3; center: Vec3 }[], down: Vec3, min = UP_INK): number[] {

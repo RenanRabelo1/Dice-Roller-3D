@@ -2,15 +2,16 @@ import { useEffect, useMemo, useRef, useState, type ElementRef } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Environment, Lightformer, OrbitControls } from '@react-three/drei';
 import { BufferGeometry, Color, Float32BufferAttribute, Group, Matrix4, Mesh, Quaternion, Vector3 } from 'three';
-import { customKind, GEM, hasTexture, inkColorOf, inkTriangles, markInk, type CustomDie, type Finish, type Ink, type Polyhedron, type StdBase } from '../modules/dados/index';
-import { askOrder, unevenOf, withReadable, checkFreeValue, checkFreeValues, checkValue, checkValues, formatOf, importModel, ImportError, inkOf, LIMITS, normaliseValues, renumbered, suggestOpposite, type Imported } from '../dice/importer';
-import { adicionar, slugOf, slugProblem } from '../modules/selecao/index';
-import { useSelecao } from '../modules/selecao/cena';
-import { MAX_DICE, type CustomBase } from '../modules/regras/index';
-import { GemMaterial, paintGlb, usePainted } from '../modules/dados/cena';
-import { salvar } from '../modules/meus-dados/index';
-import { useMeusDados } from '../modules/meus-dados/cena';
-import { InkChoice } from './InkChoice';
+import { customKind, GEM, hasTexture, inkColorOf, inkTriangles, markInk, type Finish, type Ink, type Polyhedron, type StdBase } from '../../dados/index.ts';
+import { askOrder, unevenOf, withReadable, checkFreeValue, checkFreeValues, checkValue, checkValues, formatOf, importModel, ImportError, inkOf, LIMITS, normaliseValues, renumbered, suggestOpposite, type Imported } from '../domain/importador.ts';
+import { adicionar, slugOf, slugProblem } from '../../selecao/index.ts';
+import { useSelecao } from '../../selecao/cena.ts';
+import { MAX_DICE, type CustomBase } from '../../regras/index.ts';
+import { GemMaterial, paintGlb, usePainted } from '../../dados/cena.ts';
+import { salvar } from '../store.ts';
+import { montarDado, tintaPermitida } from '../domain/montagem.ts';
+import { useMeusDados } from './useMeusDados.tsx';
+import { InkChoice } from './InkChoice.tsx';
 
 type Step = 'file' | 'shape' | 'numbers' | 'save';
 type Loaded = { imported: Imported<CustomBase>; bytes: ArrayBuffer; fileName: string; format: 'stl' | 'glb' };
@@ -103,7 +104,7 @@ function Preview({ loaded, color, orient, face, plain, dressed, ink, finish, pri
   );
 }
 
-export function ImportDie({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function AssistenteDeImportacao({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { customs, sessionOnly } = useMeusDados(), selected = useSelecao();
   const [step, setStep] = useState<Step>('file');
   const [loaded, setLoaded] = useState<Loaded | null>(null);
@@ -130,7 +131,7 @@ export function ImportDie({ open, onClose }: { open: boolean; onClose: () => voi
   const textured = !!imp && loaded.format === 'glb' && hasTexture(imp.object); // a GLB with its own texture: dark ink only
   const dressed = step === 'save';
   // The colour the engraving will wear, worked out as `save` does.
-  const inkColor = imp ? inkColorOf({ printed, ink: textured && ink !== 'nenhuma' ? 'escura' : ink }, loaded.format === 'stl' ? color : GEM[imp.base === 'livre' ? 'd20' : imp.base]) : null;
+  const inkColor = imp ? inkColorOf({ printed, ink: tintaPermitida(ink, textured) }, loaded.format === 'stl' ? color : GEM[imp.base === 'livre' ? 'd20' : imp.base]) : null;
   const [bigOnly, setBigOnly] = useState<boolean | null>(null); // shard: only the big faces count as a result? (null = not asked yet)
   // The solid as it will be read: with size layers and the player's answer, only the big faces are results.
   const asked = useMemo(() => {
@@ -267,13 +268,10 @@ export function ImportDie({ open, onClose }: { open: boolean; onClose: () => voi
       order.forEach((f, rank) => { byArea[f] = rank + 1; });
       poly = renumbered(poly, { values: byArea });
     }
-    const die: CustomDie = {
-      version: 1, id: crypto.randomUUID(), createdAt: Date.now(), name: trimmed, slug, base: imp.base,
-      omens: imp.base === 'd20' && omens, // a free-form die never raises an omen
-      file: { format: loaded.format, name: loaded.fileName, bytes: loaded.bytes },
-      fit: imp.fit, poly, printed, color: loaded.format === 'stl' ? color : null,
-      ...(printed ? { ink: textured && ink !== 'nenhuma' ? 'escura' as const : ink } : {}), ...(loaded.format === 'stl' ? { finish: surface } : {}),
-    };
+    const die = montarDado({
+      id: crypto.randomUUID(), createdAt: Date.now(), nome: trimmed, apelido: slug, imp,
+      arquivo: { format: loaded.format, name: loaded.fileName, bytes: loaded.bytes }, printed, omens, color, ink, surface, textured, poly,
+    });
     setBusy(true);
     const failure = await salvar(die);
     setBusy(false);

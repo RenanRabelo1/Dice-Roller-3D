@@ -2,8 +2,10 @@ import { describe, it, expect } from 'vitest';
 import { Quaternion, Vector3 } from 'three';
 import { readUp, toResults } from '../src/modules/dados/index.ts';
 import type { Quat } from '../src/shared/math';
-import { detectFree, idealSolid, renumbered, withReadable } from '../src/dice/importer';
+import { carregarImportador } from '../src/modules/meus-dados/index.ts';
 import { asFile, freeDieOf, prismTriangles, shardTriangles } from './helpers/models';
+
+const { detectFree, idealSolid, renumbered, withReadable } = await carregarImportador();
 
 // The part of the reading tests that needs the importer (free-form solids); the rest lives in src/modules/dados/tests/read.test.ts.
 

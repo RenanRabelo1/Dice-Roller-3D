@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { BoxGeometry, IcosahedronGeometry } from 'three';
-import { askOrder, checkValues, detectFree, detectPlanes, idealSolid, ImportError, importModel, inkOf, LIMITS, looksNumbered, readModel, renumbered, suggestOpposite, tierOf, unevenOf, withReadable } from '../src/dice/importer';
-import { inkTriangles, LIMITES_DO_MODELO_SALVO, polyhedron, RADIUS, type StdBase } from '../src/modules/dados/index';
-import type { Vec3 } from '../src/shared/math';
-import { asFile, glb, hullTriangles, modelTriangles, planesSolid, prismTriangles, shardTriangles, stl, triacontahedronNormals } from './helpers/models';
+import { askOrder, checkValues, detectFree, detectPlanes, idealSolid, ImportError, importModel, inkOf, LIMITS, looksNumbered, readModel, renumbered, suggestOpposite, tierOf, unevenOf, withReadable } from '../domain/importador.ts';
+import { inkTriangles, LIMITES_DO_MODELO_SALVO, polyhedron, RADIUS, type StdBase } from '../../dados/index.ts';
+import { SIDES } from '../../regras/index.ts';
+import type { Vec3 } from '../../../shared/math.ts';
+import { asFile, glb, hullTriangles, modelTriangles, planesSolid, prismTriangles, shardTriangles, stl, triacontahedronNormals } from '../../../../tests/helpers/models.ts';
 
 const BASES: StdBase[] = ['d4', 'd6', 'd8', 'd10', 'd12', 'd20'];
-const FACES = { d4: 4, d6: 6, d8: 8, d10: 10, d12: 12, d20: 20 };
 const dot = (a: number[], b: number[]) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 const soup = (g: BoxGeometry | IcosahedronGeometry, scale = 1) => {
   const n = g.index ? g.toNonIndexed() : g;
@@ -21,7 +21,7 @@ describe.each(BASES)('importing a %s', (base) => {
     });
     it('rebuilds the solid at the stock size, centred, with the right faces', () => {
       const { poly, fit } = idealSolid(base, detectPlanes(positions).planes);
-      expect(poly.faces).toHaveLength(FACES[base]);
+      expect(poly.faces).toHaveLength(SIDES[base]);
       expect(Math.max(...poly.points.map((p) => Math.hypot(...p)))).toBeCloseTo(RADIUS[base], 4);
       expect(poly.points.reduce((s, p) => s + p[0], 0) / poly.points.length).toBeCloseTo(0, 4); // centred
       expect(fit.scale).toBeGreaterThan(0);
@@ -115,7 +115,7 @@ describe('ink mask per triangle', () => {
   for (const base of BASES) it(`${base}: marks only the walls of the engraved numerals`, () => {
     const engraved = modelTriangles(polyhedron(base), { engrave: 0.04 });
     const mask = inkTriangles(engraved, solidOf(engraved, base));
-    const pits = FACES[base] * 12; // a hexagonal pit per face, 12 wall triangles each (written first)
+    const pits = SIDES[base] * 12; // a hexagonal pit per face, 12 wall triangles each (written first)
     expect(mask).toHaveLength(engraved.length / 9);
     expect(Array.from(mask.slice(0, pits)).every((m) => m === 1)).toBe(true);
     expect(Array.from(mask.slice(pits)).every((m) => m === 0)).toBe(true);

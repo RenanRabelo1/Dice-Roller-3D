@@ -1,7 +1,9 @@
 import { test, expect, type Page } from '@playwright/test';
 import { polyhedron } from '../src/modules/dados/index';
-import { detectFree, idealSolid } from '../src/dice/importer';
+import { carregarImportador } from '../src/modules/meus-dados/index';
 import { asFile, glb, modelTriangles, prismTriangles, shardTriangles, stl, subdivided } from '../tests/helpers/models';
+
+const { detectFree, idealSolid } = await carregarImportador();
 
 // Dice models made from the app's own solids (see tests/helpers/models.ts), chamfered and off-centre like a slicer export.
 const file = (name: string, buffer: ArrayBuffer, mimeType = 'application/octet-stream') => ({ name, mimeType, buffer: Buffer.from(buffer) });

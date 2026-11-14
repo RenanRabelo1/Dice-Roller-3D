@@ -11,7 +11,7 @@ describe('leitor de imports (swc)', () => {
   it.each([
     ['import estático', 'src/app/Cena.tsx', 'src/physics/apply.ts', 'import', false],
     ['import type', 'src/modules/dados/domain/leitura.ts', 'src/shared/math.ts', 'import', true],
-    ['import() dinâmico', 'src/ui/Controls.tsx', 'src/ui/ImportDie.tsx', 'dinamico', false],
+    ['import() dinâmico', 'src/modules/meus-dados/cena.ts', 'src/modules/meus-dados/ui/AssistenteDeImportacao.tsx', 'dinamico', false],
     ['worker com new URL(..., import.meta.url)', 'src/app/Cena.tsx', 'src/physics/presim.worker.ts', 'url', false],
   ] as const)('enxerga %s: %s → %s', (_kind, de, para, tipo, soTipo) => {
     const a = aresta(de, para);

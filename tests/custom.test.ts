@@ -8,7 +8,9 @@ import { omenKinds } from '../src/dice/omenTest';
 import { omenOf } from '../src/modules/regras/index.ts';
 import { customDieOf, freeDieOf, prismTriangles } from './helpers/models';
 import { simulate } from './helpers/sim';
-import { checkFreeValue, checkFreeValues } from '../src/dice/importer';
+import { carregarImportador } from '../src/modules/meus-dados/index.ts';
+
+const { checkFreeValue, checkFreeValues } = await carregarImportador();
 
 const skull = () => customDieOf('d20', 'Caveira', 'caveira');
 afterEach(() => { for (const id of ['caveira', 'cav', 'osso']) unregisterCustom(customKind(`test-${id}`)); });

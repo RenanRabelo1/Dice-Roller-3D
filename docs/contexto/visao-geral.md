@@ -47,9 +47,8 @@ src/
   modules/historico/       envia cada resultado à API (só com VITE_API_URL)        → server/src/modules/historico/CLAUDE.md
   modules/dados/           sólidos, catálogo (registro dos importados), leitura, símbolos, tinta, aparência; `index.ts` puro, `cena.ts` com componentes e hooks  → dados.md
   modules/selecao/         a mão (store vanilla), notação e apelido, chat e botões de dado; `index.ts` puro, `cena.ts` com hook e componentes  → modules/selecao/CLAUDE.md
-  modules/meus-dados/      os dados do jogador: lista e `sessionOnly` (store vanilla), gravação (`repository.ts`, store `customDice`); `cena.ts` com `useMeusDados`  → dados.md
+  modules/meus-dados/      os dados do jogador: lista e `sessionOnly` (store vanilla), gravação (`repository.ts`, store `customDice`), importador (`domain/importador.ts`, .stl/.glb → poliedro, sob demanda por `carregarImportador`), `montarDado`; `cena.ts` com `useMeusDados`, `InkChoice` e o `AssistenteDeImportacao` (lazy)  → dados.md
   dice/                    o resto do legado dos dados (sem React)                  → dados.md
-    importer.ts              .stl/.glb → poliedro (detecção, sólido ideal, calibração)
     notation.ts              texto do painel (`resultText`); a notação está em `modules/selecao`
     omen.ts                  regra de crítico/falha e duração dos presságios
   throw/                   lógica pura do arremesso                                 → arremesso.md
@@ -68,7 +67,7 @@ src/
     table*.ts, Backdrop.tsx  mesa e fundo personalizados, .glb                      → mesa.md
     showcase.ts, highlight.ts poses e linha do tempo do "voo até a câmera"         → apresentacao.md
     Omens.tsx, Kraken.ts, krakenMotion.ts, Fire.ts, fireMotion.ts  presságios 3D   → apresentacao.md
-  ui/                      HTML: Controls (cabeçalho com os componentes de selecao, Meus dados, painel), OmenOverlay, ImportDie (assistente, carregado sob demanda),
+  ui/                      HTML: Controls (cabeçalho com os componentes de selecao, Meus dados, painel), OmenOverlay,
                            TablePanel (mesa e fundo)
 tests/                     Vitest (unidades puras + física Node); helpers/sim.ts
 server/                    API do histórico (Fastify + MongoDB; usa `src/modules/regras` pelo `index.ts`, roda em Node com TS nativo)
