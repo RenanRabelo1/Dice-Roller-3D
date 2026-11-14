@@ -52,6 +52,13 @@ describe('as regras disparam (fixtures/modulos)', () => {
   it('módulo importando a casca', () => {
     expect(pares('semCasca')).toEqual(['src/modules/a/casca.ts → src/App.tsx']);
   });
+  it('módulo importando o legado e a casca (src/shared e outro módulo pela porta passam)', () => {
+    expect(pares('moduloSemLegado')).toEqual([
+      'src/modules/a/casca.ts → src/App.tsx',
+      'src/modules/a/legado.ts → src/dice/outro.ts',
+      'src/modules/regras/fora.ts → src/dice/kinds.ts',
+    ]);
+  });
   it('regras importando three e algo fora do próprio módulo', () => {
     expect(REGRAS.regrasPuras(fixture).map((v) => `${v.regra}: ${v.de} → ${v.para}`).sort()).toEqual([
       'regras importa algo fora do próprio módulo: src/modules/regras/fora.ts → src/dice/kinds.ts',

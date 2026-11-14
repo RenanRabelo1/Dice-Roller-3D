@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { SYMBOLS, symbolGeometry } from '../src/dice/symbols';
+import { symbolGeometry } from '../index.ts';
+import { SYMBOLS } from '../domain/simbolos.ts';
 
 describe.each(SYMBOLS)('%s', (name) => {
   const g = symbolGeometry(name);

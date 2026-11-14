@@ -1,4 +1,5 @@
 import type { Vec3 } from '../shared/math';
+import { RAIO_MAXIMO } from '../modules/dados/index';
 
 export const STEP = 1 / 60;
 export const GRAVITY: Vec3 = [0, -40, 0];
@@ -19,7 +20,7 @@ export const SPIN = { min: 10, max: 25 };
 // Stopped = every body under `speed` (units/s) and `spin` (rad/s) for `calmSteps` steps; hard cap at `timeoutSteps`.
 export const SETTLE = { timeoutSteps: 240, calmSteps: 12, speed: 0.08, spin: 0.15 };
 export const HAND = { y: 3, z: 3, spacing: 1.9, cols: 5, pull: 0.6 };
-export const MAX_RADIUS = 0.9;
+export const MAX_RADIUS = RAIO_MAXIMO; // ponte até a extração de arremesso
 
 export interface Box {
   kind: 'floor' | 'wall' | 'lid';

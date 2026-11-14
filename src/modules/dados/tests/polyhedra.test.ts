@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { polyhedron, sortDice, RADIUS } from '../src/dice/polyhedra';
-import { KINDS, type Shape, type BuiltinKind } from '../src/modules/regras/index.ts';
-import { MAX_RADIUS } from '../src/physics/world';
+import { polyhedron, sortDice, RADIUS, RAIO_MAXIMO } from '../index.ts';
+import { KINDS, type Shape, type BuiltinKind } from '../../regras/index.ts';
 
 const SIDES: Record<Exclude<Shape, 'livre'>, number> = { d4: 4, d6: 6, d8: 8, d10: 10, d12: 12, d20: 20, d100: 100, coin: 2 };
 const SUM: Partial<Record<Shape, number>> = { d6: 7, d8: 9, d10: 9, d12: 13, d20: 21 };
@@ -55,7 +54,7 @@ describe('labels', () => {
     const at = (n: number[]) => polyhedron('d6').faces.find((f) => dot(f.normal, n) > 0.9999)!.value;
     expect([at([0, 1, 0]), at([0, -1, 0]), at([0, 0, -1]), at([0, 0, 1]), at([1, 0, 0]), at([-1, 0, 0])]).toEqual([1, 6, 2, 5, 3, 4]);
   });
-  it('RADIUS and MAX_RADIUS agree', () => expect(Math.max(...Object.values(RADIUS))).toBe(MAX_RADIUS));
+  it('RADIUS and RAIO_MAXIMO agree', () => expect(Math.max(...Object.values(RADIUS))).toBe(RAIO_MAXIMO));
   it('sortDice keeps a mixed selection in d4-d100 order', () => {
     expect(sortDice(['d100', 'd12', 'd4', 'd12', 'd10'])).toEqual(['d4', 'd10', 'd12', 'd12', 'd100']);
   });

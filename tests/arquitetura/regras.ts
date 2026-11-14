@@ -105,6 +105,14 @@ export const portaUnica = (g: Grafo) => internas(g).filter((a) => {
 export const semCasca = (g: Grafo) => internas(g).filter((a) => moduloDe(a.de) && ehCasca(a.para))
   .map(violacao('módulo importa a casca', 'regra 1 do guia; ADR 0006'));
 
+/** A module file imports, inside `src/`, only its own module, another module (its door: see `portaUnica`) or
+ * `src/shared/**`. Legacy (`src/dice`, `scene`, `physics`, `throw`, `ui`, `api`, `store.ts`, `testHook`…) and shell fail.
+ * Packages and the server (`fronteiraDoServidor`) are outside `src/`, so not this rule's. */
+export const moduloSemLegado = (g: Grafo) => internas(g).filter((a) => {
+  const m = moduloDe(a.de);
+  return !!m && dentro('src', a.para) && !moduloDe(a.para) && !dentro('src/shared', a.para);
+}).map(violacao('módulo extraído importa arquivo do legado ou da casca', 'plano-refatoracao.md §3, "Convivência com o legado"; ADR 0006'));
+
 const ehProibidoEmRegras = (p: string) => PACOTES_PROIBIDOS_EM_REGRAS.some((x) => x.endsWith('/') ? p.startsWith(x) : p === x || p.startsWith(`${x}/`));
 
 /** `src/modules/regras/**` imports nothing outside itself: no package, no other file (ADR 0002). */
@@ -143,4 +151,4 @@ const podeImportarMongodb = (f: string) => /^server\/src\/modules\/[^/]+\/reposi
 export const mongodbSoNoRepositorio = (g: Grafo) => g.arestas.filter((a) => a.externo && ehMongodb(a.para) && !podeImportarMongodb(a.de))
   .map(violacao('mongodb importado fora de repository.ts e de server/src/shared/db.ts', 'ADR 0006'));
 
-export const REGRAS = { sharedIsolado, portaUnica, semCasca, regrasPuras, fronteiraDoServidor, rotasDoServidor, mongodbSoNoRepositorio };
+export const REGRAS = { sharedIsolado, portaUnica, semCasca, moduloSemLegado, regrasPuras, fronteiraDoServidor, rotasDoServidor, mongodbSoNoRepositorio };

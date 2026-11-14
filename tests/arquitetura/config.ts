@@ -12,11 +12,6 @@ export interface CicloConhecido { nivel: Nivel; membros: string[]; motivo: strin
 
 export const CICLOS_CONHECIDOS: CicloConhecido[] = [
   {
-    nivel: 'arquivo',
-    membros: ['src/dice/custom.ts', 'src/dice/polyhedra.ts'],
-    motivo: 'mapa-modulos.md, "Ciclos de hoje", linha "arquivos custom.ts ↔ polyhedra.ts": polyhedron(kind) resolve importados pelo registro. Some na extração de dados (plano-refatoracao.md §8).',
-  },
-  {
     nivel: 'pasta',
     membros: ['src/physics', 'src/throw'],
     motivo: 'mapa-modulos.md, "Ciclos de hoje", linha "pastas dice ↔ physics ↔ throw" (o lado dice saiu na F-3): TRAY/LAUNCH/SETTLE/HAND moram em physics/world.ts, que o throw/ lê, e physics/apply.ts lê throw/. Some quando throw/ + physics/ virarem o módulo arremesso (plano-refatoracao.md §8).',
