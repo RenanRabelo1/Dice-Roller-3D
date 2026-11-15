@@ -24,6 +24,9 @@ export const store = createStore<EstadoDoPresagio>((set) => ({
 export const presagio = (): EstadoDoPresagio => store.getState();
 // The actions never change, so they can be taken once.
 export const { setOmenDone, rigOmen, setOmenTest } = store.getState();
+// Back to the initial state (the tests, and the shell if it ever needs it). Named apart from arremesso's `reiniciar`,
+// since whoever resets both imports the two.
+export const reiniciarPresagio = (): void => store.setState(store.getInitialState(), true);
 
 // The omen of this throw is on screen: it plays only while the dice lie settled, so picking them up ends it
 // (and the result shows at once).

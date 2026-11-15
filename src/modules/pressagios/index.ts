@@ -9,7 +9,7 @@ import type { PresagioInspecionado } from './contracts.ts';
 import { presagio } from './store.ts';
 
 export type { EstadoDoPresagio, MovimentoNoPresagio, PlanoDoPresagio, PresagioInspecionado } from './contracts.ts';
-export { presagio, presagioTocando, rigOmen, setOmenDone, setOmenTest } from './store.ts';
+export { presagio, presagioTocando, reiniciarPresagio, rigOmen, setOmenDone, setOmenTest } from './store.ts';
 export { DUALITY_HIT, isD20, OMEN_MS, omenMs } from './domain/omen.ts';
 export { planoDoPresagio } from './domain/plano.ts';
 export { indicesComPercurso, movimentoNoPresagio } from './domain/percurso.ts';
