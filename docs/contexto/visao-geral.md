@@ -6,7 +6,7 @@ Rolador de dados 3D no navegador. O jogador escolhe dados (botões ou chat com n
 
 | Peça | Versão | Papel |
 |---|---|---|
-| React + react-dom | 19 | UI HTML (`src/ui/`) e casca |
+| React + react-dom | 19 | UI HTML (componentes dos módulos, compostos pelo `Painel` da casca) e casca |
 | three | 0.187 | 3D |
 | @react-three/fiber / drei | 9 / 10 | cena declarativa, `Environment`, `PerformanceMonitor` |
 | @react-three/rapier | 2.2 | física na cena (Rapier 0.19.2 por baixo) |
@@ -36,9 +36,9 @@ Gate de entrega usado no projeto: build → lint → test → e2e, todos verdes.
 ```
 src/
   shared/db.ts             abre o IndexedDB `dice-roller` v2; cada dono declara a sua store (`defineStore`)
-  main.tsx, App.tsx        casca: <Controls/> + <Canvas><Cena/></Canvas> + <OverlayDoPresagio/> (de `pressagios`)
+  main.tsx, App.tsx        casca: <Painel/> + <Canvas><Cena/></Canvas> + <OverlayDoPresagio/> (de `pressagios`)
   shared/plataforma/       falha registrada (`registrarFalha`), `Guard`, `Failure`, sonda WebGL, renderizador por software, movimento reduzido (`movimentoReduzido`, evento de mudança)  → armadilhas.md
-  app/                     casca: a cena e o window.__dice
+  app/                     casca: a cena, o window.__dice e o Painel (`app/Painel.tsx`: cabeçalho com os componentes de selecao, Meus dados e o painel da mesa; rodapé com o do arremesso e o painel do resultado, da vitrine)
     Cena.tsx                 raiz da cena (compõe os componentes dos módulos), câmera, DPR, test hook
     testHook.ts              window.__dice (só em mode=test)                        → testes.md
   modules/regras/          regras do jogo, puras, compartilhadas com server/        → modules/regras/CLAUDE.md
@@ -59,7 +59,6 @@ src/
     domain/vies.ts           `plays`: se um resultado toca o presságio do botão de teste
   modules/pressagios/      presságios: o estado (store vanilla, `presagio()`, `presagioTocando()`, decidido em `resultadoPublicado`), a duração (`domain/omen.ts`), os botões de teste (`domain/omenTest.ts`) e o movimento do kraken, da tempestade e do fogo (`domain/krakenMotion.ts`, `domain/fireMotion.ts`), que efeito em que dado (`domain/plano.ts`) e o percurso do d100 (`domain/percurso.ts`); `cena.ts` com `usePresagio`, `usePresagioTocando`, `PresagiosNaCena` e `QuebraDaMesa` (em `scene/`, com `Kraken.ts` e `Fire.ts`), `OverlayDoPresagio` (com `ui/presagios.css`) e `BotoesDeTeste` (em `ui/`); `inspecao` para o test hook  → src/modules/pressagios/CLAUDE.md
   modules/vitrine/         vitrine: poses do voo (`domain/showcase.ts`), destaque (`domain/highlight.ts`), gravação acesa (`domain/inkGlow.ts`), texto do painel (`domain/painel.ts`, `resultText`), o estado `showcased` (store vanilla, `vitrine()`, `vitrineConcluida()`), `inspecao` para o test hook; `cena.ts` com `useVitrine`, `Vitrine` (a cena em `settled`: voo, números, gravação acesa; em `scene/`) e `PainelDoResultado`  → src/modules/vitrine/CLAUDE.md
-  ui/                      HTML: Controls (cabeçalho com os componentes de selecao, Meus dados e o painel da mesa; rodapé com o do arremesso e o painel do resultado, da vitrine)
 tests/                     Vitest (unidades puras + física Node); helpers/sim.ts
 server/                    API do histórico (Fastify + MongoDB; usa `src/modules/regras` pelo `index.ts`, roda em Node com TS nativo)
 e2e/                       Playwright; usa window.__dice

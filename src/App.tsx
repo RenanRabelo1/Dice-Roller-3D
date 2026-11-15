@@ -1,7 +1,7 @@
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Cena } from './app/Cena';
-import { Controls } from './ui/Controls';
+import { Painel } from './app/Painel';
 import { BotoesDeTeste, OverlayDoPresagio } from './modules/pressagios/cena.ts';
 import { Failure, Guard, hasWebGL, observarPreferenciaDoSistema, registrarFalha, useFalha } from './shared/plataforma';
 import { carregar as carregarMesa, warmImageDecoder } from './modules/mesa/index.ts';
@@ -20,7 +20,7 @@ export default function App() {
   useEffect(() => iniciarHistorico(), []);
   return (
     <main className="app">
-    <Controls />
+    <Painel />
     <div ref={gameArea} className="game-area" tabIndex={0} aria-label="Área de arremesso">
       <FundoCss />
       {!error && (

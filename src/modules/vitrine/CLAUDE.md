@@ -19,7 +19,7 @@ Mostrar o resultado depois de `settled`. Os dados voam até a frente da câmera 
 ## Expõe
 - `index.ts`: `vitrine()` (o `showcased` da spec é `vitrine().showcased`), `vitrineConcluida(throwId)` (a casca usa para o DPR e o panorama), `setShowcased`; `showcasePoses`, `CAPTION`, `highlightAt`, `HL_SIZE`, `SHOW`, `glowMesh`, `upInk`, `UP_INK`, `resultText`; `inspecao(cena)` → `{ highlights(), inkGlow(i) }` (os campos do `window.__dice`).
 - Tipos (`contracts.ts`): `EstadoDaVitrine`, `TextoDoPainel`, `VitrineInspecionada`, `DestaqueInspecionado`, `BrilhoInspecionado`.
-- `cena.ts`: `useVitrine(sel)`; `<Vitrine/>` (a casca monta dentro do `<Physics>`, logo depois de `<MaoDoArremesso/>`); `<PainelDoResultado/>` (o `ui/Controls.tsx` monta em `.feedback`).
+- `cena.ts`: `useVitrine(sel)`; `<Vitrine/>` (a casca monta dentro do `<Physics>`, logo depois de `<MaoDoArremesso/>`); `<PainelDoResultado/>` (o `Painel` da casca, `src/app/Painel.tsx`, monta em `.feedback`).
 - Os nomes `result-highlights` (o grupo dos números) e `ink-glow-i` (o brilho) existem só aqui; de fora, use `inspecao`.
 
 ## Consome

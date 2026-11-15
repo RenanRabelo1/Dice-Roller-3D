@@ -2,7 +2,7 @@
 
 Rolador de dados 3D (React 19 + three/R3F + Rapier + zustand, Vite). A UI é em pt-BR. O resultado sai de uma pré-simulação física feita no arremesso e depois é reproduzido na tela. O jogo funciona sem rede; a API de histórico (`server/`, Fastify + MongoDB) é opcional.
 
-**Em refatoração para monólito modular.** O método está em [docs/guia-orquestrador.md](docs/guia-orquestrador.md); as decisões, em [docs/adr/](docs/adr/); o andamento, em [docs/plano-refatoracao.md](docs/plano-refatoracao.md); as ordens de serviço, em [docs/ordens/](docs/ordens/). A fundação está pronta. Já foram extraídos `regras`, `historico` (cliente e servidor), `dados`, `selecao`, `meus-dados`, `arremesso`, `mesa`, `pressagios` e `vitrine` (os 9). Fora dos módulos ficam só a casca (`src/main.tsx`, `App.tsx`, `app/`), a infraestrutura (`shared/`) e `src/ui/Controls.tsx`, que compõe o painel; as fases 6 e 7 do plano tiram as últimas pontes.
+**Em refatoração para monólito modular.** O método está em [docs/guia-orquestrador.md](docs/guia-orquestrador.md); as decisões, em [docs/adr/](docs/adr/); o andamento, em [docs/plano-refatoracao.md](docs/plano-refatoracao.md); as ordens de serviço, em [docs/ordens/](docs/ordens/). A fundação está pronta. Já foram extraídos `regras`, `historico` (cliente e servidor), `dados`, `selecao`, `meus-dados`, `arremesso`, `mesa`, `pressagios` e `vitrine` (os 9). Fora dos módulos ficam só a casca (`src/main.tsx`, `App.tsx`, `app/`, onde `app/Painel.tsx` compõe o painel) e a infraestrutura (`shared/`); as fases 6 e 7 do plano tiram as últimas pontes.
 
 ## Regras (seção 2 do guia, com as adaptações dos ADRs)
 
@@ -21,10 +21,9 @@ As regras 1, 2 e 4 são verificadas por `tests/arquitetura/`, que roda no `npm t
 
 | Pasta | O que é |
 |---|---|
-| `src/main.tsx`, `src/App.tsx`, `src/app/` | A casca, raiz de composição. Não é módulo e nenhum módulo a importa. `app/Cena.tsx` monta a cena; `app/testHook.ts` monta o `window.__dice` (ADR 0008) |
+| `src/main.tsx`, `src/App.tsx`, `src/app/` | A casca, raiz de composição. Não é módulo e nenhum módulo a importa. `app/Cena.tsx` monta a cena; `app/Painel.tsx` compõe o painel (cabeçalho e rodapé) com os componentes dos módulos; `app/testHook.ts` monta o `window.__dice` (ADR 0008) |
 | `src/shared/` | Infraestrutura: `events.ts`, `math.ts`, `db.ts` (`defineStore`), `plataforma/` (falha, Guard, WebGL, software, movimento reduzido), `modelos3d/` (GLB/STL com limites por parâmetro) |
 | `src/modules/<m>/` | Os módulos, criados a cada extração: `CLAUDE.md`, `index.ts`, `contracts.ts`, `tests/` |
-| `src/ui/Controls.tsx` | O que resta do legado: só compõe os componentes dos módulos no painel |
 | `server/` | A API de histórico, um pacote à parte |
 | `tests/`, `e2e/` | A rede de segurança, os testes de arquitetura e os E2E do sistema inteiro |
 

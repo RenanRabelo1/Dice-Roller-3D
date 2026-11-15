@@ -1,11 +1,11 @@
-import { BarraDeForca, DicaDaFase, ModoDeRolagem, useArremesso } from '../modules/arremesso/cena';
-import { PainelDoResultado } from '../modules/vitrine/cena';
-import { BotoesDeDados, Chat, ResumoDaMao } from '../modules/selecao/cena';
+import { BarraDeForca, DicaDaFase, ModoDeRolagem, useArremesso } from '../modules/arremesso/cena.ts';
+import { PainelDoResultado } from '../modules/vitrine/cena.ts';
+import { BotoesDeDados, Chat, ResumoDaMao } from '../modules/selecao/cena.ts';
 // Importacao mounts the wizard on demand: the importer (and the model loaders) only load when the player opens it.
-import { Importacao, MeusDados } from '../modules/meus-dados/cena';
-import { PainelDaMesa } from '../modules/mesa/cena';
+import { Importacao, MeusDados } from '../modules/meus-dados/cena.ts';
+import { PainelDaMesa } from '../modules/mesa/cena.ts';
 
-export function Controls() {
+export function Painel() {
   const phase = useArremesso((s) => s.gesture.phase);
   return (
     <>

@@ -27,7 +27,7 @@ export interface DiceHook {
   previewSurface(index: number, position: Vec3, quaternion: Quat): void;
 }
 
-// For now the Cena installs the whole hook; building it from each module's inspection (ADR 0003) comes with the extractions.
+// The shell (app/Cena.tsx) builds the hook from each module's `inspecao` (ADR 0003, ADR 0008) and installs it here.
 export function installTestHook(api: DiceHook): void {
   if (import.meta.env.MODE === 'test') {
     (window as unknown as { __dice: DiceHook }).__dice = api;

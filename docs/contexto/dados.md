@@ -1,6 +1,6 @@
 # Dados: tipos, geometria, numeração, leitura, notação
 
-Cobre o módulo `src/modules/dados/` (sólidos, catálogo, leitura, símbolos, tinta e aparência: o puro sai por `index.ts`, componentes e hooks por `cena.ts`), o que resta em `src/dice/*` (texto do resultado, presságios), `modules/arremesso/scene/CorpoDoDado.tsx` (corpo físico) e `ui/Controls.tsx` (painel). A notação, o chat e a mão estão em `src/modules/selecao/`; o grupo "Meus dados", o assistente e a gravação dos importados, em `src/modules/meus-dados/` (ver o `CLAUDE.md` de cada um). O domínio é puro (sem React) e testado em Node.
+Cobre o módulo `src/modules/dados/` (sólidos, catálogo, leitura, símbolos, tinta e aparência: o puro sai por `index.ts`, componentes e hooks por `cena.ts`), o que resta em `src/dice/*` (texto do resultado, presságios), `modules/arremesso/scene/CorpoDoDado.tsx` (corpo físico) e o `Painel` da casca (`src/app/Painel.tsx`). A notação, o chat e a mão estão em `src/modules/selecao/`; o grupo "Meus dados", o assistente e a gravação dos importados, em `src/modules/meus-dados/` (ver o `CLAUDE.md` de cada um). O domínio é puro (sem React) e testado em Node.
 
 ## Tipos (`modules/regras`)
 
@@ -66,7 +66,7 @@ Face vazia ainda tem um `Label` (texto `''`) para o showcase achar a face sortea
 
 ## Notação e chat: ver [src/modules/selecao/CLAUDE.md](../../src/modules/selecao/CLAUDE.md)
 
-Painel (`modules/vitrine/domain/painel.ts`, pelo `index` da `vitrine`; o `<output data-testid="result">` é o `<PainelDoResultado/>` da `vitrine`): `resultText(dice, results)` → `{ total, detail }`: total soma dados (moedas nunca somam; só moedas → "Cara", "2 caras, 1 coroa"). `nomeDoTipo(kind)` (de `dados`, `domain/aparencia.ts`) → nome de exibição. `Controls.tsx` monta o cabeçalho com os componentes de `selecao`, o `<MeusDados/>` e o `<Importacao/>` de `meus-dados` (os importados com `<BotaoDeDado kind/>`, tinta, 🗑 e **Importar dado**; o assistente sob demanda) e o painel `data-testid="result"` com as dicas por fase.
+Painel (`modules/vitrine/domain/painel.ts`, pelo `index` da `vitrine`; o `<output data-testid="result">` é o `<PainelDoResultado/>` da `vitrine`): `resultText(dice, results)` → `{ total, detail }`: total soma dados (moedas nunca somam; só moedas → "Cara", "2 caras, 1 coroa"). `nomeDoTipo(kind)` (de `dados`, `domain/aparencia.ts`) → nome de exibição. O `Painel` da casca (`src/app/Painel.tsx`) monta o cabeçalho com os componentes de `selecao`, o `<MeusDados/>` e o `<Importacao/>` de `meus-dados` (os importados com `<BotaoDeDado kind/>`, tinta, 🗑 e **Importar dado**; o assistente sob demanda) e o painel `data-testid="result"` com as dicas por fase.
 
 ## Dados importados (`modules/dados/domain/catalogo.ts`, `modules/meus-dados/`: `domain/importador.ts`, `domain/montagem.ts`, `ui/AssistenteDeImportacao.tsx`)
 

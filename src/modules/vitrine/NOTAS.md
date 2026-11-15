@@ -13,7 +13,7 @@ O detalhe que não cabe no [CLAUDE.md](CLAUDE.md). Leia só quando a ordem manda
 | `domain/inkGlow.ts` | `upInk`, `glowMesh`, `UP_INK`: a gravação acesa e o cache da geometria por `kind\|valor` |
 | `domain/painel.ts` | `resultText`: o texto do painel |
 | `scene/Vitrine.tsx` | a cena (era `src/scene/Hand.tsx`, só a parte `settled`; a mão do arremesso é a `MaoDoArremesso` de `arremesso`, montada logo antes) |
-| `ui/PainelDoResultado.tsx`, `ui/useVitrine.tsx` | o painel (`<output data-testid="result">`, montado pelo `ui/Controls.tsx`) e o hook |
+| `ui/PainelDoResultado.tsx`, `ui/useVitrine.tsx` | o painel (`<output data-testid="result">`, montado pelo `Painel` da casca, `src/app/Painel.tsx`) e o hook |
 
 ## Ordem em `settled`
 
