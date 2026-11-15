@@ -1,8 +1,7 @@
-// ponte até a fase 6: historico assina arremesso.resultadoPublicado
-// Lives in the shell because it joins the dados registry with the throw's results, which historico may not do (ADR 0003).
-import { customDie } from '../modules/dados/index.ts';
-import type { DieIn } from '../modules/historico/index.ts';
-import { isCustom, type DieKind } from '../modules/regras/index.ts';
+// The body of each die sent to the history API: the throw's kinds joined with its results, read through the dados door.
+import { customDie } from '../../dados/index.ts';
+import type { DieIn } from '../api.ts';
+import { isCustom, type DieKind } from '../../regras/index.ts';
 
 // An imported die also says which solid it is and whether it counts as a d20, so the server can check and score it.
 export const corpoDosDados = (dice: DieKind[], results: number[]): DieIn[] => dice.map((kind, i) => {

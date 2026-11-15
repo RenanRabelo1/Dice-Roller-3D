@@ -25,12 +25,18 @@ Guarda cada arremesso publicado num histórico no MongoDB, ligado a um jogador a
   - `historicoRoutes(app, { rolls })`: plugin Fastify com `POST /rolls` e `GET /rolls`. `rolls` é a coleção que `prepararColecao` devolve;
   - `prepararColecao(db) → Collection`: cria a coleção, o validador e o índice, e faz o `collMod`.
 - Servidor, `contracts.ts`: os tipos `RollIn`, `DieIn`, `Roll`, `RollPage`, `RollQuery` e os esquemas JSON das rotas (`ROLL_IN_SCHEMA`, `ROLL_QUERY_SCHEMA`, com o padrão `CUSTOM`). Sem `fastify` nem `mongodb`: o cliente importa os tipos com `import type` (ADR 0004).
-- Cliente, `index.ts`: `registrarArremesso({ dice: DieIn[], force }, api?)` e o tipo `DieIn`. Até a fase 6, a casca (`src/App.tsx`) assina o store e monta cada `DieIn` com `corpoDosDados` (`src/app/historico.ts`), que lê `base` e `omens` do registro legado de importados.
+- Cliente, `index.ts`:
+  - `iniciarHistorico(api?) → () => void`: assina `arremesso.resultadoPublicado` e, a cada resultado, chama `registrarArremesso` com o corpo de cada dado montado por `corpoDosDados` (`domain/corpo.ts`, interno). Não assina ao carregar: a casca (`src/App.tsx`) chama uma vez, depois dos módulos que assinam ao carregar (`pressagios`), e devolve o cancelamento ao React;
+  - `registrarArremesso({ dice: DieIn[], force }, api?)` e o tipo `DieIn`.
 - Eventos publicados: nenhum.
 
 ## Consome
 - Servidor: `regras`, só pelo `index.ts` dele (ADR 0002): `valoresValidos`, `total`, `tipoParaPresagio`, `omenOf`, `omenKind`, `isCustom`, `KINDS`, `CUSTOM_BASES`, `FREE_VALUES`, `MAX_DICE`.
-- Cliente: os tipos `RollIn` e `DieIn` do `contracts.ts` do servidor (`import type`). Depois da fase 6, `iniciarHistorico()` no lugar de `registrarArremesso`: assina `arremesso.resultadoPublicado` e monta cada `DieIn` com `dados.tipo(kind)`, que fornece `base` e `omens` do importado.
+- Cliente:
+  - os tipos `RollIn` e `DieIn` do `contracts.ts` do servidor (`import type`);
+  - `arremesso`: o evento `resultadoPublicado` (`throwId`, `dice`, `results`, `force`);
+  - `dados`: `customDie(kind)`, que fornece `base` e `omens` de um importado;
+  - `regras`: `isCustom`.
 
 ## Fora do escopo
 - Decidir o resultado ou o presságio que o jogador vê: `arremesso` e `pressagios`.

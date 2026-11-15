@@ -9,7 +9,7 @@ Os módulos seguem domínios de negócio, não as pastas de hoje. As decisões q
 | Módulo | Responsabilidade | Dono dos dados | Pode depender de | Estado |
 |---|---|---|---|---|
 | `regras` | As regras do jogo que o servidor também aplica: tipos de dado, faces válidas, limite de 10 dados, total (moeda não soma), crítico, falha e dualidade. Puro, sem estado (ADR 0002). | nenhum | — | concluído (OS-0014 a OS-0017) |
-| `historico` | Gravar cada arremesso publicado na API, com o jogador anônimo. Único módulo com metade no servidor (rotas, regra de gravação, coleção). | `localStorage['diceroller.player']`, coleção `rolls` | `regras`, `dados`, `arremesso` (evento) | concluído (OS-0018, OS-0019). Até a fase 6: servidor → `regras`; cliente → só `import type` do próprio `contracts.ts`, e o `dados` é lido pela casca (`app/historico.ts`) |
+| `historico` | Gravar cada arremesso publicado na API, com o jogador anônimo. Único módulo com metade no servidor (rotas, regra de gravação, coleção). | `localStorage['diceroller.player']`, coleção `rolls` | `regras`, `dados`, `arremesso` (evento) | concluído (OS-0018, OS-0019, OS-0045). Servidor → `regras`; cliente → `arremesso` (`resultadoPublicado`), `dados` (`customDie`), `regras` e `import type` do próprio `contracts.ts` |
 | `dados` | O dado como objeto: catálogo vivo dos tipos jogáveis (embutidos + importados registrados), sólidos, numeração, leitura da face, símbolos e aparência na cena (gema, tinta, numerais, modelo importado). | catálogo de tipos (registro em memória), caches de sólido, símbolo e modelo | `regras` | concluído (OS-0020 a OS-0023). Nomes em inglês mantidos (decisão da OS-0020); `dadoNaRaiz`/`gemaNaRaiz`/`definirOpacidade`/`definirSombra`/`sombraNaGema` desde a OS-0042 (`rotulos` é o `inspecao.rotulos`) |
 | `selecao` | Quais dados estão na mão: botões, chat com notação, nomes de exibição e regras de apelido. | `dice` (a seleção) | `regras`, `dados` | concluído (OS-0024 a OS-0026). Nomes da notação em inglês; a cópia `dice` do store legado é dos dados do arremesso |
 | `meus-dados` | Os dados que o jogador importa: assistente (arquivo, forma, calibração, tinta), salvar, editar tinta, excluir. Entrega cada dado salvo ao catálogo de `dados`. | IndexedDB `customDice`, a lista "Meus dados", o aviso de sessão e o estado do assistente | `regras`, `dados`, `selecao` | concluído (OS-0027 a OS-0029). O importador e o assistente só entram por `import()` |
@@ -95,7 +95,7 @@ Estado em 2026-11-13, depois da fundação até a OS-0010: os ciclos de import q
 | ~~pastas `scene ↔ ui`~~ — **desfeito** na OS-0008 (o `Guard` foi para `shared/plataforma`); resta `ui → scene` em sentido único (`TablePanel` importa a mesa) | — | A mesa vira módulo próprio, com o painel dentro |
 | `mesa ↔ presságio` (`Tray → trayBrokenAt`, `Omens → mesa().colors`) | a regra de quebra é executada pela mesa | `pressagios → mesa` em sentido único (`coresDaMesa`, `ocultarPiso`) |
 | latente `showcase ↔ presságio` (aparece ao partir `Hand.tsx`) | `krakenMotion` usa `Pose`/`easeOut` de `showcase`/`highlight`; `Hand` usa o caminho do d100 do kraken | `Pose`/`easeOut`/`span` vão para `shared/`; `vitrine → pressagios` (`movimentoDoDadoNoPresagio`), e a pose final do voo entra por parâmetro |
-| gatilho do histórico na casca (`App.tsx:22-25`) | a casca assina `resultadoPublicado` (desde a OS-0031) e chama `historico.registrarArremesso`, com o corpo de cada dado montado por `src/app/historico.ts` (ponte) | `historico` assina `resultadoPublicado` (fase 6) |
+| ~~gatilho do histórico na casca (`App.tsx:22-25`)~~ desfeito na OS-0045 | ~~a casca assina `resultadoPublicado` (desde a OS-0031) e chama `historico.registrarArremesso`, com o corpo de cada dado montado por `src/app/historico.ts` (ponte)~~ | ~~`historico` assina `resultadoPublicado` (fase 6)~~: `historico.iniciarHistorico()`, chamado uma vez pela casca |
 
 ## Fronteiras discutíveis (alternativa descartada e motivo)
 
@@ -111,7 +111,7 @@ Estado em 2026-11-13, depois da fundação até a OS-0010: os ciclos de import q
 Do que tem menos dependências para o que tem mais. Um módulo só começa quando o anterior foi aceito.
 
 1. `regras`: zero dependências. Tira o `omenD20s` e a duplicação do total, e muda o caminho que o servidor importa.
-2. `historico`: depende só de `regras` no servidor. No cliente, até o `arremesso` existir, a casca entrega o arremesso por função (`historico.registrarArremesso(...)`, OS-0019). A troca para o evento é uma ordem da fase 6.
+2. `historico`: depende só de `regras` no servidor. No cliente, até o `arremesso` existir, a casca entrega o arremesso por função (`historico.registrarArremesso(...)`, OS-0019). A troca para o evento foi feita na OS-0045 (`iniciarHistorico`).
 3. `dados`
 4. `selecao`
 5. `meus-dados`

@@ -3,12 +3,10 @@ import { Canvas } from '@react-three/fiber';
 import { Cena } from './app/Cena';
 import { Controls } from './ui/Controls';
 import { BotoesDeTeste, OverlayDoPresagio } from './modules/pressagios/cena.ts';
-import { resultadoPublicado } from './modules/arremesso/index.ts';
 import { Failure, Guard, hasWebGL, observarPreferenciaDoSistema, registrarFalha, useFalha } from './shared/plataforma';
 import { carregar as carregarMesa, warmImageDecoder } from './modules/mesa/index.ts';
 import { FundoCss } from './modules/mesa/cena.ts';
-import { registrarArremesso } from './modules/historico/index.ts';
-import { corpoDosDados } from './app/historico';
+import { iniciarHistorico } from './modules/historico/index.ts';
 import { carregar } from './modules/meus-dados/index.ts';
 
 export default function App() {
@@ -18,10 +16,8 @@ export default function App() {
   useEffect(() => { void carregar(); void carregarMesa(); warmImageDecoder(); }, []);
   useEffect(() => observarPreferenciaDoSistema(), []);
   // Every published result goes to the roll history (when the app has an API address; see src/modules/historico).
-  // ponte até a fase 6: historico assina arremesso.resultadoPublicado
-  useEffect(() => resultadoPublicado.subscribe(({ dice, results, force }) => {
-    registrarArremesso({ dice: corpoDosDados(dice, results), force });
-  }), []);
+  // Subscribed here, last, after the modules that subscribe on load (pressagios).
+  useEffect(() => iniciarHistorico(), []);
   return (
     <main className="app">
     <Controls />

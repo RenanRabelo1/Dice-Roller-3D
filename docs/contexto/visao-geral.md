@@ -38,12 +38,11 @@ src/
   shared/db.ts             abre o IndexedDB `dice-roller` v2; cada dono declara a sua store (`defineStore`)
   main.tsx, App.tsx        casca: <Controls/> + <Canvas><Cena/></Canvas> + <OverlayDoPresagio/> (de `pressagios`)
   shared/plataforma/       falha registrada (`registrarFalha`), `Guard`, `Failure`, sonda WebGL, renderizador por software, movimento reduzido (`movimentoReduzido`, evento de mudança)  → armadilhas.md
-  app/                     casca: a cena, o window.__dice e a ponte do histórico
+  app/                     casca: a cena e o window.__dice
     Cena.tsx                 raiz da cena (compõe os componentes dos módulos), câmera, DPR, test hook
     testHook.ts              window.__dice (só em mode=test)                        → testes.md
-    historico.ts             `corpoDosDados`: corpo de cada dado (importado com base/omens do registro)
   modules/regras/          regras do jogo, puras, compartilhadas com server/        → modules/regras/CLAUDE.md
-  modules/historico/       envia cada resultado à API (só com VITE_API_URL)        → server/src/modules/historico/CLAUDE.md
+  modules/historico/       assina o resultado publicado e envia cada um à API (só com VITE_API_URL)        → server/src/modules/historico/CLAUDE.md
   modules/dados/           sólidos, catálogo (registro dos importados), leitura, símbolos, tinta, aparência; `index.ts` puro, `cena.ts` com componentes e hooks  → dados.md
   modules/selecao/         a mão (store vanilla), notação e apelido, chat e botões de dado; `index.ts` puro, `cena.ts` com hook e componentes  → modules/selecao/CLAUDE.md
   modules/meus-dados/      os dados do jogador: lista e `sessionOnly` (store vanilla), gravação (`repository.ts`, store `customDice`), importador (`domain/importador.ts`, .stl/.glb → poliedro, sob demanda por `carregarImportador`), `montarDado`; `cena.ts` com `useMeusDados`, `InkChoice` e o `AssistenteDeImportacao` (lazy)  → dados.md

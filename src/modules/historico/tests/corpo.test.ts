@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { corpoDosDados } from '../src/app/historico';
-import { customKind, unregisterCustom } from '../src/modules/dados/index.ts';
-import { customDieOf, freeDieOf, prismTriangles } from './helpers/models';
+import { corpoDosDados } from '../domain/corpo.ts';
+import { customKind, unregisterCustom } from '../../dados/index.ts';
+import { customDieOf, freeDieOf, prismTriangles } from '../../../../tests/helpers/models.ts';
 
-// The shell builds each die's body from the legacy registry of imported dice (until phase 6).
+// historico builds each die's body from the dados catalog (customDie), since OS-0045.
 describe('the body of each die sent to the history API', () => {
   it('an imported die also says its solid and whether it counts as a d20, so the server can score it', () => {
     const kind = customKind(customDieOf('d20', 'Caveira', 'caveira').id);
