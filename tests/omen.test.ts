@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { OMEN_MS, omenMs, presagio, presagioTocando, reiniciarPresagio } from '../src/modules/pressagios/index.ts';
 import { arremesso, reiniciar, resultadoPublicado } from '../src/modules/arremesso/index.ts';
 import { definir } from '../src/modules/selecao/index.ts';
-import { definirMovimentoReduzido } from '../src/shared/plataforma';
+import { definirMovimentoReduzido } from '../src/shared/plataforma/index.ts';
 
 describe('omenMs', () => {
   it('omenMs: each show gets its time; the kraken is the longest; fire and storm together take the longer', () => {

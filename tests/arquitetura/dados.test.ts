@@ -2,8 +2,8 @@
 // donos-dos-dados block of the module map, and the proof that each rule fires on `fixtures/dados/`.
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { conferirDados, formatarDado, lerAcessos, lerAcessosDe, lerDonos } from './donos';
-import { CICLOS_CONHECIDOS, DADOS_LEGADO, MAPA_DE_DONOS, RAIZES_DADOS } from './config';
+import { conferirDados, formatarDado, lerAcessos, lerAcessosDe, lerDonos } from './donos.ts';
+import { CICLOS_CONHECIDOS, DADOS_LEGADO, MAPA_DE_DONOS, RAIZES_DADOS } from './config.ts';
 
 let real: ReturnType<typeof conferirDados> | undefined;
 const conferirReal = () => real ??= conferirDados(lerAcessos(RAIZES_DADOS), lerDonos(readFileSync(MAPA_DE_DONOS, 'utf8'), MAPA_DE_DONOS), DADOS_LEGADO);

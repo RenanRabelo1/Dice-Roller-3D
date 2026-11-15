@@ -1,6 +1,6 @@
 import { Euler, Quaternion, Vector3 } from 'three';
 import { ConvexHull } from 'three/examples/jsm/math/ConvexHull.js';
-import type { Vec3 } from '../../src/shared/math';
+import type { Vec3 } from '../../src/shared/math.ts';
 import { polyhedron, registerCustom, type CustomDie, type Polyhedron, type StdBase } from '../../src/modules/dados/index.ts';
 import { carregarImportador } from '../../src/modules/meus-dados/index.ts';
 

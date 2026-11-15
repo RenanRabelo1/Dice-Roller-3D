@@ -6,20 +6,20 @@ import { Group, Quaternion } from 'three';
 
 import {
   arremesso, envelopeDaMao, GRAVITY, inspecao as inspecaoDoArremesso, registroDeCorpos, STEP, TRAY,
-} from '../modules/arremesso/index';
-import { CorpoDoDado, LoopDoArremesso, MaoDoArremesso, useArremesso } from '../modules/arremesso/cena';
-import type { Vec3 } from '../shared/math';
-import { inspecao as inspecaoDaVitrine, vitrine, vitrineConcluida } from '../modules/vitrine/index';
-import { Vitrine } from '../modules/vitrine/cena';
-import { inspecao as inspecaoDoPresagio, presagio, rigOmen } from '../modules/pressagios/index';
-import { PresagiosNaCena, QuebraDaMesa } from '../modules/pressagios/cena';
-import { installTestHook } from './testHook';
-import { gemaNaRaiz, inspecao } from '../modules/dados/index';
-import { definir } from '../modules/selecao/index';
-import { inspecao as inspecaoDosImportados } from '../modules/meus-dados/index';
-import { inspecao as inspecaoDaMesa } from '../modules/mesa/index';
-import { AmbienteDaMesa, MesaNaCena } from '../modules/mesa/cena';
-import { Guard, falha, marcarRenderizadorPorSoftware, movimentoReduzido } from '../shared/plataforma';
+} from '../modules/arremesso/index.ts';
+import { CorpoDoDado, LoopDoArremesso, MaoDoArremesso, useArremesso } from '../modules/arremesso/cena.ts';
+import type { Vec3 } from '../shared/math.ts';
+import { inspecao as inspecaoDaVitrine, vitrine, vitrineConcluida } from '../modules/vitrine/index.ts';
+import { Vitrine } from '../modules/vitrine/cena.ts';
+import { inspecao as inspecaoDoPresagio, presagio, rigOmen } from '../modules/pressagios/index.ts';
+import { PresagiosNaCena, QuebraDaMesa } from '../modules/pressagios/cena.ts';
+import { installTestHook } from './testHook.ts';
+import { gemaNaRaiz, inspecao } from '../modules/dados/index.ts';
+import { definir } from '../modules/selecao/index.ts';
+import { inspecao as inspecaoDosImportados } from '../modules/meus-dados/index.ts';
+import { inspecao as inspecaoDaMesa } from '../modules/mesa/index.ts';
+import { AmbienteDaMesa, MesaNaCena } from '../modules/mesa/cena.ts';
+import { Guard, falha, marcarRenderizadorPorSoftware, movimentoReduzido } from '../shared/plataforma/index.ts';
 
 // The test-only surface preview checks numeral pixels, so it keeps the real resolution (no SwiftShader or adaptive DPR drop).
 const isPreview = () => import.meta.env.MODE === 'test' && new URLSearchParams(location.search).has('surface-preview');

@@ -1,8 +1,8 @@
 // Reader proof (ADR 0009): the four kinds of edge the rules rely on, against the real code,
 // plus the two fixture cases (broken import fails, non-code URL is ignored).
 import { describe, expect, it } from 'vitest';
-import { lerGrafo } from './leitor';
-import { RAIZES } from './config';
+import { lerGrafo } from './leitor.ts';
+import { RAIZES } from './config.ts';
 
 const grafo = lerGrafo(RAIZES);
 const aresta = (de: string, para: string) => grafo.arestas.find((a) => a.de === de && a.para === para);

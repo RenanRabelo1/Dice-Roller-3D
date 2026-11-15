@@ -1,9 +1,9 @@
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { Cena } from './app/Cena';
-import { Painel } from './app/Painel';
+import { Cena } from './app/Cena.tsx';
+import { Painel } from './app/Painel.tsx';
 import { BotoesDeTeste, OverlayDoPresagio } from './modules/pressagios/cena.ts';
-import { Failure, Guard, hasWebGL, observarPreferenciaDoSistema, registrarFalha, useFalha } from './shared/plataforma';
+import { Failure, Guard, hasWebGL, observarPreferenciaDoSistema, registrarFalha, useFalha } from './shared/plataforma/index.ts';
 import { carregar as carregarMesa, warmImageDecoder } from './modules/mesa/index.ts';
 import { FundoCss } from './modules/mesa/cena.ts';
 import { iniciarHistorico } from './modules/historico/index.ts';

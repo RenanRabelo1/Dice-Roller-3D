@@ -2,7 +2,7 @@
 
 Rolador de dados 3D (React 19 + three/R3F + Rapier + zustand, Vite). A UI é em pt-BR. O resultado sai de uma pré-simulação física feita no arremesso e depois é reproduzido na tela. O jogo funciona sem rede; a API de histórico (`server/`, Fastify + MongoDB) é opcional.
 
-**Em refatoração para monólito modular.** O método está em [docs/guia-orquestrador.md](docs/guia-orquestrador.md); as decisões, em [docs/adr/](docs/adr/); o andamento, em [docs/plano-refatoracao.md](docs/plano-refatoracao.md); as ordens de serviço, em [docs/ordens/](docs/ordens/). A fundação está pronta. Já foram extraídos `regras`, `historico` (cliente e servidor), `dados`, `selecao`, `meus-dados`, `arremesso`, `mesa`, `pressagios` e `vitrine` (os 9). Fora dos módulos ficam só a casca (`src/main.tsx`, `App.tsx`, `app/`, onde `app/Painel.tsx` compõe o painel) e a infraestrutura (`shared/`); as fases 6 e 7 do plano tiram as últimas pontes.
+**Monólito modular.** A refatoração terminou na OS-0050 (até a fase 7 do plano). O método está em [docs/guia-orquestrador.md](docs/guia-orquestrador.md); as decisões, em [docs/adr/](docs/adr/); o histórico, em [docs/plano-refatoracao.md](docs/plano-refatoracao.md) e nas ordens de serviço de [docs/ordens/](docs/ordens/). São 9 módulos: `regras`, `historico` (cliente e servidor), `dados`, `selecao`, `meus-dados`, `arremesso`, `mesa`, `pressagios` e `vitrine`. Fora deles ficam só a casca (`src/main.tsx`, `App.tsx`, `app/`, onde `app/Painel.tsx` compõe o painel) e a infraestrutura (`shared/`). Não há legado nem ponte provisória, e os testes de arquitetura não têm exceção. Demanda nova entra pelo fluxo da seção 8 do guia, no módulo dono.
 
 ## Regras (seção 2 do guia, com as adaptações dos ADRs)
 
@@ -31,7 +31,7 @@ Os módulos, com responsabilidade, dependências permitidas e estado, estão em 
 
 ## Leia só o que a tarefa pede
 
-Enquanto um módulo não é extraído, o contexto dele fica em `docs/contexto/`. Depois da extração, passa a ficar no `CLAUDE.md` do próprio módulo.
+O contexto de cada módulo fica no `CLAUDE.md` dele (e o detalhe, no `NOTAS.md`). Em `docs/contexto/` fica o que atravessa os módulos.
 
 | Tarefa | Ler |
 |---|---|

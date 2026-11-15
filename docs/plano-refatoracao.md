@@ -141,3 +141,5 @@ Cada uma deixa o sistema verde.
 ## 8. Ordem de execução
 
 RS-0 → RS-1 → RS-2 → RS-3 → RS-4 → F-1 … F-8 → reescrever o `CLAUDE.md` raiz → extrair `regras`, `historico`, `dados`, `selecao`, `meus-dados`, `arremesso`, `mesa`, `pressagios`, `vitrine` → desacoplamento (fase 6: remover as pontes) → limpeza (fase 7: código sem uso, exceções zeradas nos testes de arquitetura).
+
+**Andamento.** Concluído em 2026-11-14, na OS-0050. A fase 6 foi feita nas OS-0045 e OS-0046 e a fase 7 nas OS-0047 a OS-0050. Cada fase terminou com o E2E completo. O que ficou em aberto e pede decisão do usuário está em `docs/backlog.md`, seção 6.

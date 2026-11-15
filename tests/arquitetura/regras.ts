@@ -3,10 +3,10 @@
 import { readFileSync } from 'node:fs';
 import { relative, resolve } from 'node:path';
 import { parseSync } from '@swc/core';
-import { dentro, listar, posixDe, type Aresta, type Grafo } from './leitor';
+import { dentro, listar, posixDe, type Aresta, type Grafo } from './leitor.ts';
 import {
   PACOTES_PROIBIDOS_EM_REGRAS, REGRAS_TESTES_PODEM_IMPORTAR, SERVIDOR_PODE_IMPORTAR, type CicloConhecido, type Nivel,
-} from './config';
+} from './config.ts';
 
 export interface Violacao { regra: string; de: string; para: string; referencia: string }
 export const formatar = (v: Violacao) => `[${v.regra}] ${v.de} → ${v.para} (${v.referencia})`;

@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { Quaternion, Vector3 } from 'three';
 import { readUp, toResults } from '../src/modules/dados/index.ts';
-import type { Quat } from '../src/shared/math';
+import type { Quat } from '../src/shared/math.ts';
 import { carregarImportador } from '../src/modules/meus-dados/index.ts';
-import { asFile, freeDieOf, prismTriangles, shardTriangles } from './helpers/models';
+import { asFile, freeDieOf, prismTriangles, shardTriangles } from './helpers/models.ts';
 
 const { detectFree, idealSolid, renumbered, withReadable } = await carregarImportador();
 

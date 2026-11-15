@@ -1,9 +1,9 @@
 // Import and cycle rules (rules 1 and 4 of the guide, ADR 0006 part A, ADR 0009) on the real
 // code, and the proof that each rule fires on the fixture tree in `fixtures/modulos/`.
 import { describe, expect, it } from 'vitest';
-import { lerGrafo } from './leitor';
-import { CICLOS_CONHECIDOS, FORA_DOS_TESTES_DA_RAIZ, RAIZES, RAIZES_TESTES_DA_RAIZ } from './config';
-import { ciclos, conferirCiclos, formatar, REGRAS, storeCruNaPorta, testesDaRaizPelasPortas } from './regras';
+import { lerGrafo } from './leitor.ts';
+import { CICLOS_CONHECIDOS, FORA_DOS_TESTES_DA_RAIZ, RAIZES, RAIZES_TESTES_DA_RAIZ } from './config.ts';
+import { ciclos, conferirCiclos, formatar, REGRAS, storeCruNaPorta, testesDaRaizPelasPortas } from './regras.ts';
 
 const grafo = lerGrafo(RAIZES);
 const atuais = [...ciclos(grafo, 'arquivo'), ...ciclos(grafo, 'pasta')];

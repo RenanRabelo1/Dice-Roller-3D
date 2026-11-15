@@ -4,8 +4,8 @@
 import { readFileSync } from 'node:fs';
 import { relative, resolve } from 'node:path';
 import { parseSync } from '@swc/core';
-import { listar, posixDe, texto } from './leitor';
-import type { DadoLegado } from './config';
+import { listar, posixDe, texto } from './leitor.ts';
+import type { DadoLegado } from './config.ts';
 
 export interface Donos { indexedDB: Record<string, string>; localStorage: Record<string, string>; mongodb: Record<string, string> }
 const GRUPOS = ['indexedDB', 'localStorage', 'mongodb'] as const;

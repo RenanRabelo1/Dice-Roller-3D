@@ -1,7 +1,7 @@
-import type { DieKind, Omen, OmenKind } from '../modules/regras/index';
-import type { Falha } from '../shared/plataforma';
-import type { Quat, Vec3 } from '../shared/math';
-import type { Phase } from '../modules/arremesso/index';
+import type { DieKind, Omen, OmenKind } from '../modules/regras/index.ts';
+import type { Falha } from '../shared/plataforma/index.ts';
+import type { Quat, Vec3 } from '../shared/math.ts';
+import type { Phase } from '../modules/arremesso/index.ts';
 
 export interface DiceHook {
   state(): {

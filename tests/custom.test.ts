@@ -6,8 +6,8 @@ import { formatDice, parseDice, slugOf, slugProblem } from '../src/modules/selec
 import { isD20 } from '../src/modules/pressagios/index.ts';
 import { omenKinds } from '../src/modules/arremesso/index.ts';
 import { omenOf } from '../src/modules/regras/index.ts';
-import { customDieOf, freeDieOf, prismTriangles } from './helpers/models';
-import { simulate } from './helpers/sim';
+import { customDieOf, freeDieOf, prismTriangles } from './helpers/models.ts';
+import { simulate } from './helpers/sim.ts';
 import { carregarImportador } from '../src/modules/meus-dados/index.ts';
 
 const { checkFreeValue, checkFreeValues } = await carregarImportador();
