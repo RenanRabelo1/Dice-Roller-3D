@@ -1,6 +1,6 @@
 # Notas dos `pressagios`
 
-O detalhe que não cabe no [CLAUDE.md](CLAUDE.md). Leia só quando a ordem mandar. Veio da parte de presságio de `docs/contexto/apresentacao.md`, que saiu na OS-0040; o que é da vitrine (a ordem em `settled`, o voo, os números em destaque) continua lá.
+O detalhe que não cabe no [CLAUDE.md](CLAUDE.md). Leia só quando a ordem mandar. Veio da parte de presságio de `docs/contexto/apresentacao.md`, que saiu na OS-0040; o que é da vitrine (a ordem em `settled`, o voo, os números em destaque) foi para o [NOTAS.md da `vitrine`](../vitrine/NOTAS.md) na OS-0044.
 
 ## Arquivos
 
@@ -56,7 +56,7 @@ Desempenho (não quebrar):
 - `krakenIndices(omen, dice)`: só d100 críticos, e só se **não** houver falha (dualidade vence).
 - `scene/Kraken.ts`: modo `grab` (braço 0 agarra: corpo em Bézier cúbica + hélice enrolada no dado; os outros 9 se debatem; cacos, rachaduras, abismo) e modo `storm` (10 braços saindo do mar em volta da bandeja). Tubos com referenciais de transporte paralelo, ventosas instanciadas.
 - `scene/QuebraDaMesa.tsx` chama, a cada quadro, `ocultarPiso(trayBrokenAt(...))` do módulo `mesa`, que esconde `tray-surface` na hora (montado antes da `<MesaNaCena/>`, então vale no mesmo quadro); o `Kraken` desenha os cacos no lugar, com as cores da mesa ativa (`Kraken.start('grab', ..., coresDaMesa())`; ver `src/modules/mesa/CLAUDE.md`). Mesa importada sem piso: o modelo inteiro some.
-- O d100 do kraken ou da tempestade **não** faz o voo comum do showcase; o percurso dele é o do presságio (`krakenDieAt` / `stormDieAt`, `STORM` em krakenMotion.ts), e termina na pose comum do resultado. O `Hand.tsx` (vitrine) pergunta ao módulo: `indicesComPercurso(omen, dice)` → `{ kraken, tempestade }` e `movimentoNoPresagio(i, ms, de, para, kraken, tempestade)` → `{ pose, revela, sombra, fim } | null` (`domain/percurso.ts`). `sombra` é até quando o dado projeta sombra (`KRAKEN.grab` ou `STORM.approach`) e `fim` é quando o percurso acaba (`KRAKEN.duration` ou `STORM.duration`); a vitrine não lê `KRAKEN`/`STORM`.
+- O d100 do kraken ou da tempestade **não** faz o voo comum do showcase; o percurso dele é o do presságio (`krakenDieAt` / `stormDieAt`, `STORM` em krakenMotion.ts), e termina na pose comum do resultado. A `Vitrine` (módulo `vitrine`) pergunta ao módulo: `indicesComPercurso(omen, dice)` → `{ kraken, tempestade }` e `movimentoNoPresagio(i, ms, de, para, kraken, tempestade)` → `{ pose, revela, sombra, fim } | null` (`domain/percurso.ts`). `sombra` é até quando o dado projeta sombra (`KRAKEN.grab` ou `STORM.approach`) e `fim` é quando o percurso acaba (`KRAKEN.duration` ou `STORM.duration`); a vitrine não lê `KRAKEN`/`STORM`.
 
 ## Fogo (falha de d20)
 

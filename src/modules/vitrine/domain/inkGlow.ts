@@ -69,7 +69,7 @@ export function glowMesh(model: Object3D, group: Object3D, faces: { normal: Vec3
 }
 
 function lit(geometry: BufferGeometry, color: string): Mesh {
-  // Same programme parameters as the symbols' material in Hand.tsx, so the compiled shader is reused (blending is GL state, not shader). Additive: it adds light on top of the ink, so the engraving shines instead of turning paler.
+  // Same programme parameters as the symbols' material in scene/Vitrine.tsx, so the compiled shader is reused (blending is GL state, not shader). Additive: it adds light on top of the ink, so the engraving shines instead of turning paler.
   const material = new MeshBasicMaterial({ color, transparent: true, blending: AdditiveBlending, opacity: 0, depthWrite: false, toneMapped: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
   const mesh = new Mesh(geometry, material);
   mesh.name = 'ink-glow';

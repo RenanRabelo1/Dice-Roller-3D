@@ -1,6 +1,6 @@
 # Plano de execução da refatoração
 
-Base: [diagnostico.md](diagnostico.md), [mapa-modulos.md](mapa-modulos.md), ADRs 0001 a 0008 e [specs/](specs/).
+Base: [diagnostico.md](diagnostico.md), [mapa-modulos.md](mapa-modulos.md), ADRs 0001 a 0008 e as specs dos módulos (absorvidas pelos `CLAUDE.md`, a última na OS-0044).
 
 Em 2026-11-13 o responsável humano autorizou seguir sem novas aprovações. As recomendações e as suposições da entrega 1 passam a valer como decididas. O orquestrador só para para consultar quando algo exigir um ADR novo ou contradisser o que está aqui.
 

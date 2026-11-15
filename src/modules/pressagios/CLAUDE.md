@@ -29,5 +29,5 @@ Decidir se um resultado publicado tem presságio e mostrá-lo antes do resultado
 - `src/shared`: `plataforma` (`movimentoReduzido`, `aoMudarMovimentoReduzido`), `math` (`Pose`, `easeOut`, `span`, `clamp01`).
 
 ## Fora do escopo
-- O voo comum, os números em destaque e o painel do resultado: `vitrine` (hoje `src/scene/Hand.tsx`, `ui/Controls.tsx`; ver `docs/contexto/apresentacao.md`).
+- O voo comum, os números em destaque e o painel do resultado: `vitrine` (ver `src/modules/vitrine/CLAUDE.md`).
 - A regra de crítico e falha: `regras`. O visual da mesa: `mesa`. As luzes da casca e o `__dice`: casca.

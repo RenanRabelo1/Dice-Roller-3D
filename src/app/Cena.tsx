@@ -2,20 +2,19 @@ import { useCallback, useEffect, useLayoutEffect, useRef, type RefObject } from 
 import { useFrame, useThree } from '@react-three/fiber';
 import { Lightformer, PerformanceMonitor } from '@react-three/drei';
 import { Physics } from '@react-three/rapier';
-import { Group, Mesh, Quaternion, type Material } from 'three';
-import { Text } from 'troika-three-text';
+import { Group, Quaternion } from 'three';
 
 import {
   arremesso, envelopeDaMao, GRAVITY, inspecao as inspecaoDoArremesso, registroDeCorpos, STEP, TRAY,
 } from '../modules/arremesso/index';
 import { CorpoDoDado, LoopDoArremesso, MaoDoArremesso, useArremesso } from '../modules/arremesso/cena';
 import type { Vec3 } from '../shared/math';
-import { vitrine, vitrineConcluida } from '../modules/vitrine/index';
+import { inspecao as inspecaoDaVitrine, vitrine, vitrineConcluida } from '../modules/vitrine/index';
+import { Vitrine } from '../modules/vitrine/cena';
 import { inspecao as inspecaoDoPresagio, presagio, rigOmen } from '../modules/pressagios/index';
 import { PresagiosNaCena, QuebraDaMesa } from '../modules/pressagios/cena';
 import { installTestHook } from './testHook';
-import { Hand } from '../scene/Hand';
-import { inspecao } from '../modules/dados/index';
+import { gemaNaRaiz, inspecao } from '../modules/dados/index';
 import { definir } from '../modules/selecao/index';
 import { inspecao as inspecaoDosImportados } from '../modules/meus-dados/index';
 import { inspecao as inspecaoDaMesa } from '../modules/mesa/index';
@@ -103,7 +102,7 @@ export function Cena({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> 
         const result: { q: [number, number, number, number] }[] = [];
         dice.current?.updateWorldMatrix(true, true);
         for (let i = 0; i < registroDeCorpos.current.length; i++) {
-          const gem = dice.current?.getObjectByName(`gem-${i}`);
+          const gem = dice.current ? gemaNaRaiz(dice.current, i) : undefined;
           if (gem) result.push({ q: gem.getWorldQuaternion(new Quaternion()).toArray() });
         }
         return result;
@@ -112,13 +111,8 @@ export function Cena({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> 
       camera: () => camera.position.toArray(),
       numbersVisible: (index) => (dice.current ? inspecao.numeraisVisiveis(dice.current, index) : false),
       gemLook: (index) => inspecao.aparenciaDaGema(scene, index),
-      highlights: () => (scene.getObjectByName('result-highlights')?.children ?? []).map((o) => ({
-        text: o instanceof Text ? o.text : null, visible: o.visible, position: o.position.toArray(),
-      })),
-      inkGlow: (index) => {
-        const glow = scene.getObjectByName(`ink-glow-${index}`) as Mesh | undefined;
-        return glow ? { visible: glow.visible, triangles: glow.geometry.getAttribute('position').count / 3, opacity: (glow.material as Material).opacity } : null;
-      },
+      highlights: () => inspecaoDaVitrine(scene).highlights(),
+      inkGlow: (index) => inspecaoDaVitrine(scene).inkGlow(index),
       launches: () => inspecaoDoArremesso().lancamentos(),
       customs: () => inspecaoDosImportados(),
       table: () => inspecaoDaMesa(scene, info.current.programs?.length ?? 0),
@@ -159,7 +153,7 @@ export function Cena({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> 
         <QuebraDaMesa />
         <MesaNaCena />
         <MaoDoArremesso gameArea={gameArea} />
-        <Hand />
+        <Vitrine />
         <LoopDoArremesso omenTest={omenTestAtual} />
         <group ref={dice}>
           {selected.map((kind, i) => (

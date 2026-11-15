@@ -9,7 +9,7 @@ export function BotoesDeTeste({ gameArea }: { gameArea: RefObject<HTMLDivElement
   const [open, setOpen] = useState(false);
   const test = usePresagio((s) => s.omenTest);
   return (
-    // Hand.tsx ignores presses that start here, so a click on these buttons never starts a throw.
+    // MaoDoArremesso (arremesso) ignores presses that start here, so a click on these buttons never starts a throw.
     <aside className="omen-tests" aria-label="Testar animações">
       <button aria-expanded={open} onClick={() => setOpen((o) => !o)}>Testar animações{test && ' •'}</button>
       {open && (

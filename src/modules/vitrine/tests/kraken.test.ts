@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { PerspectiveCamera, Quaternion, Vector3 } from 'three';
-import { polyhedron } from '../src/modules/dados/index.ts';
-import { fractureCells, KRAKEN, krakenAt, krakenDieAt, krakenIndices, STORM, stormAt, stormDieAt, stormIndices, trayBrokenAt } from '../src/modules/pressagios/index.ts';
-import { showcasePoses } from '../src/modules/vitrine/index.ts';
-import type { Pose } from '../src/shared/math';
+import { polyhedron } from '../../dados/index.ts';
+import { fractureCells, KRAKEN, krakenAt, krakenDieAt, krakenIndices, STORM, stormAt, stormDieAt, stormIndices, trayBrokenAt } from '../../pressagios/index.ts';
+import { showcasePoses } from '../index.ts';
+import type { Pose } from '../../../shared/math.ts';
 
 const camera = (aspect: number) => {
   const c = new PerspectiveCamera(40, aspect);

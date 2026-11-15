@@ -3,19 +3,22 @@ import { useFrame, useThree } from '@react-three/fiber';
 import type { RapierRigidBody } from '@react-three/rapier';
 import { Color, Group, Matrix4, Mesh, MeshBasicMaterial, Quaternion, Vector3, type BufferGeometry, type Object3D, type PerspectiveCamera } from 'three';
 import { Text } from 'troika-three-text';
-import { customDie, dadoNaRaiz, FONT, FONT_URL, gemaNaRaiz, gemColor, inkColorOf, polyhedron, RADIUS, sombraNaGema, SYMBOL, symbolGeometry } from '../modules/dados/index';
-import { isCustom, MAX_DICE } from '../modules/regras/index';
-import { easeOut, type Pose, type Quat, type Vec3 } from '../shared/math';
-import { movimentoReduzido } from '../shared/plataforma';
-import { arremesso, moverDado, registroDeCorpos } from '../modules/arremesso/index';
-import { CAPTION, glowMesh, highlightAt, HL_SIZE, setShowcased, showcasePoses, SHOW, vitrine } from '../modules/vitrine/index';
-import { indicesComPercurso, movimentoNoPresagio, presagio, presagioTocando } from '../modules/pressagios/index';
+import { customDie, dadoNaRaiz, FONT, FONT_URL, gemaNaRaiz, gemColor, inkColorOf, polyhedron, RADIUS, sombraNaGema, SYMBOL, symbolGeometry } from '../../dados/index.ts';
+import { isCustom, MAX_DICE } from '../../regras/index.ts';
+import { easeOut, type Pose, type Quat, type Vec3 } from '../../../shared/math.ts';
+import { movimentoReduzido } from '../../../shared/plataforma/index.ts';
+import { arremesso, moverDado, registroDeCorpos } from '../../arremesso/index.ts';
+import { CAPTION, showcasePoses } from '../domain/showcase.ts';
+import { highlightAt, HL_SIZE, SHOW } from '../domain/highlight.ts';
+import { glowMesh } from '../domain/inkGlow.ts';
+import { setShowcased, vitrine } from '../store.ts';
+import { indicesComPercurso, movimentoNoPresagio, presagio, presagioTocando } from '../../pressagios/index.ts';
 
 type Mark = { local: Vector3; turn: Quaternion; start: Vector3; face: Vector3; scale: number }; // local, turn: the rolled numeral's place and turn in die space
 
-// What the hand does once the dice have settled: the flight, the rolled numbers, the engraving's glow and the omen's
+// The showcase, once the dice have settled: the flight, the rolled numbers, the engraving's glow and the omen's
 // wait. The throw part (input, aim, whirl, arrow, return) is arremesso's MaoDoArremesso, mounted right before this.
-export function Hand() {
+export function Vitrine() {
   const { camera, scene } = useThree();
   const mode = useRef('');
   const showcase = useRef<{ at: number; throwId: number; from: Pose[]; to: Pose[]; kraken: number[]; storm: number[]; omenAt: number; gems: (Object3D | undefined)[]; marks: Mark[]; above: boolean[]; glows: (Mesh | null)[]; still?: boolean; landed?: boolean } | null>(null);
