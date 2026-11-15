@@ -12,6 +12,11 @@ export interface CicloConhecido { nivel: Nivel; membros: string[]; motivo: strin
 
 export const CICLOS_CONHECIDOS: CicloConhecido[] = [];
 
+/** The root tests (`tests/*.ts`, `tests/helpers/**`) are read too, for the single door only (rule 1 of the guide;
+ * ADR 0006): `tests/arquitetura/` is the suite itself and its fixtures break the rules on purpose. */
+export const RAIZES_TESTES_DA_RAIZ = ['tests'];
+export const FORA_DOS_TESTES_DA_RAIZ = ['tests/arquitetura'];
+
 /** `server/**` → `src/**`: only the door of the pure `regras` module (ADR 0002, ADR 0004). */
 export const SERVIDOR_PODE_IMPORTAR = ['src/modules/regras/index.ts'];
 
@@ -31,12 +36,9 @@ export const MAPA_DE_DONOS = 'docs/mapa-modulos.md';
 
 /** One access the scan would refuse, allowed for now. `dado` is the store, key or collection name, or
  * `indexedDB`/`zustand` for the raw API. One entry per file and per data; it covers every rule that
- * file breaks on that data. Remove it in the same commit that moves the access; the suite fails until you do. */
+ * file breaks on that data. Remove it in the same commit that moves the access; the suite fails until you do.
+ * Empty since OS-0049 (phase 7). A permanent permission is not an entry here: it lives in the rule, named, like
+ * the failure store of `src/shared/plataforma/falha.ts` (ADR 0008) in rule 5 of `donos.ts`. */
 export interface DadoLegado { arquivo: string; dado: string; motivo: string }
 
-export const DADOS_LEGADO: DadoLegado[] = [
-  {
-    arquivo: 'src/shared/plataforma/falha.ts', dado: 'zustand',
-    motivo: 'Permitida: a falha da plataforma mora num store próprio, privado ao arquivo, em shared/plataforma, como permite o ADR 0008.',
-  },
-];
+export const DADOS_LEGADO: DadoLegado[] = [];

@@ -69,10 +69,11 @@ export const listar = (dir: string): string[] => readdirSync(dir, { withFileType
  * to `base`, with `/`. Non-code targets (css, images) are dropped. Throws, listing every case, on:
  * a relative import that does not resolve; one whose case differs from the disk (Windows accepts
  * it, Linux does not); an absolute `/...` specifier (Vite root path); an `import()` without a string
- * literal. There are no tsconfig `paths` aliases today; if one is added, refuse it here as well. */
-export function lerGrafo(raizes: string[], base = process.cwd()): Grafo {
-  const arquivos = raizes.flatMap((r) => listar(resolve(base, r)));
+ * literal. There are no tsconfig `paths` aliases today; if one is added, refuse it here as well.
+ * `fora` lists folders under `raizes` (relative to `base`) that are not read. */
+export function lerGrafo(raizes: string[], base = process.cwd(), fora: string[] = []): Grafo {
   const rel = (p: string) => posixDe(relative(base, p));
+  const arquivos = raizes.flatMap((r) => listar(resolve(base, r))).filter((abs) => !fora.some((f) => dentro(f, rel(abs))));
   const arestas: Aresta[] = [], problemas: string[] = [];
   for (const abs of arquivos) {
     const de = rel(abs);

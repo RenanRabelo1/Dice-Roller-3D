@@ -2,8 +2,8 @@
 // code, and the proof that each rule fires on the fixture tree in `fixtures/modulos/`.
 import { describe, expect, it } from 'vitest';
 import { lerGrafo } from './leitor';
-import { CICLOS_CONHECIDOS, RAIZES } from './config';
-import { ciclos, conferirCiclos, formatar, REGRAS } from './regras';
+import { CICLOS_CONHECIDOS, FORA_DOS_TESTES_DA_RAIZ, RAIZES, RAIZES_TESTES_DA_RAIZ } from './config';
+import { ciclos, conferirCiclos, formatar, REGRAS, storeCruNaPorta, testesDaRaizPelasPortas } from './regras';
 
 const grafo = lerGrafo(RAIZES);
 const atuais = [...ciclos(grafo, 'arquivo'), ...ciclos(grafo, 'pasta')];
@@ -23,6 +23,48 @@ describe('arquitetura: imports (regra 1 e ADRs)', () => {
   it.each(Object.entries(REGRAS))('%s', (_nome, regra) => {
     const erros = regra(grafo).map(formatar);
     expect(erros, erros.join('\n')).toEqual([]);
+  });
+});
+
+describe('arquitetura: os testes da raiz pela porta única (regra 1)', () => {
+  const testes = lerGrafo(RAIZES_TESTES_DA_RAIZ, process.cwd(), FORA_DOS_TESTES_DA_RAIZ);
+  it('lê tests/*.ts e tests/helpers/**, sem tests/arquitetura/', () => {
+    expect(testes.arquivos).toEqual(expect.arrayContaining(['tests/store.test.ts', 'tests/helpers/sim.ts']));
+    expect(testes.arquivos.filter((f) => f.startsWith('tests/arquitetura/'))).toEqual([]);
+  });
+  it('nenhum teste da raiz importa um módulo fora das portas', () => {
+    const erros = testesDaRaizPelasPortas(testes).map(formatar);
+    expect(erros, erros.join('\n')).toEqual([]);
+  });
+});
+
+describe('arquitetura: nenhuma porta reexporta o store cru (ADR 0003 ponto 2)', () => {
+  it('nenhum index.ts ou cena.ts de módulo reexporta a ligação store de ./store.ts', () => {
+    const erros = storeCruNaPorta(RAIZES).map(formatar);
+    expect(erros, erros.join('\n')).toEqual([]);
+  });
+  it('dispara com export { store }, export { store as x }, import reexportado e export * (fixtures/store-cru)', () => {
+    // passa/ re-exports only the store's functions and uses the store inside a function, so it is absent.
+    expect(storeCruNaPorta(['src'], 'tests/arquitetura/fixtures/store-cru').map((v) => `${v.de} → ${v.para}`)).toEqual([
+      'src/modules/dispara/cena.ts → src/modules/dispara/store.ts (export *)',
+      'src/modules/dispara/index.ts → src/modules/dispara/store.ts (cru)',
+      'src/modules/dispara/index.ts → src/modules/dispara/store.ts (local)',
+      'src/modules/dispara/index.ts → src/modules/dispara/store.ts (store)',
+    ]);
+  });
+});
+
+describe('a regra dos testes da raiz dispara (fixtures/testes)', () => {
+  const fixture = lerGrafo(RAIZES_TESTES_DA_RAIZ, 'tests/arquitetura/fixtures/testes', FORA_DOS_TESTES_DA_RAIZ);
+  it('store.ts de um módulo dispara; index.ts, cena.ts e contracts.ts com import type passam; tests/arquitetura/ não é lido', () => {
+    expect(fixture.arestas.filter((a) => a.de === 'tests/helpers/pelaPorta.ts').map((a) => a.para).sort()).toEqual([
+      'src/modules/m/cena.ts', 'src/modules/m/contracts.ts', 'src/modules/m/index.ts',
+    ]);
+    expect(fixture.arquivos).not.toContain('tests/arquitetura/ignorado.ts');
+    expect(testesDaRaizPelasPortas(fixture).map(formatar)).toEqual([
+      '[teste da raiz importa módulo fora da porta: só index.ts, cena.ts, ou contracts.ts com import type] ' +
+      'tests/portaErrada.ts → src/modules/m/store.ts (regra 1 do guia; ADR 0006; ADR 0010)',
+    ]);
   });
 });
 

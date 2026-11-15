@@ -29,6 +29,10 @@ export interface Acessos {
 }
 
 const STORAGE = new Set(['localStorage', 'sessionStorage']);
+/** The zustand store factories each entry point exports: the package root re-exports `zustand/vanilla`. */
+const FABRICAS_DO_ZUSTAND: Record<string, Set<string>> = {
+  zustand: new Set(['create', 'createStore']), 'zustand/vanilla': new Set(['createStore']),
+};
 const METODOS_DE_CHAVE = new Set(['getItem', 'setItem', 'removeItem']);
 const METODOS_DE_COLECAO = new Set(['collection', 'createCollection', 'dropCollection']);
 const COMANDOS_DE_COLECAO = ['collMod', 'create', 'drop'];
@@ -41,11 +45,16 @@ const ehStorage = (n: any) => n?.type === 'Identifier' ? STORAGE.has(n.value) : 
 export function lerAcessosDe(arquivo: string, codigo: string, tsx: boolean): Acessos {
   const a: Acessos = { arquivo, indexedDB: false, storage: false, zustand: false, literais: [], chaves: [], stores: [], colecoes: [], lookups: [] };
   const corpo = parseSync(codigo, { syntax: 'typescript', tsx }).body;
-  // `create` imported from zustand, by name or through a namespace.
-  const creates = new Set<string>(), espacos = new Set<string>();
-  for (const d of corpo) if (d.type === 'ImportDeclaration' && d.source.value === 'zustand' && !d.typeOnly) for (const s of d.specifiers) {
-    if (s.type === 'ImportNamespaceSpecifier') espacos.add(s.local.value);
-    else if (s.type === 'ImportSpecifier' && !s.isTypeOnly && (s.imported?.value ?? s.local.value) === 'create') creates.add(s.local.value);
+  // A store factory of zustand (`create`, `createStore`), by name or through a namespace (`espacos` maps the
+  // namespace to the factories its package exports).
+  const creates = new Set<string>(), espacos = new Map<string, Set<string>>();
+  for (const d of corpo) {
+    if (d.type !== 'ImportDeclaration' || d.typeOnly) continue;
+    const fabricas = FABRICAS_DO_ZUSTAND[d.source.value];
+    if (fabricas) for (const s of d.specifiers) {
+      if (s.type === 'ImportNamespaceSpecifier') espacos.set(s.local.value, fabricas);
+      else if (s.type === 'ImportSpecifier' && !s.isTypeOnly && fabricas.has(s.imported?.value ?? s.local.value)) creates.add(s.local.value);
+    }
   }
   const arg0 = (n: any) => n.arguments[0]?.expression;
   const visitar = (n: any): void => {
@@ -75,7 +84,7 @@ export function lerAcessosDe(arquivo: string, codigo: string, tsx: boolean): Ace
       }
       case 'CallExpression': {
         const c = n.callee, metodo = c?.type === 'MemberExpression' ? nomeDe(c.property) : undefined;
-        if ((c?.type === 'Identifier' && creates.has(c.value)) || (metodo === 'create' && c.object?.type === 'Identifier' && espacos.has(c.object.value))) a.zustand = true;
+        if ((c?.type === 'Identifier' && creates.has(c.value)) || (metodo && c.object?.type === 'Identifier' && espacos.get(c.object.value)?.has(metodo))) a.zustand = true;
         if ((c?.type === 'Identifier' && c.value === 'defineStore') || metodo === 'defineStore') a.stores.push(texto(arg0(n)) ?? null);
         if (metodo && METODOS_DE_COLECAO.has(metodo)) a.colecoes.push(texto(arg0(n)) ?? null);
         if (metodo === 'listCollections' && prop(arg0(n), 'name') !== undefined) a.colecoes.push(texto(prop(arg0(n), 'name')) ?? null);
@@ -102,6 +111,8 @@ export interface ViolacaoDeDado { regra: string; arquivo: string; dado: string; 
 export const formatarDado = (v: ViolacaoDeDado) => `[${v.regra}] ${v.arquivo}: ${v.dado} (dono esperado: ${v.dono}; ${v.referencia})`;
 
 const REF = 'regra 2 do guia; ADR 0003 ponto 5; ADR 0006 parte B';
+/** The one file outside the modules allowed a zustand store (ADR 0008: the failure lives in shared/plataforma). */
+const ZUSTAND_EM_SHARED = 'src/shared/plataforma/falha.ts';
 const NAO_DECLARADO = 'nenhum; declare no bloco donos-dos-dados de docs/mapa-modulos.md';
 const moduloDe = (f: string) => /^src\/modules\/([^/]+)\//.exec(f)?.[1];
 const moduloDoServidor = (f: string) => /^server\/src\/modules\/([^/]+)\//.exec(f)?.[1];
@@ -147,8 +158,10 @@ export function conferirDados(todos: Acessos[], donos: Donos, excecoes: DadoLega
       else if (!dono) add('coleção não declarada no mapa', f, c, NAO_DECLARADO);
       else if (moduloDoServidor(f) !== dono) add('$lookup para coleção de outro dono (join entre domínios)', f, c, `${dono} (server/src/modules/${dono}/)`);
     }
-    // Rule 5: zustand.
-    if (a.zustand && !/^src\/modules\/[^/]+\/store\.ts$/.test(f)) add('create do zustand fora de src/modules/<m>/store.ts', f, 'zustand', `o próprio módulo (src/modules/${moduloDe(f) ?? '<m>'}/store.ts)`, 'regra 2 do guia; ADR 0003 ponto 2; ADR 0006 parte B');
+    // Rule 5: zustand. A store is made only in a module's own `store.ts` (ADR 0003 ponto 2) and in
+    // `src/shared/plataforma/falha.ts`, the platform failure's private store that ADR 0008 puts in shared/plataforma.
+    if (a.zustand && !/^src\/modules\/[^/]+\/store\.ts$/.test(f) && f !== ZUSTAND_EM_SHARED)
+      add(`create/createStore do zustand fora de src/modules/<m>/store.ts e de ${ZUSTAND_EM_SHARED}`, f, 'zustand', `o próprio módulo (src/modules/${moduloDe(f) ?? '<m>'}/store.ts)`, 'regra 2 do guia; ADR 0003 ponto 2; ADR 0006 parte B; ADR 0008');
   }
   for (const [s, fs] of definicoes) if (fs.length !== 1) {
     const dono = donos.indexedDB[s];

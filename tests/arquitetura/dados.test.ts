@@ -3,12 +3,17 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { conferirDados, formatarDado, lerAcessos, lerAcessosDe, lerDonos } from './donos';
-import { DADOS_LEGADO, MAPA_DE_DONOS, RAIZES_DADOS } from './config';
+import { CICLOS_CONHECIDOS, DADOS_LEGADO, MAPA_DE_DONOS, RAIZES_DADOS } from './config';
 
 let real: ReturnType<typeof conferirDados> | undefined;
 const conferirReal = () => real ??= conferirDados(lerAcessos(RAIZES_DADOS), lerDonos(readFileSync(MAPA_DE_DONOS, 'utf8'), MAPA_DE_DONOS), DADOS_LEGADO);
 
 describe('arquitetura: dono dos dados (regra 2)', () => {
+  it('as duas listas de exceção estão vazias (fase 7: exceções zeradas)', () => {
+    // The mechanism stays for a future exception with an ADR; today none is needed.
+    expect(DADOS_LEGADO).toEqual([]);
+    expect(CICLOS_CONHECIDOS).toEqual([]);
+  });
   it('nenhum acesso a dado fora do dono, fora de DADOS_LEGADO', () => {
     const { violacoes } = conferirReal();
     expect(violacoes, violacoes.join('\n')).toEqual([]);
@@ -35,17 +40,27 @@ describe('as regras de dados disparam (fixtures/dados)', () => {
   });
 
   it('cada regra dispara uma vez, com regra, arquivo, dado e dono esperado', () => {
+    const zustand = 'create/createStore do zustand fora de src/modules/<m>/store.ts e de src/shared/plataforma/falha.ts';
     const duas = 'store do IndexedDB definida 2 vezes (src/modules/mesa/storeDeOutro.ts, src/modules/meus-dados/repository.ts)';
     expect(campos()).toEqual([
       ['$lookup para coleção de outro dono (join entre domínios)', 'server/src/modules/historico/repository.ts', 'jogadores', 'perfil (server/src/modules/perfil/)'],
       ['indexedDB fora de src/shared/db.ts', 'src/modules/mesa/abreBanco.ts', 'indexedDB', 'src/shared/db.ts (infra)'],
       ['chave não declarada no mapa', 'src/modules/mesa/chaveNova.ts', 'mesa.tema', naoDeclarado],
       ['chave não declarada no mapa', 'src/modules/mesa/chaveSemLiteral.ts', 'localStorage/sessionStorage', `${naoDeclarado} (nenhum literal de chave do bloco no arquivo)`],
-      ['create do zustand fora de src/modules/<m>/store.ts', 'src/modules/mesa/estado.ts', 'zustand', 'o próprio módulo (src/modules/mesa/store.ts)'],
+      [zustand, 'src/modules/mesa/createStoreDaRaiz.ts', 'zustand', 'o próprio módulo (src/modules/mesa/store.ts)'],
+      [zustand, 'src/modules/mesa/estado.ts', 'zustand', 'o próprio módulo (src/modules/mesa/store.ts)'],
       [duas, 'src/modules/mesa/storeDeOutro.ts', 'customDice', 'meus-dados (uma vez, em src/modules/meus-dados/)'],
       ['store do IndexedDB fora do módulo dono', 'src/modules/mesa/storeDeOutro.ts', 'customDice', 'meus-dados (src/modules/meus-dados/)'],
+      [zustand, 'src/modules/mesa/vanilla.ts', 'zustand', 'o próprio módulo (src/modules/mesa/store.ts)'],
+      [zustand, 'src/modules/mesa/vanillaEspaco.ts', 'zustand', 'o próprio módulo (src/modules/mesa/store.ts)'],
       [duas, 'src/modules/meus-dados/repository.ts', 'customDice', 'meus-dados (uma vez, em src/modules/meus-dados/)'],
+      [zustand, 'src/shared/plataforma/outra.ts', 'zustand', 'o próprio módulo (src/modules/<m>/store.ts)'],
     ]);
+    // Allowed by rule 5 itself, so absent: mesa/store.ts (create), meus-dados/store.ts (createStore of zustand/vanilla)
+    // and src/shared/plataforma/falha.ts (ADR 0008).
+    expect(acessos.filter((a) => a.zustand).map((a) => a.arquivo)).toEqual(expect.arrayContaining([
+      'src/modules/mesa/store.ts', 'src/modules/meus-dados/store.ts', 'src/shared/plataforma/falha.ts',
+    ]));
     const msg = formatarDado(conferirDados(acessos, donos, []).brutas.find((v) => v.dado === 'jogadores')!);
     expect(msg).toBe('[$lookup para coleção de outro dono (join entre domínios)] server/src/modules/historico/repository.ts: jogadores (dono esperado: perfil (server/src/modules/perfil/); regra 2 do guia; ADR 0003 ponto 5; ADR 0006 parte B)');
   });
