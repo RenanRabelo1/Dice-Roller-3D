@@ -24,13 +24,13 @@ test('ten coins can launch and return repeatedly within the frame budget', async
   await page.evaluate(() => window.__dice.select(Array(10).fill('coin')));
   await page.waitForFunction(() => window.__dice.bodies().length === 10 && window.__dice.state().ready);
   await page.evaluate(async (path) => {
-    const { useDice } = await import(path);
-    useDice.subscribe((s: { gesture: { phase: string } }, previous: { gesture: { phase: string } }) => {
+    const { assinarArremesso } = await import(path);
+    assinarArremesso((s: { gesture: { phase: string } }, previous: { gesture: { phase: string } }) => {
       if (s.gesture.phase === 'settled' && previous.gesture.phase === 'rolling') {
         Object.assign((window as unknown as { coinDebug: object }).coinDebug, { published: window.__dice.bodies() });
       }
     });
-  }, '/src/store.ts');
+  }, '/src/modules/arremesso/index.ts');
   await expect.poll(() => page.workers().some((w) => w.url().includes('presim.worker'))).toBe(true);
   // Separate warm-up from the interaction budget; no simulated clock in this test.
   await page.waitForTimeout(3000);

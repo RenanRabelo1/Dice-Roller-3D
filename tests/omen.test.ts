@@ -1,33 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import type { DieKind } from '../src/dice/polyhedra';
-import { OMEN_MS, omenKind, omenMs, omenOf } from '../src/dice/omen';
-import { omenPlaying, useDice } from '../src/store';
+import { OMEN_MS, omenMs, presagio, presagioTocando, reiniciarPresagio } from '../src/modules/pressagios/index.ts';
+import { arremesso, reiniciar, resultadoPublicado } from '../src/modules/arremesso/index.ts';
+import { definir } from '../src/modules/selecao/index.ts';
+import { definirMovimentoReduzido } from '../src/shared/plataforma/index.ts';
 
-const d20 = (n: number) => Array<DieKind>(n).fill('d20');
-
-describe('omenOf: which dice crit (d20 20, d100 1) and which fumble (d20 1, d100 100)', () => {
-  it.each([
-    ['one 20 in 5d20 is a critical', d20(5), [3, 20, 7, 9, 11], { crits: [1], fumbles: [] }, 'crit'],
-    ['one 1 in 5d20 is a fumble', d20(5), [3, 1, 7, 9, 11], { crits: [], fumbles: [1] }, 'fumble'],
-    ['a 20 and a 1 is duality', d20(5), [20, 1, 7, 9, 11], { crits: [0], fumbles: [1] }, 'duality'],
-    ['two fumbles and a critical is still duality', d20(3), [1, 20, 1], { crits: [1], fumbles: [0, 2] }, 'duality'],
-    ['d100 1 is the Cthulhu critical', ['d100'], [1], { crits: [0], fumbles: [] }, 'crit'],
-    ['d100 100 is a fumble', ['d100'], [100], { crits: [], fumbles: [0] }, 'fumble'],
-    ['critical on both a d20 and a d100', ['d20', 'd100'], [20, 1], { crits: [0, 1], fumbles: [] }, 'crit'],
-    ['fumble on both', ['d20', 'd100'], [1, 100], { crits: [], fumbles: [0, 1] }, 'fumble'],
-    ['one of each across d20 and d100', ['d20', 'd100'], [20, 100], { crits: [0], fumbles: [1] }, 'duality'],
-  ] as [string, DieKind[], number[], object, string][])('%s', (_, dice, results, omen, kind) => {
-    const o = omenOf(dice, results)!;
-    expect(o).toEqual(omen);
-    expect(omenKind(o)).toBe(kind);
-  });
-
-  it('only d20 and d100 count: other dice, Vampire d10s and coins never trigger one', () => {
-    expect(omenOf(['d4', 'd6', 'd10', 'd12', 'vtm', 'hunger', 'fire', 'coin'], [1, 1, 10, 12, 10, 1, 6, 1])).toBeNull();
-    expect(omenOf(d20(3), [2, 19, 10])).toBeNull();
-    expect(omenOf(['d100'], [50])).toBeNull();
-  });
-
+describe('omenMs', () => {
   it('omenMs: each show gets its time; the kraken is the longest; fire and storm together take the longer', () => {
     expect(omenMs({ crits: [0], fumbles: [] }, ['d20'])).toBe(OMEN_MS.lightning);
     expect(omenMs({ crits: [0, 1], fumbles: [] }, ['d20', 'd100'])).toBe(OMEN_MS.kraken);
@@ -42,43 +19,61 @@ describe('omenOf: which dice crit (d20 20, d100 1) and which fumble (d20 1, d100
 });
 
 describe('store omen', () => {
-  const s = () => useDice.getState();
+  const s = () => ({ ...arremesso(), ...presagio() });
   const P = { kind: 'pointer', id: 1 } as const;
-  const roll = () => { s().input({ type: 'press', source: P, at: 0, repeat: false }); s().input({ type: 'release', source: P, at: 700 }); };
-  beforeEach(() => useDice.setState(useDice.getInitialState(), true));
+  // The throw's door has no full reset: reiniciar() starts a fresh throw, and the throw's id is read back (OS-0047).
+  const roll = () => {
+    s().input({ type: 'press', source: P, at: 0, repeat: false }); s().input({ type: 'release', source: P, at: 700 });
+    return arremesso().throwId;
+  };
+  // Reduced motion lives outside the store now, so it would carry over from one test to the next.
+  // The hand lives in selecao; reset it first so the copy in the throw starts equal (OS-0024, decision 8).
+  beforeEach(() => {
+    definir(['d20']); reiniciar(); reiniciarPresagio(); definirMovimentoReduzido(false);
+  });
 
+  it('the omen is filled in the same synchronous tick as the publication (resultadoPublicado)', () => {
+    const throwId = roll();
+    const during: unknown[] = [];
+    const off = resultadoPublicado.subscribe(() => during.push(presagio().omen));
+    s().publish(throwId, [20]);
+    off();
+    expect(during).toEqual([{ throwId, crits: [0], fumbles: [] }]);
+    expect(presagio().omen).toEqual({ throwId, crits: [0], fumbles: [] });
+    expect(presagio().omenAt).toBeGreaterThan(0);
+  });
   it('publish records the omen of the throw with the results', () => {
-    roll(); s().publish(1, [20]);
-    expect(s().omen).toEqual({ throwId: 1, crits: [0], fumbles: [] });
+    const throwId = roll(); s().publish(throwId, [20]);
+    expect(s().omen).toEqual({ throwId, crits: [0], fumbles: [] });
     expect(s().omenDone).toBe(0);
-    s().setOmenDone(1);
-    expect(s().omenDone).toBe(1);
+    s().setOmenDone(throwId);
+    expect(s().omenDone).toBe(throwId);
   });
   it('picking the dice up ends the omen, so the result shows at once', () => {
-    roll(); s().publish(1, [20]);
-    expect(omenPlaying(s())).toBe(true);
+    const throwId = roll(); s().publish(throwId, [20]);
+    expect(presagioTocando()).toBe(true);
     s().input({ type: 'press', source: P, at: 0, repeat: false }); // pick up while it plays
     expect(s().gesture.phase).toBe('returning');
-    expect(omenPlaying(s())).toBe(false);
+    expect(presagioTocando()).toBe(false);
     expect(s().results).toEqual([20]);
   });
   it('a plain roll has no omen', () => {
-    roll(); s().publish(1, [12]);
+    const throwId = roll(); s().publish(throwId, [12]);
     expect(s().omen).toBeNull();
   });
   it('reduced motion skips omens', () => {
-    s().setReducedMotion(true); roll(); s().publish(1, [20]);
+    definirMovimentoReduzido(true); const throwId = roll(); s().publish(throwId, [20]);
     expect(s().omen).toBeNull();
   });
   it('enabling reduced motion cancels the current omen', () => {
-    roll(); s().publish(1, [20]);
+    const throwId = roll(); s().publish(throwId, [20]);
     expect(s().omen).not.toBeNull();
-    s().setReducedMotion(true);
+    definirMovimentoReduzido(true);
     expect(s().omen).toBeNull();
     expect(s().results).toEqual([20]);
   });
   it('a test rig forces the omen whatever the dice say', () => {
-    s().rigOmen({ crits: [0], fumbles: [0] }); roll(); s().publish(1, [7]);
-    expect(s().omen).toEqual({ throwId: 1, crits: [0], fumbles: [0] });
+    s().rigOmen({ crits: [0], fumbles: [0] }); const throwId = roll(); s().publish(throwId, [7]);
+    expect(s().omen).toEqual({ throwId, crits: [0], fumbles: [0] });
   });
 });

@@ -1,8 +1,8 @@
 # Dados: tipos, geometria, numeração, leitura, notação
 
-Cobre `src/dice/*`, `scene/Die.tsx` e `ui/Chat.tsx`/`ui/Controls.tsx`. Tudo em `dice/` é puro (sem React) e testado em Node.
+Cobre o módulo `src/modules/dados/` (sólidos, catálogo, leitura, símbolos, tinta e aparência: o puro sai por `index.ts`, componentes e hooks por `cena.ts`), o que resta em `src/dice/*` (texto do resultado, presságios), `modules/arremesso/scene/CorpoDoDado.tsx` (corpo físico) e o `Painel` da casca (`src/app/Painel.tsx`). A notação, o chat e a mão estão em `src/modules/selecao/`; o grupo "Meus dados", o assistente e a gravação dos importados, em `src/modules/meus-dados/` (ver o `CLAUDE.md` de cada um). O domínio é puro (sem React) e testado em Node.
 
-## Tipos (`dice/kinds.ts`, reexportados por `dice/polyhedra.ts`)
+## Tipos (`modules/regras`)
 
 ```ts
 Shape       = 'd4'|'d6'|'d8'|'d10'|'d12'|'d20'|'d100'|'coin'|'livre'  // corpo físico ('livre' só existe em importados)
@@ -12,7 +12,7 @@ KINDS       = os embutidos em ordem canônica; allKinds() = KINDS + importados (
 BASE        = só os embutidos (vtm, hunger → d10; fire → d6); use baseOf(kind), que também cobre importados
 ```
 
-`kinds.ts` não tem código 3D porque a API (`server/`) também o importa, junto com `omen.ts`. Por isso esses dois arquivos importam com extensão `.ts` e não podem depender de `three` nem do registro de importados (`custom.ts`).
+As regras de tipo (`KINDS`, `BASE`, `SIDES`, faces válidas, total, crítico/falha) moram no módulo `src/modules/regras/` (ver o `CLAUDE.md` dele), que a API (`server/`) importa pelo `index.ts`. Por isso o módulo importa com extensão `.ts` e não depende de `three` nem do registro de importados. Quem usa esses tipos, `MAX_DICE`, `Omen`, `OmenKind` ou `omenKind` importa direto de `modules/regras/index.ts`; `dados` e `omen.ts` não os reexportam. O `omenOf` de `regras` só reconhece o `'d20'` literal: quem chama normaliza antes (`omenKinds` em `omenTest.ts`).
 
 Dado personalizado = mesmo corpo/numeração/leitura do `BASE`; muda só a aparência (cor, tinta, símbolos).
 
@@ -35,18 +35,18 @@ Dado personalizado = mesmo corpo/numeração/leitura do `BASE`; muda só a apar�
 - 6 e 9 ganham ponto (`6.`, `9.`) em d10/d12/d20/d100.
 - `numbering` opcional (`values` por face, d4: por vértice; `turns` em passos de 360°/lados) troca valores e gira o numeral: é assim que a calibração de dado importado entra. A oposta é a face mais oposta (exata nos dados embutidos, a mais próxima num modelo).
 
-`RADIUS` (circunraio) por shape; `MAX_RADIUS` em `physics/world.ts` deve ser o máximo.
+`RADIUS` (circunraio) por shape; `RAIO_MAXIMO` (de `modules/dados`) deve ser o máximo.
 
-## Leitura (`dice/read.ts`)
+## Leitura (`modules/dados/domain/leitura.ts`)
 
 - `readUp(poly, q)` → `{ value, tilt }`: maior produto escalar com +Y entre normais das faces (d4: direções dos vértices).
 - `toResults(dice, raw)`: d10 (incluindo vtm/hunger) `0 → 10`; moeda 1 = Cara, 2 = Coroa; resto igual.
 
-## Símbolos (`dice/symbols.ts`)
+## Símbolos (`modules/dados/domain/simbolos.ts`)
 
 `SymbolName = ankh | crit | skull | fangs | heads | crown`. Desenhos originais em `Shape` do three, plano XY, 1 unidade de altura, geometria em cache e compartilhada (não dar `dispose`).
 
-Mapa por face (`SYMBOL` em polyhedra.ts, por dígito do d10, 0 = 10):
+Mapa por face (`SYMBOL` em `modules/dados/domain/solidos.ts`, por dígito do d10, 0 = 10):
 
 | Kind | 1 | 2–5 | 6–9 | 10 |
 |---|---|---|---|---|
@@ -55,48 +55,40 @@ Mapa por face (`SYMBOL` em polyhedra.ts, por dígito do d10, 0 = 10):
 
 Face vazia ainda tem um `Label` (texto `''`) para o showcase achar a face sorteada pelo valor. Moeda: `heads`/`crown` nas tampas.
 
-## Renderização do dado (`scene/Die.tsx`)
+## Renderização do dado (`modules/arremesso/scene/CorpoDoDado.tsx` + `modules/dados/scene/`)
 
-- `<RigidBody type="kinematicPosition" ccd>` + `ConvexHullCollider` (a cena nunca simula dinâmica; ver arremesso.md).
-- Nomes de objeto usados por outros módulos e testes: `die-${i}` (grupo), `gem-${i}` (malha; **grupo** num dado importado, então a sombra liga/desliga com `traverse`, ver `shade` em `Hand.tsx`).
-- Aparência de gema sem passe de refração: `meshPhysicalMaterial` com clearcoat, `ior`, opacidade 0,88. Moeda: metal dourado opaco.
-- Paletas: `GEM` (cor por kind), `INK` (cor do numeral; gemas claras usam tinta escura), `EMBER` (fogo brilha), `FONT` (tamanho do numeral por shape), `SYMBOL` (altura do símbolo em tamanhos de fonte).
-- **Um objeto por dado para todos os numerais**: `BatchedText` (troika) ou, em dado com símbolos, uma malha com os símbolos mesclados. Os membros ficam em `userData.labels` (testes leem dali).
+- `<RigidBody type="kinematicPosition" ccd>` + `ConvexHullCollider` (a cena nunca simula dinâmica; ver `src/modules/arremesso/CLAUDE.md`).
+- Nomes de objeto usados por outros módulos e testes: `die-${i}` (grupo), `gem-${i}` (malha; **grupo** num dado importado, então a sombra liga/desliga com `traverse`, ver `sombraNaGema`/`definirSombra` em `modules/dados/domain/objeto.ts`).
+- Aparência de gema (`scene/GemMaterial.tsx`) sem passe de refração: `meshPhysicalMaterial` com clearcoat, `ior`, opacidade 0,88. Moeda: metal dourado opaco.
+- Paletas (`domain/aparencia.ts`): `GEM` (cor por kind), `INK` (cor do numeral; gemas claras usam tinta escura), `FONT` (tamanho do numeral por shape), `SYMBOL` (altura do símbolo em tamanhos de fonte); `EMBER` (fogo brilha) fica em `scene/GemMaterial.tsx`.
+- **Um objeto por dado para todos os numerais**: `BatchedText` (troika) ou, em dado com símbolos, uma malha com os símbolos mesclados. Os membros ficam em `userData.labels` (testes leem dali, pela `inspecao` do módulo: `domain/inspecao.ts`).
+- `<AparenciaDoDado index kind />` não recebe registro nem cor: lê o registro do catálogo com `useSyncExternalStore(catalogoAlterado.subscribe, …)` e a cor com `gemColor(kind)`. `registerCustom` emite `registrado` (também no `atualizar` de `meus-dados`, que re-registra o mesmo `kind`: a cor, a tinta e o acabamento acompanham na hora) e `unregisterCustom` emite `removido`; `registerPoly` (worker) não emite. `modules/arremesso/scene/CorpoDoDado.tsx` não lê mais o store.
 
-## Notação e painel (`dice/notation.ts`)
+## Notação e chat: ver [src/modules/selecao/CLAUDE.md](../../src/modules/selecao/CLAUDE.md)
 
-`parseDice(text, customs = customList())` → `{ dice }` ou `{ error }` (mensagens em pt-BR):
-- Ignora espaços, `+` e caixa. Aceita `2d10 + d100` e compacto `2d10d100d4`.
-- Sufixos depois do `d`, do mais longo ao mais curto: `10vampiro`, `10fome`, `6fogo`, `10v`, `100`, `20`, `12`, `10`, `8`, `6`, `4` e, para cada dado importado, `<faces><apelido>` (`20caveira`). `slugProblem` valida o apelido (letra + letras/números, até 16, único, fora das palavras do chat); `slugOf(nome)` sugere um.
-- `boladefogo` = 8×`fire`. `moeda` / `2 moedas`.
-- Ambiguidade (`2d102d4`) resolvida com backtracking (prefere a leitura em que todos os dados existem).
-- Mais de `MAX_DICE` → erro.
+Painel (`modules/vitrine/domain/painel.ts`, pelo `index` da `vitrine`; o `<output data-testid="result">` é o `<PainelDoResultado/>` da `vitrine`): `resultText(dice, results)` → `{ total, detail }`: total soma dados (moedas nunca somam; só moedas → "Cara", "2 caras, 1 coroa"). `nomeDoTipo(kind)` (de `dados`, `domain/aparencia.ts`) → nome de exibição. O `Painel` da casca (`src/app/Painel.tsx`) monta o cabeçalho com os componentes de `selecao`, o `<MeusDados/>` e o `<Importacao/>` de `meus-dados` (os importados com `<BotaoDeDado kind/>`, tinta, 🗑 e **Importar dado**; o assistente sob demanda) e o painel `data-testid="result"` com as dicas por fase.
 
-`formatDice(dice)` → `"2d10 + 1d10 Vampiro + 2 moedas"`. `dieName(kind)` → nome de exibição. `resultText(dice, results)` → `{ total, detail }`: total soma dados (moedas nunca somam; só moedas → "Cara", "2 caras, 1 coroa").
-
-UI: `Controls.tsx` (um botão por kind + "−"; grupo "Meus dados" com os importados, 🗑 e **Importar dado**; painel `data-testid="result"`, dicas por fase) e `Chat.tsx` (tecla `C` abre, `Esc` fecha, Enter/Aplicar → `setDice`).
-
-## Dados importados (`dice/custom.ts`, `importer.ts`, `customStore.ts`, `ui/ImportDie.tsx`)
+## Dados importados (`modules/dados/domain/catalogo.ts`, `modules/meus-dados/`: `domain/importador.ts`, `domain/montagem.ts`, `ui/AssistenteDeImportacao.tsx`)
 
 O jogador importa um modelo `.stl` ou `.glb` de d4/d6/d8/d10/d12/d20 (spec: `docs/superpowers/specs/2026-11-11-importar-dado-design.md`). d100 e moeda **não** entram; qualquer outro sólido convexo entra como **dado de forma livre** (seção abaixo).
 
 Pipeline (`importModel`, puro, testado em Node):
-1. `readModel`: limites **10 MB / 50 mil triângulos / textura 2048 px**; STL via `STLLoader` (normais recalculadas), GLB via `GLTFLoader` com `LoadingManager.setURLModifier` que só aceita `data:`/`blob:` (nada de rede).
+1. `readModel`: limites **10 MB / 50 mil triângulos / textura 2048 px** (`LIMITS`, do `importador`). A leitura é de `shared/modelos3d` (`readModel(bytes, format, limits)`, que lança `ModelError`; o `importador` relança como `ImportError` com a mesma mensagem): STL via `STLLoader` (normais recalculadas), GLB via `GLTFLoader` com `LoadingManager.setURLModifier` que só aceita `data:`/`blob:` (nada de rede).
 2. `detectPlanes`: casco convexo dos vértices; triângulos do casco agrupados por normal (3°); forma = o menor N em {4,6,8,10,12,20} cujas N maiores faces cobrem ≥ 60% da área, a seguinte tem < 25% da menor delas, as N são parecidas (menor ≥ 50% da maior: uma caixa achatada não é dado) e, exceto d4, cada normal tem oposta (dot < −0,995). Senão: "Não reconheci um d4–d20 nesse modelo". Testado com chanfros de até ~12%.
 3. `idealSolid`: planos opostos viram pares exatos e simétricos (e dão o centro do modelo, por mínimos quadrados); cantos = interseção de 3 planos que cabem em todos; o sólido é escalado para `RADIUS[base]`. `poly` (colisor, faces, leitura) é esse sólido, **não** a malha; `fit = { center, scale }` põe a malha do arquivo no mesmo lugar: `(p − center) · scale`. O poliedro fica no referencial do modelo (eixos não são girados).
 4. Numeração: `fromTriangles` dá o padrão (opostas somam N+1). Modelo com números próprios (`printed`) é calibrado face a face (`askOrder` põe opostas lado a lado, `suggestOpposite` sugere, `checkValues` exige cada valor uma vez; d10 aceita 10 no lugar de 0) e `renumbered(poly, { values, turns })` refaz o poliedro.
 
 5. `looksNumbered` (heurística pura): conta vértices da malha afundados (> 1% do raio) abaixo do plano da própria face e longe das arestas (folga > 8% do raio para os outros planos, então chanfro de aresta não conta); ≥ 8 vértices e ≥ 1% do total = "parece que já tem números" (`Imported.hasNumbers`). Só sugere: o assistente destaca "Sim, calibrar" e deixa a escolha ao jogador. Validada num d20 real numerado (tedivm/dice_models).
 
-Assistente (`ImportDie.tsx`): na pergunta de numeração a prévia fica fosca e clara, com luz rasante, câmera mais perto e `OrbitControls` (arrastar gira, sem zoom/pan). Na calibração a câmera enquadra a face perguntada (de frente, numeral em pé, ~75% da prévia; "Voltar à face" reenquadra depois de arrastar) e a face ganha contorno âmbar (no d4, uma esfera no vértice). O STL é "pintado": `inkOf` marca os vértices afundados (mesma regra de `looksNumbered`) e a prévia os mostra em tinta escura sobre um tom claro fosco. Só na prévia; a mesa não usa isso.
+Assistente (`AssistenteDeImportacao.tsx`, chunk sob demanda: `cena.ts` o exporta com `lazy`, e o importador só entra por ele ou por `carregarImportador()` do `index.ts`): na pergunta de numeração a prévia fica fosca e clara, com luz rasante, câmera mais perto e `OrbitControls` (arrastar gira, sem zoom/pan). Na calibração a câmera enquadra a face perguntada (de frente, numeral em pé, ~75% da prévia; "Voltar à face" reenquadra depois de arrastar) e a face ganha contorno âmbar (no d4, uma esfera no vértice). O STL é "pintado": `inkOf` marca os vértices afundados (mesma regra de `looksNumbered`) e a prévia os mostra em tinta escura sobre um tom claro fosco. Só na prévia; a mesa não usa isso. Ao salvar, o assistente chama `montarDado` (`domain/montagem.ts`, puro, testado): `omens` só em base d20 (`regras.tipoParaPresagio`), cor e acabamento só em STL, tinta só se `printed` e passada por `tintaPermitida(ink, textured)` (com textura, só escura ou nenhuma), a mesma regra que o `InkChoice` usa para oferecer as opções.
 
-`CustomDie` (`custom.ts`) guarda arquivo, `fit`, `poly` numerado, `printed`, `color` (STL), `omens`. O registro em memória (`registerCustom`, `customPoly`, `customDie`) é lido por `polyhedron(kind)`, `baseOf`, `isD20` e `parseDice`; o worker só recebe o sólido (`registerPoly`, vindo em `RollRequest.customs`, ver arremesso.md). Persistência: IndexedDB `dice-roller` v1, store `customDice`; sem IndexedDB o dado vive só na sessão (`store.sessionOnly`, o painel avisa). Store: `customs`, `addCustom`, `removeCustom`, `loadCustoms` (chamado em `App`).
+`CustomDie` (`modules/dados/contracts.ts`) guarda arquivo, `fit`, `poly` numerado, `printed`, `color` (STL), `omens`. O registro em memória (`registerCustom`, `customPoly`, `customDie`) é lido por `polyhedron(kind)`, `baseOf`, `isD20` e `parseDice`; o worker só recebe o sólido (`registerPoly`, vindo em `RollRequest.customs`, ver `src/modules/arremesso/NOTAS.md`). Persistência: IndexedDB `dice-roller` v2 (aberto por `shared/db.ts`), store `customDice`, declarada em `modules/meus-dados/repository.ts` com `defineStore`; sem IndexedDB o dado vive só na sessão (`sessionOnly`, o painel avisa). O store vanilla de `meus-dados` guarda `customs` e `sessionOnly`, e um segundo store, o estado do assistente (`importando`, `montado`); as ações são `carregar` (chamado em `App`), `salvar`, `atualizar`, `excluir`, `alternarImportacao` e `fecharImportacao`, e `useMeusDados()` (`cena.ts`) lê a lista. O `customs` do test hook vem de `inspecao()` de `meus-dados`.
 
-Tinta e acabamento (spec `2026-11-11-numeros-pintados-mesa-design.md`): `CustomDie.ink` (`auto|ouro|escura|branca|nenhuma`) e `finish` (`gema|fosco`) são opcionais; sem campo = tinta automática (se `printed`) e gema. `inkColorOf(die, gem)` resolve a cor (automática: luminância linear da gema > 0,5 → escura `#1B1A16`, senão dourada `#D4A93F`; `null` sem gravação ou "sem tinta") e `finishOf` o acabamento. `inkTriangles(positions, solid)` marca, por **triângulo**, os do centro afundado (mesmo `dentTester` de `inkOf`/`looksNumbered`); `modelObject` a calcula uma vez por dado (só `printed`), deixa as malhas não indexadas e guarda a máscara em `geometry.userData.ink` (na geometria, não no `userData` da malha: `Object3D.clone` copiaria o array tipado como JSON). Em `Die.tsx`, STL pintado = geometria própria com atributo `color` (posições e normais compartilhadas; gema fora da gravação, tinta dentro) e material branco com `vertexColors`; fosco = `meshStandardMaterial` opaco (roughness 0,8, `transparent` ligado porque o retorno anima a opacidade); GLB ganha o atributo `color` na geometria compartilhada (branco fora, tinta dentro) e `vertexColors` nos clones. Variante nova de material (pintado/fosco) compila com `gl.compileAsync` antes de aparecer; enquanto isso o sólido ideal fica no lugar. Trocar só a cor da tinta reescreve o atributo, sem material novo. UI: `ui/InkChoice.tsx` (passo Salvar do assistente e botão **Tinta** em "Meus dados", via `store.updateCustom`); GLB com textura própria só oferece Escura e Sem tinta (`hasTexture`).
+Tinta e acabamento (spec `2026-11-11-numeros-pintados-mesa-design.md`): `CustomDie.ink` (`auto|ouro|escura|branca|nenhuma`) e `finish` (`gema|fosco`) são opcionais; sem campo = tinta automática (se `printed`) e gema. `inkColorOf(die, gem)` resolve a cor (automática: luminância linear da gema > 0,5 → escura `#1B1A16`, senão dourada `#D4A93F`; `null` sem gravação ou "sem tinta") e `finishOf` o acabamento. `inkTriangles(positions, solid)` marca, por **triângulo**, os do centro afundado (mesmo `dentTester` de `inkOf`/`looksNumbered`); `carregarModelo` (`domain/aparencia.ts`, que carrega `domain/modelo.ts` sob demanda) a calcula uma vez por dado (só `printed`), deixa as malhas não indexadas e guarda a máscara em `geometry.userData.ink` (na geometria, não no `userData` da malha: `Object3D.clone` copiaria o array tipado como JSON). Em `scene/AparenciaDoDado.tsx`/`Pintura.tsx`, STL pintado = geometria própria com atributo `color` (posições e normais compartilhadas; gema fora da gravação, tinta dentro) e material branco com `vertexColors`; fosco = `meshStandardMaterial` opaco (roughness 0,8, `transparent` ligado porque o retorno anima a opacidade); GLB ganha o atributo `color` na geometria compartilhada (branco fora, tinta dentro) e `vertexColors` nos clones. Variante nova de material (pintado/fosco) compila com `gl.compileAsync` antes de aparecer; enquanto isso o sólido ideal fica no lugar. Trocar só a cor da tinta reescreve o atributo, sem material novo. UI: `modules/meus-dados/ui/InkChoice.tsx` (passo Salvar do assistente e botão **Tinta** em "Meus dados", `ui/InkButton.tsx`, via `atualizar`); GLB com textura própria só oferece Escura e Sem tinta (`hasTexture`).
 
-Cena: `Die.tsx` mostra o sólido ideal até o arquivo ser lido (import dinâmico de `importer`, chunk separado) e então a malha: STL com o material de gema na `color`; GLB com os próprios materiais, clonados e `transparent` (o retorno anima a opacidade). `printed: true` não desenha numerais, só âncoras invisíveis em `userData.labels` (test hook e showcase acham a face pelo valor).
+Cena: `AparenciaDoDado.tsx` mostra o sólido ideal até o arquivo ser lido (`carregarModelo`: import dinâmico de `domain/modelo.ts`, chunk separado) e então a malha. O modelo lido fica em cache por `kind` até o tipo ser removido (`domain/modelo.ts`, ao carregar, assina `catalogoAlterado` e chama `forgetModel` em `removido`). O modelo salvo é relido com `LIMITES_DO_MODELO_SALVO` (`domain/limites.ts`), que precisa acompanhar `LIMITS` de `importador.ts` (há teste em `src/modules/meus-dados/tests/importador.test.ts`). A malha: STL com o material de gema na `color`; GLB com os próprios materiais, clonados e `transparent` (o retorno anima a opacidade). `printed: true` não desenha numerais, só âncoras invisíveis em `userData.labels` (test hook e showcase acham a face pelo valor).
 
-Presságios: `isD20(kind)` (`omen.ts`) = d20 embutido ou importado de base d20 com `omens: true` (padrão ligado). `registerCustom` mantém esse conjunto (`omenD20s` em `kinds.ts`). d100 e moeda continuam só embutidos.
+Presságios: `isD20(kind)` (`omen.ts`) = d20 embutido ou importado de base d20 com `omens: true` (padrão ligado). `isD20` é `paraRegras(kind) === 'd20'` (`paraRegras` de `dados`, que consulta o registro de importados e usa `tipoParaPresagio` de `regras`); no worker, sem registro, os tipos chegam já normalizados. d100 e moeda continuam só embutidos.
 
 Histórico: um dado importado vai para a API como `{ kind: 'custom:<id>', base, omens, value }`; o servidor valida o valor pela `base` e só conta presságio se `base === 'd20' && omens`.
 
@@ -105,11 +97,11 @@ Histórico: um dado importado vai para a API como `{ kind: 'custom:<id>', base, 
 Quando `detectPlanes` não reconhece d4–d20, ele lança `ImportError` com `code === 'nao-padrao'` e o assistente oferece "Importar como dado de forma livre" (`importModel(bytes, format, 'livre')`).
 
 - **Detecção** (`detectFree`): faces planas do casco com área ≥ 10% da maior; recalcula o sólido e descarta faces **instáveis** (o centroide do volume, projetado no plano, cai fora do polígono da face), até 3 passadas. Precisa de 3 a 60 faces de apoio (erro em pt-BR com o número achado). `uneven` = maior face > 2× a menor (aviso "não é justo", não erro). `dropped` = quantas faces ficaram de fora.
-- **Sólido** (`idealSolid('livre', …)`): centro no centroide do volume (não na média dos vértices), circunraio `RADIUS.livre` = 0,85; **sem `symmetrise`** (não exige faces opostas). `poly.readsDown = true` e `poly.font = 0,45 × menor inraio` (as faces variam, então `FONT[shape]` é só reserva: `poly.font ?? FONT[shape]` em `Die.tsx` e `Hand.tsx`).
+- **Sólido** (`idealSolid('livre', …)`): centro no centroide do volume (não na média dos vértices), circunraio `RADIUS.livre` = 0,85; **sem `symmetrise`** (não exige faces opostas). `poly.readsDown = true` e `poly.font = 0,45 × menor inraio` (as faces variam, então `FONT[shape]` é só reserva: `poly.font ?? FONT[shape]` em `AparenciaDoDado.tsx` e a `Vitrine`).
 - **Leitura**: `readUp` com `readsDown` escolhe a normal que aponta mais para **baixo**; o valor é o que o jogador calibrou para "ele apoiado nessa face". Valores inteiros de −99 a 999, repetição permitida (`checkFreeValue(s)`); `toResults` não mexe neles. Sem opostas, `fromTriangles('livre')` dá 1..N e `askOrder` ordena por área decrescente. `renumbered` preserva `readsDown`/`font`.
-- **Showcase**: voa até a fileira como os outros dados, com a face sorteada (a de baixo) virada para a câmera; com valores repetidos, mostra a primeira face daquele valor. Nunca dispara presságio (`isD20` é falso). Se tem números gravados (`printed`), aparece de cima, como na calibração, com a gravação de cima acesa no lugar do número solto (`inkGlow.ts`; ver apresentacao.md).
+- **Showcase**: voa até a fileira como os outros dados, com a face sorteada (a de baixo) virada para a câmera; com valores repetidos, mostra a primeira face daquele valor. Nunca dispara presságio (`isD20` é falso). Se tem números gravados (`printed`), aparece de cima, como na calibração, com a gravação de cima acesa no lugar do número solto (`inkGlow.ts`; ver `src/modules/vitrine/NOTAS.md`).
 - **Histórico**: gravado com `base: 'livre'`; o servidor só confere a faixa −99..999.
-- **Chat**: pelo apelido, como a moeda: `caveira`, `2caveira`, `2 caveira`; o nome do dado é só o `name` ("2 Caveira"). Em `parseDice` o ramo dos livres vem antes do `d`.
+- **Chat**: pelo apelido, sem o `d` (ver `src/modules/selecao/CLAUDE.md`); o nome do dado é só o `name` ("2 Caveira").
 - **Física**: `presim.ts` usa o amortecimento do d100 quando há mais de 20 faces de apoio; senão nenhum.
 - **Assistente**: calibração com a face perguntada voltada para baixo (orientação com a normal negada, contorno âmbar sem teste de profundidade); "Não, numerar para mim" dá 1..N pela ordem de área.
 
@@ -119,10 +111,10 @@ Dados "shard" têm faces longas numeradas e pontas lapidadas em camadas de facet
 
 ## Receita: adicionar um dado novo
 
-1. `kinds.ts`: incluir em `BuiltinKind` e `KINDS` (posição = ordem na UI); `BASE`; se for shape novo, `Shape` e `SIDES`. `polyhedra.ts`: se for shape novo, `RADIUS`, `rawTriangles`/construtor e `OPPOSITE_SUM`. Símbolos → `SYMBOL` + `SymbolName` + desenho em `symbols.ts`.
-2. `Die.tsx`: `GEM` (obrigatório, é `Record`), `FONT` se shape novo, `INK`/`EMBER` se preciso.
-3. `notation.ts`: sufixo em `AFTER_D` (mantendo do mais longo ao mais curto) e nome em `CUSTOM`; atualizar a mensagem de erro e a dica do `Chat.tsx`.
-4. `read.ts`: só se a regra de valor mudar.
-5. `physics/world.ts`: `DAMPING` se o corpo rolar demais; `MAX_RADIUS` se o raio passar de 0,9.
+1. `modules/regras` (`contracts.ts` e `domain/catalogo.ts`): incluir em `BuiltinKind` e `KINDS` (posição = ordem na UI); `BASE`; se for shape novo, `Shape` e `SIDES`. `modules/dados/domain/solidos.ts`: se for shape novo, `RADIUS`, `rawTriangles`/construtor e `OPPOSITE_SUM`. Símbolos → `SYMBOL` (`domain/solidos.ts`) + `SymbolName` (`contracts.ts`) + desenho em `domain/simbolos.ts`.
+2. `modules/dados/domain/aparencia.ts`: `GEM` (obrigatório, é `Record`), `FONT` se shape novo, `INK` se preciso; `EMBER` em `modules/dados/scene/GemMaterial.tsx`.
+3. `modules/selecao/domain/notacao.ts`: sufixo em `AFTER_D` (mantendo do mais longo ao mais curto) e nome em `CUSTOM` (`modules/dados/domain/aparencia.ts`); atualizar a mensagem de erro e a dica de `modules/selecao/ui/Chat.tsx`.
+4. `modules/dados/domain/leitura.ts`: só se a regra de valor mudar.
+5. `modules/arremesso/domain/world.ts`: `DAMPING` se o corpo rolar demais; `RAIO_MAXIMO` (`modules/dados/domain/solidos.ts`) se o raio passar de 0,9.
 6. `omen.ts`: só se o dado deve disparar presságio.
-7. Testes: `tests/polyhedra.test.ts`, `tests/notation.test.ts`, `tests/read.test.ts`, e um caso em `e2e/smoke.spec.ts` ("every supported selection").
+7. Testes: `src/modules/dados/tests/polyhedra.test.ts` e `read.test.ts`, `tests/notation.test.ts`, e um caso em `e2e/smoke.spec.ts` ("every supported selection").

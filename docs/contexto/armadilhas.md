@@ -5,13 +5,16 @@ Coisas que já morderam ou que quebram em silêncio. Ler antes de mexer em físi
 ## Invariantes do resultado
 
 - **O resultado vem da gravação.** Nunca reler a face na cena para decidir o valor; `results`/`raw` saem de `presimulate`. O showcase usa `raw`.
-- **Fixar a pose antes de anunciar.** Antes de `publish` (ThrowLoop) e antes de `returned` (Hand) aplicar `setTranslation/setRotation` com a pose final. Sem isso, assinantes viam a pose do passo anterior e moedas trocavam de lado no último passo; a 2ª jogada da moeda começava no ar (y≈7).
-- **Retorno da mão sob carga (aberto).** Numa rodada E2E com a máquina sobrecarregada, uma das 10 moedas ficou na mesa depois de recolher (`coin-performance`, F1). Não reproduz isolado e não tem causa confirmada; ver §4 de `docs/superpowers/specs/2026-11-11-correcao-falhas-e2e.md` antes de mexer no retorno (`Hand.tsx`, fase `returning`).
+- **Fixar a pose antes de anunciar.** Antes de `publish` (`LoopDoArremesso`) e antes de `returned` (`MaoDoArremesso`) aplicar `setTranslation/setRotation` com a pose final. Sem isso, assinantes viam a pose do passo anterior e moedas trocavam de lado no último passo; a 2ª jogada da moeda começava no ar (y≈7).
+- **Retorno da mão sob carga (aberto).** Numa rodada E2E com a máquina sobrecarregada, uma das 10 moedas ficou na mesa depois de recolher (`coin-performance`, F1). Não reproduz isolado e não tem causa confirmada; ver §4 de `docs/superpowers/specs/2026-11-11-correcao-falhas-e2e.md` antes de mexer no retorno (`MaoDoArremesso`, fase `returning`).
 - **Mesa quebrada é uma regra só.** `trayBrokenAt` (`krakenMotion.ts`) decide; qualquer interrupção (recolher, trocar seleção, movimento reduzido) recompõe a mesa. Não espalhar a regra por componentes.
+- **Só a mesa começa um arremesso.** O `pointerdown` da `.game-area` é um listener nativo: o `stopPropagation` do React chega tarde. Por isso `MaoDoArremesso` (`modules/arremesso/scene`) ignora toques que não começam no canvas; painel novo sobre a mesa não precisa de mais nada.
 - **`throwId` guarda tudo.** Qualquer callback assíncrono (worker, publish, fim de presságio, showcase) compara com o `throwId` atual e com a fase. Código novo assíncrono deve fazer o mesmo.
 - **Os corpos da cena são cinemáticos.** Dinâmica só existe no mundo offline. Não trocar a cena para dinâmica "ao vivo".
-- **Sem CCD nos dados da cena** (`<RigidBody>` em `Die.tsx`). Com `ccd`, um corpo cinemático para nas paredes invisíveis da bandeja (vão até a tampa, `TRAY.lidY = 7`). A fileira do resultado fica fora da bandeja (z ≈ 5), então na volta para a mão os dados se arrastavam ~0,07 por quadro e saltavam ~5 unidades no último quadro, e a mão "teleportava" perto das bordas. O CCD da pré-simulação (`presim.ts`, mundo separado) continua.
-- **`physics/apply.ts` é o único lugar** que muda tipo, velocidade ou pose de corpo na simulação (cena e testes compartilham).
+- **Sem CCD nos dados da cena** (`<RigidBody>` em `modules/arremesso/scene/CorpoDoDado.tsx`). Com `ccd`, um corpo cinemático para nas paredes invisíveis da bandeja (vão até a tampa, `TRAY.lidY = 7`). A fileira do resultado fica fora da bandeja (z ≈ 5), então na volta para a mão os dados se arrastavam ~0,07 por quadro e saltavam ~5 unidades no último quadro, e a mão "teleportava" perto das bordas. O CCD da pré-simulação (`presim.ts`, mundo separado) continua.
+- **O servidor só importa `src/modules/regras/index.ts`** (o teste de arquitetura barra o resto). Não volte a importar o domínio de `pressagios` (`modules/pressagios/domain/omen.ts`) lá: desde a OS-0015 ele lê o registro de importados (`src/modules/dados`), que puxa `three`, e o servidor roda TS direto no Node sem `three`.
+- **Store do IndexedDB se declara no topo do módulo** (`defineStore` em `shared/db.ts`), antes da primeira abertura do banco: depois disso, `defineStore` lança, porque a store nova não seria criada na atualização. Por isso o arquivo que declara a store não pode entrar por `import()` sob demanda, e uma store nova sobe `VERSION`. No `npm run dev`, editar `modules/meus-dados/repository.ts`/`modules/mesa/repository.ts` faz o HMR reexecutar o `defineStore` e lançar: recarregue a página.
+- **`modules/arremesso/domain/apply.ts` é o único lugar** que muda tipo, velocidade ou pose de corpo na simulação (cena e testes compartilham).
 - **Versões fixas:** `@dimforge/rapier3d-compat` 0.19.2 precisa ser a mesma do `@react-three/rapier`, senão a pré-simulação diverge da cena. troika, Vitest e Playwright também estão fixos.
 
 ## Desempenho
@@ -40,7 +43,7 @@ Coisas que já morderam ou que quebram em silêncio. Ler antes de mexer em físi
 
 ## Documentação histórica ≠ código atual
 
-`docs/superpowers/` (specs, plano, revisão) e `.superpowers/sdd/` registram o processo, não o estado atual. A spec 3D (`2026-11-08`) e a de moeda/presságios (`2026-11-10`) têm no topo uma seção **"Estado atual"** com o que mudou; o plano e a revisão não foram atualizados. Specs ativas: `2026-11-11-importar-dado-design.md` (implementada) e `2026-11-11-mesa-e-fundo-design.md` (implementada; ver mesa.md). Divergências conhecidas:
+`docs/superpowers/` (specs, plano, revisão) e `.superpowers/sdd/` registram o processo, não o estado atual. A spec 3D (`2026-11-08`) e a de moeda/presságios (`2026-11-10`) têm no topo uma seção **"Estado atual"** com o que mudou; o plano e a revisão não foram atualizados. Specs ativas: `2026-11-11-importar-dado-design.md` (implementada) e `2026-11-11-mesa-e-fundo-design.md` (implementada; ver `src/modules/mesa/NOTAS.md`). Divergências conhecidas:
 
 | A spec/plano diz | O código faz hoje |
 |---|---|
@@ -49,6 +52,6 @@ Coisas que já morderam ou que quebram em silêncio. Ler antes de mexer em físi
 | timeout de 480 passos (8 s) | `SETTLE.timeoutSteps = 240` (4 s) |
 | refração por dado com buffer compartilhado | gema por `meshPhysicalMaterial` sem passe de refração |
 | "fora de escopo: misturar tipos num arremesso" | seleção mista é suportada |
-| error boundaries para WebGL/renderer/física (R10) | implementadas: `App` sonda WebGL (`failure.ts`) e põe `store.error = 'webgl'`; `Guard` (`ui/Safeguard.tsx`) fora do `<Canvas>` = `'graphics'` e em volta de `<Physics>` = `'physics'`; `'physics'` também quando o worker e o cálculo local falham (`WORKER_TIMEOUT` em Stage.tsx). `Failure` mostra a mensagem em pt-BR. O primeiro erro registrado vale |
+| error boundaries para WebGL/renderer/física (R10) | implementadas: `App` sonda WebGL (`hasWebGL`, `shared/plataforma`) e registra `registrarFalha('webgl')`; `Guard` (`shared/plataforma/Safeguard.tsx`) fora do `<Canvas>` = `'graphics'` e em volta de `<Physics>` = `'physics'`; `'physics'` também quando o worker e o cálculo local falham (`WORKER_TIMEOUT` em app/Cena.tsx). `Failure` mostra a mensagem em pt-BR. Entre os `Guard`, o primeiro erro registrado vale (o mais interno fala primeiro); a `Cena` sobrescreve com `'physics'` quando o worker e o cálculo local falham e limpa a falha (`registrarFalha(null)`) a cada arremesso novo |
 
 Em conflito, o código e estes arquivos de `docs/contexto/` valem; atualize-os junto com a mudança.

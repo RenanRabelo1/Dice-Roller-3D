@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { tableGlb } from '../tests/helpers/tableGlb';
 
 // The d100 critical (kraken) on a customised table: the floor goes away and comes back, the shards wear the table's colours.
-const STATE = '/src/scene/tableState.ts'; // a variable, so TypeScript does not resolve the dev-server path
+const STATE = '/src/modules/mesa/store.ts'; // a variable, so TypeScript does not resolve the dev-server path
 test.use({ launchOptions: { args: [] } });
 test.setTimeout(180_000);
 
@@ -32,8 +32,8 @@ test.beforeEach(async ({ page }) => {
 
 test('the shards wear the felt colour of the table, which breaks and comes back', async ({ page }) => {
   await page.evaluate(async (path) => {
-    const { useTable } = await import(path);
-    useTable.getState().edit({ felt: { color: '#1f8f3a', texture: 'veludo' }, wood: { color: '#223344' } });
+    const { store } = await import(path);
+    store.getState().edit({ felt: { color: '#1f8f3a', texture: 'veludo' }, wood: { color: '#223344' } });
   }, STATE);
   await page.clock.runFor(100);
   await launch(page);
@@ -47,8 +47,8 @@ test('the shards wear the felt colour of the table, which breaks and comes back'
 
 test('an imported table without a floor disappears whole while the tray breaks, and returns', async ({ page }) => {
   await page.evaluate(async ({ bytes, path }) => {
-    const { useTable } = await import(path);
-    useTable.getState().apply({
+    const { store } = await import(path);
+    store.getState().apply({
       version: 1, id: 'sem-piso', name: 'Sem piso', createdAt: 1, background: { kind: 'color', color: '#140E10' },
       felt: { color: '#3A0F1A', texture: 'liso' }, wood: { color: '#3B2416' }, model: { name: 'sem-piso.glb', bytes: new Uint8Array(bytes).buffer },
     });

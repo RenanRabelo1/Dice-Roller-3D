@@ -1,22 +1,55 @@
-# Dice Roller 3D — mapa para agentes
+# Dice Roller 3D: mapa para agentes
 
-Rolador de dados 3D (React 19 + three/R3F + Rapier + zustand, Vite). UI em pt-BR. O resultado é decidido por uma pré-simulação física no arremesso e reproduzido na tela.
+Rolador de dados 3D (React 19 + three/R3F + Rapier + zustand, Vite). A UI é em pt-BR. O resultado sai de uma pré-simulação física feita no arremesso e depois é reproduzido na tela. O jogo funciona sem rede; a API de histórico (`server/`, Fastify + MongoDB) é opcional.
 
-**Leia só o módulo da tarefa** (`docs/contexto/`), não o repositório inteiro:
+**Monólito modular.** A refatoração terminou na OS-0050 (até a fase 7 do plano). O método está em [docs/guia-orquestrador.md](docs/guia-orquestrador.md); as decisões, em [docs/adr/](docs/adr/); o histórico, em [docs/plano-refatoracao.md](docs/plano-refatoracao.md) e nas ordens de serviço de [docs/ordens/](docs/ordens/). São 9 módulos: `regras`, `historico` (cliente e servidor), `dados`, `selecao`, `meus-dados`, `arremesso`, `mesa`, `pressagios` e `vitrine`. Fora deles ficam só a casca (`src/main.tsx`, `App.tsx`, `app/`, onde `app/Painel.tsx` compõe o painel) e a infraestrutura (`shared/`). Não há legado nem ponte provisória, e os testes de arquitetura não têm exceção. Demanda nova entra pelo fluxo da seção 8 do guia, no módulo dono.
+
+## Regras (seção 2 do guia, com as adaptações dos ADRs)
+
+1. **Porta única.** De fora, um módulo (`src/modules/<m>/`) só é acessado pelo `index.ts`. O `contracts.ts` pode ser importado só com `import type`. Um módulo com cena tem uma segunda porta, `cena.ts`, para componentes e hooks React. O `index.ts` continua puro, sem React, para o worker e os testes em Node (ADR 0010).
+2. **Dono dos dados.** Cada dado tem um módulo dono, registrado no bloco `donos-dos-dados` do [mapa](docs/mapa-modulos.md). Isso vale para stores zustand, stores do IndexedDB, chaves do `localStorage` e a coleção `rolls`. Ninguém lê o store de outro módulo (ADR 0003).
+3. **Contratos tipados.** Tudo o que entra e sai de um módulo está em `contracts.ts`. O frontend importa do servidor só os tipos (ADR 0004).
+4. **Sem ciclos.** Quando dois módulos precisam reagir um ao outro, a comunicação passa pelo sinal síncrono de `src/shared/events.ts` (ADR 0005).
+5. **`shared/` sem regra de negócio.** Só infraestrutura: `events`, `math`, `db`, `plataforma`, `modelos3d`. Item novo exige ADR (ADR 0008).
+6. **Um módulo por ordem de serviço.** A casca e o legado entram na ordem quando ela os lista.
+7. **Testes dentro do módulo,** em `src/**/tests/`. A pasta `tests/` da raiz fica para o que atravessa módulos (ADR 0007).
+8. **Contexto atualizado.** Quem muda comportamento atualiza a doc do módulo no mesmo commit.
+
+As regras 1, 2 e 4 são verificadas por `tests/arquitetura/`, que roda no `npm test` (ADRs 0006 e 0009). Exceções só existem nomeadas em `tests/arquitetura/config.ts`, cada uma com o ADR ou o plano que a justifica.
+
+## Onde ficam as coisas
+
+| Pasta | O que é |
+|---|---|
+| `src/main.tsx`, `src/App.tsx`, `src/app/` | A casca, raiz de composição. Não é módulo e nenhum módulo a importa. `app/Cena.tsx` monta a cena; `app/Painel.tsx` compõe o painel (cabeçalho e rodapé) com os componentes dos módulos; `app/testHook.ts` monta o `window.__dice` (ADR 0008) |
+| `src/shared/` | Infraestrutura: `events.ts`, `math.ts`, `db.ts` (`defineStore`), `plataforma/` (falha, Guard, WebGL, software, movimento reduzido), `modelos3d/` (GLB/STL com limites por parâmetro) |
+| `src/modules/<m>/` | Os módulos, criados a cada extração: `CLAUDE.md`, `index.ts`, `contracts.ts`, `tests/` |
+| `server/` | A API de histórico, um pacote à parte |
+| `tests/`, `e2e/` | A rede de segurança, os testes de arquitetura e os E2E do sistema inteiro |
+
+Os módulos, com responsabilidade, dependências permitidas e estado, estão em [docs/mapa-modulos.md](docs/mapa-modulos.md). Na ordem de extração são: `regras`, `historico`, `dados`, `selecao`, `meus-dados`, `arremesso`, `mesa`, `pressagios` e `vitrine`.
+
+## Leia só o que a tarefa pede
+
+O contexto de cada módulo fica no `CLAUDE.md` dele (e o detalhe, no `NOTAS.md`). Em `docs/contexto/` fica o que atravessa os módulos.
 
 | Tarefa | Ler |
 |---|---|
-| Primeira vez, stack, comandos, onde fica cada coisa, glossário | [visao-geral.md](docs/contexto/visao-geral.md) |
-| Mira, carga, fases, store, física, pré-simulação, worker, parada, retorno | [arremesso.md](docs/contexto/arremesso.md) |
-| Tipos de dado, geometria, numeração, leitura, símbolos, notação/chat, **adicionar dado** | [dados.md](docs/contexto/dados.md) |
-| Depois do resultado: presságios (raio, kraken, fogo, tempestade, dualidade), voo até a câmera, números em destaque | [apresentacao.md](docs/contexto/apresentacao.md) |
-| Vitest, Playwright, `window.__dice`, gate | [testes.md](docs/contexto/testes.md) |
-| Fundo, mesa (cores, textura), exportar/importar mesa `.glb`, kraken nos cacos | [mesa.md](docs/contexto/mesa.md) |
-| Antes de mexer em física, cena ou desempenho; specs antigas vs. código | [armadilhas.md](docs/contexto/armadilhas.md) |
+| Primeira vez: stack, comandos, onde fica cada coisa, glossário | [visao-geral.md](docs/contexto/visao-geral.md) |
+| Mira, carga, fases, store, física, pré-simulação, worker, parada, retorno | [src/modules/arremesso/CLAUDE.md](src/modules/arremesso/CLAUDE.md) |
+| Tipos de dado, geometria, numeração, leitura, símbolos, aparência | [src/modules/dados/CLAUDE.md](src/modules/dados/CLAUDE.md) |
+| A mão, notação e chat, apelido | [src/modules/selecao/CLAUDE.md](src/modules/selecao/CLAUDE.md) |
+| Importar dado (assistente, detecção, calibração, gravação) | [src/modules/meus-dados/CLAUDE.md](src/modules/meus-dados/CLAUDE.md) |
+| **Adicionar um tipo de dado** e o detalhe dos importados | [dados.md](docs/contexto/dados.md) |
+| Depois do resultado: presságios (raio, kraken, fogo, tempestade, dualidade) | [src/modules/pressagios/CLAUDE.md](src/modules/pressagios/CLAUDE.md) |
+| Depois do resultado: voo até a câmera, números em destaque, painel | [src/modules/vitrine/CLAUDE.md](src/modules/vitrine/CLAUDE.md) |
+| Vitest, Playwright, `window.__dice`, testes de arquitetura, gate | [testes.md](docs/contexto/testes.md) |
+| Fundo, mesa (cores, textura), exportar e importar mesa `.glb`, kraken nos cacos | [src/modules/mesa/CLAUDE.md](src/modules/mesa/CLAUDE.md) |
+| Antes de mexer em física, cena ou desempenho; specs antigas × código | [armadilhas.md](docs/contexto/armadilhas.md) |
+| Demanda nova: a que módulo pertence | [mapa-modulos.md](docs/mapa-modulos.md) e seção 8 do [guia](docs/guia-orquestrador.md) |
 | Próximas features combinadas, ainda sem spec | [backlog.md](docs/backlog.md) |
 
-Gate: `npm run build && npm run lint && npm test && npm run e2e`.
-`docs/superpowers/` é histórico e diverge do código (ver armadilhas.md). Mudou o comportamento? Atualize o módulo correspondente no mesmo commit.
+Gate: `npm run build && npm run lint && npm test && npm run test:server && npm run e2e`. Rode os E2E um por vez, com a máquina livre, porque os botões de presságio têm orçamento de tempo. `docs/superpowers/` é histórico e diverge do código (ver armadilhas.md).
 
 # Referências Three.js
 

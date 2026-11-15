@@ -10,7 +10,7 @@ Combinado com o usuário em 2026-11-11. As três foram especificadas pela sessã
 
 Implementado (2026-11-12): **dado de forma livre voa até a frente no resultado** — [2026-11-12-forma-livre-voa-design.md](superpowers/specs/2026-11-12-forma-livre-voa-design.md).
 
-A ideia do "abraço de tentáculos no 100 do d100" foi coberta pelo PR #4 do Renan: o 100 agora é a tempestade, com tentáculos saindo do mar em volta da bandeja (ver apresentacao.md).
+A ideia do "abraço de tentáculos no 100 do d100" foi coberta pelo PR #4 do Renan: o 100 agora é a tempestade, com tentáculos saindo do mar em volta da bandeja (ver `src/modules/pressagios/NOTAS.md`).
 
 Pedido em 2026-11-12, ainda sem spec: **refatoração visual do site** (seção 4) e **duas correções** (seção 5, não fazem parte da refatoração visual).
 
@@ -29,7 +29,7 @@ As notas abaixo são o contexto original que gerou as specs; valem as specs.
 ## 2. Fundo 360° (fase 3 da mesa)
 
 - **O quê:** foto panorâmica (2:1, equirretangular) como ambiente: aparece em volta da mesa e **reflete nos dados de gema**.
-- **De onde parte:** fases 1 e 2 em `docs/superpowers/specs/2026-11-11-mesa-e-fundo-design.md` e `docs/contexto/mesa.md`. Hoje o fundo de foto é CSS atrás do canvas e os reflexos vêm de `Lightformer`s.
+- **De onde parte:** fases 1 e 2 em `docs/superpowers/specs/2026-11-11-mesa-e-fundo-design.md` e `src/modules/mesa/CLAUDE.md` (detalhe em `NOTAS.md`). Hoje o fundo de foto é CSS atrás do canvas e os reflexos vêm de `Lightformer`s.
 - **Cuidados:** trocar o mapa de ambiente pode recompilar shaders (ver `docs/contexto/armadilhas.md`); custo de PMREM ao trocar; tamanho da imagem; medir o crítico do d100 com o fundo 360° ligado.
 - **Perguntas para a spec:** substitui os `Lightformer`s ou soma? Aceita `.hdr`/`.exr` ou só JPG/PNG? Vai dentro do `.glb` da mesa?
 
@@ -53,7 +53,7 @@ As notas abaixo são o contexto original que gerou as specs; valem as specs.
   2. **Destacar o que fica para cima**, não a face de apoio. "Face oposta" nem sempre existe: num shard de 5 ou 7 lados, oposta a uma face longa fica uma **aresta**, entre duas faces. Então destacar a face (ou as faces) cuja normal aponta mais para cima, e marcar a face de apoio só de leve, encostada no chão.
   3. **Pergunta:** "Com o dado caído assim, que número você lê em cima?".
   4. A prévia girando continua no passo de antes (escolher modelo e cor); a pose acima só no passo de numerar.
-- **De onde parte:** estilos em `src/index.css` (sem biblioteca de componentes), UI em `src/ui/` (`Controls`, `Chat`, `ImportDie`, `TablePanel`, `OmenOverlay`, `Safeguard`). Mapa em `docs/contexto/visao-geral.md`.
+- **De onde parte:** estilos em `src/index.css` (sem biblioteca de componentes), UI em `src/ui/` (`Controls`) e nos módulos (`selecao/ui`, `meus-dados/ui`, `arremesso/ui`, `mesa/ui`, `pressagios/ui`, com o CSS do presságio em `pressagios/ui/presagios.css`). Mapa em `docs/contexto/visao-geral.md`.
 - **Cuidados:** os E2E acham os controles por papel e nome acessível (`getByRole('button', { name: … })`, `getByLabel`); manter os textos e papéis ou atualizar os testes junto. Não mexer no canvas 3D nem no desempenho (`docs/contexto/armadilhas.md`).
 - **Perguntas para a spec:** direção visual (referências, paleta, tipografia)? Tudo de uma vez ou por painel? Mobile primeiro? Vale um design system mínimo (tokens de cor, espaçamento, botões) antes das telas?
 
@@ -67,7 +67,7 @@ As notas abaixo são o contexto original que gerou as specs; valem as specs.
 - **Proposta (revista com o João):** o número do resultado é o **próprio número gravado**, com a tinta preenchendo o afundado, e não um texto solto em cima da face lisa. Vale para dado de forma livre **com números gravados** (`printed: true`):
   - `showcasePoses`: com `poly.readsDown`, virar a face de apoio para **longe** da câmera (usar `-normal` do rótulo; o "para cima" continua `label.up`). É a mesma vista da prévia de calibração (`orientation(-n)` em `ImportDie.tsx`), em que o jogador leu o número.
   - **Acender a gravação certa:** não se sabe qual número gravado é qual. Mas, com o dado apoiado na face A, o número lido é a gravação que fica **para cima**. Então acender só os triângulos de tinta (`geometry.userData.ink`, um por triângulo) cuja normal aponta para cima com o dado nessa pose (normal · −n_A acima de um limiar). Acender = clarear e pulsar a cor de vértice desses triângulos (mesmo ritmo do destaque, 0,9 Hz) mexendo só no atributo `color`. Sem material novo nem luz (não recompila shader; ver armadilhas.md).
-  - `Hand.tsx`: esse dado **não** ganha o número em destaque solto (o `Text`); a gravação acesa é o destaque.
+  - A `Vitrine` (`modules/vitrine/scene/Vitrine.tsx`): esse dado **não** ganha o número em destaque solto (o `Text`); a gravação acesa é o destaque.
   - Testes: `tests/showcase.test.ts` (forma livre gravada: normal do rótulo aponta para longe da câmera) e uma função pura testada que escolhe os triângulos a acender. E2E do prisma em `e2e/import.spec.ts` ajustado.
 - **Dado de forma livre sem gravação** (`printed: false`): continua como está hoje. O número é pintado por nós na face de apoio, que vira para a câmera com o número grudado nela, no tamanho que cabe na face.
 - **Limite:** num shard, de cima podem aparecer duas gravações (as duas faces da aresta de cima). As duas acendem; é o que o jogador veria na mesa.
@@ -78,3 +78,11 @@ As notas abaixo são o contexto original que gerou as specs; valem as specs.
 
 - **Pedido:** ver a tinta dos números e o acabamento mudarem na prévia girando enquanto configura o dado, antes de salvar. Na mesa a tinta já funciona.
 - **Hoje:** no último passo do assistente, trocar "Tinta dos números" (Automática/Dourada/Escura/Branca/Sem tinta) ou "Acabamento" (Gema/Fosco) não muda nada no dado girando. Causa: `InkChoice` só guarda `ink`/`surface` no estado do `ImportDie` (linha ~370) e eles só vão para o dado salvo (linha ~263); o `<Preview>` (linha ~305) não recebe nenhum dos dois e desenha sempre a gema com `color`. Corrigir: passar `ink` e `surface` para o `Preview` e pintar a gravação do mesmo jeito que o `Die` da mesa faz (`inkTriangles` / `userData.ink`, cores de `INK_COLORS`), com material fosco quando `surface === 'fosco'`. Conferir no jogo que a tinta e o fosco chegam ao dado na mesa depois de salvar (é o que o jogador vê de verdade).
+
+## 6. Achados da refatoração
+
+Levantados na fase 7 (OS-0050). Não foram apagados porque cada um é de um módulo (regra 6: uma ordem por módulo) e um deles pode ser defeito, não sobra.
+
+- **`clampHandX`** (`arremesso/domain/world.ts`): só `arremesso/tests/world.test.ts` usa. Em produção, a mão é limitada por `vortexCenter` (`domain/vortex.ts`), que faz o próprio limite pelo alcance do redemoinho. **Pergunta:** apagar `clampHandX` (e ajustar o teste para `vortexCenter`) numa ordem do `arremesso`?
+- **`checkTheme`** (`mesa/domain/tableTheme.ts`): valida um tema (versão, cores, tema pronto, limites do fundo e da textura), mas só `mesa/tests/table.test.ts` o chama. Os extras de um `.glb` importado já passam por `readExtras` (`tableTheme.ts:89-101`), que valida e limita hex, temas prontos, textura e os limites do fundo. Fica sem checagem o tema lido do IndexedDB, que só passa pelo filtro `version === 1` em `repository.ts:7`, e também as cores de `colors`. Já apontado em `docs/diagnostico.md`, seção 10, item 6 (linha 232). **Pergunta:** a validação se perdeu numa feature antiga (defeito: ligar `checkTheme` na leitura e na importação, o que muda comportamento) ou é sobra (apagar)? Decidir com o usuário antes da ordem do `mesa`.
+- Ficam, de propósito: `assinarArremesso` (`arremesso`), `SYMBOLS` (`dados`), `pisoEstaOculto` (`mesa`) e `carregarImportador` (`meus-dados`), que existem para os testes e o pré-carregamento.

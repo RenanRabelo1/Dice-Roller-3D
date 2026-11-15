@@ -1,9 +1,10 @@
 import { Euler, Quaternion, Vector3 } from 'three';
 import { ConvexHull } from 'three/examples/jsm/math/ConvexHull.js';
-import type { Vec3 } from '../../src/physics/world';
-import { registerCustom, type StdBase, type CustomDie } from '../../src/dice/custom';
-import { detectFree, detectPlanes, idealSolid, renumbered } from '../../src/dice/importer';
-import { polyhedron, type Polyhedron } from '../../src/dice/polyhedra';
+import type { Vec3 } from '../../src/shared/math.ts';
+import { polyhedron, registerCustom, type CustomDie, type Polyhedron, type StdBase } from '../../src/modules/dados/index.ts';
+import { carregarImportador } from '../../src/modules/meus-dados/index.ts';
+
+const { detectFree, detectPlanes, idealSolid, renumbered } = await carregarImportador();
 
 // Die models made from the app's own solids, standing in for files a player would import.
 

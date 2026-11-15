@@ -1,0 +1,7 @@
+{
+  "semResultado": "<output data-testid=\"result\" aria-live=\"polite\"></output>",
+  "umD20": "<output data-testid=\"result\" aria-live=\"polite\"><strong>17</strong></output>",
+  "variosDados": "<output data-testid=\"result\" aria-live=\"polite\"><strong>60</strong><span>d6: 3 + 5 · d20: 12 · d100: 40</span></output>",
+  "soMoedas": "<output data-testid=\"result\" aria-live=\"polite\"><strong>2 caras, 1 coroa</strong><span>Moeda: Cara, Cara, Coroa</span></output>",
+  "presagioTocando": "<output data-testid=\"result\" aria-live=\"polite\"></output>"
+}

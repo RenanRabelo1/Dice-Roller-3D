@@ -1,48 +1,41 @@
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { Stage } from './scene/Stage';
-import { Controls } from './ui/Controls';
-import { OmenOverlay } from './ui/OmenOverlay';
-import { useDice } from './store';
-import { Backdrop } from './scene/Backdrop';
-import { hasWebGL } from './failure';
-import { Failure, Guard } from './ui/Safeguard';
-import { useTable } from './scene/tableState';
-import { warmImageDecoder } from './scene/tableImages';
-import { saveRoll } from './api/history';
+import { Cena } from './app/Cena.tsx';
+import { Painel } from './app/Painel.tsx';
+import { BotoesDeTeste, OverlayDoPresagio } from './modules/pressagios/cena.ts';
+import { Failure, Guard, hasWebGL, observarPreferenciaDoSistema, registrarFalha, useFalha } from './shared/plataforma/index.ts';
+import { carregar as carregarMesa, warmImageDecoder } from './modules/mesa/index.ts';
+import { FundoCss } from './modules/mesa/cena.ts';
+import { iniciarHistorico } from './modules/historico/index.ts';
+import { carregar } from './modules/meus-dados/index.ts';
 
 export default function App() {
   const gameArea = useRef<HTMLDivElement>(null);
-  const error = useDice((s) => s.error);
-  useState(() => { if (!hasWebGL()) useDice.getState().setError('webgl'); }); // before the first Canvas render
-  useEffect(() => { void useDice.getState().loadCustoms(); void useTable.getState().load(); warmImageDecoder(); }, []);
-  useEffect(() => {
-    const media = matchMedia('(prefers-reduced-motion: reduce)');
-    const update = () => useDice.getState().setReducedMotion(media.matches);
-    update(); media.addEventListener('change', update);
-    return () => media.removeEventListener('change', update);
-  }, []);
-  // Every published result goes to the roll history (when the app has an API address; see src/api/history).
-  useEffect(() => useDice.subscribe((s, prev) => {
-    if (s.results && s.results !== prev.results) saveRoll(s.dice, s.results, s.force);
-  }), []);
+  const error = useFalha();
+  useState(() => { if (!hasWebGL()) registrarFalha('webgl'); }); // before the first Canvas render
+  useEffect(() => { void carregar(); void carregarMesa(); warmImageDecoder(); }, []);
+  useEffect(() => observarPreferenciaDoSistema(), []);
+  // Every published result goes to the roll history (when the app has an API address; see src/modules/historico).
+  // Subscribed here, last, after the modules that subscribe on load (pressagios).
+  useEffect(() => iniciarHistorico(), []);
   return (
     <main className="app">
-    <Controls />
+    <Painel />
     <div ref={gameArea} className="game-area" tabIndex={0} aria-label="Área de arremesso">
-      <Backdrop />
+      <FundoCss />
       {!error && (
         <Guard kind="graphics">
           <Canvas shadows camera={{ position: [0, 14, 10], fov: 40 }}
             gl={{ preserveDrawingBuffer: import.meta.env.MODE === 'test' }}>
             <Suspense fallback={null}>
-              <Stage gameArea={gameArea} />
+              <Cena gameArea={gameArea} />
             </Suspense>
           </Canvas>
         </Guard>
       )}
       <Failure />
-      <OmenOverlay gameArea={gameArea} />
+      <OverlayDoPresagio gameArea={gameArea} />
+      {import.meta.env.DEV && <BotoesDeTeste gameArea={gameArea} />}
     </div>
     </main>
   );

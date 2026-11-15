@@ -51,7 +51,7 @@ Há uma coleção, `rolls`, com um documento por arremesso:
 Escolhas de modelagem:
 
 - **Os dados ficam embutidos no arremesso.** São no máximo 10 e sempre são lidos junto com ele. Uma coleção separada de dados só custaria joins.
-- **`total` e `omen` são calculados pelo servidor** com as mesmas regras do front (`src/dice/kinds.ts` e `src/dice/omen.ts`). O cliente não consegue inventar um crítico.
+- **`total` e `omen` são calculados pelo servidor** com as mesmas regras do front, do módulo `src/modules/regras/` (importado só pelo `index.ts`). O cliente não consegue inventar um crítico.
 - **Há um índice, `player_history` = `{ playerId: 1, _id: -1 }`.** Ele atende a única consulta, que traz o histórico de um jogador do mais novo para o mais antigo, sem ordenar em memória.
 - **A coleção tem validador (`$jsonSchema`).** Documentos malformados são recusados até se alguém escrever direto no banco.
 

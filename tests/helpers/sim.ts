@@ -1,7 +1,7 @@
 import RAPIER, { type RigidBody } from '@dimforge/rapier3d-compat';
-import type { DieKind } from '../../src/dice/polyhedra';
-import { presimulate } from '../../src/physics/presim';
-import { handPositions, type Vec3 } from '../../src/physics/world';
+import type { DieKind } from '../../src/modules/regras/index.ts';
+import { handPositions, presimulate } from '../../src/modules/arremesso/index.ts';
+import type { Vec3 } from '../../src/shared/math.ts';
 
 // rapier3d-compat 0.19.2's init() always hands wasm-bindgen a bare byte array, which logs a deprecation
 // warning no argument of ours can avoid; mute exactly that line while the module loads.

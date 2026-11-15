@@ -1,7 +1,7 @@
 import { mkdir } from 'node:fs/promises';
 import { test, expect } from '@playwright/test';
-import type { DieKind } from '../src/dice/polyhedra';
-import type { Quat } from '../src/physics/world';
+import type { DieKind } from '../src/modules/regras/index';
+import type { Quat } from '../src/shared/math';
 
 const orientations: { name: string; q: Quat }[] = [
   { name: 'identity', q: [0, 0, 0, 1] },
@@ -23,7 +23,7 @@ for (const width of [1440, 390]) {
       await page.evaluate((kind) => window.__dice.select([kind]), kind);
       const expectedLabels = shape === 'd4' ? 12 : shape === 'd6' ? 6 : shape === 'd20' ? 20 : shape === 'd100' ? 100 : 10;
       await expect.poll(() => page.evaluate(() => window.__dice.labels(0).length)).toBe(expectedLabels);
-      // Gold numerals on dark gems (d4, d6); dark numerals on light gems (d10, d20, d100, see INK in Die.tsx).
+      // Gold numerals on dark gems (d4, d6); dark numerals on light gems (d10, d20, d100, see numeralInk in src/modules/dados/domain/aparencia.ts).
       const darkInk = shape === 'd10' || shape === 'd20' || shape === 'd100';
       for (const { name, q } of orientations) {
         await page.evaluate((q) => window.__dice.previewSurface(0, [0, 2, 0], q), q);

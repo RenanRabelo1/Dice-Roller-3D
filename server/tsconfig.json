@@ -14,5 +14,5 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true
   },
-  "include": ["src", "test", "vitest.config.ts"]
+  "include": ["src", "vitest.config.ts"]
 }

@@ -1,13 +1,16 @@
 import { Quaternion, Vector3 } from 'three';
 import { afterEach, describe, expect, it } from 'vitest';
-import { customKind, finishOf, INK_COLORS, inkColorOf, registerPoly, unregisterCustom, type CustomDie } from '../src/dice/custom';
-import { formatDice, parseDice, resultText, slugOf, slugProblem } from '../src/dice/notation';
-import { isD20, omenOf } from '../src/dice/omen';
-import { baseOf, polyhedron, sortDice } from '../src/dice/polyhedra';
-import { readUp, toResults } from '../src/dice/read';
-import { customDieOf, freeDieOf, prismTriangles } from './helpers/models';
-import { simulate } from './helpers/sim';
-import { checkFreeValue, checkFreeValues } from '../src/dice/importer';
+import { baseOf, customKind, polyhedron, readUp, registerPoly, sortDice, toResults, unregisterCustom } from '../src/modules/dados/index.ts';
+import { resultText } from '../src/modules/vitrine/index.ts';
+import { formatDice, parseDice, slugOf, slugProblem } from '../src/modules/selecao/index.ts';
+import { isD20 } from '../src/modules/pressagios/index.ts';
+import { omenKinds } from '../src/modules/arremesso/index.ts';
+import { omenOf } from '../src/modules/regras/index.ts';
+import { customDieOf, freeDieOf, prismTriangles } from './helpers/models.ts';
+import { simulate } from './helpers/sim.ts';
+import { carregarImportador } from '../src/modules/meus-dados/index.ts';
+
+const { checkFreeValue, checkFreeValues } = await carregarImportador();
 
 const skull = () => customDieOf('d20', 'Caveira', 'caveira');
 afterEach(() => { for (const id of ['caveira', 'cav', 'osso']) unregisterCustom(customKind(`test-${id}`)); });
@@ -52,8 +55,8 @@ describe('imported dice in play', () => {
     const on = customKind(customDieOf('d20', 'Cav', 'cav').id), off = customKind(customDieOf('d20', 'Caveira', 'caveira', { omens: false }).id);
     expect(isD20(on)).toBe(true);
     expect(isD20(off)).toBe(false);
-    expect(omenOf([on, off], [20, 20])).toEqual({ crits: [0], fumbles: [] });
-    expect(omenOf([on, off], [1, 1])).toEqual({ crits: [], fumbles: [0] });
+    expect(omenOf(omenKinds([on, off]), [20, 20])).toEqual({ crits: [0], fumbles: [] });
+    expect(omenOf(omenKinds([on, off]), [1, 1])).toEqual({ crits: [], fumbles: [0] });
   });
   it('rolls in the tray: stays inside, reads 1..20, deterministic', async () => {
     const kind = customKind(skull().id);
@@ -119,20 +122,5 @@ describe('a free-form die in the chat', () => {
   });
   it('refuses the words the chat already reads as a nickname', () => {
     for (const s of ['moeda', 'boladefogo']) expect(slugProblem(s)).toBeTruthy();
-  });
-});
-
-describe('ink and finish of an imported die', () => {
-  const base = { printed: true } as CustomDie;
-  it('a record without the fields gets automatic ink when printed, nothing otherwise, and the gem finish', () => {
-    expect(inkColorOf(base, '#E8F1F8')).toBe(INK_COLORS.escura); // light gem: dark ink
-    expect(inkColorOf(base, '#231C20')).toBe(INK_COLORS.ouro); // dark gem: gold
-    expect(inkColorOf({ printed: false } as CustomDie, '#E8F1F8')).toBeNull();
-    expect(finishOf(base)).toBe('gema');
-  });
-  it('honours the player’s choice', () => {
-    expect(inkColorOf({ ...base, ink: 'branca' }, '#E8F1F8')).toBe(INK_COLORS.branca);
-    expect(inkColorOf({ ...base, ink: 'nenhuma' }, '#E8F1F8')).toBeNull();
-    expect(finishOf({ ...base, finish: 'fosco' })).toBe('fosco');
   });
 });
