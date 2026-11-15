@@ -11,12 +11,12 @@ Do gesto ao resultado: a mira, a carga da força e o redemoinho dos dados na mã
 - Mira: raycast em y=0 com `clampTarget`, setas movem 0,5, só em `hand`/`charging`. Teclado só com foco na área; `blur` cancela.
 - Carga `relative`: onda 0→1→0 a cada 1.400 ms; `static`: sobe a 1 em 700 ms e fica.
 - `input` com efeito `throw` cria o `Launch` num único `set` (semente de `crypto.getRandomValues`, mão real).
-- `publish` só vale com o `throwId` atual e fase `rolling`: um `set` e, no mesmo tique, `resultadoPublicado.emit`. O presságio (legado) reage com outro `set`: são dois `set` no mesmo tique (OS-0031).
+- `publish` só vale com o `throwId` atual e fase `rolling`: um `set` e, no mesmo tique, `resultadoPublicado.emit`. O store de `pressagios` assina `resultadoPublicado` e reage com outro `set`: são dois `set` no mesmo tique (OS-0031).
 - Worker: sem resposta em 2 s (+ `BIAS_BUDGET.worker` com viés), ou com erro, `presimulateFor` roda na thread principal e o worker não volta. Se o local falhar, `reiniciar()` e `registrarFalha('physics')`. Respostas antigas são descartadas por `throwId` e fase.
 - Replay: um quadro por passo físico, corpos sempre cinemáticos e sem CCD (armadilhas.md); fixa a pose final antes de `publish`.
 - Retorno: 400 ms (150 ms com movimento reduzido), fixa a pose exata antes de `returned`.
 - A pré-simulação é determinística: as mesmas entradas dão a mesma gravação.
-- O DOM do rodapé (`ModoDeRolagem`, `BarraDeForca`, `DicaDaFase`) é contrato dos E2E e do CSS; `tests/componentes.test.ts` o compara com o rodapé legado.
+- O DOM do rodapé (`ModoDeRolagem`, `BarraDeForca`, `DicaDaFase`) é contrato dos E2E e do CSS; `tests/componentes.test.ts` o compara com o rodapé de antes da extração (fixture).
 
 ## Expõe
 - `index.ts`: `arremesso()` e as ações (`input`, `publish`, `reiniciar`, `setAim`, `setForce`, `setChargeMode`, `setReady`); `assinarArremesso`; `resultadoPublicado` (só `subscribe`); `registroDeCorpos`; `moverDado(i, pose, fixar = true)` (só em `settled`, a única escrita de pose nessa fase, por `apply.ts`; noutra fase ou em vaga vazia não faz nada); `envelopeDaMao()` (os pontos extremos da maior mão e do redemoinho, para o enquadramento da câmera da casca); `inspecao()` → `{ corpos(), lancamentos() }` (os `bodies()`/`launches()` do test hook); `criarWorkerDePresimulacao`; o domínio puro (`reduce`, `charge`, `clampTarget`, `TRAY`, `trayColliders`, `HAND`, `STEP`, `GRAVITY`, `presimulate`, `presimulateFor`, `omenKinds`, `plays`, o redemoinho...).
@@ -28,9 +28,9 @@ Do gesto ao resultado: a mira, a carga da força e o redemoinho dos dados na mã
 - `dados`: `polyhedron`, `readUp`, `toResults`, `customsOf`, `registerPoly`, `paraRegras`, `RAIO_MAXIMO`, `definirOpacidade`, `definirSombra` (a `MaoDoArremesso` não procura `die-i`/`gem-i` pelo nome), `<AparenciaDoDado/>`.
 - `regras`: `MAX_DICE`, `omenKind`, `omenOf` e os tipos de dado.
 - `src/shared`: `events` (`createSignal`), `math`, `plataforma` (`movimentoReduzido`, `registrarFalha`, `useFalha`).
-- Do legado, por prop-função da casca: `omenTest` (o botão de teste de presságio, que mora em `pressagios`: `presagio().omenTest`).
+- `pressagios`, por prop-função da casca (inversão de dependência): `omenTest`, o botão de teste de presságio, que mora em `pressagios`. Como `pressagios` depende de `arremesso`, importá-lo daqui criaria um ciclo; a casca passa `() => presagio().omenTest` ao `<LoopDoArremesso/>`.
 
 ## Fora do escopo
-- Depois de `settled`: o presságio (`pressagios`), o voo, os números e o resultado (`vitrine`). O `Hand` da vitrine (legado) lê `registroDeCorpos` e move só por `moverDado`; o `PresagiosNaCena` (`pressagios`) só lê.
-- `dadoNaCena` da spec não existe: ninguém o chama (o `Hand` usa `dadoNaRaiz` de `dados`), OS-0043.
+- Depois de `settled`: o presságio (`pressagios`), o voo, os números e o resultado (`vitrine`). A `Vitrine` (`vitrine/scene/Vitrine.tsx`) lê `registroDeCorpos` e move só por `moverDado`; o `PresagiosNaCena` (`pressagios`) só lê.
+- `dadoNaCena` da spec não existe: ninguém o chama (a `Vitrine` usa `dadoNaRaiz` de `dados`), OS-0043.
 - A aparência da bandeja (`mesa`), o DPR e a câmera (casca).

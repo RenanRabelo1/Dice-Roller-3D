@@ -12,7 +12,8 @@ import { registrarLancamento, registroDeCorpos } from './corpos.ts';
 
 const WORKER_TIMEOUT = 2000; // ms; a ten-dice recording takes well under 200 ms
 
-// `omenTest`: the dev test button that is on, read each step (the bridge to the legacy store, which the module cannot import).
+// `omenTest`: the dev test button that is on, read each step. It lives in `pressagios`, which depends on `arremesso`, so the
+// shell passes it as a function (dependency inversion; importing `pressagios` here would make a cycle).
 export function LoopDoArremesso({ omenTest: testeAtual }: { omenTest: () => OmenTest | null }) {
   const play = useRef<{ throwId: number; request: RollRequest; rec: Recording | null; at: number; sent: number } | null>(null);
   const worker = useRef<Worker | null>(null);

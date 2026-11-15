@@ -71,7 +71,7 @@ export function panoramaTexture(bg: { image: Blob; format: 'ldr' | 'hdr' }): Pro
 }
 
 async function loadPanorama(bg: { image: Blob; format: 'ldr' | 'hdr' }): Promise<Texture> {
-  // On a software renderer (SwiftShader, marked by Stage), half-size panoramas keep the first frame affordable.
+  // On a software renderer (SwiftShader, marked by the shell's `app/Cena.tsx` via `marcarRenderizadorPorSoftware()`), half-size panoramas keep the first frame affordable.
   const maxPx = renderizadorPorSoftware() ? LIMITS.panoramaPx / 2 : LIMITS.panoramaPx;
   let tex: Texture, w: number, h: number;
   if (bg.format === 'ldr') {

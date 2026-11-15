@@ -30,7 +30,7 @@ O `inspecao(scene, programas)` do `index.ts` é o `window.__dice.table()`: a cas
 - **Mesa:** `MesaNaCena` desenha `buildDefault(tema)` na hora (cores/texturas geradas) e, se o tema tem modelo ou imagem de feltro, troca pelo `buildFor(tema)` quando decodifica. Nomes na cena: grupo `mesa` → `tray-surface` (base + `feltro`), `moldura` (4 paredes), `guia-area-de-jogo` (caixa 14 × 1,5 × 9, invisível), `fundo` (só no arquivo).
 - A cor do feltro multiplica a textura. Ao escolher uma imagem própria o painel põe o feltro em `#FFFFFF` (a imagem aparece como é) e avisa que a cor tinge; veludo e couro mantêm a cor.
 - **Tema ativo = registro salvo.** Editar a mesa padrão cria "Minha mesa"; editar grava com atraso de 300 ms (e no `pagehide`). Sem IndexedDB vale só na sessão (`sessionOnly`, o painel avisa).
-- **Kraken:** `Kraken.start(..., coresDaMesa())`: cacos com o feltro da mesa e a madeira "iluminada" (`shardWood`; a madeira padrão dá `#815435`, igual a antes). Sem nó `piso`, o modelo inteiro some na quebra (o grupo raiz vira `tray-surface`). Quem decide a quebra é o `QuebraDaMesa` (legado de `pressagios`); a mesa só obedece a `ocultarPiso`.
+- **Kraken:** `Kraken.start(..., coresDaMesa())`: cacos com o feltro da mesa e a madeira "iluminada" (`shardWood`; a madeira padrão dá `#815435`, igual a antes). Sem nó `piso`, o modelo inteiro some na quebra (o grupo raiz vira `tray-surface`). Quem decide a quebra é o `QuebraDaMesa` (do módulo `pressagios`); a mesa só obedece a `ocultarPiso`.
 
 ## Exportar e importar (`.glb` autocontido)
 

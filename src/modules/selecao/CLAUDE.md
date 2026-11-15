@@ -21,7 +21,7 @@ Quais dados estão na mão do jogador e como ele os escolhe: os botões de cada 
 - `formatDice(dice)` → `"2d10 + 1d10 Vampiro + 2 moedas"`.
 - Apelido (`slugProblem`): `^[a-z][a-z0-9]{0,15}$`, não começa com `d` + dígito, não é palavra do chat (`v vampiro fome fogo moeda moedas boladefogo`) e é único. `slugOf(nome)` sugere um, sem acento e em minúsculas.
 - Chat: a tecla `C` abre e fecha (ignorada enquanto se digita ou com Ctrl/Meta/Alt), `Esc` fecha e devolve o foco ao botão. Enter/Aplicar só chama `definir` se a notação é válida. Mostra no máximo 20 linhas.
-- O DOM dos componentes (textos, `aria-label`, roles, classes) é contrato dos E2E e do CSS; `tests/componentes.test.ts` o compara com o cabeçalho legado.
+- O DOM dos componentes (textos, `aria-label`, roles, classes) é contrato dos E2E e do CSS; `tests/componentes.test.ts` o compara com o cabeçalho de antes da extração (fixture).
 
 ## Expõe
 - `index.ts`: `selecao()`, `adicionar(kind)`, `remover(kind)`, `definir(dice)`, `selecaoAlterada` (só `subscribe`), `parseDice`, `formatDice`, `slugProblem`, `slugOf`.

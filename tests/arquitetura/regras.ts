@@ -132,7 +132,8 @@ export const semCasca = (g: Grafo) => internas(g).filter((a) => moduloDe(a.de) &
 
 /** A module file imports, inside `src/`, only its own module, another module (its doors, `index.ts` or `cena.ts`: see
  * `portaUnica`) or
- * `src/shared/**`. Legacy (`src/dice`, `scene`, `physics`, `throw`, `ui`, `api`, `store.ts`, `testHook`…) and shell fail.
+ * `src/shared/**`. Importing the shell, or any other file outside the modules and `src/shared`, fails (today only the
+ * shell is there; the rule also catches any file that appears outside them).
  * Packages and the server (`fronteiraDoServidor`) are outside `src/`, so not this rule's. */
 export const moduloSemLegado = (g: Grafo) => internas(g).filter((a) => {
   const m = moduloDe(a.de);

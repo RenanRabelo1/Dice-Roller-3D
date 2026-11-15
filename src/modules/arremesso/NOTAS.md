@@ -27,13 +27,13 @@ Store zustand vanilla do módulo (OS-0031), escrito só lá. Campos de `EstadoDo
 O estado do presságio (`omen`, `omenAt`, `omenDone`, `omenRig`, `omenTest`) saiu para `pressagios` na OS-0038: o store de lá assina `resultadoPublicado` e decide o presságio no mesmo tique (dois `set`, OS-0031); o `showcased` é da `vitrine` (`vitrine()`, OS-0041; o `useDice` legado deixou de existir). Quem precisa dos três junta `{ ...arremesso(), ...presagio(), ...vitrine() }`. A casca (`App.tsx`) assina o mesmo evento para gravar o histórico, depois que os módulos carregaram.
 
 - A falha `'physics'` vive em `shared/plataforma` (`falha()`, `useFalha()`), não no store; `<DicaDaFase/>` a mostra.
-- Movimento reduzido também vive em `shared/plataforma` (`movimentoReduzido()`); `MaoDoArremesso` o lê (sem balanço da mão, retorno curto com fade), como o `Hand` da vitrine, o `QuebraDaMesa` (`pressagios/scene`) e o `__dice.state().reducedMotion`; o `App.tsx` chama `observarPreferenciaDoSistema`.
+- Movimento reduzido também vive em `shared/plataforma` (`movimentoReduzido()`); `MaoDoArremesso` o lê (sem balanço da mão, retorno curto com fade), como a `Vitrine` (`vitrine`), o `QuebraDaMesa` (`pressagios/scene`) e o `__dice.state().reducedMotion`; o `App.tsx` chama `observarPreferenciaDoSistema`.
 - O registro de corpos e a contagem de lançamentos (`scene/corpos.ts`) valem para o módulo inteiro e não zeram se a `Cena` for remontada (no HEAD da OS-0033 eram refs da `Cena`). Hoje a `Cena` só desmonta numa falha e não volta na mesma sessão; cada E2E abre página nova.
 
 ## Cena (`scene/`)
 
 - `corpos.ts`: `registroDeCorpos.current[i]` é o corpo do dado `i` (o `CorpoDoDado` grava na criação e põe `null` ao desmontar). `registrarLancamento` conta os lançamentos e guarda as poses antes/depois do último. `inspecao()` lê os dois. Sem React; o Rapier entra só como tipo.
-- `MaoDoArremesso`: entrada por ponteiro e teclado, mira, seta (`ArrowHelper`), redemoinho, `motion` e retorno. É montada logo antes do `Hand` do legado (a parte `settled`), para o quadro dela rodar antes.
+- `MaoDoArremesso`: entrada por ponteiro e teclado, mira, seta (`ArrowHelper`), redemoinho, `motion` e retorno. A casca a monta logo antes da `<Vitrine/>` (`vitrine`, a parte `settled`), para o quadro dela rodar antes.
 - `LoopDoArremesso`: o laço abaixo, em `useBeforePhysicsStep`.
 - `CorpoDoDado`: o corpo cinemático de cada dado, sem CCD, com a `AparenciaDoDado` de `dados` e `userData.selection`.
 - `ColisoresDaBandeja`: o corpo fixo com `trayColliders()`; a `MesaNaCena` (`mesa`) passa a mesa como filha dela.
@@ -46,7 +46,7 @@ O estado do presságio (`omen`, `omenAt`, `omenDone`, `omenRig`, `omenTest`) sai
 4. **Pré-simulação**: o `LoopDoArremesso` detecta `throwId` novo, captura as poses atuais dos corpos e manda `RollRequest { dice, start, launch, customs, bias? }` ao worker. `bias` só existe com um botão de teste de presságio ligado (`omenTest`, prop-função da casca; `kinds` vem de `omenKinds`) e faz `presimulateFor` procurar, dentro de `BIAS_BUDGET`, uma semente que produza aquele presságio. Sem worker, ou sem resposta em 2 s (`WORKER_TIMEOUT`), → `presimulateFor` síncrono (fallback); se ele também falhar, os dados voltam à mão com `error: 'physics'`. Logo depois grava o lançamento (`registrarLancamento`).
 5. **Replay**: a cada passo físico aplica `rec.frames[at]` via `setNextKinematicTranslation/Rotation`. Quem simula dinâmica é só o mundo offline.
 6. **Publicação**: no último quadro, fixa a pose final com `setTranslation/setRotation` **antes** de `publish(throwId, rec.results, rec.raw)`.
-7. **Settled** → apresentação (presságio, voo, números). Nessa fase só `moverDado(i, pose, fixar)` (`domain/mover.ts` → `moverCorpo` de `apply.ts`) mexe na pose: o `Hand` da vitrine a chama para o voo e para fixar a pose (`fixar`: `setTranslation`/`setRotation` sem acordar e, sempre, `setNextKinematic*`). Clique/Espaço → `returning`.
+7. **Settled** → apresentação (presságio, voo, números). Nessa fase só `moverDado(i, pose, fixar)` (`domain/mover.ts` → `moverCorpo` de `apply.ts`) mexe na pose: a `Vitrine` (`vitrine`) a chama para o voo e para fixar a pose (`fixar`: `setTranslation`/`setRotation` sem acordar e, sempre, `setNextKinematic*`). Clique/Espaço → `returning`.
 8. **Retorno**: interpola as poses até os lugares do redemoinho (`restingPlaces`), fixa a pose final e só então emite `returned`.
 
 Descartes por `throwId`: resposta do worker de arremesso antigo, publish atrasado, seleção trocada no meio; tudo comparado com `arremesso().throwId` e fase `rolling`.

@@ -16,7 +16,7 @@ Os dados que o jogador traz de arquivo `.stl` ou `.glb`: o assistente de importa
 - `excluir` (o botão pede confirmação) apaga o registro e depois tira o tipo do catálogo; `selecao` reage a `catalogoAlterado`.
 - O assistente monta na primeira abertura (`alternarImportacao`) e continua montado depois de fechar (`fecharImportacao`).
 - Só registros `version === 1` são carregados, em ordem de `createdAt`.
-- O DOM dos componentes (textos, `aria-label`, roles, classes) é contrato dos E2E e do CSS; `tests/componentes.test.ts` o compara com o cabeçalho legado.
+- O DOM dos componentes (textos, `aria-label`, roles, classes) é contrato dos E2E e do CSS; `tests/componentes.test.ts` o compara com o cabeçalho de antes da extração (fixture).
 
 ## Expõe
 - `index.ts`: `carregar()` (a casca chama na montagem), `salvar`, `atualizar`, `excluir`, `meusDados()`, `alternarImportacao()`, `fecharImportacao()`, `inspecao()` (o `customs` do test hook), `montarDado`, `tintaPermitida`, `carregarImportador()`.

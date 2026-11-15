@@ -14,7 +14,7 @@ import { registroDeCorpos } from './corpos.ts';
 
 // The hand in the throw: pointer and keyboard input, the aim and its arrow, the whirl of the dice in the hand, the
 // hand's motion handed on to the launch, and the return to the hand. What happens in `settled` is not here.
-// Mounted right before the legacy `Hand`, so this frame runs before the showcase's, as in the single frame of old.
+// The shell mounts it right before the `vitrine`'s `<Vitrine/>`, so this frame runs before the showcase's.
 export function MaoDoArremesso({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> }) {
   const { camera, gl, scene } = useThree();
   const motion = useRef<{ center: Vec3; omega: Vec3 }>({ center: [0, HAND.y, HAND.z], omega: [0, 0, 0] });
