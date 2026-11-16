@@ -16,6 +16,8 @@ Do gesto ao resultado: a mira, a carga da força e o redemoinho dos dados na mã
 - Replay: um quadro por passo físico, corpos sempre cinemáticos e sem CCD (armadilhas.md); fixa a pose final antes de `publish`.
 - Retorno: 400 ms (150 ms com movimento reduzido), fixa a pose exata antes de `returned`.
 - A pré-simulação é determinística: as mesmas entradas dão a mesma gravação.
+- Luz da carga (OS-0057): um `<pointLight>` dentro da `MaoDoArremesso`, sempre montada, sem sombra, `intensity={0}` por padrão (o número de luzes nunca muda: armadilhas.md). No `useFrame` recebe `intensidadeDaCarga(fase, força, renderizadorPorSoftware())` (regra pura em `domain/luz.ts`: 0 fora de `charging` e no software; `base + ganho × força`) e fica sobre a mira. Não pisca nem treme, então não trata movimento reduzido; o worker não a importa.
+- A dica (`DicaDaFase`) tem `key={texto}`: o `<p>` remonta a cada troca de texto e o CSS da casca (`footer.status > p`, animação `dica`) faz o fade.
 - O DOM do rodapé (`ModoDeRolagem`, `BarraDeForca`, `DicaDaFase`) é contrato dos E2E e do CSS; `tests/componentes.test.ts` o compara com o rodapé de antes da extração (fixture).
 
 ## Expõe
