@@ -303,3 +303,8 @@ canvas { display: block; }
   .livro > #table-panel [aria-label="Tipo de fundo"], .livro > #table-panel [aria-label="Temas de fundo"] { grid-template-columns: repeat(2, 1fr); }
   .import-passos { flex-wrap: wrap; height: auto; gap: 8px 14px; margin: 0 0 12px; }
 }
+
+/* OS-0057: dica */
+footer.status > p { animation: dica var(--t-curto, 160ms) ease-out; }
+@keyframes dica { from { opacity: 0; } to { opacity: 1; } }
+.app[data-movimento="reduzido"] footer.status > p { animation: none; }
