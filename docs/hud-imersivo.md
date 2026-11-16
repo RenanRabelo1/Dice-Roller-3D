@@ -259,3 +259,13 @@ OS-0062 e OS-0066 rodam juntas. OS-0063 a 0065 rodam juntas depois da 0062.
 - `screens.spec.ts` (d4/d10 sem tinta em 1440 px no marco 2): o orquestrador bissecta entre o fim do marco 1 (`4dd61ab`) e a OS-0058 antes de aceitar. Se for a luz base do `Cena.tsx`, vira ordem de correção à parte.
 
 **Fora da parte 3:** escolha manual de qualidade na interface (fica para quando alguém pedir), trocar o perfil durante o uso e mudar qualquer efeito do perfil completo.
+
+## Parte 3 concluída
+
+OS-0062 a 0066 integradas.
+- **Aparelho fraco:** o `coin-software` passa em todas as rodadas, e o `omen` passou 15 de 15 com a cena mais leve.
+- **E2E completo:** 17 de 17 specs. O `table.spec.ts:34` estourou o tempo uma vez e passou ao repetir.
+- **`screens.spec.ts`:** a falha do d4/d10 não voltou depois do perfil leve, então não foi preciso bisseccionar.
+- **Correções na conferência:** o campo de texto do livro com o estilo do pergaminho (O-2 da auditoria), a sombra da virada sem alargar a rolagem do capítulo e o movimento reduzido desligando o tremor da falha (O-1).
+- **Pendente de decisão do João:** a limpeza sugerida em [auditoria-codigo.md](auditoria-codigo.md).
+- **Comparação visual da vinheta da força** no perfil completo: o João avalia na cena real.
