@@ -104,7 +104,7 @@ function Preview({ loaded, color, orient, face, plain, dressed, ink, finish, pri
   );
 }
 
-export function AssistenteDeImportacao({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function AssistenteDeImportacao({ open, onClose, onSaved }: { open: boolean; onClose: () => void; onSaved: () => void }) {
   const { customs, sessionOnly } = useMeusDados(), selected = useSelecao();
   const [step, setStep] = useState<Step>('file');
   const [loaded, setLoaded] = useState<Loaded | null>(null);
@@ -277,7 +277,7 @@ export function AssistenteDeImportacao({ open, onClose }: { open: boolean; onClo
     setBusy(false);
     if (failure) { setError(failure); return; }
     if (selected.length < MAX_DICE) adicionar(customKind(die.id));
-    close();
+    onSaved(); reset();
   };
 
   const turnLabel = imp && face !== undefined && !isD4 ? sidesOf(imp.poly, face) : 0;
@@ -289,16 +289,24 @@ export function AssistenteDeImportacao({ open, onClose }: { open: boolean; onClo
         <button aria-label="Fechar importação" onClick={close}>×</button>
       </header>
       <div className="import-body">
+        <ol className="import-passos">
+          <li aria-current={step === 'file' ? 'step' : undefined}>Arquivo</li>
+          <li aria-current={step === 'shape' ? 'step' : undefined}>Forma</li>
+          <li aria-current={step === 'numbers' ? 'step' : undefined}>Números</li>
+          <li aria-current={step === 'save' ? 'step' : undefined}>Salvar</li>
+        </ol>
         {sessionOnly && <p className="import-note" role="status">Este navegador não deixa guardar dados: o dado fica só nesta sessão.</p>}
         {step === 'file' && (
           <label className="import-drop" onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); void pick(e.dataTransfer.files[0]); }}>
             <span>Arraste um arquivo <b>.stl</b> ou <b>.glb</b> aqui, ou escolha no computador.</span>
             <small>Até {LIMITS.bytes / 1024 / 1024} MB e {LIMITS.triangles.toLocaleString('pt-BR')} triângulos. Dados d4, d6, d8, d10, d12 e d20; qualquer outro sólido vira dado de forma livre.</small>
-            <input type="file" accept=".stl,.glb" data-testid="import-file" onChange={(e) => { void pick(e.target.files?.[0]); e.target.value = ''; }} />
+            <span className="import-drop-botao" aria-hidden="true">Escolher arquivo</span>
+            <input type="file" className="sr-only" accept=".stl,.glb" data-testid="import-file" onChange={(e) => { void pick(e.target.files?.[0]); e.target.value = ''; }} />
           </label>
         )}
         {step === 'file' && notStandard && (
           <div className="import-choice" data-testid="import-not-standard">
+            {error && <p className="import-note" role="alert">{error}</p>}
             <button className="primary" disabled={busy} onClick={() => void goFree()}>Importar como dado de forma livre<small>Qualquer sólido com 3 a 60 faces planas onde ele pare</small></button>
           </div>
         )}
@@ -325,7 +333,6 @@ export function AssistenteDeImportacao({ open, onClose }: { open: boolean; onClo
             {free ? (
               <>
                 <p data-testid="import-shape">Dado de forma livre: encontrei <strong>{imp.poly.faces.length} faces de apoio{!layers && reading < imp.poly.faces.length ? `, ${reading} valem como resultado` : ''}</strong>. {loaded.fileName}: {prettySize(loaded.bytes.byteLength)}, {imp.triangles.toLocaleString('pt-BR')} triângulos.</p>
-                {!!imp.dropped && <p className="import-note">Ignorei {imp.dropped} {imp.dropped === 1 ? 'face' : 'faces'} onde o dado não para.</p>}
                 {layers && (
                   <div className="import-choice" data-testid="import-tier">
                     <p><strong>Encontrei {imp.tier} faces grandes e {imp.poly.faces.length - imp.tier!} menores (pontas). Usar só as grandes como resultado?</strong></p>
@@ -384,7 +391,7 @@ export function AssistenteDeImportacao({ open, onClose }: { open: boolean; onClo
           </form>
         )}
         {busy && step === 'file' && <p role="status">Lendo o modelo…</p>}
-        {error && <p className="import-error" role="alert">{error}</p>}
+        {error && !notStandard && <p className="import-error" role="alert">{error}</p>}
       </div>
       <footer>{customs.length > 0 && <small>{customs.length} dado(s) guardado(s) neste navegador.</small>}</footer>
     </aside>
