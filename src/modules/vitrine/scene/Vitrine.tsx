@@ -1,16 +1,17 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import type { RapierRigidBody } from '@react-three/rapier';
-import { Color, Group, Matrix4, Mesh, MeshBasicMaterial, Quaternion, Vector3, type BufferGeometry, type Object3D, type PerspectiveCamera } from 'three';
+import { Color, Group, PointLight, Matrix4, Mesh, MeshBasicMaterial, Quaternion, Vector3, type BufferGeometry, type Object3D, type PerspectiveCamera } from 'three';
 import { Text } from 'troika-three-text';
 import { customDie, dadoNaRaiz, FONT, FONT_URL, gemaNaRaiz, gemColor, inkColorOf, polyhedron, RADIUS, sombraNaGema, SYMBOL, symbolGeometry } from '../../dados/index.ts';
 import { isCustom, MAX_DICE } from '../../regras/index.ts';
 import { easeOut, type Pose, type Quat, type Vec3 } from '../../../shared/math.ts';
-import { movimentoReduzido } from '../../../shared/plataforma/index.ts';
+import { movimentoReduzido, renderizadorPorSoftware } from '../../../shared/plataforma/index.ts';
 import { arremesso, moverDado, registroDeCorpos } from '../../arremesso/index.ts';
 import { CAPTION, showcasePoses } from '../domain/showcase.ts';
 import { highlightAt, HL_SIZE, SHOW } from '../domain/highlight.ts';
 import { glowMesh } from '../domain/inkGlow.ts';
+import { intensidadeDoDestaque } from '../domain/destaque.ts';
 import { setShowcased, vitrine } from '../store.ts';
 import { indicesComPercurso, movimentoNoPresagio, presagio, presagioTocando } from '../../pressagios/index.ts';
 
@@ -21,6 +22,9 @@ type Mark = { local: Vector3; turn: Quaternion; start: Vector3; face: Vector3; s
 export function Vitrine() {
   const { camera, scene } = useThree();
   const mode = useRef('');
+  // The highlight light: always mounted (the light count never changes), off at intensity 0, no shadow.
+  const luz = useRef<PointLight>(null);
+  const luzAntes = useRef(0);
   const showcase = useRef<{ at: number; throwId: number; from: Pose[]; to: Pose[]; kraken: number[]; storm: number[]; omenAt: number; gems: (Object3D | undefined)[]; marks: Mark[]; above: boolean[]; glows: (Mesh | null)[]; still?: boolean; landed?: boolean } | null>(null);
   // The rolled numbers that rise over the settled dice, ride to their faces and glow (one per die, drawn on top).
   const numbersGroup = useRef<Group>(null);
@@ -62,12 +66,26 @@ export function Vitrine() {
     return state.ready && registered.length === expected ? registered : null;
   }, []);
 
+  // Rides the flight: at the arrival poses' centre, toward the camera. Outside the showcase it fades to 0 in 200 ms.
+  const destacar = (show: { at: number; to: Pose[]; still?: boolean } | null, now: number) => {
+    const l = luz.current;
+    if (!l) return;
+    const dt = now - luzAntes.current; luzAntes.current = now;
+    if (!show) { l.intensity = Math.max(0, l.intensity - (5 * dt) / 200); return; }
+    const centro = new Vector3();
+    show.to.forEach((t) => centro.add(new Vector3(...t.p)));
+    l.position.copy(centro.divideScalar(show.to.length || 1)).add(new Vector3(0, 0.6, 1.2).applyQuaternion(camera.quaternion));
+    // Reduced motion skips the flight: straight to the final value, no flicker.
+    l.intensity = intensidadeDoDestaque(show.still ? SHOW.duration : now - show.at - SHOW.delay, SHOW.duration, renderizadorPorSoftware());
+  };
+
   useFrame(() => {
     const numbers = numbersRef.current, glyphs = glyphsRef.current;
     const state = { ...arremesso(), ...presagio(), ...vitrine() }, phase = state.gesture.phase;
+    const now = performance.now();
+    destacar(phase === 'settled' ? showcase.current : null, now);
     const current = live();
     if (!current) return;
-    const now = performance.now();
     const identity = state.dice.join(',');
     const active = phase === 'hand' || phase === 'charging';
     const nextMode = active ? `${identity}-hand` : `${identity}-${phase}`;
@@ -192,5 +210,10 @@ export function Vitrine() {
     }
   });
 
-  return <group ref={numbersGroup} name="result-highlights" />;
+  return (
+    <>
+      <group ref={numbersGroup} name="result-highlights" />
+      <pointLight ref={luz} color="#ffe8c0" intensity={0} distance={8} decay={2} />
+    </>
+  );
 }
