@@ -38,7 +38,7 @@ const meusDados = async (p: Page) => {
   if (await p.locator('#meus-dados').getAttribute('data-open') !== 'true')
     await p.locator('.chat-toggle', { hasText: 'Meus dados' }).click();
 };
-const rollAndCheck =async (p: Page) => {
+const rollAndCheck = async (p: Page) => {
   await throwWithSpace(p); await settled(p);
   const results = (await p.evaluate(() => window.__dice.state().results))!;
   expect(await p.evaluate(() => window.__dice.state().error)).toBeNull();
