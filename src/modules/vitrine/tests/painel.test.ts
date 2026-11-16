@@ -9,16 +9,16 @@ import type { DieKind } from '../../regras/index.ts';
 
 // The panel reads the throw and the omen through their scene doors; here they answer from a fake state (the stores of
 // `arremesso` and `pressagios` are private to them, rule 1).
-const h = vi.hoisted(() => ({ dice: [] as DieKind[], results: null as number[] | null, tocando: false }));
+const h = vi.hoisted(() => ({ dice: [] as DieKind[], results: null as number[] | null, tocando: false, throwId: 1, omen: null as null | { throwId: number; crits: number[]; fumbles: number[] } }));
 vi.mock('../../arremesso/cena.ts', () => ({ useArremesso: <T,>(sel: (s: typeof h) => T) => sel(h) }));
-vi.mock('../../pressagios/cena.ts', () => ({ usePresagioTocando: () => h.tocando }));
+vi.mock('../../pressagios/cena.ts', () => ({ usePresagioTocando: () => h.tocando, usePresagio: <T,>(sel: (s: typeof h) => T) => sel(h) }));
 
 import { PainelDoResultado } from '../cena.ts';
 
 type Caso = 'semResultado' | 'umD20' | 'variosDados' | 'soMoedas' | 'presagioTocando';
 const antes: Record<Caso, string> = JSON.parse(readFileSync(new URL('./fixtures/painel-antes.json', import.meta.url), 'utf-8'));
 
-const em = (dice: DieKind[], results: number[] | null, tocando = false) => Object.assign(h, { dice, results, tocando });
+const em = (dice: DieKind[], results: number[] | null, tocando = false) => Object.assign(h, { dice, results, tocando, omen: null });
 
 describe('<PainelDoResultado/>: o mesmo DOM do painel legado', () => {
   const casos: [Caso, () => void][] = [
@@ -35,5 +35,17 @@ describe('<PainelDoResultado/>: o mesmo DOM do painel legado', () => {
 
   it('presságio tocando deixa o painel vazio', () => {
     expect(antes.presagioTocando).toBe(antes.semResultado);
+  });
+
+  it('data-presagio só com o presságio do mesmo arremesso', () => {
+    const html = () => renderToStaticMarkup(createElement(PainelDoResultado));
+    em(['d20'], [20]);
+    h.omen = { throwId: 1, crits: [0], fumbles: [] };
+    expect(html()).toContain('data-presagio="crit"');
+    h.omen = { throwId: 0, crits: [0], fumbles: [] };
+    expect(html()).not.toContain('data-presagio');
+    em([], null);
+    h.omen = { throwId: 1, crits: [0], fumbles: [] };
+    expect(html()).not.toContain('data-presagio');
   });
 });
