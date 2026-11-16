@@ -19,7 +19,7 @@ Aparência da mesa e do fundo: temas prontos, cores, texturas do feltro, foto de
 ## Expõe
 - `index.ts`: `carregar()` (a casca chama na montagem; é o `load` do store), `mesa()` e as ações (`apply`, `edit`, `copy`, `remove`, `reset`), `coresDaMesa()`, `ocultarPiso(on)` (chamado por `pressagios`, no `QuebraDaMesa`), `temaDaMesaImportada`, `inspecao(scene, programas)` (o `table()` do test hook), `carregarArquivoDeMesa()`, `warmImageDecoder` e o domínio que o painel usa (`DEFAULT_THEME`, `PRESETS`, `LIMITS`, os `clamp*`, `colorsOf`, `disposeTable`, `reduceImage`, `preparePanorama`, `panoramaTexture`, `panoramaPicture`, `TableError`, `fileSafe`).
 - Tipos (`contracts.ts`): `TableState`, `TableTheme`, `Background`, `PresetName`, `MesaImportada`, `MesaInspecionada`.
-- `cena.ts`: `useMesa(sel)`; `<MesaNaCena/>` (o visual, dentro dos colisores de `arremesso`), `<AmbienteDaMesa podeTrocar luzes>{Lightformers}</AmbienteDaMesa>`, `<FundoCss/>`, `<PainelDaMesa/>` (botão **Mesa**, tecla `M`, `Esc` fecha).
+- `cena.ts`: `useMesa(sel)`; `<MesaNaCena/>` (o visual, dentro dos colisores de `arremesso`), `<AmbienteDaMesa podeTrocar luzes>{Lightformers}</AmbienteDaMesa>`, `<FundoCss/>`, `<PainelDaMesa aberto onAlternar onFechar/>` (capítulo do livro, controlado pela casca; a tecla `M` continua no módulo e alterna via `onAlternar`; `Esc` e × chamam `onFechar`; o botão **Mesa** fica na faixa de cima da casca, em `src/app/Painel.tsx`).
 
 ## Consome
 - `arremesso`: `TRAY` e `trayColliders` (as medidas da área de jogo, para o encaixe) e `<ColisoresDaBandeja/>`.
@@ -29,4 +29,4 @@ Aparência da mesa e do fundo: temas prontos, cores, texturas do feltro, foto de
 - Quando a mesa quebra e a cor dos cacos: `pressagios` (`QuebraDaMesa` e `Kraken`, em `pressagios/scene`).
 - Os colisores: `arremesso`.
 - O DPR, as luzes, os `Lightformer`s e o momento de trocar o panorama (`podeTrocar`): casca.
-- O CSS do painel.
+- O botão **Mesa** e o estado aberto/fechado do livro (`src/app/Painel.tsx`); o CSS do painel.

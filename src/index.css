@@ -219,3 +219,22 @@ canvas { display: block; }
 .livro > #dice-chat .chat-log [data-error] { color: #9b2a1a; }
 .livro > #dice-chat .chat-log .hint { color: var(--sepia); opacity: 1; }
 @media (max-width: 800px) { .livro > #dice-chat { grid-template-columns: 1fr; column-gap: 0; padding: 24px 20px; } .livro > #dice-chat form { grid-column: 1; grid-row: auto; padding-top: 0; } }
+
+/* OS-0053: the table chapter. .import-body is the double page: Fundo and Mesa on the left, Arquivo and Mesas salvas on the right. */
+.livro > #table-panel { grid-template-rows: auto 1fr; }
+.livro > #table-panel .import-body { column-count: 2; column-gap: 96px; overflow-y: auto; min-height: 0; display: block; }
+.livro > #table-panel fieldset, .livro > #table-panel .import-body > p, .livro > #table-panel [role="alertdialog"] { break-inside: avoid; }
+.livro > #table-panel fieldset { border: 0; border-radius: 0; padding: 0 0 18px; margin: 0; }
+.livro > #table-panel legend { font-family: Cinzel, serif; font-weight: 700; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--rubrica); padding: 0 0 8px; }
+.livro > #table-panel .table-row { font-family: inherit; }
+.livro > #table-panel input[type="range"] { accent-color: var(--lacre); border-bottom: 0; }
+.livro > #table-panel input[type="color"] { width: 48px; height: 30px; padding: 0; border: 1px solid #8a6a3e; background: none; }
+.livro > #table-panel select { font-family: EB Garamond, serif; font-size: 16px; color: var(--tinta); background: rgba(255, 250, 236, .35); border: 1px solid var(--fio); min-height: 44px; padding: 0 8px; }
+.livro > #table-panel [aria-label="Tipo de fundo"] { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.livro > #table-panel [aria-label="Temas de fundo"] { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.livro > #table-panel fieldset > .import-row:not([role]) { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+.livro > #table-panel .table-list li { display: flex; gap: 6px; }
+.livro > #table-panel .table-list li button:first-child { flex: 1; text-align: left; }
+.livro > #table-panel small { color: var(--sepia); font-style: italic; font-size: 14px; }
+.livro > #table-panel .import-error { color: #9b2a1a; background: none; border: 0; }
+@media (max-width: 800px) { .livro > #table-panel .import-body { column-count: 1; } }

@@ -6,7 +6,7 @@ O detalhe que não cabe no [CLAUDE.md](CLAUDE.md). Leia só quando a ordem manda
 
 | Arquivo | Papel |
 |---|---|
-| `index.ts`, `cena.ts` | as portas: `index.ts` puro (`carregar`, `mesa()`, as ações, `coresDaMesa()`, `ocultarPiso(on)`, `temaDaMesaImportada`, `inspecao`, o domínio que o painel usa, `carregarArquivoDeMesa`); `cena.ts` com `useMesa(sel)`, `<MesaNaCena/>`, `<AmbienteDaMesa/>`, `<FundoCss/>` e `<PainelDaMesa/>` |
+| `index.ts`, `cena.ts` | as portas: `index.ts` puro (`carregar`, `mesa()`, as ações, `coresDaMesa()`, `ocultarPiso(on)`, `temaDaMesaImportada`, `inspecao`, o domínio que o painel usa, `carregarArquivoDeMesa`); `cena.ts` com `useMesa(sel)`, `<MesaNaCena/>`, `<AmbienteDaMesa/>`, `<FundoCss/>` e `<PainelDaMesa/>` (controlado: `aberto`, `onAlternar`, `onFechar`) |
 | `domain/tableTheme.ts` | puro: `TableTheme`, `DEFAULT_THEME` (= a mesa de antes), temas prontos (`PRESETS`, gradientes CSS), `LIMITS`, `checkTheme`, `extrasOf`/`readExtras` (o tema que viaja no `.glb`) |
 | `store.ts` | store zustand vanilla (`mesa()` fora do React, `useMesa` em `ui/useMesa.tsx`): tema ativo, mesas salvas, `sessionOnly`, `colors` (cores que a mesa realmente mostra; o kraken usa por `coresDaMesa()`; o único escritor é a `MesaNaCena`). A ação `load` sai pelo `index.ts` como `carregar` |
 | `repository.ts` | IndexedDB store `tables` + id ativo em `localStorage['mesa.ativa']` |
@@ -19,7 +19,7 @@ O detalhe que não cabe no [CLAUDE.md](CLAUDE.md). Leia só quando a ordem manda
 | `scene/piso.ts` | sem React: a flag `pisoOculto` e o piso atual. `ocultarPiso(on)` grava a flag e aplica `visible = !on` na hora; um piso novo herda a flag; o que sai volta visível |
 | `scene/AmbienteDaMesa.tsx` | cor de fundo (`<color attach="background">`), panorama 360° e `<EnvironmentPortal>`; recebe `podeTrocar`, as luzes (`luzes`) e os `Lightformer`s (`children`) da casca |
 | `ui/FundoCss.tsx` | foto/tema pronto em CSS **atrás** do canvas (desfoque e escurecer grátis na GPU) |
-| `ui/PainelDaMesa.tsx` | painel "Personalizar mesa" (botão **Mesa**, tecla `M`, `Esc` fecha); era `src/ui/TablePanel.tsx`. O `Painel` da casca (`src/app/Painel.tsx`) o monta no cabeçalho |
+| `ui/PainelDaMesa.tsx` | painel "Personalizar mesa", capítulo do livro (tecla `M` alterna e `Esc` fecha, via props); era `src/ui/TablePanel.tsx`. O `Painel` da casca (`src/app/Painel.tsx`) guarda o estado, tem o botão **Mesa** na faixa de cima e o monta no `.livro` |
 | `src/modules/pressagios/scene/QuebraDaMesa.tsx` (fora do módulo) | de `pressagios`: a cada quadro, `ocultarPiso(trayBrokenAt(...))`. A casca o monta logo antes da `<MesaNaCena/>` |
 
 O `inspecao(scene, programas)` do `index.ts` é o `window.__dice.table()`: a casca (`app/Cena.tsx`) passa a cena e `gl.info.programs.length`. Lê o tema ativo e, na cena, as cores e a textura de `feltro` e `base`/`madeira`, a caixa da `guia-area-de-jogo` e `userData.imported` do grupo `mesa`.
