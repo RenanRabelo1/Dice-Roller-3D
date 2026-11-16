@@ -4,7 +4,7 @@ import type { RapierRigidBody } from '@react-three/rapier';
 import { ArrowHelper, Color, Plane, PointLight, Quaternion, Raycaster, Vector2, Vector3 } from 'three';
 import { definirOpacidade, definirSombra, polyhedron } from '../../dados/index.ts';
 import type { Quat, Vec3 } from '../../../shared/math.ts';
-import { movimentoReduzido, renderizadorPorSoftware } from '../../../shared/plataforma/index.ts';
+import { movimentoReduzido, perfilLeve, renderizadorPorSoftware } from '../../../shared/plataforma/index.ts';
 import { charge, clampTarget } from '../domain/aim.ts';
 import { toKinematic } from '../domain/apply.ts';
 import { intensidadeDaCarga, LUZ_DA_CARGA } from '../domain/luz.ts';
@@ -107,10 +107,12 @@ export function MaoDoArremesso({ gameArea }: { gameArea: RefObject<HTMLDivElemen
   useFrame((_, elapsed) => {
     const state = arremesso(), phase = state.gesture.phase;
     const marker = arrow.current!;
-    // The charge light is always mounted and has no shadow (the light count never changes); it goes out at intensity 0.
-    const light = luz.current!;
-    light.intensity = intensidadeDaCarga(phase, state.force, renderizadorPorSoftware());
-    if (light.intensity > 0) light.position.set(state.aim[0], state.aim[1] + LUZ_DA_CARGA.altura, state.aim[2]);
+    // The charge light has no shadow and mounts once per session: not at all in the light profile (ADR 0011), always in the full one.
+    const light = luz.current;
+    if (light) {
+      light.intensity = intensidadeDaCarga(phase, state.force, renderizadorPorSoftware());
+      if (light.intensity > 0) light.position.set(state.aim[0], state.aim[1] + LUZ_DA_CARGA.altura, state.aim[2]);
+    }
     const current = live();
     marker.visible = !preview && !!current && (phase === 'hand' || phase === 'charging');
     if (!current) return;
@@ -197,7 +199,7 @@ export function MaoDoArremesso({ gameArea }: { gameArea: RefObject<HTMLDivElemen
   return (
     <>
       <arrowHelper ref={arrow} />
-      <pointLight ref={luz} intensity={0} color={LUZ_DA_CARGA.cor} distance={LUZ_DA_CARGA.alcance} decay={2} />
+      {!perfilLeve() && <pointLight ref={luz} intensity={0} color={LUZ_DA_CARGA.cor} distance={LUZ_DA_CARGA.alcance} decay={2} />}
     </>
   );
 }
