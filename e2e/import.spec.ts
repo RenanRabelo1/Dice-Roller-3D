@@ -33,7 +33,12 @@ const save = async (p: Page, name: string) => {
   await p.getByRole('button', { name: 'Salvar' }).click();
   await expect(p.locator('#import-die')).toHaveAttribute('data-open', 'false'); // saved and closed
 };
-const rollAndCheck = async (p: Page) => {
+// Imported dice live in the "Meus dados" chapter, which only shows while open (Salvar leaves it open; a reload or another chapter closes it).
+const meusDados = async (p: Page) => {
+  if (await p.locator('#meus-dados').getAttribute('data-open') !== 'true')
+    await p.locator('.chat-toggle', { hasText: 'Meus dados' }).click();
+};
+const rollAndCheck =async (p: Page) => {
   await throwWithSpace(p); await settled(p);
   const results = (await p.evaluate(() => window.__dice.state().results))!;
   expect(await p.evaluate(() => window.__dice.state().error)).toBeNull();
@@ -60,6 +65,7 @@ test('import a plain d20 STL → roll → top face is the result → reload keep
   expect(result).toBeGreaterThanOrEqual(1); expect(result).toBeLessThanOrEqual(20);
 
   await page.reload(); await ready(page);
+  await meusDados(page);
   await expect(page.getByRole('button', { name: 'Adicionar d20 Caveira' })).toBeVisible();
   await page.keyboard.press('c');
   await page.getByLabel(/^Dados, por exemplo/).fill('2d20caveira + d6');
@@ -69,6 +75,7 @@ test('import a plain d20 STL → roll → top face is the result → reload keep
   await rollAndCheck(page);
 
   await page.keyboard.press('Escape'); // close the chat
+  await meusDados(page);
   page.once('dialog', (d) => void d.accept());
   await page.getByRole('button', { name: 'Excluir d20 Caveira' }).click();
   await expect(page.getByRole('button', { name: 'Adicionar d20 Caveira' })).toHaveCount(0);
@@ -178,6 +185,7 @@ test('a free-form prism imports, rolls, reads from below, flies to the front and
   expect(turned.reduce((s, v, k) => s + v * toCam[k] / length, 0)).toBeGreaterThan(0.99);
 
   await page.reload(); await ready(page);
+  await meusDados(page);
   await expect(page.getByRole('button', { name: 'Adicionar Prisma' })).toBeVisible();
   await page.keyboard.press('c');
   await page.getByLabel(/^Dados, por exemplo/).fill('2prisma');

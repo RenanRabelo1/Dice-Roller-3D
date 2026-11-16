@@ -43,6 +43,7 @@ html, body, #root { width: 100%; height: 100%; margin: 0; }
 .panel { background: var(--panel); padding: 12px 24px; }
 .controls { grid-row: 1; display: flex; align-items: center; gap: 24px; background: var(--barra); min-height: 64px; padding-left: 28px; padding-right: 28px; }
 @media (min-width: 801px) { .controls { height: 64px; min-height: 0; } }
+nav { display: flex; gap: 8px; }
 h1 { font-size: 13px; line-height: 1.1; margin: 0 auto 0 0; font-weight: 400; letter-spacing: .32em; text-transform: uppercase; color: var(--nevoa); }
 button { color: var(--chalk); font: inherit; background: var(--panel); border: 1px solid #786958; border-radius: 3px; padding: 8px 10px; min-height: 40px; cursor: pointer; }
 button[aria-pressed="true"] { background: var(--brass); color: var(--ink); border-color: var(--brass); font-weight: 800; }
@@ -61,7 +62,8 @@ button:focus-visible { outline: 3px solid var(--chalk); outline-offset: 3px; }
 .status { grid-row: 3; position: relative; min-height: 72px; background: var(--barra); display: flex; align-items: center; justify-content: space-between; gap: 24px; }
 output { position: absolute; left: 0; right: 0; bottom: calc(100% + 32px); display: flex; flex-direction: column; align-items: center; gap: 6px; pointer-events: none; z-index: 3; text-shadow: 0 2px 18px rgba(0, 0, 0, 0.95); }
 output strong { font-family: Cormorant Garamond, serif; font-weight: 600; font-style: italic; font-size: 76px; line-height: 1; color: var(--luz); }
-output span { font-size: 12px; letter-spacing: .32em; text-transform: uppercase; color: var(--nevoa); }
+/* --luz, not --nevoa: on the lightest scene (poker green) --nevoa gives 3.5:1, --luz 4.64:1 */
+output span { font-size: 12px; letter-spacing: .32em; text-transform: uppercase; color: var(--luz); }
 .status p { flex: 1; margin: 0; line-height: 1.4; font-size: 13px; color: var(--apagado); text-align: center; }
 .roll-mode { display: flex; align-items: center; gap: 6px; font-size: 13px; }
 .roll-mode > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
@@ -277,4 +279,27 @@ canvas { display: block; }
   .livro > #import-die .import-body { grid-template-columns: 1fr; }
   .livro > #import-die .import-body > * { grid-column: 1; }
   .livro > #import-die .import-body > .import-passos, .livro > #import-die .import-body > .import-preview, .livro > #import-die .import-body > .import-drop { grid-row: auto; margin-top: 0; }
+}
+
+/* OS-0055: finish. The book opens in 200 ms; chapters do not animate here. */
+@keyframes livro-abre { from { opacity: 0; transform: scale(.97); } to { opacity: 1; transform: none; } }
+.livro[data-aberto="true"] { animation: livro-abre 200ms ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .livro[data-aberto="true"], output { animation: none; }
+  .roda-anel, .roda[data-open="true"] .roda-anel, output { transition: none; }
+}
+
+/* OS-0055: phone. Book is one parchment page filling the screen above the bands; the nav is a row of four touch targets. */
+@media (max-width: 800px) {
+  nav { flex: 1 1 100%; }
+  nav button { flex: 1; min-height: 44px; padding: 8px 4px; }
+  nav kbd { display: none; }
+  .livro[data-aberto="true"] { inset: 0; top: 0; width: auto; height: auto; margin: 0; padding: 0; border-radius: 0; z-index: 20; overflow-y: auto;
+    box-shadow: none; clip-path: none; background: linear-gradient(var(--pergaminho-claro), var(--pergaminho-escuro)); }
+  .livro[data-aberto="true"]::after { display: none; }
+  .livro > aside { position: relative; inset: auto; min-height: 100%; padding: 24px 20px; border-radius: 0; background: none; }
+  .livro > aside h2 { padding-right: 56px; }
+  .livro > aside header button { position: fixed; top: 8px; right: 10px; z-index: 1; background: var(--pergaminho-claro); }
+  .livro > #table-panel [aria-label="Tipo de fundo"], .livro > #table-panel [aria-label="Temas de fundo"] { grid-template-columns: repeat(2, 1fr); }
+  .import-passos { flex-wrap: wrap; height: auto; gap: 8px 14px; margin: 0 0 12px; }
 }

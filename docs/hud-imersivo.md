@@ -1,5 +1,7 @@
 # HUD imersivo: Fantasma + Grimório
 
+> **Concluído na OS-0055** (parte 1). Conferência de contraste: nenhum token foi trocado, todos os pares passam (faixas 8,1 a 13,4:1; páginas 5,5 a 10,8:1; `#f6ecd6` sobre `--lacre` 8,6:1). Único ajuste: o rótulo pequeno do resultado (`output span`) passou de `--nevoa` para `--luz`, porque sobre o fundo "Pôquer" (o mais claro) `--nevoa` dava 3,5:1 e `--luz` dá 4,6:1.
+
 Spec da refatoração visual (item 4 do [backlog](backlog.md)). A direção foi escolhida pelo João em 2026-11-16, entre seis protótipos do canvas "HUD imersivo" (o 6º, "Fantasma + Grimório", montado sobre capturas da cena 3D real). Esta página é o plano: o que muda, as decisões e a ordem das ordens de serviço. São duas partes. A **parte 1** (OS-0051 a OS-0055) monta o HUD. A **parte 2** (OS-0056 a OS-0061, [abaixo](#parte-2-a-cena-viva)) dá movimento, reação ao jogo e luz. O detalhe de cada entrega está nas ordens, em [ordens/](ordens/).
 
 ## A ideia
