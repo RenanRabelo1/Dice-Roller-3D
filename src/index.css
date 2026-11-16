@@ -222,7 +222,7 @@ canvas { display: block; }
 
 /* OS-0053: the table chapter. .import-body is the double page: Fundo and Mesa on the left, Arquivo and Mesas salvas on the right. */
 .livro > #table-panel { grid-template-rows: auto 1fr; }
-.livro > #table-panel .import-body { column-count: 2; column-gap: 96px; overflow-y: auto; min-height: 0; display: block; }
+.livro > #table-panel .import-body { column-count: 2; column-gap: 96px; overflow: hidden; min-height: 0; display: block; }
 .livro > #table-panel fieldset, .livro > #table-panel .import-body > p, .livro > #table-panel [role="alertdialog"] { break-inside: avoid; }
 .livro > #table-panel fieldset { border: 0; border-radius: 0; padding: 0 0 18px; margin: 0; }
 .livro > #table-panel legend { font-family: Cinzel, serif; font-weight: 700; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--rubrica); padding: 0 0 8px; }
@@ -241,7 +241,7 @@ canvas { display: block; }
 
 /* OS-0054: "Meus dados" and "Importar dado" chapters. */
 .livro > #meus-dados, .livro > #import-die { grid-template-rows: auto 1fr; }
-.livro > #meus-dados .import-body { column-count: 2; column-gap: 96px; display: block; overflow-y: auto; min-height: 0; }
+.livro > #meus-dados .import-body { column-count: 2; column-gap: 96px; display: block; overflow: hidden; min-height: 0; }
 .livro > #meus-dados .selection { display: block; }
 .livro > #meus-dados .pick { display: flex; flex-wrap: wrap; align-items: stretch; gap: 6px; border: 1px solid var(--fio); border-radius: 3px; padding: 12px 14px; margin: 0 0 12px; break-inside: avoid; }
 .livro > #meus-dados .pick > button:first-child { flex: 1; text-align: left; }
@@ -381,3 +381,48 @@ output[data-presagio="duality"] strong { background: linear-gradient(90deg, #ffd
 
 /* Reduced motion beats the fumble tremor: same specificity as its :has() rule (0,4,1), and later in the file. */
 .app[data-movimento="reduzido"]:has(.game-area) header.controls, .app[data-movimento="reduzido"]:has(.game-area) footer.status { animation: none; }
+
+/* OS-0067: folhear. The column body does not scroll: its corner turns the page. Only transform and opacity animate. */
+@media (max-width: 800px) {
+  .livro > #table-panel .import-body, .livro > #meus-dados .import-body { overflow-x: hidden; overflow-y: auto; }
+}
+.folhear { position: absolute; bottom: 14px; z-index: 2; width: 56px; height: 56px; min-width: 44px; min-height: 44px; padding: 0; border: 0; border-radius: 0; cursor: pointer;
+  display: flex; align-items: flex-end; font: 700 24px/1 Cinzel, serif; color: var(--rubrica); background: transparent;
+  transition: transform var(--t-curto) var(--ease-saida); }
+.folhear-frente { right: 14px; justify-content: flex-end; transform-origin: 100% 100%;
+  background: linear-gradient(315deg, var(--pergaminho-claro) 50%, transparent 50%); }
+.folhear-tras { left: 14px; justify-content: flex-start; transform-origin: 0 100%;
+  background: linear-gradient(45deg, var(--pergaminho-claro) 50%, transparent 50%); }
+.folhear > span { display: block; padding: 0 9px 6px; transition: transform var(--t-curto) var(--ease-saida); }
+/* the fold: a thin shadow along the diagonal; it deepens (opacity) when the corner lifts */
+.folhear::before { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .55; transition: opacity var(--t-curto) var(--ease-saida); }
+.folhear-frente::before { background: linear-gradient(315deg, transparent 50%, rgba(60, 35, 15, .45) 50%, rgba(60, 35, 15, 0) 62%); }
+.folhear-tras::before { background: linear-gradient(45deg, transparent 50%, rgba(60, 35, 15, .45) 50%, rgba(60, 35, 15, 0) 62%); }
+.folhear:hover, .folhear:focus-visible { transform: scale(1.12); }
+.folhear:hover::before, .folhear:focus-visible::before { opacity: 1; }
+.folhear-frente:hover > span, .folhear-frente:focus-visible > span { transform: translateX(2px); }
+.folhear-tras:hover > span, .folhear-tras:focus-visible > span { transform: translateX(-2px); }
+.folhear:focus-visible { outline: 2px solid var(--tinta); outline-offset: 2px; }
+.folhear-indice { position: absolute; right: 80px; bottom: 22px; z-index: 2; font: italic 14px EB Garamond, serif; color: var(--sepia); pointer-events: none; }
+
+/* The turning sheet sits over the page it leaves and swings around the spine. */
+.folha-virando { position: absolute; top: 14px; bottom: 14px; width: calc(50% - 14px); z-index: 3; pointer-events: none; backface-visibility: visible; opacity: 0;
+  animation-duration: var(--t-longo); animation-timing-function: var(--ease-cine); animation-fill-mode: both; }
+.folha-virando[data-sentido="frente"] { left: 50%; transform-origin: left center; border-radius: 0 3px 3px 0;
+  background: linear-gradient(90deg, var(--pergaminho-escuro), var(--pergaminho-claro)); animation-name: folhear-frente; }
+.folha-virando[data-sentido="tras"] { right: 50%; transform-origin: right center; border-radius: 3px 0 0 3px;
+  background: linear-gradient(270deg, var(--pergaminho-escuro), var(--pergaminho-claro)); animation-name: folhear-tras; }
+.folha-virando::before, .folha-virando::after { content: ""; position: absolute; inset: 0; border-radius: inherit; opacity: 0; animation: inherit; animation-fill-mode: both; }
+.folha-virando::before { box-shadow: 0 0 40px rgba(40, 20, 8, .35); animation-name: folha-sombra; }
+.folha-virando[data-sentido="frente"]::after { background: linear-gradient(90deg, rgba(40, 20, 8, .7), rgba(40, 20, 8, 0)); }
+.folha-virando[data-sentido="tras"]::after { background: linear-gradient(270deg, rgba(40, 20, 8, .7), rgba(40, 20, 8, 0)); }
+.folha-virando::after { animation-name: folha-luz; }
+.import-body[data-folheando] { animation: folha-esmaece var(--t-longo) linear; }
+@keyframes folhear-frente { 0% { transform: perspective(2000px) rotateY(0deg); opacity: 0; } 8% { opacity: 1; } 50% { transform: perspective(2000px) rotateY(-90deg); } 92% { opacity: 1; } 100% { transform: perspective(2000px) rotateY(-180deg); opacity: 0; } }
+@keyframes folhear-tras { 0% { transform: perspective(2000px) rotateY(0deg); opacity: 0; } 8% { opacity: 1; } 50% { transform: perspective(2000px) rotateY(90deg); } 92% { opacity: 1; } 100% { transform: perspective(2000px) rotateY(180deg); opacity: 0; } }
+@keyframes folha-luz { 0% { opacity: 0; } 50% { opacity: .45; } 100% { opacity: 0; } }
+@keyframes folha-sombra { 0%, 15% { opacity: 0; } 30%, 70% { opacity: 1; } 85%, 100% { opacity: 0; } }
+@keyframes folha-esmaece { 0% { opacity: 1; } 40%, 60% { opacity: 0; } 100% { opacity: 1; } }
+.app[data-movimento="reduzido"] .folha-virando { display: none; }
+.app[data-movimento="reduzido"] .import-body[data-folheando] { animation: none; }
+.app[data-movimento="reduzido"] .folhear, .app[data-movimento="reduzido"] .folhear > span, .app[data-movimento="reduzido"] .folhear::before { transition: none; }
