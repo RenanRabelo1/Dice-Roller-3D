@@ -351,3 +351,28 @@ output span { animation: revelar var(--t-longo) var(--ease-saida) 200ms both; }
 .app[data-movimento="reduzido"] .livro, .app[data-movimento="reduzido"] .livro *,
 .app[data-movimento="reduzido"] .roda, .app[data-movimento="reduzido"] .roda *,
 .app[data-movimento="reduzido"] .game-area::before, .app[data-movimento="reduzido"] .game-area::after { animation: none; transition: none; }
+
+/* OS-0061: reações */
+/* Vignette border takes the omen's color while it plays (attributes: pressagios contract). */
+.game-area::after { transition: box-shadow var(--t-medio); }
+.game-area[data-omen="crit"]::after { box-shadow: inset 0 0 120px 12px rgba(212,169,63,.45); }
+.game-area[data-omen="fumble"]::after { box-shadow: inset 0 0 120px 12px rgba(200,60,20,.5); }
+.game-area[data-omen="duality"]::after { box-shadow: inset 0 0 120px 12px rgba(212,169,63,.45); animation: dualidade 1000ms steps(1, end) infinite; }
+.game-area[data-kraken]::after { box-shadow: inset 0 0 120px 12px rgba(10,60,50,.6); }
+.game-area[data-storm]::after { box-shadow: inset 0 0 120px 12px rgba(40,70,120,.5); }
+@keyframes dualidade {
+  0% { box-shadow: inset 0 0 120px 12px rgba(212,169,63,.45); }
+  50% { box-shadow: inset 0 0 120px 12px rgba(200,60,20,.5); }
+}
+/* Bands: gold thread on crit, 2px tremor on fumble. */
+@keyframes tremor { 0%, 100% { transform: none; } 25% { transform: translateX(-2px); } 75% { transform: translateX(2px); } }
+.app:has(.game-area[data-omen="crit"]) header.controls { box-shadow: inset 0 -1px rgba(212,169,63,.8); }
+.app:has(.game-area[data-omen="crit"]) footer.status { box-shadow: inset 0 1px rgba(212,169,63,.8); }
+.app:has(.game-area[data-omen="fumble"]) header.controls, .app:has(.game-area[data-omen="fumble"]) footer.status { animation: tremor 300ms linear; }
+/* Caption by omen (vitrine contract: output[data-presagio]). */
+output[data-presagio="crit"] strong { color: #ffd479; text-shadow: 0 0 24px rgba(255,190,80,.8), 0 2px 18px rgba(0,0,0,.95); }
+output[data-presagio="fumble"] strong { color: #ff8a5c; text-shadow: 0 0 24px rgba(200,60,20,.8), 0 2px 18px rgba(0,0,0,.95); }
+output[data-presagio="duality"] strong { background: linear-gradient(90deg, #ffd479, #ff8a5c); background-clip: text; -webkit-background-clip: text; color: transparent; text-shadow: none;
+  filter: drop-shadow(0 0 14px rgba(255,160,70,.7)) drop-shadow(0 2px 12px rgba(0,0,0,.9)); }
+/* Reduced motion: static omen color (duality stays gold), no tremor. */
+.app[data-movimento="reduzido"] .game-area::after, .app[data-movimento="reduzido"] header.controls, .app[data-movimento="reduzido"] footer.status { animation: none; }

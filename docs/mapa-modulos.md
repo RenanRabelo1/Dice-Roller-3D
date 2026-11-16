@@ -51,6 +51,16 @@ O mecanismo está no ADR 0005: síncrono, e quem publica é dono do sinal. Quem 
 | `resultadoPublicado` | `arremesso` | o último quadro do replay | `throwId`, `dice`, `results`, `raw`, `force` | `pressagios` (decide o presságio), `historico` (grava) |
 | `movimentoReduzidoAlterado` | `shared/plataforma` (infra) | a preferência do sistema muda | `boolean` | `pressagios` (cancela o show em curso) |
 
+### Contratos de DOM lidos pela casca
+
+O CSS da casca (`src/index.css`, bloco `OS-0061: reações`) só lê estes atributos; mudar um nome é mudança de contrato.
+
+| Atributo | Onde | Escrito por | Valores |
+|---|---|---|---|
+| `data-omen`, `data-kraken`, `data-storm` | `.game-area` | `pressagios` (OS-0059) | `crit`, `fumble`, `duality`; os outros dois são booleanos. Somem quando o presságio acaba |
+| `data-presagio` | `<output data-testid="result">` | `vitrine` (OS-0060) | `crit`, `fumble`, `duality`; ausente sem texto ou sem presságio do mesmo arremesso |
+| `data-fase`, `data-movimento`, `--forca` | `.app` | a própria casca (`App.tsx`), a partir das portas de `arremesso` e `shared/plataforma` | fase do gesto; `reduzido`; força 0 a 1 |
+
 ## Dados disputados hoje e quem fica como dono
 
 Verificado no código. O detalhe e as linhas estão no diagnóstico, §6.

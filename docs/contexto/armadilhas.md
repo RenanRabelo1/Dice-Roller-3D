@@ -24,6 +24,7 @@ Coisas que já morderam ou que quebram em silêncio. Ler antes de mexer em físi
 - **Compilar shaders antes** do primeiro uso (`Show.compile`); presságio novo entra nesse aquecimento.
 - **DPR só muda entre animações** (fase `hand` ou showcase concluído). `PerformanceMonitor` acumula o alvo em `desiredDpr`; redimensionar o buffer no meio de uma animação trava renderizador por software. SwiftShader começa em DPR 0,35.
 - Pré-simulação roda no worker; o fallback síncrono existe e custa ~25–35 ms no quadro de lançamento com 10 moedas. Worker sem resposta em 2 s (`WORKER_TIMEOUT`) → cálculo local; se o motor falhar, os dados voltam à mão com `error: 'physics'` e aviso no painel.
+- **Botão de teste de presságio é lento em máquina lenta.** A busca de arremesso com o valor pedido tem orçamento de 6 s ("nenhum arremesso com X em 6000 ms") e o `omen.spec.ts` falha de forma intermitente em SwiftShader, também no `main` sem o HUD. Não é regressão do HUD; use `rigOmen` quando o teste não for do botão.
 - Detalhes, experimentos revertidos e números: `docs/performance-coins.md`.
 
 ## Moeda

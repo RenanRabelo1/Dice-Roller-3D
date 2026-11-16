@@ -202,3 +202,7 @@ Tudo cabe no monólito modular, sem módulo novo, sem item novo em `shared/` e s
 - **Som:** sem pedido.
 - **Partículas, poeira e névoa no ar:** custo de cena sem pedido.
 - **Mudar o fundo padrão da mesa:** decisão do João.
+
+## Parte 2 concluída na OS-0061
+
+A casca reage aos presságios só por CSS (vinheta colorida, filete dourado no crítico, tremor na falha, legenda por `data-presagio`; movimento reduzido sem tremor nem alternância). Os E2E novos estão em `e2e/hud.spec.ts`. **Corte de luz: nenhum.** `coin-performance` e `coin-software` passam com as 4 luzes. O `omen.spec.ts` falha de forma intermitente pelo orçamento de 6 s da busca do botão de teste, também no `main` sem o HUD (5 de 15 lá, 3 de 15 aqui): não é regressão (armadilhas.md e backlog).
