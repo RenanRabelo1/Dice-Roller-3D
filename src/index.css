@@ -378,3 +378,6 @@ output[data-presagio="duality"] strong { background: linear-gradient(90deg, #ffd
   filter: drop-shadow(0 0 14px rgba(255,160,70,.7)) drop-shadow(0 2px 12px rgba(0,0,0,.9)); }
 /* Reduced motion: static omen color (duality stays gold), no tremor. */
 .app[data-movimento="reduzido"] .game-area::after, .app[data-movimento="reduzido"] header.controls, .app[data-movimento="reduzido"] footer.status { animation: none; }
+
+/* Reduced motion beats the fumble tremor: same specificity as its :has() rule (0,4,1), and later in the file. */
+.app[data-movimento="reduzido"]:has(.game-area) header.controls, .app[data-movimento="reduzido"]:has(.game-area) footer.status { animation: none; }
