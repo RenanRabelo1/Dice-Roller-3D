@@ -175,7 +175,6 @@ canvas { display: block; }
 .roda-anel .pick > button[aria-pressed="true"] { background: var(--luz); color: #0b0b0d; border-color: var(--luz); }
 .roda-anel .pick .remove { position: absolute; top: -6px; left: -6px; width: 26px; height: 26px; min-width: 0; min-height: 0; padding: 0;
   border-radius: 50%; border: 1px solid var(--luz); background: var(--barra); font-size: 16px; line-height: 1; }
-@media (prefers-reduced-motion: reduce) { .roda-anel, .roda[data-open="true"] .roda-anel { transition: none; } }
 @media (max-width: 800px) {
   .roda-anel { position: fixed; right: auto; left: 50%; bottom: 96px; width: 240px; height: 240px; margin-left: -120px; }
   .roda-anel .pick { width: 52px; height: 52px; margin: -26px 0 0 -26px;
@@ -284,10 +283,6 @@ canvas { display: block; }
 /* OS-0055: finish. The book opens in 200 ms; chapters do not animate here. */
 @keyframes livro-abre { from { opacity: 0; transform: scale(.97); } to { opacity: 1; transform: none; } }
 .livro[data-aberto="true"] { animation: livro-abre 200ms ease-out; }
-@media (prefers-reduced-motion: reduce) {
-  .livro[data-aberto="true"], output { animation: none; }
-  .roda-anel, .roda[data-open="true"] .roda-anel, output { transition: none; }
-}
 
 /* OS-0055: phone. Book is one parchment page filling the screen above the bands; the nav is a row of four touch targets. */
 @media (max-width: 800px) {
@@ -303,3 +298,52 @@ canvas { display: block; }
   .livro > #table-panel [aria-label="Tipo de fundo"], .livro > #table-panel [aria-label="Temas de fundo"] { grid-template-columns: repeat(2, 1fr); }
   .import-passos { flex-wrap: wrap; height: auto; gap: 8px 14px; margin: 0 0 12px; }
 }
+
+/* OS-0056: ritmo */
+@property --forca { syntax: '<number>'; inherits: true; initial-value: 0; }
+:root { --t-curto: 160ms; --t-medio: 320ms; --t-longo: 700ms; --ease-saida: cubic-bezier(0.22, 1, 0.36, 1); --ease-cine: cubic-bezier(0.65, 0, 0.35, 1); }
+
+/* Inner cinema bands: close on rolling/returning, open otherwise. Same layer as the vignette; no layout change. */
+.game-area::before { content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 1;
+  background: linear-gradient(var(--barra), var(--barra)), linear-gradient(var(--barra), var(--barra));
+  background-repeat: no-repeat; background-position: top, bottom; background-size: 100% 0, 100% 0;
+  transition: background-size var(--t-longo) var(--ease-cine); }
+.app[data-fase="rolling"] .game-area::before, .app[data-fase="returning"] .game-area::before { background-size: 100% 28px, 100% 28px; }
+@media (max-width: 800px) {
+  .app[data-fase="rolling"] .game-area::before, .app[data-fase="returning"] .game-area::before { background-size: 100% 16px, 100% 16px; }
+}
+
+/* Band texts step back while the dice roll; the caption (.feedback) does not. */
+header.controls > *, footer.status > * { transition: opacity var(--t-medio); }
+.app[data-fase="rolling"] header.controls > *, .app[data-fase="returning"] header.controls > *,
+.app[data-fase="rolling"] footer.status > :not(.feedback), .app[data-fase="returning"] footer.status > :not(.feedback) { opacity: .35; }
+
+/* Caption reveal (runs on mount: vitrine only mounts the text with a result). */
+@keyframes revelar { from { opacity: 0; transform: translateY(12px); filter: blur(8px); } to { opacity: 1; transform: none; filter: none; } }
+output strong { animation: revelar var(--t-longo) var(--ease-saida); }
+output span { animation: revelar var(--t-longo) var(--ease-saida) 200ms both; }
+
+/* Charge strength: tighter vignette, brighter force line. */
+.app[data-fase="charging"] .game-area::after {
+  background: radial-gradient(ellipse at 50% 52%, rgba(255,170,90,.08) 0%, rgba(0,0,0,0) calc(42% - 14% * var(--forca)), rgba(0,0,0,calc(.6 + .25 * var(--forca))) 100%); }
+.app[data-fase="charging"] progress { box-shadow: 0 0 calc(6px + 14px * var(--forca)) rgba(242, 239, 232, .8); }
+
+/* Wheel fan: the button animates, not .pick (its transform is the position). */
+.roda-anel .pick > button:not(.remove) { opacity: 0; transform: scale(.6);
+  transition: opacity var(--t-medio) var(--ease-saida), transform var(--t-medio) var(--ease-saida); transition-delay: calc(var(--i) * 20ms); }
+.roda[data-open="true"] .roda-anel .pick > button:not(.remove) { opacity: 1; transform: none; }
+
+/* Page turn: the new chapter enters from the spine; a shadow sweeps spine to edge. */
+@keyframes virar { from { transform: perspective(1600px) rotateY(8deg); opacity: .4; } to { transform: none; opacity: 1; } }
+@keyframes sombra-varre { from { transform: translateX(0); opacity: .5; } to { transform: translateX(100%); opacity: 0; } }
+.livro > aside[data-open="true"] { transform-origin: 50% 50%; animation: virar var(--t-medio) var(--ease-saida); }
+.livro > aside[data-open="true"]::after { content: ""; position: absolute; inset: 0 auto 0 50%; width: 50%; pointer-events: none;
+  background: linear-gradient(90deg, rgba(60, 35, 15, .35), rgba(60, 35, 15, 0)); animation: sombra-varre var(--t-medio) var(--ease-saida) both; }
+@media (max-width: 800px) { .livro > aside[data-open="true"]::after { display: none; } }
+
+/* Reduced motion: only the HUD pieces (the omen CSS belongs to its module). Bands keep their final state. */
+.app[data-movimento="reduzido"] header.controls, .app[data-movimento="reduzido"] header.controls *,
+.app[data-movimento="reduzido"] footer.status, .app[data-movimento="reduzido"] footer.status *,
+.app[data-movimento="reduzido"] .livro, .app[data-movimento="reduzido"] .livro *,
+.app[data-movimento="reduzido"] .roda, .app[data-movimento="reduzido"] .roda *,
+.app[data-movimento="reduzido"] .game-area::before, .app[data-movimento="reduzido"] .game-area::after { animation: none; transition: none; }
