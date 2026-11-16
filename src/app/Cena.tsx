@@ -139,8 +139,8 @@ export function Cena({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> 
       {/* The table's ambience (colour background, 360° panorama, environment map) renders in this order: the colour,
           the shell's lights, then the environment with the shell's Lightformers inside. */}
       <AmbienteDaMesa podeTrocar={entreAnimacoes} luzes={<>
-        <ambientLight intensity={0.35} />
-        <directionalLight position={[-4, 10, 5]} intensity={2.5} castShadow
+        <ambientLight intensity={0.28} />
+        <directionalLight position={[-4, 10, 5]} intensity={2.5} color="#fff1dc" castShadow
           shadow-mapSize={[1024, 1024]} shadow-camera-left={-9} shadow-camera-right={9}
           shadow-camera-top={8} shadow-camera-bottom={-8} shadow-normalBias={0.03} />
       </>}>
