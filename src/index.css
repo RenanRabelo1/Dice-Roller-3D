@@ -307,15 +307,19 @@ footer.status > p { animation: dica var(--t-curto, 160ms) ease-out; }
 @property --forca { syntax: '<number>'; inherits: true; initial-value: 0; }
 :root { --t-curto: 160ms; --t-medio: 320ms; --t-longo: 700ms; --ease-saida: cubic-bezier(0.22, 1, 0.36, 1); --ease-cine: cubic-bezier(0.65, 0, 0.35, 1); }
 
-/* Inner cinema bands: close on rolling/returning, open otherwise. Same layer as the vignette; no layout change. */
-.game-area::before { content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 1;
-  background: linear-gradient(var(--barra), var(--barra)), linear-gradient(var(--barra), var(--barra));
-  background-repeat: no-repeat; background-position: top, bottom; background-size: 100% 0, 100% 0;
-  transition: background-size var(--t-longo) var(--ease-cine); }
-.app[data-fase="rolling"] .game-area::before, .app[data-fase="returning"] .game-area::before { background-size: 100% 28px, 100% 28px; }
-@media (max-width: 800px) {
-  .app[data-fase="rolling"] .game-area::before, .app[data-fase="returning"] .game-area::before { background-size: 100% 16px, 100% 16px; }
-}
+/* OS-0062: perfil e camadas baratas */
+/* Inner cinema bands: two elements that scale in from the edges (transform only, no repaint of the play area). */
+.faixa { position: absolute; left: 0; right: 0; height: 28px; background: var(--barra); pointer-events: none; z-index: 1;
+  transform: scaleY(0); transition: transform var(--t-longo) var(--ease-cine); }
+.faixa-cima { top: 0; transform-origin: top; }
+.faixa-baixo { bottom: 0; transform-origin: bottom; }
+.app[data-fase="rolling"] .faixa, .app[data-fase="returning"] .faixa { transform: scaleY(1); }
+@media (max-width: 800px) { .faixa { height: 16px; } }
+
+/* Charge strength: the tight vignette is drawn once and fades in with the force (opacity only). */
+.game-area::before { content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 1; opacity: 0; will-change: opacity;
+  background: radial-gradient(ellipse at 50% 52%, rgba(255,170,90,.08) 0%, rgba(0,0,0,0) 28%, rgba(0,0,0,.85) 100%); }
+.app[data-fase="charging"] .game-area::before { opacity: var(--forca); }
 
 /* Band texts step back while the dice roll; the caption (.feedback) does not. */
 header.controls > *, footer.status > * { transition: opacity var(--t-medio); }
@@ -327,9 +331,7 @@ header.controls > *, footer.status > * { transition: opacity var(--t-medio); }
 output strong { animation: revelar var(--t-longo) var(--ease-saida); }
 output span { animation: revelar var(--t-longo) var(--ease-saida) 200ms both; }
 
-/* Charge strength: tighter vignette, brighter force line. */
-.app[data-fase="charging"] .game-area::after {
-  background: radial-gradient(ellipse at 50% 52%, rgba(255,170,90,.08) 0%, rgba(0,0,0,0) calc(42% - 14% * var(--forca)), rgba(0,0,0,calc(.6 + .25 * var(--forca))) 100%); }
+/* Charge strength: brighter force line (the vignette is above). */
 .app[data-fase="charging"] progress { box-shadow: 0 0 calc(6px + 14px * var(--forca)) rgba(242, 239, 232, .8); }
 
 /* Wheel fan: the button animates, not .pick (its transform is the position). */
@@ -350,7 +352,7 @@ output span { animation: revelar var(--t-longo) var(--ease-saida) 200ms both; }
 .app[data-movimento="reduzido"] footer.status, .app[data-movimento="reduzido"] footer.status *,
 .app[data-movimento="reduzido"] .livro, .app[data-movimento="reduzido"] .livro *,
 .app[data-movimento="reduzido"] .roda, .app[data-movimento="reduzido"] .roda *,
-.app[data-movimento="reduzido"] .game-area::before, .app[data-movimento="reduzido"] .game-area::after { animation: none; transition: none; }
+.app[data-movimento="reduzido"] .faixa, .app[data-movimento="reduzido"] .game-area::before, .app[data-movimento="reduzido"] .game-area::after { animation: none; transition: none; }
 
 /* OS-0061: reações */
 /* Vignette border takes the omen's color while it plays (attributes: pressagios contract). */

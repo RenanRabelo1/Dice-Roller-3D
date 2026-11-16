@@ -116,6 +116,7 @@ export function Cena({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> 
       launches: () => inspecaoDoArremesso().lancamentos(),
       customs: () => inspecaoDosImportados(),
       table: () => inspecaoDaMesa(scene, info.current.programs?.length ?? 0),
+      luzes: () => scene.getObjectsByProperty('isPointLight', true).length,
       shards: () => inspecaoDoPresagio(scene).shards,
       previewSurface: (index, p, q) => {
         if (import.meta.env.MODE !== 'test' || !new URLSearchParams(location.search).has('surface-preview') || arremesso().gesture.phase !== 'hand') throw new Error('Surface preview is only available in the test preview scene');
