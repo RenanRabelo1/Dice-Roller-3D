@@ -198,7 +198,12 @@ canvas { display: block; }
 .livro > aside h2 { font-family: Cinzel, serif; font-weight: 700; font-size: 30px; margin: 0 0 12px; padding-bottom: 18px;
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='8'%3E%3Cpath d='M0 4h66M94 4h66' stroke='%23b99a66' fill='none'/%3E%3Cpath d='M80 0l4 4-4 4-4-4z' fill='%238e2a1c'/%3E%3C/svg%3E") left bottom / 160px 8px no-repeat; }
 .livro > aside h2::first-letter { font-size: 44px; color: var(--rubrica); }
-.livro > aside header button { position: absolute; top: 14px; right: 18px; width: 44px; height: 44px; font-size: 24px; }
+.livro > aside header button { position: absolute; top: 34px; right: 40px; width: 44px; height: 44px; padding: 0; background: none; border: 0; border-radius: 0; box-shadow: none;
+  font-family: Cormorant Garamond, serif; font-weight: 600; font-size: 34px; line-height: 1; color: var(--sepia);
+  transition: color var(--t-curto) var(--ease-saida), transform var(--t-curto) var(--ease-saida); }
+.livro > aside header button:hover, .livro > aside header button:focus-visible { color: var(--rubrica); transform: rotate(90deg); }
+.app[data-movimento="reduzido"] .livro > aside header button { transition: none; }
+.app[data-movimento="reduzido"] .livro > aside header button:hover, .app[data-movimento="reduzido"] .livro > aside header button:focus-visible { transform: none; }
 .livro > aside button { background: rgba(255, 250, 236, .35); border: 1px solid var(--fio); color: var(--tinta); font-family: EB Garamond, serif; font-size: 16px; min-height: 44px; }
 .livro > aside button[aria-pressed="true"], .livro > aside button[type="submit"] { background: var(--lacre); color: #f6ecd6; }
 .livro > aside button:focus-visible { outline: 2px solid var(--tinta); outline-offset: 2px; }
@@ -293,7 +298,7 @@ canvas { display: block; }
   .livro[data-aberto="true"]::after { display: none; }
   .livro > aside { position: relative; inset: auto; min-height: 100%; padding: 24px 20px; border-radius: 0; background: none; }
   .livro > aside h2 { padding-right: 56px; }
-  .livro > aside header button { position: fixed; top: 8px; right: 10px; z-index: 1; background: var(--pergaminho-claro); }
+  .livro > aside header button { position: fixed; top: 8px; right: 10px; z-index: 1; background: var(--pergaminho-claro); border-radius: 50%; }
   .livro > #table-panel [aria-label="Tipo de fundo"], .livro > #table-panel [aria-label="Temas de fundo"] { grid-template-columns: repeat(2, 1fr); }
   .import-passos { flex-wrap: wrap; height: auto; gap: 8px 14px; margin: 0 0 12px; }
 }

@@ -40,14 +40,23 @@ export function Folheador({ capitulo }: { capitulo: Capitulo | null }) {
       setEstado((e) => (e.total === total && e.folha === folha ? e : { ...e, total, folha }));
     };
     ler();
+    // The body has a fixed size: growth shows up in its children, so those are observed too.
     const ro = new ResizeObserver(ler);
-    ro.observe(corpo);
+    const observar = () => { ro.disconnect(); ro.observe(corpo); Array.from(corpo.children).forEach((f) => ro.observe(f)); };
+    observar();
     // Switching the background type adds fields; the focus ring can also scroll the body to another sheet (scroll).
-    const mo = new MutationObserver(ler);
-    mo.observe(corpo, { childList: true, subtree: true });
+    const mo = new MutationObserver(() => { observar(); ler(); });
+    mo.observe(corpo, { childList: true, subtree: true, characterData: true });
     corpo.addEventListener('scroll', ler);
+    // Late fonts and images change the layout without touching the DOM; `load` does not bubble, hence capture.
+    let vivo = true;
+    document.fonts.addEventListener('loadingdone', ler);
+    void document.fonts.ready.then(() => { if (vivo) ler(); });
+    corpo.addEventListener('load', ler, true);
     return () => {
+      vivo = false;
       ro.disconnect(); mo.disconnect(); corpo.removeEventListener('scroll', ler);
+      document.fonts.removeEventListener('loadingdone', ler); corpo.removeEventListener('load', ler, true);
       timers.current.forEach(clearTimeout); timers.current = [];
       corpo.scrollLeft = 0; delete corpo.dataset.folheando;
     };
