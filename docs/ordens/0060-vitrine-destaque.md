@@ -34,7 +34,7 @@ Decisões do orquestrador:
        software ? 0 : 5 * Math.min(1, Math.max(0, ms / voo));
      ```
 
-     - `ms` é o tempo desde o início do voo (o `at` do `showcase`).
+     - `ms` é o tempo desde o início do voo: `now - at - SHOW.delay` (o `at` do `showcase` vem 1000ms antes do voo).
      - `voo` é a duração do voo, que já existe no domínio (`SHOW` ou equivalente). Use a constante que existe; não invente outra.
    - No `useFrame`, com showcase ativo:
      - a luz fica no centro das poses de chegada (`to`), mais `(0, 0.6, 1.2)`, na direção da câmera;

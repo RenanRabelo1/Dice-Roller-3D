@@ -33,7 +33,7 @@ Decisões do orquestrador:
    |---|---|---|---|
    | Kraken (`grab`) | `#3fd6a0` | centro da bandeja, `y = 0.3` (rasante, "de baixo") | sobe de 0 a 8 nos primeiros 600ms, pulsa `8 + 2·sin(t/400)` e cai a 0 nos últimos 500ms do show |
    | Tempestade (`storm`) | `#bcd4ff` | alto, `[0, 9, -3]` | dois relâmpagos no ritmo do trovão do CSS: picos de 28 em `t = 1363` e de 18 em `t = 1489`, decaindo em 120ms; 0 no resto |
-   | Dualidade | alterna `#ffd36a` e `#9cc8ff` a cada 500ms | acima do taiji, `y = 2` | 6 constante enquanto o taiji gira |
+   | Dualidade | alterna `#ffd36a` e `#9cc8ff` a cada 500ms | entre o taiji (que flutua em `y = 4`) e a bandeja, `[0, 2, 1.5]` | 6 constante enquanto o taiji gira |
 
 4. **A tempestade e o CSS ficam presos juntos.** Os dois picos saem do `@keyframes thunder`: 15% e 45% de 420ms, começando em 1300ms.
    - Ponha esses números numa constante em `domain/luz.ts` (`TROVAO = { inicio: 1300, duracao: 420, picos: [0.15, 0.45] }`) e calcule os instantes a partir dela.
