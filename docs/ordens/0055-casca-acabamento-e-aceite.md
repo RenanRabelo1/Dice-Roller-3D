@@ -24,7 +24,7 @@ Leia antes de começar:
 Decisões do orquestrador:
 
 1. **Abertura do livro.** O `.livro[data-aberto="true"]` entra com `opacity` de 0 a 1 e `transform: translateX(-50%) scale(.97)` até 1, em 200ms (`@keyframes`).
-   - Trocar de capítulo não anima.
+   - Trocar de capítulo não anima aqui. A virada de página é da OS-0056.
    - Com `prefers-reduced-motion: reduce`, nada anima: nem o livro, nem a roda, nem a legenda.
 
 2. **Celular (≤ 800 px).**
