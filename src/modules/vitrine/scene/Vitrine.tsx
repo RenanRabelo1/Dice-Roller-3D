@@ -6,7 +6,7 @@ import { Text } from 'troika-three-text';
 import { customDie, dadoNaRaiz, FONT, FONT_URL, gemaNaRaiz, gemColor, inkColorOf, polyhedron, RADIUS, sombraNaGema, SYMBOL, symbolGeometry } from '../../dados/index.ts';
 import { isCustom, MAX_DICE } from '../../regras/index.ts';
 import { easeOut, type Pose, type Quat, type Vec3 } from '../../../shared/math.ts';
-import { movimentoReduzido, renderizadorPorSoftware } from '../../../shared/plataforma/index.ts';
+import { movimentoReduzido, perfilLeve, renderizadorPorSoftware } from '../../../shared/plataforma/index.ts';
 import { arremesso, moverDado, registroDeCorpos } from '../../arremesso/index.ts';
 import { CAPTION, showcasePoses } from '../domain/showcase.ts';
 import { highlightAt, HL_SIZE, SHOW } from '../domain/highlight.ts';
@@ -22,7 +22,8 @@ type Mark = { local: Vector3; turn: Quaternion; start: Vector3; face: Vector3; s
 export function Vitrine() {
   const { camera, scene } = useThree();
   const mode = useRef('');
-  // The highlight light: always mounted (the light count never changes), off at intensity 0, no shadow.
+  // The highlight light: mounted always in the full profile (the light count never changes), off at intensity 0, no shadow;
+  // not mounted in the light profile (ADR 0011), where `destacar` exits early on the null ref.
   const luz = useRef<PointLight>(null);
   const luzAntes = useRef(0);
   const showcase = useRef<{ at: number; throwId: number; from: Pose[]; to: Pose[]; kraken: number[]; storm: number[]; omenAt: number; gems: (Object3D | undefined)[]; marks: Mark[]; above: boolean[]; glows: (Mesh | null)[]; still?: boolean; landed?: boolean } | null>(null);
@@ -213,7 +214,7 @@ export function Vitrine() {
   return (
     <>
       <group ref={numbersGroup} name="result-highlights" />
-      <pointLight ref={luz} color="#ffe8c0" intensity={0} distance={8} decay={2} />
+      {!perfilLeve() && <pointLight ref={luz} color="#ffe8c0" intensity={0} distance={8} decay={2} />}
     </>
   );
 }
