@@ -5,5 +5,5 @@ export { useMesa } from './ui/useMesa.tsx';
 export { MesaNaCena } from './scene/MesaNaCena.tsx';
 export { AmbienteDaMesa } from './scene/AmbienteDaMesa.tsx';
 export { FundoCss } from './ui/FundoCss.tsx';
-// The side sheet "Personalizar mesa" (the Mesa button, the M key).
+// The "Personalizar mesa" chapter of the book: controlled by the shell (aberto, onAlternar, onFechar); the M key lives here.
 export { PainelDaMesa } from './ui/PainelDaMesa.tsx';
