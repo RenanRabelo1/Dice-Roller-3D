@@ -14,7 +14,7 @@ Mostrar o resultado depois de `settled`. Os dados voam até a frente da câmera 
 - Os dados com percurso de presságio (`indicesComPercurso`) seguem `movimentoNoPresagio` e não fazem o voo comum.
 - A pose vai sempre por `moverDado` (de `arremesso`): em `settled`, só a vitrine move os dados. Ao pousar, fixa a pose a cada quadro e grava `showcased` (`vitrineConcluida`) um quadro depois de pousar.
 - Movimento reduzido: sem voo, e o número só aparece acima do dado. A vitrine conclui na hora.
-- Luz de destaque (`scene/Vitrine.tsx`, regra pura `intensidadeDoDestaque` em `domain/destaque.ts`): um `<pointLight>` `#ffe8c0` (distance 8, decay 2, sem sombra) montado sempre, sem condição. Sobe de 0 a 5 ao longo do voo (`SHOW.duration`, contado do início do voo), fica no centro das poses de chegada + (0, 0.6, 1.2) no espaço da câmera, e fora do showcase cai a 0 em 200 ms. Software: sempre 0. Movimento reduzido: vai direto ao valor final.
+- Luz de destaque (`scene/Vitrine.tsx`, regra pura `intensidadeDoDestaque` em `domain/destaque.ts`): um `<pointLight>` `#ffe8c0` (distance 8, decay 2, sem sombra) montado sempre no perfil completo; não monta no leve (ADR 0011). Sobe de 0 a 5 ao longo do voo (`SHOW.duration`, contado do início do voo), fica no centro das poses de chegada + (0, 0.6, 1.2) no espaço da câmera, e fora do showcase cai a 0 em 200 ms. Software: sempre 0. Movimento reduzido: vai direto ao valor final.
 - Painel (`<PainelDoResultado/>`): o total (`regras.total`) e o detalhe só quando há resultado e nenhum presságio tocando. Detalhe: o valor de cada dado, e "Cara"/"Coroa" nas moedas; só moedas: "Cara", "2 caras, 1 coroa". `data-testid="result"`, `aria-live`; `data-presagio="crit|fumble|duality"` (`omenKind`) quando há texto e o presságio é do mesmo `throwId`.
 
 ## Expõe
@@ -29,7 +29,7 @@ Mostrar o resultado depois de `settled`. Os dados voam até a frente da câmera 
 - `pressagios`: `presagio()` (`omen`, `omenAt`), `presagioTocando()`, `indicesComPercurso`, `movimentoNoPresagio`; no painel, `usePresagioTocando` e `usePresagio` (`cena.ts`).
 - `dados`: `polyhedron`, `customDie`, `symbolGeometry`, `FONT`, `FONT_URL`, `SYMBOL`, `RADIUS`, `RAIO_MAXIMO`, `gemColor`, `inkColorOf`, `dadoNaRaiz`, `gemaNaRaiz`, `sombraNaGema`, `allKinds`, `nomeDoTipo`.
 - `regras`: `total`, `isCustom`, `MAX_DICE`, `omenKind`.
-- `src/shared`: `plataforma` (`movimentoReduzido`, `renderizadorPorSoftware`), `math` (`Pose`, `easeOut`, `clamp01`).
+- `src/shared`: `plataforma` (`movimentoReduzido`, `perfilLeve`, `renderizadorPorSoftware`), `math` (`Pose`, `easeOut`, `clamp01`).
 
 ## Fora do escopo
 - O retorno à mão: `arremesso`. O efeito do presságio: `pressagios`. Os numerais pintados no dado: `dados`.
