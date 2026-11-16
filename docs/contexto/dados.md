@@ -1,6 +1,6 @@
 # Dados: tipos, geometria, numeração, leitura, notação
 
-Cobre o módulo `src/modules/dados/` (sólidos, catálogo, leitura, símbolos, tinta e aparência: o puro sai por `index.ts`, componentes e hooks por `cena.ts`), o que resta em `src/dice/*` (texto do resultado, presságios), `modules/arremesso/scene/CorpoDoDado.tsx` (corpo físico) e o `Painel` da casca (`src/app/Painel.tsx`). A notação, o chat e a mão estão em `src/modules/selecao/`; o grupo "Meus dados", o assistente e a gravação dos importados, em `src/modules/meus-dados/` (ver o `CLAUDE.md` de cada um). O domínio é puro (sem React) e testado em Node.
+Cobre o módulo `src/modules/dados/` (sólidos, catálogo, leitura, símbolos, tinta e aparência: o puro sai por `index.ts`, componentes e hooks por `cena.ts`), o texto do resultado (`src/modules/vitrine/domain/painel.ts`), os presságios (`src/modules/pressagios/`), `modules/arremesso/scene/CorpoDoDado.tsx` (corpo físico) e o `Painel` da casca (`src/app/Painel.tsx`). A notação, o chat e a mão estão em `src/modules/selecao/`; o grupo "Meus dados", o assistente e a gravação dos importados, em `src/modules/meus-dados/` (ver o `CLAUDE.md` de cada um). O domínio é puro (sem React) e testado em Node.
 
 ## Tipos (`modules/regras`)
 
@@ -116,5 +116,5 @@ Dados "shard" têm faces longas numeradas e pontas lapidadas em camadas de facet
 3. `modules/selecao/domain/notacao.ts`: sufixo em `AFTER_D` (mantendo do mais longo ao mais curto) e nome em `CUSTOM` (`modules/dados/domain/aparencia.ts`); atualizar a mensagem de erro e a dica de `modules/selecao/ui/Chat.tsx`.
 4. `modules/dados/domain/leitura.ts`: só se a regra de valor mudar.
 5. `modules/arremesso/domain/world.ts`: `DAMPING` se o corpo rolar demais; `RAIO_MAXIMO` (`modules/dados/domain/solidos.ts`) se o raio passar de 0,9.
-6. `omen.ts`: só se o dado deve disparar presságio.
-7. Testes: `src/modules/dados/tests/polyhedra.test.ts` e `read.test.ts`, `tests/notation.test.ts`, e um caso em `e2e/smoke.spec.ts` ("every supported selection").
+6. `modules/pressagios/domain/omen.ts`: só se o dado deve disparar presságio.
+7. Testes: `src/modules/dados/tests/polyhedra.test.ts` e `read.test.ts`, `src/modules/vitrine/tests/notation.test.ts`, e um caso em `e2e/smoke.spec.ts` ("every supported selection").

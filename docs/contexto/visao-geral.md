@@ -24,7 +24,7 @@ Node local: 24.x. Fonte local em `public/fonts/` (Bricolage Grotesque, OFL).
 npm run dev        # Vite
 npm run build      # tsc -b && vite build  (tsc cobre src, tests e e2e)
 npm run lint       # oxlint
-npm test           # vitest run  (tests/**/*.test.ts, ambiente Node, inclui física real)
+npm test           # vitest run  (src/**/tests/ e tests/, ambiente Node, inclui física real e os testes de arquitetura)
 npm run e2e        # playwright test (sobe `npm run dev:test` em 127.0.0.1:5179)
 cd server && npm test   # API do histórico (Fastify + MongoDB em memória)
 ```

@@ -14,12 +14,12 @@ A ideia do "abraço de tentáculos no 100 do d100" foi coberta pelo PR #4 do Ren
 
 Pedido em 2026-11-12, ainda sem spec: **refatoração visual do site** (seção 4) e **duas correções** (seção 5, não fazem parte da refatoração visual).
 
-As notas abaixo são o contexto original que gerou as specs; valem as specs.
+As notas abaixo são o contexto original que gerou as specs; valem as specs. Os caminhos foram atualizados para os módulos depois da refatoração (OS-0050); as linhas citadas nas seções já implementadas (`ImportDie.tsx linha ~N`) são de antes dela e não batem mais: o assistente hoje é `src/modules/meus-dados/ui/AssistenteDeImportacao.tsx`.
 
 ## 1. Dado importado de forma livre (caminho B)
 
 - **O quê:** importar dados que não são d4–d20: d3, d7, d30, dado-caveira, cristal, qualquer forma convexa com faces planas.
-- **De onde parte:** o caminho A (`docs/superpowers/specs/2026-11-11-importar-dado-design.md`, `src/dice/importer.ts`) já detecta faces planas pelo casco e reconstrói o poliedro pelos planos. O B tira a exigência de bater com 4/6/8/10/12/20 faces.
+- **De onde parte:** o caminho A (`docs/superpowers/specs/2026-11-11-importar-dado-design.md`, `src/modules/meus-dados/domain/importador.ts`) já detecta faces planas pelo casco e reconstrói o poliedro pelos planos. O B tira a exigência de bater com 4/6/8/10/12/20 faces.
 - **O que muda:**
   - a física e a leitura usam o poliedro do próprio modelo; o worker já recebe os poliedros importados no `RollRequest`;
   - numeração sempre calibrada (não existe layout padrão), sem sugestão de face oposta quando não houver oposta;
@@ -35,7 +35,7 @@ As notas abaixo são o contexto original que gerou as specs; valem as specs.
 
 ## 3. Números pintados no dado importado, também na mesa
 
-- **O quê:** hoje a gravação do dado importado é pintada de escuro só na prévia do assistente (`inkOf` em `src/dice/importer.ts`). Levar isso para o dado na mesa, para os números esculpidos ficarem legíveis durante o jogo.
+- **O quê:** hoje a gravação do dado importado é pintada de escuro só na prévia do assistente (`inkOf` em `src/modules/meus-dados/domain/importador.ts`). Levar isso para o dado na mesa, para os números esculpidos ficarem legíveis durante o jogo.
 - **Por que ficou de fora:** o material de gema é translúcido (`meshPhysicalMaterial` com clearcoat); pintar por cor de vértice muda o visual da gema e precisa de cuidado com desempenho (10 dados de até 50 mil triângulos).
 - **Perguntas para a spec:** cor da tinta escolhida pelo jogador (dourado, preto, branco)? Opção de acabamento fosco para dados importados? Vale para GLB que já tem textura própria?
 
@@ -47,13 +47,13 @@ As notas abaixo são o contexto original que gerou as specs; valem as specs.
   - a ação ("Importar como dado de forma livre") vem **antes** da mensagem que explica por que ela apareceu ("Não reconheci um d4–d20…"); a mensagem chega em vermelho, como se fosse um erro, embora seja um caminho válido;
   - a área de soltar o arquivo (borda tracejada amarela), o botão amarelo cheio e o texto vermelho não parecem do mesmo sistema visual.
 - **Manter:** a prévia 3D girando no assistente de importação (o João gosta; não trocar por imagem parada).
-- **Esconder o número:** "Ignorei 725 faces onde o dado não para" (D5Shard) confunde. São as facetas minúsculas das quinas arredondadas e da gravação (o STL é uma malha de triângulos; cada pedacinho plano conta como face). Decisão do João: não mostrar a contagem (`imp.dropped`, `ImportDie.tsx` linha ~317).
+- **Esconder o número:** "Ignorei 725 faces onde o dado não para" (D5Shard) confunde. São as facetas minúsculas das quinas arredondadas e da gravação (o STL é uma malha de triângulos; cada pedacinho plano conta como face). Decisão do João: não mostrar a contagem (`imp.dropped`, `meus-dados/ui/AssistenteDeImportacao.tsx` linha ~328).
 - **Calibração da forma livre confunde:** o contorno laranja marca a face em que o dado **está apoiado**. A prévia vira essa face para **longe da câmera** (`orientation(-n)`, linha ~197), como se a câmera fosse o "de cima", e desenha o contorno através do modelo (`Marker through`). O número que o jogador lê é o que fica virado para a câmera, em outra face. Parece que o assistente pede para numerar a face marcada. Proposta (conversada com o João em 2026-11-12):
   1. **Mostrar como ele cai na mesa:** o dado pousado num chão (disco de feltro), com a face de apoio encostada nele, visto de cima e de frente como a câmera do jogo.
   2. **Destacar o que fica para cima**, não a face de apoio. "Face oposta" nem sempre existe: num shard de 5 ou 7 lados, oposta a uma face longa fica uma **aresta**, entre duas faces. Então destacar a face (ou as faces) cuja normal aponta mais para cima, e marcar a face de apoio só de leve, encostada no chão.
   3. **Pergunta:** "Com o dado caído assim, que número você lê em cima?".
   4. A prévia girando continua no passo de antes (escolher modelo e cor); a pose acima só no passo de numerar.
-- **De onde parte:** estilos em `src/index.css` (sem biblioteca de componentes), UI em `src/ui/` (`Controls`) e nos módulos (`selecao/ui`, `meus-dados/ui`, `arremesso/ui`, `mesa/ui`, `pressagios/ui`, com o CSS do presságio em `pressagios/ui/presagios.css`). Mapa em `docs/contexto/visao-geral.md`.
+- **De onde parte:** estilos em `src/index.css` (sem biblioteca de componentes), o painel composto pela casca em `src/app/Painel.tsx` (cabeçalho e rodapé) e a UI nos módulos (`selecao/ui`, `meus-dados/ui`, `arremesso/ui`, `mesa/ui`, `pressagios/ui`, com o CSS do presságio em `pressagios/ui/presagios.css`). Mapa em `docs/contexto/visao-geral.md`.
 - **Cuidados:** os E2E acham os controles por papel e nome acessível (`getByRole('button', { name: … })`, `getByLabel`); manter os textos e papéis ou atualizar os testes junto. Não mexer no canvas 3D nem no desempenho (`docs/contexto/armadilhas.md`).
 - **Perguntas para a spec:** direção visual (referências, paleta, tipografia)? Tudo de uma vez ou por painel? Mobile primeiro? Vale um design system mínimo (tokens de cor, espaçamento, botões) antes das telas?
 
@@ -68,7 +68,7 @@ As notas abaixo são o contexto original que gerou as specs; valem as specs.
   - `showcasePoses`: com `poly.readsDown`, virar a face de apoio para **longe** da câmera (usar `-normal` do rótulo; o "para cima" continua `label.up`). É a mesma vista da prévia de calibração (`orientation(-n)` em `ImportDie.tsx`), em que o jogador leu o número.
   - **Acender a gravação certa:** não se sabe qual número gravado é qual. Mas, com o dado apoiado na face A, o número lido é a gravação que fica **para cima**. Então acender só os triângulos de tinta (`geometry.userData.ink`, um por triângulo) cuja normal aponta para cima com o dado nessa pose (normal · −n_A acima de um limiar). Acender = clarear e pulsar a cor de vértice desses triângulos (mesmo ritmo do destaque, 0,9 Hz) mexendo só no atributo `color`. Sem material novo nem luz (não recompila shader; ver armadilhas.md).
   - A `Vitrine` (`modules/vitrine/scene/Vitrine.tsx`): esse dado **não** ganha o número em destaque solto (o `Text`); a gravação acesa é o destaque.
-  - Testes: `tests/showcase.test.ts` (forma livre gravada: normal do rótulo aponta para longe da câmera) e uma função pura testada que escolhe os triângulos a acender. E2E do prisma em `e2e/import.spec.ts` ajustado.
+  - Testes: `src/modules/vitrine/tests/showcase.test.ts` (forma livre gravada: normal do rótulo aponta para longe da câmera) e uma função pura testada que escolhe os triângulos a acender. E2E do prisma em `e2e/import.spec.ts` ajustado.
 - **Dado de forma livre sem gravação** (`printed: false`): continua como está hoje. O número é pintado por nós na face de apoio, que vira para a câmera com o número grudado nela, no tamanho que cabe na face.
 - **Limite:** num shard, de cima podem aparecer duas gravações (as duas faces da aresta de cima). As duas acendem; é o que o jogador veria na mesa.
 

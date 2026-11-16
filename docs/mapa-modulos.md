@@ -1,6 +1,6 @@
 # Mapa de módulos
 
-Proposto em 2026-11-13, a partir de [diagnostico.md](diagnostico.md), e aprovado pelo responsável humano na mesma data. A fundação (fase 4) foi concluída nas OS-0004 a OS-0013; nenhum módulo foi extraído ainda.
+Proposto em 2026-11-13, a partir de [diagnostico.md](diagnostico.md), e aprovado pelo responsável humano na mesma data. A fundação (fase 4) foi concluída nas OS-0004 a OS-0013, e os nove módulos foram extraídos até a OS-0050 (fase 7): não há mais legado. As seções "Dados disputados" e "Ciclos" guardam o ponto de partida e como cada caso foi resolvido.
 
 Os módulos seguem domínios de negócio, não as pastas de hoje. As decisões que sustentam este mapa estão nos ADRs 0001 a 0008 (`docs/adr/`).
 
@@ -11,10 +11,10 @@ Os módulos seguem domínios de negócio, não as pastas de hoje. As decisões q
 | `regras` | As regras do jogo que o servidor também aplica: tipos de dado, faces válidas, limite de 10 dados, total (moeda não soma), crítico, falha e dualidade. Puro, sem estado (ADR 0002). | nenhum | — | concluído (OS-0014 a OS-0017) |
 | `historico` | Gravar cada arremesso publicado na API, com o jogador anônimo. Único módulo com metade no servidor (rotas, regra de gravação, coleção). | `localStorage['diceroller.player']`, coleção `rolls` | `regras`, `dados`, `arremesso` (evento) | concluído (OS-0018, OS-0019, OS-0045). Servidor → `regras`; cliente → `arremesso` (`resultadoPublicado`), `dados` (`customDie`), `regras` e `import type` do próprio `contracts.ts` |
 | `dados` | O dado como objeto: catálogo vivo dos tipos jogáveis (embutidos + importados registrados), sólidos, numeração, leitura da face, símbolos e aparência na cena (gema, tinta, numerais, modelo importado). | catálogo de tipos (registro em memória), caches de sólido, símbolo e modelo | `regras` | concluído (OS-0020 a OS-0023). Nomes em inglês mantidos (decisão da OS-0020); `dadoNaRaiz`/`gemaNaRaiz`/`definirOpacidade`/`definirSombra`/`sombraNaGema` desde a OS-0042 (`rotulos` é o `inspecao.rotulos`) |
-| `selecao` | Quais dados estão na mão: botões, chat com notação, nomes de exibição e regras de apelido. | `dice` (a seleção) | `regras`, `dados` | concluído (OS-0024 a OS-0026). Nomes da notação em inglês; a cópia `dice` do store legado é dos dados do arremesso |
+| `selecao` | Quais dados estão na mão: botões, chat com notação, nomes de exibição e regras de apelido. | `dice` (a seleção) | `regras`, `dados` | concluído (OS-0024 a OS-0026). Nomes da notação em inglês; a cópia `dice` no store do `arremesso` são os dados do arremesso |
 | `meus-dados` | Os dados que o jogador importa: assistente (arquivo, forma, calibração, tinta), salvar, editar tinta, excluir. Entrega cada dado salvo ao catálogo de `dados`. | IndexedDB `customDice`, a lista "Meus dados", o aviso de sessão e o estado do assistente | `regras`, `dados`, `selecao` | concluído (OS-0027 a OS-0029). O importador e o assistente só entram por `import()` |
 | `arremesso` | Do gesto à publicação: mira, carga, redemoinho na mão, lançamento, pré-simulação (worker e fallback), parada, replay, publicação do resultado e retorno à mão. Dono da área de jogo física (bandeja, colisores). | `gesture`, `throwId`, `aim`, `force`, `chargeMode`, `launch`, `results`, `raw`, `ready`, registro de corpos, worker, `localStorage['diceroller.rolagem']` | `regras`, `dados`, `selecao` | concluído (OS-0030 a OS-0034). Nomes reais: `arremesso()`/`useArremesso`, `registroDeCorpos`, `inspecao()`; `moverDado`/`envelopeDaMao` desde a OS-0043; `dadoNaCena` não existe (sem chamador) |
-| `mesa` | Aparência da mesa e do fundo: temas, cores, texturas, foto, fundo 360°, mesas salvas, exportar e importar `.glb`. Só visual: nunca muda colisores nem resultados. | store da mesa (`theme`, `tables`, `colors`, `sessionOnly`), IndexedDB `tables`, `localStorage['mesa.ativa']`, caches de textura e panorama | `arremesso` | concluído (OS-0035 a OS-0037). `ocultarPiso` é chamado pelo legado de `pressagios` (`QuebraDaMesa`) |
+| `mesa` | Aparência da mesa e do fundo: temas, cores, texturas, foto, fundo 360°, mesas salvas, exportar e importar `.glb`. Só visual: nunca muda colisores nem resultados. | store da mesa (`theme`, `tables`, `colors`, `sessionOnly`), IndexedDB `tables`, `localStorage['mesa.ativa']`, caches de textura e panorama | `arremesso` | concluído (OS-0035 a OS-0037). `ocultarPiso` é chamado por `pressagios` (`scene/QuebraDaMesa.tsx`) |
 | `pressagios` | Decidir e mostrar o presságio de um resultado (raio, kraken, fogo, tempestade, dualidade) em 3D e em HTML, com duração, relógio e quebra da mesa. | `omen`, `omenAt`, `omenDone`, `omenRig` | `regras`, `dados`, `selecao`, `arremesso`, `mesa` | concluído (OS-0038 a OS-0040). `plays` (arremesso) repete a escolha de efeito, com teste de equivalência; `forcarPresagio` é `rigOmen` |
 | `vitrine` | Mostrar o resultado: o voo dos dados até a câmera, os números em destaque, a gravação acesa e o painel com total e detalhe. Espera o presságio terminar. | `showcased`, cache do brilho da gravação | `regras`, `dados`, `arremesso`, `pressagios` | concluído (OS-0041 a OS-0044) |
 
@@ -58,7 +58,7 @@ Verificado no código. O detalhe e as linhas estão no diagnóstico, §6.
 | Dado | Quem escreve hoje | Dono | Como os outros obtêm ou mudam |
 |---|---|---|---|
 | `gesture`, `throwId`, `launch`, `results`, `force` | `selection()` da seleção, `input` do arremesso, `publish` | `arremesso` | `selecao` não escreve mais. `arremesso` assina `selecaoAlterada` e se reinicia |
-| `dice` (seleção) | `selecao.adicionar/remover/definir` (OS-0024/0025); o store legado guarda a cópia como dados do arremesso | `selecao` (a mão); a cópia, `arremesso` | `meus-dados` exclui no catálogo de `dados`, e `selecao` reage a `catalogoAlterado` |
+| `dice` (seleção) | `selecao.adicionar/remover/definir` (OS-0024/0025); o store do `arremesso` guarda a cópia como dados do arremesso, recebida por `selecaoAlterada` | `selecao` (a mão); a cópia, `arremesso` | `meus-dados` exclui no catálogo de `dados`, e `selecao` reage a `catalogoAlterado` |
 | `omen`, `omenAt` | `publish` (arremesso) e `setReducedMotion` | `pressagios` | `pressagios` assina `resultadoPublicado` e `movimentoReduzidoAlterado`. Os outros leem `presagioTocando()` e `tempoDoPresagio()` (não criado: quem precisa lê `presagio().omenAt`, OS-0040) |
 | `error` | `App` (WebGL), `Guard` (renderizador/física), `app/Cena` (física) | `shared/plataforma` | `registrarFalha(tipo)` (o primeiro vence, como hoje) e `falha()` |
 | `reducedMotion` | `App` | `shared/plataforma` | `movimentoReduzido()` e o evento acima |
@@ -86,15 +86,15 @@ O bloco acima é lido pelo teste de arquitetura (ADR 0006). Mudou um dono? Mude 
 
 ## Ciclos de hoje e como somem
 
-Estado em 2026-11-13, depois da fundação até a OS-0010: os ciclos de import que restam são os de `CICLOS_CONHECIDOS` em `tests/arquitetura/config.ts`, que falha se surgir um novo ou se um deles sumir.
+Ponto de partida em 2026-11-13, depois da fundação até a OS-0010. Desde a OS-0049 não resta nenhum: `CICLOS_CONHECIDOS` em `tests/arquitetura/config.ts` está vazio, e o teste falha se surgir um ciclo novo.
 
 | Ciclo (verificado no grafo de imports) | O que o sustenta | Como some |
 |---|---|---|
 | ~~pastas `physics ↔ throw`~~ desfeito na OS-0030 (era `dice ↔ physics ↔ throw`; o lado `dice` sumiu com `shared/math`, OS-0005/0006) | `Vec3`/`Quat` em `physics/world.ts`, usados pela geometria; parâmetros do arremesso (`TRAY`, `LAUNCH`, `SETTLE`, `HAND`) no mesmo arquivo do motor; `presim` lendo o registro de importados | Vetores vão para `shared/`; `throw/` + `physics/` viram o módulo `arremesso`; `MAX_RADIUS` vai para `dados`; a pré-simulação recebe os sólidos prontos (já chegam em `RollRequest.customs`) |
 | ~~arquivos `custom.ts ↔ polyhedra.ts`~~ — **desfeito** na OS-0020 (catálogo e sólidos em arquivos separados de `src/modules/dados/domain/`) | `polyhedron(kind)` resolve importados pelo registro | Interno a `dados`: tipos, construtores de sólido e catálogo em arquivos separados, nessa ordem de dependência |
 | ~~pastas `scene ↔ ui`~~ — **desfeito** na OS-0008 (o `Guard` foi para `shared/plataforma`); resta `ui → scene` em sentido único (`TablePanel` importa a mesa) | — | A mesa vira módulo próprio, com o painel dentro |
-| `mesa ↔ presságio` (`Tray → trayBrokenAt`, `Omens → mesa().colors`) | a regra de quebra é executada pela mesa | `pressagios → mesa` em sentido único (`coresDaMesa`, `ocultarPiso`) |
-| latente `showcase ↔ presságio` (aparece ao partir `Hand.tsx`) | `krakenMotion` usa `Pose`/`easeOut` de `showcase`/`highlight`; `Hand` usa o caminho do d100 do kraken | `Pose`/`easeOut`/`span` vão para `shared/`; `vitrine → pressagios` (`movimentoDoDadoNoPresagio`), e a pose final do voo entra por parâmetro |
+| ~~`mesa ↔ presságio`~~ desfeito (OS-0049 zerou a lista) (`Tray → trayBrokenAt`, `Omens → mesa().colors`) | a regra de quebra é executada pela mesa | `pressagios → mesa` em sentido único (`coresDaMesa`, `ocultarPiso`) |
+| ~~latente `showcase ↔ presságio`~~ desfeito (OS-0049 zerou a lista) (aparecia ao partir `Hand.tsx`) | `krakenMotion` usa `Pose`/`easeOut` de `showcase`/`highlight`; `Hand` usa o caminho do d100 do kraken | `Pose`/`easeOut`/`span` vão para `shared/`; `vitrine → pressagios` (`movimentoDoDadoNoPresagio`), e a pose final do voo entra por parâmetro |
 | ~~gatilho do histórico na casca (`App.tsx:22-25`)~~ desfeito na OS-0045 | ~~a casca assina `resultadoPublicado` (desde a OS-0031) e chama `historico.registrarArremesso`, com o corpo de cada dado montado por `src/app/historico.ts` (ponte)~~ | ~~`historico` assina `resultadoPublicado` (fase 6)~~: `historico.iniciarHistorico()`, chamado uma vez pela casca |
 
 ## Fronteiras discutíveis (alternativa descartada e motivo)
@@ -120,4 +120,4 @@ Do que tem menos dependências para o que tem mais. Um módulo só começa quand
 8. `pressagios`
 9. `vitrine`
 
-Enquanto um módulo não é extraído, o código dele continua nas pastas atuais (o "legado"). Como o código já extraído convive com o legado é definido no plano (`docs/plano-refatoracao.md`, entrega 2).
+Os nove foram extraídos nessa ordem; o "legado" (as pastas antigas de `src/`) acabou na OS-0050. Como os dois conviveram durante a extração está no plano (`docs/plano-refatoracao.md`, entrega 2). Demanda nova entra pelo fluxo da seção 8 do [guia](guia-orquestrador.md), no módulo dono.
