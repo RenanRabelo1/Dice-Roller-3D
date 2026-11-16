@@ -23,6 +23,9 @@ Decidir se um resultado publicado tem presságio e mostrá-lo antes do resultado
 - Tipos (`contracts.ts`): `EstadoDoPresagio`, `PlanoDoPresagio`, `MovimentoNoPresagio`, `PresagioInspecionado`.
 - `cena.ts`: `usePresagio(sel)`, `usePresagioTocando()`; `<PresagiosNaCena/>` (3D, depois da física), `<QuebraDaMesa/>` (logo antes da `<MesaNaCena/>`), `<OverlayDoPresagio gameArea/>` (escreve `data-omen`, `data-kraken` e `data-storm` em `.game-area` e traz o CSS), `<BotoesDeTeste gameArea/>` (o `App` monta só em `DEV`); `SHARD_DEFAULT`, `shard`, `shardWood`.
 
+- **Contrato da `.game-area`** (consumidor: o CSS da casca, `src/index.css`, OS-0061; mudar estes nomes é mudança de contrato). Enquanto um presságio toca, o `OverlayDoPresagio` põe `data-omen="crit|fumble|duality"`, `data-kraken` (durante o kraken) e `data-storm` (durante a tempestade). Todos somem quando o presságio acaba.
+- A luz do presságio (`domain/luz.ts`): uma `PointLight` só, sem luz nova. Prioridade: fogo, raio, tempestade, kraken, dualidade (`fonteDaLuz`). Fogo e raio têm curva própria no `Show`; kraken (`#3fd6a0`, rasante), tempestade (`#bcd4ff`, dois relâmpagos presos ao `thunder` do CSS por `TROVAO`) e dualidade (alterna `#ffd36a`/`#9cc8ff`) só valem quando eles não estão ativos. Apagar a luz é intensidade 0, nunca tirá-la da cena.
+
 ## Consome
 - `arremesso`: `arremesso()`, `useArremesso`, `resultadoPublicado`, `registroDeCorpos` (os corpos dos dados), `omenKinds`, `TRAY`, o tipo `OmenTest`. O `LoopDoArremesso` lê o botão de teste escolhido pela casca (`presagio().omenTest`).
 - `mesa`: `ocultarPiso`, `coresDaMesa`. `dados`: `paraRegras`, `sortDice`. `regras`: `omenOf`, `omenKind`, `MAX_DICE`. `selecao`: `selecao()`, `definir`.
