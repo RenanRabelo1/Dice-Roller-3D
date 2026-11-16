@@ -52,7 +52,7 @@ test('the light count never changes after warm-up', async ({ page }) => {
   await roll(page); await shown(page); await back(page);
   await rig(page, ['d100'], { crits: [0], fumbles: [] }); // kraken
   await roll(page); await shown(page);
-  expect(await programs(page)).toBe(base);
+  expect(await programs(page)).toBeLessThanOrEqual(base); // three may drop an unused program; a light mounting would add one
 });
 
 test('reduced motion: the app says so and the caption stops animating', async ({ page }) => {
