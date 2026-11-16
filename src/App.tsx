@@ -3,7 +3,7 @@ import { Canvas } from '@react-three/fiber';
 import { Cena } from './app/Cena.tsx';
 import { Painel } from './app/Painel.tsx';
 import { BotoesDeTeste, OverlayDoPresagio } from './modules/pressagios/cena.ts';
-import { Failure, Guard, aoMudarMovimentoReduzido, hasWebGL, movimentoReduzido, observarPreferenciaDoSistema, registrarFalha, useFalha } from './shared/plataforma/index.ts';
+import { Failure, Guard, aoMudarMovimentoReduzido, hasWebGL, movimentoReduzido, observarPreferenciaDoSistema, perfil, registrarFalha, useFalha } from './shared/plataforma/index.ts';
 import { arremesso, assinarArremesso } from './modules/arremesso/index.ts';
 import type { EstadoDoArremesso } from './modules/arremesso/contracts.ts';
 import { carregar as carregarMesa, warmImageDecoder } from './modules/mesa/index.ts';
@@ -32,10 +32,12 @@ export default function App() {
     return () => { sairA(); sairM(); };
   }, []);
   return (
-    <main ref={app} className="app">
+    <main ref={app} className="app" data-perfil={perfil()}>
     <Painel />
     <div ref={gameArea} className="game-area" tabIndex={0} aria-label="Área de arremesso">
       <FundoCss />
+      <div className="faixa faixa-cima" aria-hidden="true" />
+      <div className="faixa faixa-baixo" aria-hidden="true" />
       {!error && (
         <Guard kind="graphics">
           <Canvas shadows camera={{ position: [0, 14, 10], fov: 40 }}

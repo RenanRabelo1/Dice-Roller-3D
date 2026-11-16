@@ -21,6 +21,7 @@ Coisas que já morderam ou que quebram em silêncio. Ler antes de mexer em físi
 
 - **Um objeto por dado para os numerais** (`BatchedText` ou malha mesclada). Não voltar a um `Text` por número.
 - **Não mudar o número de luzes** em tempo de execução (recompila o shader de todos os dados). Esconder com intensidade 0.
+- **Intensidade 0 não economiza GPU:** a luz montada custa por pixel. Luz decorativa nova respeita `perfilLeve()` e não monta no leve (ADR 0011). Animação de tela inteira usa `transform` ou `opacity`, nunca `background-size` ou gradiente com variável por quadro.
 - **Compilar shaders antes** do primeiro uso (`Show.compile`); presságio novo entra nesse aquecimento.
 - **DPR só muda entre animações** (fase `hand` ou showcase concluído). `PerformanceMonitor` acumula o alvo em `desiredDpr`; redimensionar o buffer no meio de uma animação trava renderizador por software. SwiftShader começa em DPR 0,35.
 - Pré-simulação roda no worker; o fallback síncrono existe e custa ~25–35 ms no quadro de lançamento com 10 moedas. Worker sem resposta em 2 s (`WORKER_TIMEOUT`) → cálculo local; se o motor falhar, os dados voltam à mão com `error: 'physics'` e aviso no painel.
