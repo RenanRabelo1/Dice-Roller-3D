@@ -31,6 +31,7 @@
 @keyframes omen-in { from { opacity: 0; } }
 @keyframes heat-flicker { to { filter: brightness(1.18) saturate(1.2); } }
 @keyframes rain-fall { to { transform: translateY(140vh); } }
+/* The thunder's timing (420ms from 1300ms, peaks at 15% and 45%) must match TROVAO in domain/luz.ts: the storm light flashes with it. */
 @keyframes thunder { 15% { opacity: 0.28; } 30% { opacity: 0.05; } 45% { opacity: 0.18; } 100% { opacity: 0; } }
 @keyframes storm-rock {
   0%, 100% { transform: none; } 18% { transform: scale(1.04) rotate(-1.3deg) translateY(5px); }

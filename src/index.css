@@ -22,14 +22,29 @@
   --wine: #3A0F1A;
   --panel: #140E10;
   font-synthesis: none;
+  --barra: #050506;
+  --nevoa: #d6d1c6;
+  --luz: #f2efe8;
+  --apagado: #a9a397;
+  --couro: #2c130c;
+  --couro-brilho: #5a2a1c;
+  --pergaminho-claro: #f1e2c0;
+  --pergaminho-escuro: #e6d0a2;
+  --tinta: #2b1d14;
+  --lacre: #7a2318;
+  --rubrica: #8e2a1c;
+  --sepia: #5e4a36;
+  --fio: #b99a66;
 }
 
 * { box-sizing: border-box; }
 html, body, #root { width: 100%; height: 100%; margin: 0; }
 .app { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto; height: 100dvh; }
 .panel { background: var(--panel); padding: 12px 24px; }
-.controls { grid-row: 1; display: flex; align-items: center; gap: 24px; border-bottom: 1px solid #49332E; }
-h1 { font-size: 26px; line-height: 1.1; margin: 0 auto 0 0; font-weight: 800; }
+.controls { grid-row: 1; display: flex; align-items: center; gap: 24px; background: var(--barra); min-height: 64px; padding-left: 28px; padding-right: 28px; }
+@media (min-width: 801px) { .controls { height: 64px; min-height: 0; } }
+nav { display: flex; gap: 8px; }
+h1 { font-size: 13px; line-height: 1.1; margin: 0 auto 0 0; font-weight: 400; letter-spacing: .32em; text-transform: uppercase; color: var(--nevoa); }
 button { color: var(--chalk); font: inherit; background: var(--panel); border: 1px solid #786958; border-radius: 3px; padding: 8px 10px; min-height: 40px; cursor: pointer; }
 button[aria-pressed="true"] { background: var(--brass); color: var(--ink); border-color: var(--brass); font-weight: 800; }
 button:disabled { opacity: 0.4; cursor: default; }
@@ -40,31 +55,37 @@ button:focus-visible { outline: 3px solid var(--chalk); outline-offset: 3px; }
 .pool { margin: 0; min-width: 110px; font-weight: 800; color: var(--brass); }
 .game-area { position: relative; grid-row: 2; width: 100%; height: 100%; min-width: 0; min-height: 0; overflow: hidden; touch-action: none; }
 .game-area:focus-visible { outline: 3px solid var(--brass); outline-offset: -3px; }
-.status { grid-row: 3; min-height: 110px; border-top: 1px solid #49332E; display: flex; align-items: center; gap: 24px; }
-.feedback { min-width: 180px; }
-output { display: flex; gap: 12px; align-items: center; }
-output strong { font-size: 42px; line-height: 1; color: var(--brass); }
-output span { font-size: 16px; }
-.status p { max-width: 620px; margin: 0; line-height: 1.4; font-size: 14px; }
-.roll-mode { display: flex; align-items: center; gap: 6px; font-size: 14px; }
-.roll-mode > span { margin-right: 4px; color: #B9AE9C; }
-.roll-mode label { position: relative; border: 1px solid #786958; border-radius: 3px; padding: 8px 10px; min-height: 40px; display: flex; align-items: center; cursor: pointer; }
+/* Vignette over the scene. Stacking: vignette 1, omen/failure 2, result caption 3, omen-tests 5, book and chat 10. */
+.game-area::after { content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 1;
+  background: radial-gradient(ellipse at 50% 52%, rgba(255,170,90,.08) 0%, rgba(0,0,0,0) 42%, rgba(0,0,0,.6) 100%); }
+.game-area .omen, .game-area .failure { z-index: 2; }
+.status { grid-row: 3; position: relative; min-height: 72px; background: var(--barra); display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+output { position: absolute; left: 0; right: 0; bottom: calc(100% + 32px); display: flex; flex-direction: column; align-items: center; gap: 6px; pointer-events: none; z-index: 3; text-shadow: 0 2px 18px rgba(0, 0, 0, 0.95); }
+output strong { font-family: Cormorant Garamond, serif; font-weight: 600; font-style: italic; font-size: 76px; line-height: 1; color: var(--luz); }
+/* --luz, not --nevoa: on the lightest scene (poker green) --nevoa gives 3.5:1, --luz 4.64:1 */
+output span { font-size: 12px; letter-spacing: .32em; text-transform: uppercase; color: var(--luz); }
+.status p { flex: 1; margin: 0; line-height: 1.4; font-size: 13px; color: var(--apagado); text-align: center; }
+.roll-mode { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.roll-mode > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.roll-mode label { position: relative; padding: 8px 10px; min-height: 40px; display: flex; align-items: center; cursor: pointer; color: var(--apagado); }
 .roll-mode input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
-.roll-mode label:has(input:checked) { background: var(--brass); color: var(--ink); border-color: var(--brass); font-weight: 800; }
+.roll-mode label:has(input:checked) { color: var(--luz); text-decoration: underline; text-underline-offset: 6px; }
 .roll-mode label:has(input:focus-visible) { outline: 3px solid var(--chalk); outline-offset: 3px; }
-progress { width: 100%; height: 12px; accent-color: var(--brass); }
+/* Force line on the top edge of the bottom band (the shell mounts it only while charging). */
+progress { position: absolute; top: 0; left: 0; width: 100%; height: 2px; appearance: none; border: 0; background: transparent; color: var(--luz); }
+progress::-webkit-progress-bar { background: transparent; }
+progress::-webkit-progress-value { background: var(--luz); box-shadow: 0 0 10px rgba(242, 239, 232, 0.7); }
+progress::-moz-progress-bar { background: var(--luz); box-shadow: 0 0 10px rgba(242, 239, 232, 0.7); }
 @media (max-width: 800px) {
   .panel { padding: 12px 16px; }
   .controls { flex-wrap: wrap; gap: 12px; }
-  h1 { flex: 1 1 100%; font-size: 24px; }
+  h1 { flex: 1 1 100%; font-size: 11px; }
   .selection { flex: 1 1 100%; }
   .selection button { padding: 7px 6px; }
-  .status { min-height: 140px; flex-direction: column; align-items: stretch; gap: 8px; justify-content: center; }
-  .feedback { min-height: 36px; }
-  output { flex-wrap: wrap; }
-  output strong { font-size: 32px; }
-  output span { font-size: 13px; }
-  .status p { font-size: 12px; }
+  .status { flex-wrap: wrap; justify-content: flex-start; gap: 0; padding-top: 8px; padding-bottom: 8px; }
+  .status p { flex: 1 1 100%; font-size: 12px; }
+  output strong { font-size: 44px; }
+  output span { font-size: 11px; }
 }
 canvas { display: block; }
 /* Backdrop behind the transparent canvas (photo or ready-made theme); the canvas wrapper comes later, so it stacks above. */
@@ -97,7 +118,6 @@ canvas { display: block; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
 /* Importing a die: the chat's side sheet, wider, with a preview and a short form per step. */
-.selection[aria-label="Meus dados"] { margin-left: 0; }
 .import { width: min(420px, 100vw); overflow-y: auto; }
 .import-body { display: flex; flex-direction: column; gap: 12px; flex: 1; }
 .import-drop { display: flex; flex-direction: column; gap: 8px; padding: 24px 16px; border: 2px dashed #786958; border-radius: 3px; text-align: center; cursor: pointer; }
@@ -137,3 +157,149 @@ canvas { display: block; }
 
 /* The 3D could not start (no WebGL, renderer or physics failure): a plain message in the play area. */
 .failure { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; padding: 24px; text-align: center; font-size: 20px; line-height: 1.4; color: var(--chalk); }
+
+/* OS-0052: the wheel of dice, at the right end of the bottom band. */
+.roda { position: relative; }
+.roda-botao { background: none; border: 0; padding: 4px 8px; display: flex; align-items: baseline; gap: 10px; color: var(--luz); }
+.roda-botao .pool { min-width: 0; font-family: Cormorant Garamond, serif; font-weight: 600; font-style: italic; font-size: 20px; color: var(--luz); }
+.roda-botao kbd { font: inherit; font-size: 12px; border: 1px solid #786958; border-radius: 3px; padding: 0 5px; }
+.roda-anel { position: absolute; right: 0; bottom: calc(100% + 24px); z-index: 3; width: 300px; height: 300px; border-radius: 50%;
+  border: 1px solid rgba(242, 239, 232, .18); background: radial-gradient(circle, rgba(10, 10, 12, .88) 0%, rgba(10, 10, 12, .55) 100%);
+  opacity: 0; visibility: hidden; transform: scale(.9); transition: opacity 180ms, transform 180ms, visibility 0s linear 180ms; }
+.roda[data-open="true"] .roda-anel { opacity: 1; visibility: visible; transform: none; transition: opacity 180ms, transform 180ms, visibility 0s; }
+.roda-anel .selection { display: block; position: absolute; inset: 0; }
+.roda-anel .pick { position: absolute; top: 50%; left: 50%; width: 64px; height: 64px; margin: -32px 0 0 -32px;
+  transform: rotate(calc(var(--i) * 360deg / var(--n))) translateY(-120px) rotate(calc(var(--i) * -360deg / var(--n))); }
+.roda-anel .pick > button:not(.remove) { width: 64px; height: 64px; padding: 4px; border-radius: 50%; border: 1px solid rgba(242, 239, 232, .4);
+  background: rgba(10, 10, 12, .78); color: var(--luz); font-size: 11px; font-weight: 600; line-height: 1.15; overflow-wrap: anywhere; }
+.roda-anel .pick > button[aria-pressed="true"] { background: var(--luz); color: #0b0b0d; border-color: var(--luz); }
+.roda-anel .pick .remove { position: absolute; top: -6px; left: -6px; width: 26px; height: 26px; min-width: 0; min-height: 0; padding: 0;
+  border-radius: 50%; border: 1px solid var(--luz); background: var(--barra); font-size: 16px; line-height: 1; }
+@media (prefers-reduced-motion: reduce) { .roda-anel, .roda[data-open="true"] .roda-anel { transition: none; } }
+@media (max-width: 800px) {
+  .roda-anel { position: fixed; right: auto; left: 50%; bottom: 96px; width: 240px; height: 240px; margin-left: -120px; }
+  .roda-anel .pick { width: 52px; height: 52px; margin: -26px 0 0 -26px;
+    transform: rotate(calc(var(--i) * 360deg / var(--n))) translateY(-96px) rotate(calc(var(--i) * -360deg / var(--n))); }
+  .roda-anel .pick > button:not(.remove) { width: 52px; height: 52px; font-size: 10px; }
+}
+
+/* OS-0052: the book (leather cover, ribbon, veil over the scene). Only the chapter with data-open="true" shows. */
+.livro { display: none; }
+.livro[data-aberto="true"] { display: block; position: fixed; top: 92px; left: 0; right: 0; margin: 0 auto; z-index: 10;
+  --h: min(680px, calc(100dvh - 64px - 72px - 56px)); width: min(1120px, calc(100vw - 32px)); height: var(--h); padding: 14px; border-radius: 10px;
+  background: radial-gradient(ellipse at 50% 0%, var(--couro-brilho), var(--couro));
+  box-shadow: inset 0 0 0 2px #6e3a22, inset 0 0 0 6px var(--couro), inset 0 0 0 7px rgba(212, 169, 63, .5), 0 40px 90px rgba(0, 0, 0, .75), 0 0 0 100vmax rgba(5, 5, 6, .55);
+  /* the veil is the 100vmax shadow, clipped to the scene between the bands (top 64px, bottom 72px) */
+  clip-path: inset(-28px -100vmax calc(-1 * (100dvh - 164px - var(--h))) -100vmax); }
+.livro[data-aberto="true"]::after { content: ""; position: absolute; top: -10px; right: 72px; width: 22px; height: 54px; background: var(--lacre);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%); pointer-events: none; }
+.livro > aside { position: absolute; inset: 14px; transform: none; width: auto; border: 0; box-shadow: none; display: none; padding: 34px 40px;
+  font-family: EB Garamond, serif; font-size: 17px; color: var(--tinta); border-radius: 3px;
+  background: linear-gradient(90deg, var(--pergaminho-claro) 0%, var(--pergaminho-escuro) 47%, rgba(60, 35, 15, .35) 49%, rgba(60, 35, 15, .35) 51%, var(--pergaminho-escuro) 53%, var(--pergaminho-claro) 100%); }
+.livro > aside[data-open="true"] { display: grid; visibility: visible; }
+.livro > aside h2 { font-family: Cinzel, serif; font-weight: 700; font-size: 30px; margin: 0 0 12px; padding-bottom: 18px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='8'%3E%3Cpath d='M0 4h66M94 4h66' stroke='%23b99a66' fill='none'/%3E%3Cpath d='M80 0l4 4-4 4-4-4z' fill='%238e2a1c'/%3E%3C/svg%3E") left bottom / 160px 8px no-repeat; }
+.livro > aside h2::first-letter { font-size: 44px; color: var(--rubrica); }
+.livro > aside header button { position: absolute; top: 14px; right: 18px; width: 44px; height: 44px; font-size: 24px; }
+.livro > aside button { background: rgba(255, 250, 236, .35); border: 1px solid var(--fio); color: var(--tinta); font-family: EB Garamond, serif; font-size: 16px; min-height: 44px; }
+.livro > aside button[aria-pressed="true"], .livro > aside button[type="submit"] { background: var(--lacre); color: #f6ecd6; }
+.livro > aside button:focus-visible { outline: 2px solid var(--tinta); outline-offset: 2px; }
+.livro > aside input { background: none; border: 0; border-bottom: 1px solid #8a6a3e; border-radius: 0; color: var(--tinta);
+  font-family: EB Garamond, serif; font-style: italic; font-size: 20px; padding: 8px 2px; }
+.livro > aside input:focus-visible { outline: 2px solid var(--tinta); outline-offset: 2px; }
+
+/* The chat chapter: title and log on the left page, hint and form on the right. */
+.livro > #dice-chat { grid-template-columns: 1fr 1fr; grid-template-rows: auto 1fr; column-gap: 80px; }
+.livro > #dice-chat header { display: contents; }
+.livro > #dice-chat h2 { grid-column: 1; grid-row: 1; }
+.livro > #dice-chat .chat-log { grid-column: 1; grid-row: 2; min-height: 0; }
+.livro > #dice-chat form { grid-column: 2; grid-row: 1 / 3; align-self: end; padding-top: 70px; }
+.livro > #dice-chat .chat-log li { background: none; padding: 4px 0; max-width: none; align-self: stretch; font-size: inherit; }
+.livro > #dice-chat .chat-log .msg-you { font-family: Cormorant Garamond, serif; font-style: italic; font-size: 22px; color: var(--tinta); }
+.livro > #dice-chat .chat-log .msg-you::before { content: "— "; color: var(--rubrica); }
+.livro > #dice-chat .chat-log .msg-app { color: var(--sepia); margin-left: 22px; }
+.livro > #dice-chat .chat-log [data-error] { color: #9b2a1a; }
+.livro > #dice-chat .chat-log .hint { color: var(--sepia); opacity: 1; }
+@media (max-width: 800px) { .livro > #dice-chat { grid-template-columns: 1fr; column-gap: 0; padding: 24px 20px; } .livro > #dice-chat form { grid-column: 1; grid-row: auto; padding-top: 0; } }
+
+/* OS-0053: the table chapter. .import-body is the double page: Fundo and Mesa on the left, Arquivo and Mesas salvas on the right. */
+.livro > #table-panel { grid-template-rows: auto 1fr; }
+.livro > #table-panel .import-body { column-count: 2; column-gap: 96px; overflow-y: auto; min-height: 0; display: block; }
+.livro > #table-panel fieldset, .livro > #table-panel .import-body > p, .livro > #table-panel [role="alertdialog"] { break-inside: avoid; }
+.livro > #table-panel fieldset { border: 0; border-radius: 0; padding: 0 0 18px; margin: 0; }
+.livro > #table-panel legend { font-family: Cinzel, serif; font-weight: 700; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--rubrica); padding: 0 0 8px; }
+.livro > #table-panel .table-row { font-family: inherit; }
+.livro > #table-panel input[type="range"] { accent-color: var(--lacre); border-bottom: 0; }
+.livro > #table-panel input[type="color"] { width: 48px; height: 30px; padding: 0; border: 1px solid #8a6a3e; background: none; }
+.livro > #table-panel select { font-family: EB Garamond, serif; font-size: 16px; color: var(--tinta); background: rgba(255, 250, 236, .35); border: 1px solid var(--fio); min-height: 44px; padding: 0 8px; }
+.livro > #table-panel [aria-label="Tipo de fundo"] { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.livro > #table-panel [aria-label="Temas de fundo"] { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.livro > #table-panel fieldset > .import-row:not([role]) { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+.livro > #table-panel .table-list li { display: flex; gap: 6px; }
+.livro > #table-panel .table-list li button:first-child { flex: 1; text-align: left; }
+.livro > #table-panel small { color: var(--sepia); font-style: italic; font-size: 14px; }
+.livro > #table-panel .import-error { color: #9b2a1a; background: none; border: 0; }
+@media (max-width: 800px) { .livro > #table-panel .import-body { column-count: 1; } }
+
+/* OS-0054: "Meus dados" and "Importar dado" chapters. */
+.livro > #meus-dados, .livro > #import-die { grid-template-rows: auto 1fr; }
+.livro > #meus-dados .import-body { column-count: 2; column-gap: 96px; display: block; overflow-y: auto; min-height: 0; }
+.livro > #meus-dados .selection { display: block; }
+.livro > #meus-dados .pick { display: flex; flex-wrap: wrap; align-items: stretch; gap: 6px; border: 1px solid var(--fio); border-radius: 3px; padding: 12px 14px; margin: 0 0 12px; break-inside: avoid; }
+.livro > #meus-dados .pick > button:first-child { flex: 1; text-align: left; }
+.livro > #meus-dados .pick .remove { min-width: 0; padding: 4px 12px; border-left: 1px solid var(--fio); font-size: 16px; }
+.livro > #meus-dados .import-body > button.primary { background: var(--lacre); color: #f6ecd6; border-color: var(--lacre); font-weight: 700; }
+.livro > #meus-dados .ink-pop[open] { flex: 1 1 100%; order: 2; }
+.livro > #meus-dados .ink-pop summary { background: rgba(255, 250, 236, .35); border: 1px solid var(--fio); color: var(--tinta); font-family: EB Garamond, serif; font-size: 16px; min-height: 44px; }
+.livro > #meus-dados .ink-pop .ink-choice { position: static; background: none; border: 0; padding: 10px 0 0; color: var(--tinta); }
+.livro > #meus-dados .ink-choice legend { color: var(--tinta); }
+
+.livro > #import-die header { display: contents; }
+.livro > #import-die h2 { grid-column: 1 / -1; grid-row: 1; }
+.livro > #import-die .import-body { grid-column: 1 / -1; grid-row: 2; display: grid; grid-template-columns: 1fr 1fr; column-gap: 96px; row-gap: 0; grid-auto-rows: min-content; align-content: start; overflow-y: auto; min-height: 0; }
+.livro > #import-die .import-body > * { grid-column: 2; margin: 0 0 12px; }
+/* Left page: steps, then preview or drop zone (stacked by hand under the 56px steps; the right page flows in the rows beside them). */
+.livro > #import-die .import-body > .import-passos, .livro > #import-die .import-body > .import-preview, .livro > #import-die .import-body > .import-drop { grid-column: 1; grid-row: 1 / span 30; align-self: start; }
+.livro > #import-die .import-body > .import-preview, .livro > #import-die .import-body > .import-drop { margin-top: 68px; }
+.import-passos { list-style: none; padding: 0; height: 56px; display: flex; gap: 22px; counter-reset: passo; }
+.import-passos li { counter-increment: passo; display: flex; align-items: center; gap: 8px; font-family: Cinzel, serif; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--sepia); }
+.import-passos li::before { content: counter(passo); display: grid; place-items: center; width: 30px; height: 30px; border: 1px solid var(--fio); border-radius: 50%; font-size: 13px; }
+.import-passos li[aria-current="step"] { color: var(--tinta); }
+.import-passos li[aria-current="step"]::before { background: var(--lacre); border-color: var(--lacre); color: #f6ecd6; }
+.livro > #import-die .import-preview { height: 340px; border: 0; background: radial-gradient(ellipse at 50% 45%, rgba(255, 250, 236, .55), rgba(255, 250, 236, 0) 70%); }
+.livro > #import-die .import-drop { border: 2px dashed var(--fio); color: var(--tinta); background: none; }
+.livro > #import-die .import-drop:focus-within { outline: 2px solid var(--tinta); outline-offset: 2px; }
+.import-drop-botao { background: rgba(255, 250, 236, .35); border: 1px solid var(--fio); border-radius: 3px; padding: 10px 18px; font-size: 16px; }
+.livro > #import-die .import-choice button.primary { background: var(--lacre); color: #f6ecd6; border-color: var(--lacre); }
+.livro > #import-die .import-note { color: var(--sepia); font-style: italic; }
+.livro > #import-die .import-error { color: #9b2a1a; }
+.livro > #import-die small { color: var(--sepia); font-style: italic; }
+@media (max-width: 800px) {
+  .livro > #meus-dados .import-body { column-count: 1; }
+  .livro > #import-die .import-body { grid-template-columns: 1fr; }
+  .livro > #import-die .import-body > * { grid-column: 1; }
+  .livro > #import-die .import-body > .import-passos, .livro > #import-die .import-body > .import-preview, .livro > #import-die .import-body > .import-drop { grid-row: auto; margin-top: 0; }
+}
+
+/* OS-0055: finish. The book opens in 200 ms; chapters do not animate here. */
+@keyframes livro-abre { from { opacity: 0; transform: scale(.97); } to { opacity: 1; transform: none; } }
+.livro[data-aberto="true"] { animation: livro-abre 200ms ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .livro[data-aberto="true"], output { animation: none; }
+  .roda-anel, .roda[data-open="true"] .roda-anel, output { transition: none; }
+}
+
+/* OS-0055: phone. Book is one parchment page filling the screen above the bands; the nav is a row of four touch targets. */
+@media (max-width: 800px) {
+  nav { flex: 1 1 100%; }
+  nav button { flex: 1; min-height: 44px; padding: 8px 4px; }
+  nav kbd { display: none; }
+  .livro[data-aberto="true"] { inset: 0; top: 0; width: auto; height: auto; margin: 0; padding: 0; border-radius: 0; z-index: 20; overflow-y: auto;
+    box-shadow: none; clip-path: none; background: linear-gradient(var(--pergaminho-claro), var(--pergaminho-escuro)); }
+  .livro[data-aberto="true"]::after { display: none; }
+  .livro > aside { position: relative; inset: auto; min-height: 100%; padding: 24px 20px; border-radius: 0; background: none; }
+  .livro > aside h2 { padding-right: 56px; }
+  .livro > aside header button { position: fixed; top: 8px; right: 10px; z-index: 1; background: var(--pergaminho-claro); }
+  .livro > #table-panel [aria-label="Tipo de fundo"], .livro > #table-panel [aria-label="Temas de fundo"] { grid-template-columns: repeat(2, 1fr); }
+  .import-passos { flex-wrap: wrap; height: auto; gap: 8px 14px; margin: 0 0 12px; }
+}

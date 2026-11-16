@@ -38,7 +38,7 @@ src/
   shared/db.ts             abre o IndexedDB `dice-roller` v2; cada dono declara a sua store (`defineStore`)
   main.tsx, App.tsx        casca: <Painel/> + <Canvas><Cena/></Canvas> + <OverlayDoPresagio/> (de `pressagios`)
   shared/plataforma/       falha registrada (`registrarFalha`), `Guard`, `Failure`, sonda WebGL, renderizador por software, movimento reduzido (`movimentoReduzido`, evento de mudança)  → armadilhas.md
-  app/                     casca: a cena, o window.__dice e o Painel (`app/Painel.tsx`: cabeçalho com os componentes de selecao, Meus dados e o painel da mesa; rodapé com o do arremesso e o painel do resultado, da vitrine)
+  app/                     casca: a cena, o window.__dice e o Painel (`app/Painel.tsx`: compõe as faixas, o livro e a roda. Faixa de cima com os botões dos capítulos; o livro com os painéis da mesa, de Meus dados, de Importar dado e o chat, um capítulo aberto por vez; faixa de baixo com o modo de rolagem, o resultado da vitrine, a dica, a barra de força e a roda de dados)
     Cena.tsx                 raiz da cena (compõe os componentes dos módulos), câmera, DPR, test hook
     testHook.ts              window.__dice (só em mode=test)                        → testes.md
   modules/regras/          regras do jogo, puras, compartilhadas com server/        → modules/regras/CLAUDE.md

@@ -3,8 +3,8 @@ import { customKind } from '../dados/index.ts';
 import type { DadoInspecionado } from './contracts.ts';
 import { meusDados } from './store.ts';
 
-export type { DadoInspecionado, EstadoDoAssistente, MeusDados, PedidoDeMontagem } from './contracts.ts';
-export { alternarImportacao, atualizar, carregar, excluir, fecharImportacao, meusDados, salvar } from './store.ts';
+export type { DadoInspecionado, MeusDados, PedidoDeMontagem } from './contracts.ts';
+export { atualizar, carregar, excluir, meusDados, salvar } from './store.ts';
 export { montarDado, tintaPermitida } from './domain/montagem.ts';
 // The importer is heavy (three's ConvexHull, the model readers): it loads on demand, never with this door (ADR 0007, ponto 11).
 export const carregarImportador = () => import('./domain/importador.ts');

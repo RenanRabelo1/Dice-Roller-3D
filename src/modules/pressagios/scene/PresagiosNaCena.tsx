@@ -9,6 +9,7 @@ import { MAX_DICE } from '../../regras/index.ts';
 import { presagio, presagioTocando, setOmenDone } from '../store.ts';
 import { DUALITY_HIT } from '../domain/omen.ts';
 import { fireAt } from '../domain/fireMotion.ts';
+import { COR_KRAKEN, COR_TEMPESTADE, corDaDualidade, fonteDaLuz, luzDaDualidade, luzDaTempestade, luzDoKraken, POS_DUALIDADE, POS_KRAKEN, POS_TEMPESTADE, type FonteDaLuz } from '../domain/luz.ts';
 import { planoDoPresagio } from '../domain/plano.ts';
 import { arremesso, registroDeCorpos } from '../../arremesso/index.ts';
 import { clamp01, span } from '../../../shared/math.ts';
@@ -167,8 +168,8 @@ class Show {
   private kraken = new Kraken();
   private fire = new Fire();
   private taiji = new TaiJi(this.map);
-  private light = new PointLight('#CFE6FF', 0, 10, 2); // the one omen light (lightning or fire never play together)
-  private run: { throwId: number; at: number; ms: number; bolts: number; kraken: 'grab' | 'storm' | null; fire: number[]; duality: boolean; over: boolean } | null = null;
+  private light = new PointLight('#CFE6FF', 0, 10, 2); // the one omen light: fire, lightning, storm, kraken or duality, in that priority (domain/luz.ts)
+  private run: { throwId: number; at: number; ms: number; bolts: number; kraken: 'grab' | 'storm' | null; fire: number[]; duality: boolean; luz: FonteDaLuz | null; over: boolean } | null = null;
   constructor() {
     for (const b of this.bolts) this.root.add(b.glow, b.core, b.flash);
     // Keep the light count constant: hiding an effect must not recompile every die's shader.
@@ -205,8 +206,12 @@ class Show {
       if (fire.length) this.fire.start(fire, positions(fire));
       const first = positions(lit)[0] ?? positions(fire)[0];
       if (first) this.light.position.copy(first).y += 1.2;
-      this.light.color.set(fire.length ? '#FF7A2A' : '#CFE6FF');
-      this.run = { throwId: o.throwId, at: s.omenAt, ms: plano.ms, bolts: lit.length, kraken: grab.length ? 'grab' : storm.length ? 'storm' : null, fire, duality: plano.kind === 'duality', over: false };
+      const luz = fonteDaLuz(plano);
+      this.light.color.set(luz === 'fogo' ? '#FF7A2A' : luz === 'tempestade' ? COR_TEMPESTADE : luz === 'kraken' ? COR_KRAKEN : '#CFE6FF');
+      if (luz === 'tempestade') this.light.position.set(...POS_TEMPESTADE);
+      else if (luz === 'kraken') this.light.position.set(...POS_KRAKEN);
+      else if (luz === 'dualidade') this.light.position.set(...POS_DUALIDADE);
+      this.run = { throwId: o.throwId, at: s.omenAt, ms: plano.ms, bolts: lit.length, kraken: grab.length ? 'grab' : storm.length ? 'storm' : null, fire, duality: plano.kind === 'duality', luz, over: false };
     }
     const r = this.run, t = now - r.at;
     if (r.fire.length) { // burns on after the show, on the dice now at the front
@@ -222,6 +227,9 @@ class Show {
     if (r.kraken) this.kraken.update(t, camera, at);
     if (r.duality) this.taiji.update(t, camera);
     if (r.bolts) this.light.intensity = (striking ? 30 : 0) + 10 * (1 - span(t, 0, 900));
+    else if (r.luz === 'tempestade') this.light.intensity = luzDaTempestade(t);
+    else if (r.luz === 'kraken') this.light.intensity = luzDoKraken(t, r.ms);
+    else if (r.luz === 'dualidade') { this.light.intensity = luzDaDualidade(t, r.ms); this.light.color.set(corDaDualidade(t)); }
     if (t < r.ms) return null;
     this.bolts.forEach((b) => b.hide()); this.kraken.hide(); this.taiji.hide();
     if (!r.fire.length) this.light.intensity = 0;

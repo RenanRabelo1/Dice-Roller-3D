@@ -41,6 +41,8 @@ As notas abaixo são o contexto original que gerou as specs; valem as specs. Os 
 
 ## 4. Refatoração visual do site
 
+> **Virou a spec [hud-imersivo.md](hud-imersivo.md), concluída nas OS-0051 a OS-0055** (direção "Fantasma + Grimório", 2026-11-16). Ficam pendentes aqui só a pose de calibração da forma livre e o fundo padrão da mesa.
+
 - **O quê:** o João acha a interface pouco agradável. Quer uma passada visual no site todo: barra de seleção de dados, painel de resultado, chat, painel da mesa ("Mesa") e assistente de importação ("Importar dado").
 - **Exemplo citado (assistente de importação, ao recusar um modelo):**
   - o botão nativo "Escolher Arquivo" aparece com a fonte do sistema, e o nome do arquivo sai cortado ("Nenhum a... escolhido");

@@ -19,12 +19,6 @@ export interface PedidoDeMontagem {
   poly: Polyhedron; // the final, numbered solid
 }
 
-/** The import wizard: `montado` turns true on the first opening and stays (the lazy chunk is loaded once). */
-export interface EstadoDoAssistente {
-  importando: boolean; // the wizard is open
-  montado: boolean; // the wizard has been opened at least once
-}
-
 /** One saved die as the test hook (`window.__dice.customs()`) sees it: what `inspecao()` gives. */
 export interface DadoInspecionado {
   kind: CustomKind; id: string; name: string; slug: string; base: CustomBase; printed: boolean;

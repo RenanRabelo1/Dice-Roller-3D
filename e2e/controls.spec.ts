@@ -48,3 +48,57 @@ test('M typed in the chat box stays in the box and does not open the table panel
   }
   await expect(page.getByRole('complementary', { name: 'Chat de dados' })).toBeVisible();
 });
+
+const capitulo = (p: Page, id: string) => p.locator(`#${id}`);
+const botao = (p: Page, nome: string) => p.locator('.chat-toggle', { hasText: nome });
+
+test('one chapter at a time: C swaps the table for the chat and only the chat button is expanded', async ({ page }) => {
+  await page.locator('.game-area').focus();
+  await page.keyboard.press('m');
+  await expect(capitulo(page, 'table-panel')).toHaveAttribute('data-open', 'true');
+  await page.keyboard.press('c'); // focus is outside any field
+  await expect(capitulo(page, 'table-panel')).toHaveAttribute('data-open', 'false');
+  await expect(capitulo(page, 'dice-chat')).toHaveAttribute('data-open', 'true');
+  for (const [nome, aberto] of [['Mesa', 'false'], ['Meus dados', 'false'], ['Importar dado', 'false'], ['Chat', 'true']])
+    await expect(botao(page, nome)).toHaveAttribute('aria-expanded', aberto);
+});
+
+test('Esc in the chat gives the focus back to the Chat button', async ({ page }) => {
+  await page.locator('.game-area').focus();
+  await page.keyboard.press('c');
+  await expect(capitulo(page, 'dice-chat')).toHaveAttribute('data-open', 'true');
+  await page.keyboard.press('Escape');
+  await expect(capitulo(page, 'dice-chat')).toHaveAttribute('data-open', 'false');
+  await expect(botao(page, 'Chat')).toBeFocused();
+});
+
+test('the wheel starts open, D folds and reopens it, and a "d" typed in the chat leaves it alone', async ({ page }) => {
+  const grupo = page.getByRole('group', { name: 'Dados', exact: true });
+  const escolher = page.getByRole('button', { name: 'Escolher dados' });
+  await expect(grupo).toBeVisible();
+  await expect(escolher).toHaveAttribute('aria-expanded', 'true');
+  await page.locator('.game-area').focus();
+  await page.keyboard.press('d');
+  await expect(grupo).not.toBeVisible();
+  await expect(escolher).toHaveAttribute('aria-expanded', 'false');
+  await page.keyboard.press('d');
+  await expect(grupo).toBeVisible();
+  await expect(escolher).toHaveAttribute('aria-expanded', 'true');
+  await page.keyboard.press('c');
+  const input = page.getByRole('textbox', { name: /Dados/ });
+  await expect(input).toBeFocused();
+  await input.press('d');
+  await expect(input).toHaveValue('d');
+  await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+  await expect(escolher).toHaveAttribute('aria-expanded', 'true');
+});
+
+test('"Meus dados" with nothing imported says so, and "Forjar um dado novo" turns to the Importar dado chapter', async ({ page }) => {
+  await botao(page, 'Meus dados').click();
+  const meus = capitulo(page, 'meus-dados');
+  await expect(meus).toHaveAttribute('data-open', 'true');
+  await expect(meus.getByText('Nenhum dado importado ainda.')).toBeVisible();
+  await meus.getByRole('button', { name: 'Forjar um dado novo' }).click();
+  await expect(meus).toHaveAttribute('data-open', 'false');
+  await expect(capitulo(page, 'import-die')).toHaveAttribute('data-open', 'true');
+});

@@ -1,25 +1,15 @@
-// The components keep the DOM of the legacy header (OS-0029): text, aria-label, roles and classes are contract of the E2E
-// and the CSS. `fixtures/lista-antes.json` is the `<header>` that `src/ui/Controls.tsx` rendered before the move, captured
-// with renderToStaticMarkup for the cases below; Controls rendered the same after the move.
-import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
+// The chapters' DOM is contract of the E2E and the CSS: text, aria-label, roles and classes (OS-0054).
+import { describe, it, expect, afterEach } from 'vitest';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { readFileSync } from 'node:fs';
-import { Importacao, MeusDados } from '../cena.ts';
-import { alternarImportacao, fecharImportacao } from '../index.ts';
-import { assistente, store } from '../store.ts';
+import { AssistenteDeImportacao, Importacao, MeusDados } from '../cena.ts';
+import { store } from '../store.ts';
 import { customKind, customList, polyhedron, registerCustom, unregisterCustom, type CustomDie } from '../../dados/index.ts';
 
-const antes: Record<'vazio' | 'semGravacao' | 'comGravacao' | 'montado', string> =
-  JSON.parse(readFileSync(new URL('./fixtures/lista-antes.json', import.meta.url), 'utf-8'));
-// useId names (the ink radios) depend on the place in the tree: the header and a lone component differ only there.
-const html = (el: Parameters<typeof renderToStaticMarkup>[0]) => renderToStaticMarkup(el).replace(/_R_[0-9a-z]+_/g, '_R_');
-const fixture = (cena: keyof typeof antes) => antes[cena].replace(/_R_[0-9a-z]+_/g, '_R_');
+// renderToStaticMarkup reads zustand's server snapshot (the initial state); point it at the live store.
+(store as { getInitialState: () => unknown }).getInitialState = () => store.getState();
 
-// renderToStaticMarkup reads zustand's server snapshot (the initial state); point it at the live stores. The hand (selecao)
-// stays at its initial ['d20'], as in the capture.
-for (const s of [store, assistente]) (s as { getInitialState: () => unknown }).getInitialState = () => s.getState();
-
+const acoes = { onFechar: () => {}, onImportar: () => {} };
 const die = (id: string, name: string, slug: string, printed: boolean): CustomDie => ({
   version: 1, id, createdAt: 0, name, slug, base: 'd6', omens: false,
   file: { format: 'stl', name: `${id}.stl`, bytes: new ArrayBuffer(0) }, fit: { center: [0, 0, 0], scale: 1 },
@@ -30,35 +20,54 @@ const so = (d?: CustomDie) => {
   if (d) registerCustom(d);
   store.setState({ customs: customList() });
 };
-beforeAll(() => assistente.setState({ importando: false, montado: false }));
 afterEach(() => so());
-afterAll(() => assistente.setState({ importando: false, montado: false }));
 
-describe('componentes: o mesmo DOM do cabeçalho legado', () => {
-  const casos: [keyof typeof antes, CustomDie | undefined][] = [
-    ['vazio', undefined], ['semGravacao', die('cap', 'Caveira', 'caveira', false)], ['comGravacao', die('run', 'Runa', 'runa', true)],
-  ];
-  it.each(casos)('%s: <MeusDados/> é o grupo "Meus dados" do cabeçalho, logo antes do resumo da mão', (cena, d) => {
-    so(d);
-    const grupo = html(createElement(MeusDados));
-    expect(grupo.startsWith('<div class="selection" role="group" aria-label="Meus dados">')).toBe(true);
-    expect(fixture(cena)).toContain(grupo + '<p class="pool"');
-    expect(html(createElement(Importacao))).toBe(''); // never opened: not mounted
+describe('<MeusDados/>: o capítulo "Meus dados"', () => {
+  it('vazio e fechado: aside inerte, nota de vazio e o botão de forjar', () => {
+    const h = renderToStaticMarkup(createElement(MeusDados, { aberto: false, ...acoes }));
+    expect(h).toContain('<aside id="meus-dados" class="chat panel import" data-open="false" inert="" aria-label="Meus dados">');
+    expect(h).toContain('<p class="import-note">Nenhum dado importado ainda.</p>');
+    expect(h).toContain('<div class="selection"></div>');
+    expect(h).toContain('<button class="primary">Forjar um dado novo</button>');
   });
 
-  it('montado e fechado: <Importacao/> é o assistente no fim do cabeçalho, e o botão volta a aria-expanded="false"', async () => {
-    alternarImportacao();
-    expect(assistente.getState()).toEqual({ importando: true, montado: true });
-    expect(html(createElement(MeusDados))).toContain('<button aria-expanded="true" aria-controls="import-die">Importar dado</button>');
-    fecharImportacao();
-    expect(assistente.getState()).toEqual({ importando: false, montado: true });
-    // The wizard is lazy: the first render suspends (fallback null) and starts the import; once loaded it renders at once.
-    expect(html(createElement(Importacao))).toBe('');
+  it('com dado e aberto: cartão com o dado e "Excluir"', () => {
+    so(die('cap', 'Caveira', 'caveira', false));
+    const h = renderToStaticMarkup(createElement(MeusDados, { aberto: true, ...acoes }));
+    expect(h).toContain('data-open="true"');
+    expect(h).not.toContain('inert');
+    expect(h).not.toContain('Nenhum dado importado');
+    expect(h).toContain('aria-label="Adicionar d6 Caveira"');
+    expect(h).toContain('<button class="remove" aria-label="Excluir d6 Caveira">Excluir</button>');
+    expect(h).not.toContain('role="group"');
+  });
+
+  it('dado impresso ganha o botão Tinta', () => {
+    so(die('run', 'Runa', 'runa', true));
+    expect(renderToStaticMarkup(createElement(MeusDados, { aberto: true, ...acoes }))).toContain('<summary aria-label="Tinta de Runa">Tinta</summary>');
+  });
+});
+
+describe('<Importacao/>: o capítulo "Importar dado"', () => {
+  const props = { onFechar: () => {}, onSalvo: () => {} };
+  const html = (aberto: boolean) => renderToStaticMarkup(createElement(Importacao, { aberto, ...props }));
+
+  it('não monta antes da primeira abertura', () => {
+    expect(html(false)).toBe('');
+  });
+
+  it('aberto: os quatro passos, o primeiro marcado; fechado depois, continua montado', async () => {
+    expect(html(true)).toBe(''); // lazy: the first render suspends (fallback null) and starts the import
     await import('../ui/AssistenteDeImportacao.tsx');
     await new Promise((r) => setTimeout(r, 50));
-    const aside = html(createElement(Importacao));
-    expect(aside.startsWith('<aside id="import-die"')).toBe(true);
-    expect(fixture('montado').endsWith(aside + '</header>')).toBe(true);
-    expect(fixture('montado')).toContain(html(createElement(MeusDados)) + '<p class="pool"');
+    const h = html(true);
+    expect(h).toContain('<aside id="import-die" class="chat panel import" data-open="true"');
+    expect(h).toContain('<ol class="import-passos"><li aria-current="step">Arquivo</li><li>Forma</li><li>Números</li><li>Salvar</li></ol>');
+    expect(h).toContain('class="sr-only"');
+    expect(h).toContain('Escolher arquivo');
+    // Closed after being open (Importacao keeps its `montado` state; here the wizard itself): still there, shut and inert.
+    const f = renderToStaticMarkup(createElement(AssistenteDeImportacao, { open: false, onClose: () => {}, onSaved: () => {} }));
+    expect(f).toContain('data-open="false"');
+    expect(f).toContain('inert');
   });
 });

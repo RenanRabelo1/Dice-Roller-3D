@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   carregarArquivoDeMesa, clampBlur, clampDim, clampIntensity, clampPanoramaBlur, clampRotation, clampTile, colorsOf, DEFAULT_THEME, disposeTable, fileSafe, LIMITS,
   panoramaPicture, panoramaTexture, preparePanorama, PRESETS, reduceImage, TableError, temaDaMesaImportada, type Background, type PresetName,
@@ -11,26 +11,25 @@ const typing = (el: EventTarget | null) =>
 
 type Pending = { theme: TableTheme; warnings: string[] };
 
-// Side sheet "Personalizar mesa" (header button or the M key): backdrop, felt/wood, and the table file (export/import).
-export function PainelDaMesa() {
+// "Personalizar mesa" chapter of the book: backdrop, felt/wood, and the table file (export/import).
+// The shell owns the open state (and the "Mesa" button); the M key (toggle) and Esc / × (close) call back into it.
+export function PainelDaMesa({ aberto, onAlternar, onFechar }: { aberto: boolean; onAlternar: () => void; onFechar: () => void }) {
   const { theme, tables, sessionOnly, edit, apply, copy, remove, reset } = useMesa();
-  const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
   const [note, setNote] = useState('');
   const [pending, setPending] = useState<Pending | null>(null);
-  const toggle = useRef<HTMLButtonElement>(null);
   const bg = theme.background, model = !!theme.model;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
-      if (e.key === 'Escape' && open) { setOpen(false); toggle.current?.focus(); return; }
-      if ((e.key === 'm' || e.key === 'M') && !typing(e.target)) { e.preventDefault(); setOpen((o) => !o); }
+      if (e.key === 'Escape' && aberto) { onFechar(); return; }
+      if ((e.key === 'm' || e.key === 'M') && !typing(e.target)) { e.preventDefault(); onAlternar(); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [open]);
+  }, [aberto, onAlternar, onFechar]);
 
   // Runs `work` with a status line; a TableError becomes the message, anything else a generic one.
   const task = async (label: string, work: () => Promise<void>) => {
@@ -85,13 +84,10 @@ export function PainelDaMesa() {
   const texture = typeof theme.felt.texture === 'object' ? 'imagem' : theme.felt.texture;
 
   return (
-    <>
-      <button ref={toggle} className="chat-toggle" aria-expanded={open} aria-controls="table-panel" aria-keyshortcuts="M"
-        onClick={() => setOpen((o) => !o)}>Mesa <kbd>M</kbd></button>
-      <aside id="table-panel" className="chat panel import table-panel" data-open={open} inert={!open} aria-label="Personalizar mesa">
+      <aside id="table-panel" className="chat panel import table-panel" data-open={aberto} inert={!aberto} aria-label="Personalizar mesa">
         <header>
           <h2>Personalizar mesa</h2>
-          <button aria-label="Fechar painel da mesa" onClick={() => { setOpen(false); toggle.current?.focus(); }}>×</button>
+          <button aria-label="Fechar painel da mesa" onClick={onFechar}>×</button>
         </header>
         <div className="import-body">
           {sessionOnly && <p className="import-error">Este navegador não guarda dados: a mesa vale só nesta sessão.</p>}
@@ -182,7 +178,7 @@ export function PainelDaMesa() {
                 {tables.map((t) => (
                   <li key={t.id}>
                     <button aria-pressed={t.id === theme.id} onClick={() => apply(t)}>{t.name}</button>
-                    <button aria-label={`Excluir ${t.name}`} onClick={() => { if (confirm(`Excluir a mesa "${t.name}"?`)) remove(t.id); }}>🗑</button>
+                    <button aria-label={`Excluir ${t.name}`} onClick={() => { if (confirm(`Excluir a mesa "${t.name}"?`)) remove(t.id); }}>Excluir</button>
                   </li>
                 ))}
               </ul>
@@ -190,6 +186,5 @@ export function PainelDaMesa() {
           )}
         </div>
       </aside>
-    </>
   );
 }
