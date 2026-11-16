@@ -155,3 +155,67 @@ canvas { display: block; }
 
 /* The 3D could not start (no WebGL, renderer or physics failure): a plain message in the play area. */
 .failure { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; padding: 24px; text-align: center; font-size: 20px; line-height: 1.4; color: var(--chalk); }
+
+/* OS-0052: the wheel of dice, at the right end of the bottom band. */
+.roda { position: relative; }
+.roda-botao { background: none; border: 0; padding: 4px 8px; display: flex; align-items: baseline; gap: 10px; color: var(--luz); }
+.roda-botao .pool { min-width: 0; font-family: Cormorant Garamond, serif; font-weight: 600; font-style: italic; font-size: 20px; color: var(--luz); }
+.roda-botao kbd { font: inherit; font-size: 12px; border: 1px solid #786958; border-radius: 3px; padding: 0 5px; }
+.roda-anel { position: absolute; right: 0; bottom: calc(100% + 24px); z-index: 3; width: 300px; height: 300px; border-radius: 50%;
+  border: 1px solid rgba(242, 239, 232, .18); background: radial-gradient(circle, rgba(10, 10, 12, .88) 0%, rgba(10, 10, 12, .55) 100%);
+  opacity: 0; visibility: hidden; transform: scale(.9); transition: opacity 180ms, transform 180ms, visibility 0s linear 180ms; }
+.roda[data-open="true"] .roda-anel { opacity: 1; visibility: visible; transform: none; transition: opacity 180ms, transform 180ms, visibility 0s; }
+.roda-anel .selection { display: block; position: absolute; inset: 0; }
+.roda-anel .pick { position: absolute; top: 50%; left: 50%; width: 64px; height: 64px; margin: -32px 0 0 -32px;
+  transform: rotate(calc(var(--i) * 360deg / var(--n))) translateY(-120px) rotate(calc(var(--i) * -360deg / var(--n))); }
+.roda-anel .pick > button:not(.remove) { width: 64px; height: 64px; padding: 4px; border-radius: 50%; border: 1px solid rgba(242, 239, 232, .4);
+  background: rgba(10, 10, 12, .78); color: var(--luz); font-size: 11px; font-weight: 600; line-height: 1.15; overflow-wrap: anywhere; }
+.roda-anel .pick > button[aria-pressed="true"] { background: var(--luz); color: #0b0b0d; border-color: var(--luz); }
+.roda-anel .pick .remove { position: absolute; top: -6px; left: -6px; width: 26px; height: 26px; min-width: 0; min-height: 0; padding: 0;
+  border-radius: 50%; border: 1px solid var(--luz); background: var(--barra); font-size: 16px; line-height: 1; }
+@media (prefers-reduced-motion: reduce) { .roda-anel, .roda[data-open="true"] .roda-anel { transition: none; } }
+@media (max-width: 800px) {
+  .roda-anel { position: fixed; right: auto; left: 50%; bottom: 96px; width: 240px; height: 240px; margin-left: -120px; }
+  .roda-anel .pick { width: 52px; height: 52px; margin: -26px 0 0 -26px;
+    transform: rotate(calc(var(--i) * 360deg / var(--n))) translateY(-96px) rotate(calc(var(--i) * -360deg / var(--n))); }
+  .roda-anel .pick > button:not(.remove) { width: 52px; height: 52px; font-size: 10px; }
+}
+
+/* OS-0052: the book (leather cover, ribbon, veil over the scene). Only the chapter with data-open="true" shows. */
+.livro { display: none; }
+.livro[data-aberto="true"] { display: block; position: fixed; top: 92px; left: 0; right: 0; margin: 0 auto; z-index: 10;
+  --h: min(680px, calc(100dvh - 64px - 72px - 56px)); width: min(1120px, calc(100vw - 32px)); height: var(--h); padding: 14px; border-radius: 10px;
+  background: radial-gradient(ellipse at 50% 0%, var(--couro-brilho), var(--couro));
+  box-shadow: inset 0 0 0 2px #6e3a22, inset 0 0 0 6px var(--couro), inset 0 0 0 7px rgba(212, 169, 63, .5), 0 40px 90px rgba(0, 0, 0, .75), 0 0 0 100vmax rgba(5, 5, 6, .55);
+  /* the veil is the 100vmax shadow, clipped to the scene between the bands (top 64px, bottom 72px) */
+  clip-path: inset(-28px -100vmax calc(-1 * (100dvh - 164px - var(--h))) -100vmax); }
+.livro[data-aberto="true"]::after { content: ""; position: absolute; top: -10px; right: 72px; width: 22px; height: 54px; background: var(--lacre);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%); pointer-events: none; }
+.livro > aside { position: absolute; inset: 14px; transform: none; width: auto; border: 0; box-shadow: none; display: none; padding: 34px 40px;
+  font-family: EB Garamond, serif; font-size: 17px; color: var(--tinta); border-radius: 3px;
+  background: linear-gradient(90deg, var(--pergaminho-claro) 0%, var(--pergaminho-escuro) 47%, rgba(60, 35, 15, .35) 49%, rgba(60, 35, 15, .35) 51%, var(--pergaminho-escuro) 53%, var(--pergaminho-claro) 100%); }
+.livro > aside[data-open="true"] { display: grid; visibility: visible; }
+.livro > aside h2 { font-family: Cinzel, serif; font-weight: 700; font-size: 30px; margin: 0 0 12px; padding-bottom: 18px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='8'%3E%3Cpath d='M0 4h66M94 4h66' stroke='%23b99a66' fill='none'/%3E%3Cpath d='M80 0l4 4-4 4-4-4z' fill='%238e2a1c'/%3E%3C/svg%3E") left bottom / 160px 8px no-repeat; }
+.livro > aside h2::first-letter { font-size: 44px; color: var(--rubrica); }
+.livro > aside header button { position: absolute; top: 14px; right: 18px; width: 44px; height: 44px; font-size: 24px; }
+.livro > aside button { background: rgba(255, 250, 236, .35); border: 1px solid var(--fio); color: var(--tinta); font-family: EB Garamond, serif; font-size: 16px; min-height: 44px; }
+.livro > aside button[aria-pressed="true"], .livro > aside button[type="submit"] { background: var(--lacre); color: #f6ecd6; }
+.livro > aside button:focus-visible { outline: 2px solid var(--tinta); outline-offset: 2px; }
+.livro > aside input { background: none; border: 0; border-bottom: 1px solid #8a6a3e; border-radius: 0; color: var(--tinta);
+  font-family: EB Garamond, serif; font-style: italic; font-size: 20px; padding: 8px 2px; }
+.livro > aside input:focus-visible { outline: 2px solid var(--tinta); outline-offset: 2px; }
+
+/* The chat chapter: title and log on the left page, hint and form on the right. */
+.livro > #dice-chat { grid-template-columns: 1fr 1fr; grid-template-rows: auto 1fr; column-gap: 80px; }
+.livro > #dice-chat header { display: contents; }
+.livro > #dice-chat h2 { grid-column: 1; grid-row: 1; }
+.livro > #dice-chat .chat-log { grid-column: 1; grid-row: 2; min-height: 0; }
+.livro > #dice-chat form { grid-column: 2; grid-row: 1 / 3; align-self: end; padding-top: 70px; }
+.livro > #dice-chat .chat-log li { background: none; padding: 4px 0; max-width: none; align-self: stretch; font-size: inherit; }
+.livro > #dice-chat .chat-log .msg-you { font-family: Cormorant Garamond, serif; font-style: italic; font-size: 22px; color: var(--tinta); }
+.livro > #dice-chat .chat-log .msg-you::before { content: "— "; color: var(--rubrica); }
+.livro > #dice-chat .chat-log .msg-app { color: var(--sepia); margin-left: 22px; }
+.livro > #dice-chat .chat-log [data-error] { color: #9b2a1a; }
+.livro > #dice-chat .chat-log .hint { color: var(--sepia); opacity: 1; }
+@media (max-width: 800px) { .livro > #dice-chat { grid-template-columns: 1fr; column-gap: 0; padding: 24px 20px; } .livro > #dice-chat form { grid-column: 1; grid-row: auto; padding-top: 0; } }

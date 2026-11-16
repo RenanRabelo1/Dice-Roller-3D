@@ -3,4 +3,5 @@ export { useSelecao } from './ui/useSelecao.tsx';
 export { BotaoDeDado } from './ui/BotaoDeDado.tsx';
 export { BotoesDeDados } from './ui/BotoesDeDados.tsx';
 export { ResumoDaMao } from './ui/ResumoDaMao.tsx';
+export { RodaDeDados } from './ui/RodaDeDados.tsx';
 export { Chat } from './ui/Chat.tsx';

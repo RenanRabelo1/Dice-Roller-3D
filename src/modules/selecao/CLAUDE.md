@@ -3,7 +3,7 @@
 Duas portas (ADR 0010): `index.ts`, puro e sem React (testes em Node), e `cena.ts`, com o hook e os componentes React. Tipos em `contracts.ts`, regras puras em `domain/` (`mao.ts`, `notacao.ts`), o estado em `store.ts` e os componentes em `ui/`. O hook mora em `ui/useSelecao.tsx` para os componentes o lerem sem importar `cena.ts` (sem ciclo).
 
 ## Responsabilidade
-Quais dados estão na mão do jogador e como ele os escolhe: os botões de cada tipo, o chat com notação ("2d10 + d100") e o resumo da mão. Também define como um dado importado se chama no chat (apelido). É dono da mão: o store zustand vanilla de `store.ts`, escrito só por `adicionar`, `remover`, `definir` e pela reação ao catálogo.
+Quais dados estão na mão do jogador e como ele os escolhe: os botões de cada tipo (na roda), o chat com notação ("2d10 + d100") e o resumo da mão. Também define como um dado importado se chama no chat (apelido). É dono da mão: o store zustand vanilla de `store.ts`, escrito só por `adicionar`, `remover`, `definir` e pela reação ao catálogo.
 
 ## Regras de negócio
 - A mão começa com `['d20']` (`MAO_INICIAL`) e tem de 1 a `MAX_DICE` dados, sempre ordenados por `sortDice` de `dados`.
@@ -20,13 +20,14 @@ Quais dados estão na mão do jogador e como ele os escolhe: os botões de cada 
   - Mais de `MAX_DICE` dá erro. As mensagens de erro são em pt-BR.
 - `formatDice(dice)` → `"2d10 + 1d10 Vampiro + 2 moedas"`.
 - Apelido (`slugProblem`): `^[a-z][a-z0-9]{0,15}$`, não começa com `d` + dígito, não é palavra do chat (`v vampiro fome fogo moeda moedas boladefogo`) e é único. `slugOf(nome)` sugere um, sem acento e em minúsculas.
-- Chat: a tecla `C` abre e fecha (ignorada enquanto se digita ou com Ctrl/Meta/Alt), `Esc` fecha e devolve o foco ao botão. Enter/Aplicar só chama `definir` se a notação é válida. Mostra no máximo 20 linhas.
+- Chat: é controlado pela casca (`Chat({ aberto, onAlternar, onFechar })`), que guarda o capítulo aberto do livro e tem o botão "Chat" (`.chat-toggle`). A tecla `C` (ignorada enquanto se digita ou com Ctrl/Meta/Alt/repeat) chama `onAlternar`; `Esc` e o × chamam `onFechar` (a casca devolve o foco ao botão). Enter/Aplicar só chama `definir` se a notação é válida. Mostra no máximo 20 linhas.
+- Roda de dados (`RodaDeDados`): os dados embutidos num anel acima do botão da mão (`ResumoDaMao` + `D`). Começa aberta; a tecla `D` alterna (mesmos filtros do `C`); `Esc` não mexe nela; não lembra entre sessões.
 - O DOM dos componentes (textos, `aria-label`, roles, classes) é contrato dos E2E e do CSS; `tests/componentes.test.ts` o compara com o cabeçalho de antes da extração (fixture).
 
 ## Expõe
 - `index.ts`: `selecao()`, `adicionar(kind)`, `remover(kind)`, `definir(dice)`, `selecaoAlterada` (só `subscribe`), `parseDice`, `formatDice`, `slugProblem`, `slugOf`.
 - Tipos (`contracts.ts`): `SelecaoAlterada`, `LeituraDaNotacao`.
-- `cena.ts`: `useSelecao()`; `<BotoesDeDados/>` (o `div.selection` "Dados", um `div.pick` por tipo embutido); `<BotaoDeDado kind/>` (o par Adicionar/Remover como fragmento, sem o `div.pick`, que "Meus dados" monta); `<ResumoDaMao/>` (o `p.pool`); `<Chat/>`.
+- `cena.ts`: `useSelecao()`; `<BotoesDeDados/>` (o `div.selection` "Dados" com `--n`, um `div.pick` com `--i` por tipo embutido); `<BotaoDeDado kind/>` (o par Adicionar/Remover como fragmento, sem o `div.pick`, que "Meus dados" monta); `<ResumoDaMao/>` (o `span.pool`); `<RodaDeDados/>` (a roda e o botão da mão); `<Chat aberto onAlternar onFechar/>` (só o `aside`, sem botão).
 
 ## Consome
 - `regras`: `KINDS`, `MAX_DICE`, `isCustom` e os tipos de dado.
