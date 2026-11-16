@@ -59,6 +59,7 @@ O CSS da casca (`src/index.css`, bloco `OS-0061: reações`) só lê estes atrib
 |---|---|---|---|
 | `data-omen`, `data-kraken`, `data-storm` | `.game-area` | `pressagios` (OS-0059) | `crit`, `fumble`, `duality`; os outros dois são booleanos. Somem quando o presságio acaba |
 | `data-presagio` | `<output data-testid="result">` | `vitrine` (OS-0060) | `crit`, `fumble`, `duality`; ausente sem texto ou sem presságio do mesmo arremesso |
+| `.import-body` e o `column-count` dele | `#table-panel` e `#meus-dados` | `mesa` e `meus-dados` | O `Folheador` (OS-0067) lê o `.import-body` do capítulo aberto (`.livro > aside[data-open="true"] .import-body`) e, se o `column-count` for maior que 1, pagina o corpo em vez de rolar. Renomear essa classe é mudança de contrato |
 | `data-fase`, `data-movimento`, `--forca` | `.app` | a própria casca (`App.tsx`), a partir das portas de `arremesso` e `shared/plataforma` | fase do gesto; `reduzido`; força 0 a 1 |
 | `data-perfil` | `.app` | a própria casca (`App.tsx`), de `perfil()` em `shared/plataforma` (ADR 0011) | `completo` ou `leve`; fixo na sessão. Nenhum módulo lê o atributo |
 

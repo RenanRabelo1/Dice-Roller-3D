@@ -269,3 +269,12 @@ OS-0062 a 0066 integradas.
 - **Correções na conferência:** o campo de texto do livro com o estilo do pergaminho (O-2 da auditoria), a sombra da virada sem alargar a rolagem do capítulo e o movimento reduzido desligando o tremor da falha (O-1).
 - **Pendente de decisão do João:** a limpeza sugerida em [auditoria-codigo.md](auditoria-codigo.md).
 - **Comparação visual da vinheta da força** no perfil completo: o João avalia na cena real.
+
+## Folhear: o livro não rola
+
+(OS-0067) Mesa e Meus dados têm o corpo em duas colunas com altura fixa. Quando o conteúdo não cabe, o navegador cria colunas novas à direita e a rolagem vira uma barra horizontal, o que quebra a imersão. No desktop (≥ 801 px) o corpo agora é `overflow: hidden` e quem anda é o `scrollLeft`, uma folha (uma página dupla, `clientWidth + column-gap`) por vez. No celular o capítulo continua em uma coluna e rola na vertical.
+
+- **Quem faz:** o `Folheador` (`src/app/Folheador.tsx`), dentro do `.livro`; a conta é pura, em `src/app/folhas.ts`. Ele só pagina se o `column-count` do `.import-body` do capítulo aberto for maior que 1, e mede com `ResizeObserver`, `MutationObserver` e o evento `scroll`. Trocar de capítulo ou fechar o livro volta à folha 1.
+- **A orelha:** um triângulo de 56×56 px no canto inferior direito (próxima) e no esquerdo (anterior), com a seta em Cinzel na cor da rubrica e o indicador `folha 1 de N` ao lado. Hover e foco levantam o canto (`scale(1.12)`). Só Tab e Enter; as setas do teclado são da mira.
+- **A virada:** `.folha-virando` gira em `rotateY` em volta da lombada em `--t-longo` com `--ease-cine`, com a luz (`::after`) e a sombra projetada (`::before`). O corpo esmaece (`data-folheando`) e o `scrollLeft` troca na metade, quando a folha está de lado. Só `transform` e `opacity`. Clique durante a virada é ignorado.
+- **Movimento reduzido:** sem folha e sem esmaecer; o `scrollLeft` troca na hora.
