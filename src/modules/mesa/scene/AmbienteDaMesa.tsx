@@ -4,6 +4,7 @@ import { EnvironmentPortal } from '@react-three/drei';
 import type { Texture } from 'three';
 import { panoramaTexture } from '../domain/tableImages.ts';
 import { useMesa } from '../ui/useMesa.tsx';
+import { VelaDaMesa } from './VelaDaMesa.tsx';
 
 interface Pano { tex: Texture; rotation: number; intensity: number; blur: number; reflect: boolean }
 
@@ -38,6 +39,7 @@ export function AmbienteDaMesa({ podeTrocar, luzes, children }: { podeTrocar: ()
       {/* A colour is the scene's background; a photo or ready-made theme sits behind the transparent canvas (FundoCss). */}
       {background.kind === 'color' && <color attach="background" args={[background.color]} />}
       {luzes}
+      <VelaDaMesa />
       {/* Same cubemap target for every panorama, so the dice materials do not recompile when it changes. The rotation, intensity and blur props are
           re-applied by drei each time it re-captures, so they have to be passed here rather than set on the scene.
           drei re-captures when its `children` change: the fragment is a new element on every render (as the shell's
