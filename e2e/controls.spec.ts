@@ -102,3 +102,12 @@ test('"Meus dados" with nothing imported says so, and "Forjar um dado novo" turn
   await expect(meus).toHaveAttribute('data-open', 'false');
   await expect(capitulo(page, 'import-die')).toHaveAttribute('data-open', 'true');
 });
+
+test('no chapter scrolls sideways once its page has turned', async ({ page }) => {
+  for (const [nome, id] of [['Mesa', 'table-panel'], ['Meus dados', 'meus-dados'], ['Importar dado', 'import-die'], ['Chat', 'dice-chat']]) {
+    await botao(page, nome).click();
+    await expect(capitulo(page, id)).toHaveAttribute('data-open', 'true');
+    await page.waitForTimeout(600); // past the page turn (--t-medio)
+    expect(await capitulo(page, id).evaluate((el) => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(1);
+  }
+});

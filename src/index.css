@@ -127,7 +127,6 @@ canvas { display: block; }
 .import-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .import-ask { display: flex; flex-direction: column; gap: 10px; }
 .import-ask label { display: flex; flex-direction: column; gap: 4px; }
-.import input:not([type="checkbox"]):not([type="color"]):not([type="file"]):not([type="radio"]) { font: inherit; color: var(--chalk); background: #1E1517; border: 1px solid #786958; border-radius: 3px; padding: 8px 10px; }
 .import-error { color: #F28B6B; margin: 0; }
 .import-note { color: var(--brass); margin: 0; font-size: 14px; }
 .ink-pop { position: relative; }
@@ -343,8 +342,9 @@ output span { animation: revelar var(--t-longo) var(--ease-saida) 200ms both; }
 @keyframes virar { from { transform: perspective(1600px) rotateY(8deg); opacity: .4; } to { transform: none; opacity: 1; } }
 @keyframes sombra-varre { from { transform: translateX(0); opacity: .5; } to { transform: translateX(100%); opacity: 0; } }
 .livro > aside[data-open="true"] { transform-origin: 50% 50%; animation: virar var(--t-medio) var(--ease-saida); }
-.livro > aside[data-open="true"]::after { content: ""; position: absolute; inset: 0 auto 0 50%; width: 50%; pointer-events: none;
-  background: linear-gradient(90deg, rgba(60, 35, 15, .35), rgba(60, 35, 15, 0)); animation: sombra-varre var(--t-medio) var(--ease-saida) both; }
+.livro > aside[data-open="true"]::after { content: ""; position: absolute; inset: 0 auto 0 50%; width: 50%; pointer-events: none; opacity: 0;
+  background: linear-gradient(90deg, rgba(60, 35, 15, .35), rgba(60, 35, 15, 0)); animation: sombra-varre var(--t-medio) var(--ease-saida) backwards; }
+/* backwards, not both: once swept, the shadow rests invisible at the spine instead of parked past the page edge (that widened the chapter's scroll). */
 @media (max-width: 800px) { .livro > aside[data-open="true"]::after { display: none; } }
 
 /* Reduced motion: only the HUD pieces (the omen CSS belongs to its module). Bands keep their final state. */
