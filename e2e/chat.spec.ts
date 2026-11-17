@@ -95,3 +95,14 @@ test('"2 moedas + d20" puts two coins next to the die', async ({ page }) => {
   expect(await dice(page)).toEqual(['d20', 'coin', 'coin']);
   await expect(page.getByRole('complementary', { name: 'Chat de dados' })).toContainText('Na mão: 1d20 + 2 moedas');
 });
+
+test('typing dice shows them in the chat preview', async ({ page }) => {
+  await page.keyboard.press('c');
+  const janela = page.locator('.janela-dos-dados');
+  await expect(janela.locator('canvas')).toHaveCount(1);
+  await expect(janela).toContainText('Digite os dados');
+  await page.getByRole('textbox', { name: /Dados/ }).fill('2d20 + d6');
+  await expect(janela).not.toContainText('Digite os dados');
+  await page.keyboard.press('Escape');
+  await expect(janela.locator('canvas')).toHaveCount(0);
+});
