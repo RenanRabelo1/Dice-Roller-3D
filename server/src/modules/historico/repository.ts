@@ -6,7 +6,7 @@ import { CUSTOM, type DieIn, type Roll, type RollPage } from './contracts.ts';
 // The only file of the module that talks to MongoDB (the connection itself is server/src/shared/db.ts).
 // History is read per player, newest first, so the one index is (playerId, _id desc): an ObjectId grows
 // with time, which also makes it the page cursor ("before this id").
-export interface RollDoc { _id: ObjectId; playerId: string; createdAt: Date; dice: DieIn[]; total: number; omen: OmenKind | null; force: number | null }
+interface RollDoc { _id: ObjectId; playerId: string; createdAt: Date; dice: DieIn[]; total: number; omen: OmenKind | null; force: number | null }
 export type Rolls = Collection<RollDoc>;
 
 // The collection itself also refuses malformed throws, whatever writes them.
