@@ -39,7 +39,7 @@ test('the caption carries the omen only on an omen throw', async ({ page }) => {
   await shown(page);
   await expect(page.getByTestId('result')).toHaveAttribute('data-presagio', 'crit');
   await back(page);
-  await rig(page, ['d20'], null);
+  await rig(page, ['d6'], null); // a d6 has no omen: a real d20 would crit or fumble one throw in ten
   await roll(page);
   await shown(page);
   await expect(page.getByTestId('result')).not.toHaveAttribute('data-presagio');
