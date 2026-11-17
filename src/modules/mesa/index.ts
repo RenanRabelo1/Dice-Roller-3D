@@ -4,19 +4,14 @@ import { Box3, Mesh, Vector3, type Color, type Object3D } from 'three';
 import type { MesaInspecionada } from './contracts.ts';
 import { mesa } from './store.ts';
 
-export type { Background, MesaImportada, MesaInspecionada, PresetName, TableState, TableTheme } from './contracts.ts';
 // `setColors` is not here: its only writer is MesaNaCena (the colours the table really shows), read through coresDaMesa.
 export { apply, copy, coresDaMesa, edit, mesa, remove, reset } from './store.ts';
 // The shell calls this on mount: the saved tables and the active one (the store's `load`).
 export { load as carregar } from './store.ts';
-export { clampBlur, clampDim, clampIntensity, clampPanoramaBlur, clampRotation, clampTile, DEFAULT_THEME, fileSafe, LIMITS, PRESETS } from './domain/tableTheme.ts';
-export { panoramaPicture, panoramaTexture, preparePanorama, reduceImage, TableError, warmImageDecoder } from './domain/tableImages.ts';
-export { colorsOf, disposeTable } from './domain/tableBuild.ts';
-export { temaDaMesaImportada } from './domain/importacao.ts';
+export { LIMITS } from './domain/tableTheme.ts';
+export { warmImageDecoder } from './domain/tableImages.ts';
 // The kraken's break (`pressagios`) hides the floor through this; MesaNaCena gives it the floor in the scene.
 export { ocultarPiso } from './scene/piso.ts';
-// The file reader and writer bring GLTFLoader/GLTFExporter: they load on demand, never with this door (ADR 0007, ponto 11).
-export const carregarArquivoDeMesa = () => import('./domain/tableFile.ts');
 
 // The active table as the test hook reads it (`window.__dice.table()`). The shell gives the scene and the shader count
 // (it has `gl.info`).

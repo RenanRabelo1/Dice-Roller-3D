@@ -18,7 +18,6 @@ export interface TableState {
   setColors(c: { felt: string; wood: string }): void;
 }
 
-export type { MesaImportada } from './domain/importacao.ts';
 
 /** The active table as the test hook reads it (`window.__dice.table()`): the theme, and what the scene really shows. */
 export interface MesaInspecionada {
