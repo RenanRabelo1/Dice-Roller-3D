@@ -25,7 +25,7 @@ Coisas que já morderam ou que quebram em silêncio. Ler antes de mexer em físi
 - **Compilar shaders antes** do primeiro uso (`Show.compile`); presságio novo entra nesse aquecimento.
 - **DPR só muda entre animações** (fase `hand` ou showcase concluído). `PerformanceMonitor` acumula o alvo em `desiredDpr`; redimensionar o buffer no meio de uma animação trava renderizador por software. SwiftShader começa em DPR 0,35.
 - Pré-simulação roda no worker; o fallback síncrono existe e custa ~25–35 ms no quadro de lançamento com 10 moedas. Worker sem resposta em 2 s (`WORKER_TIMEOUT`) → cálculo local; se o motor falhar, os dados voltam à mão com `error: 'physics'` e aviso no painel.
-- **Botão de teste de presságio é lento em máquina lenta.** A busca de arremesso com o valor pedido tem orçamento de 6 s ("nenhum arremesso com X em 6000 ms") e o `omen.spec.ts` falha de forma intermitente em SwiftShader, também no `main` sem o HUD. Não é regressão do HUD; use `rigOmen` quando o teste não for do botão.
+- **Botão de teste de presságio em máquina lenta** (OS-0088). A busca do botão de teste tem orçamento por pedido, escolhido pela thread principal (`orcamentoDaBusca`, em `arremesso`): com renderização por software (os E2E) são 20 s no worker e 10 s no local; sem ela, 6 s e 3 s. Com teste pedido, o timeout do worker é o orçamento mais 2 s. Antes disso o `omen.spec.ts` falhava de forma intermitente em SwiftShader ("nenhum arremesso com X em 6000 ms"). Use `rigOmen` quando o teste não for do botão.
 - Detalhes, experimentos revertidos e números: `docs/performance-coins.md`.
 
 ## Interface do HUD

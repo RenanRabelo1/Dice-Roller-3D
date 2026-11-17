@@ -11,7 +11,7 @@ const boxOf = (o: Group | Mesh) => { o.updateMatrixWorld(true); return new Box3(
 
 describe('table theme', () => {
   it('the default theme is the table of today', () => {
-    expect(DEFAULT_THEME.background).toEqual({ kind: 'panorama', pronto: 'monks_forest', format: 'ldr', rotation: 0, tilt: 0, intensity: 1, blur: 0, reflect: true });
+    expect(DEFAULT_THEME.background).toEqual({ kind: 'panorama', pronto: 'monks_forest', format: 'ldr', rotation: 270, tilt: -30, intensity: 1, blur: 0, reflect: true });
     expect(DEFAULT_THEME.felt).toEqual({ color: '#3A0F1A', texture: 'liso' });
     expect(DEFAULT_THEME.wood.color).toBe('#3B2416');
     expect(checkTheme(DEFAULT_THEME)).toBeNull();

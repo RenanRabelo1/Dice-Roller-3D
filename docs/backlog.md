@@ -50,7 +50,7 @@ As notas abaixo são o contexto original que gerou as specs; valem as specs. Os 
   - a área de soltar o arquivo (borda tracejada amarela), o botão amarelo cheio e o texto vermelho não parecem do mesmo sistema visual.
 - **Manter:** a prévia 3D girando no assistente de importação (o João gosta; não trocar por imagem parada).
 - **Esconder o número:** "Ignorei 725 faces onde o dado não para" (D5Shard) confunde. São as facetas minúsculas das quinas arredondadas e da gravação (o STL é uma malha de triângulos; cada pedacinho plano conta como face). Decisão do João: não mostrar a contagem (`imp.dropped`, `meus-dados/ui/AssistenteDeImportacao.tsx` linha ~328).
-- **Calibração da forma livre confunde:** o contorno laranja marca a face em que o dado **está apoiado**. A prévia vira essa face para **longe da câmera** (`orientation(-n)`, linha ~197), como se a câmera fosse o "de cima", e desenha o contorno através do modelo (`Marker through`). O número que o jogador lê é o que fica virado para a câmera, em outra face. Parece que o assistente pede para numerar a face marcada. Proposta (conversada com o João em 2026-11-12):
+- **Calibração da forma livre confunde** (feito na OS-0089: o dado caído no feltro, a face de cima em dourado): o contorno laranja marca a face em que o dado **está apoiado**. A prévia vira essa face para **longe da câmera** (`orientation(-n)`, linha ~197), como se a câmera fosse o "de cima", e desenha o contorno através do modelo (`Marker through`). O número que o jogador lê é o que fica virado para a câmera, em outra face. Parece que o assistente pede para numerar a face marcada. Proposta (conversada com o João em 2026-11-12):
   1. **Mostrar como ele cai na mesa:** o dado pousado num chão (disco de feltro), com a face de apoio encostada nele, visto de cima e de frente como a câmera do jogo.
   2. **Destacar o que fica para cima**, não a face de apoio. "Face oposta" nem sempre existe: num shard de 5 ou 7 lados, oposta a uma face longa fica uma **aresta**, entre duas faces. Então destacar a face (ou as faces) cuja normal aponta mais para cima, e marcar a face de apoio só de leve, encostada no chão.
   3. **Pergunta:** "Com o dado caído assim, que número você lê em cima?".
@@ -89,7 +89,7 @@ Levantados na fase 7 (OS-0050). Não foram apagados porque cada um é de um mód
 - **`checkTheme`** (`mesa/domain/tableTheme.ts`): valida um tema (versão, cores, tema pronto, limites do fundo e da textura), mas só `mesa/tests/table.test.ts` o chama. Os extras de um `.glb` importado já passam por `readExtras` (`tableTheme.ts:89-101`), que valida e limita hex, temas prontos, textura e os limites do fundo. Fica sem checagem o tema lido do IndexedDB, que só passa pelo filtro `version === 1` em `repository.ts:7`, e também as cores de `colors`. Já apontado em `docs/diagnostico.md`, seção 10, item 6 (linha 232). **Pergunta:** a validação se perdeu numa feature antiga (defeito: ligar `checkTheme` na leitura e na importação, o que muda comportamento) ou é sobra (apagar)? Decidir com o usuário antes da ordem do `mesa`.
 - Ficam, de propósito: `assinarArremesso` (`arremesso`), `SYMBOLS` (`dados`), `pisoEstaOculto` (`mesa`) e `carregarImportador` (`meus-dados`), que existem para os testes e o pré-carregamento.
 
-## 7. Busca do botão de teste de presságio
+## 7. Busca do botão de teste de presságio (feito na OS-0088)
 
 Deixar a busca do botão de teste confiável em máquina lenta: o orçamento de 6 s ("nenhum arremesso com X em 6000 ms") estoura de forma intermitente no `omen.spec.ts` (5 de 15 no `main`, 3 de 15 com o HUD). Dono: `pressagios`.
 
@@ -107,8 +107,8 @@ O que sobrou é intencional ou espera pedido do João:
 O João pediu para deixar para depois:
 
 - **Confirmar o `e2e/table.spec.ts:103`** (textura de 1600 px exportada como JPEG). Ele falhou no E2E da limpeza e também no commit `7b3e3fe`, em que já tinha passado. A suspeita é a máquina sob pressão de memória, sem prova. Rodar sozinho com a máquina livre, fechando os servidores de dev de outros projetos.
-- **Busca do botão de teste de presságio** confiável em máquina lenta (item 7).
-- **Pose de calibração da forma livre** (item 4).
-- **Fundo padrão da mesa:** decisão do João.
+- **Busca do botão de teste de presságio** confiável em máquina lenta (item 7): feito na OS-0088.
+- **Pose de calibração da forma livre** (item 4): feito na OS-0089.
+- **Fundo padrão da mesa:** feito na OS-0087. O João escolheu um panorama pronto; o padrão é a floresta, com mais três prontos, 8K no perfil completo e `.exr`.
 - **O `typing` repetido entre `mesa` e `selecao`:** levar para `shared/plataforma`, o que exige ADR (auditoria, seção 3).
 - **Pausar a cena com o livro aberto:** feito na OS-0086. A cena principal congela e a área de jogo fica `inert` enquanto o livro está aberto.
