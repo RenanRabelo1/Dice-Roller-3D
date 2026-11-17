@@ -230,7 +230,7 @@ canvas { display: block; }
 .livro > #table-panel fieldset > .import-row:not([role]) { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
 .livro > #table-panel .table-list li { display: flex; gap: 6px; }
 .livro > #table-panel .table-list li button:first-child { flex: 1; text-align: left; }
-.livro > #table-panel small { color: var(--sepia); font-style: italic; font-size: 14px; }
+.livro > #table-panel small { color: #47361f; font-style: italic; font-size: 16px; line-height: 1.45; } /* darker and bigger than --sepia at 14px: the notes were hard to read on the parchment */
 .livro > #table-panel .import-error { color: #9b2a1a; background: none; border: 0; }
 @media (max-width: 800px) { .livro > #table-panel .import-body { column-count: 1; } }
 

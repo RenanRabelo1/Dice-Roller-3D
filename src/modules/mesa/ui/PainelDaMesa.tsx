@@ -110,7 +110,7 @@ export function PainelDaMesa({ aberto, onAlternar, onFechar }: { aberto: boolean
               <input id="table-photo" data-testid="table-photo" type="file" accept="image/png,image/jpeg,image/webp" hidden
                 onChange={(e) => { photo(e.target.files?.[0]); e.target.value = ''; }} />
             </div>
-            <small className="ajuda-360" data-aberta={bg.kind === 'panorama'}>360°: uma foto panorâmica 2:1 (equirretangular) em .jpg, .png, .webp ou .hdr.</small>
+            <small className="ajuda-360" data-aberta={bg.kind === 'panorama'}>360°: uma foto panorâmica 2:1 (equirretangular). Aceita .hdr até {LIMITS.panoramaHdrBytes / 1024 / 1024} MB ou .jpg, .png e .webp até {LIMITS.panoramaBytes / 1024 / 1024} MB. O .exr não entra: baixe em HDR ou JPG.</small>
             {bg.kind === 'color' && color('Cor do fundo', bg.color, (v) => setBackground({ kind: 'color', color: v }))}
             {bg.kind === 'preset' && (
               <div className="import-row" role="group" aria-label="Temas de fundo">
