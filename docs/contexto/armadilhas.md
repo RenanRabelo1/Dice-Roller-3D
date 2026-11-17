@@ -28,6 +28,16 @@ Coisas que já morderam ou que quebram em silêncio. Ler antes de mexer em físi
 - **Botão de teste de presságio é lento em máquina lenta.** A busca de arremesso com o valor pedido tem orçamento de 6 s ("nenhum arremesso com X em 6000 ms") e o `omen.spec.ts` falha de forma intermitente em SwiftShader, também no `main` sem o HUD. Não é regressão do HUD; use `rigOmen` quando o teste não for do botão.
 - Detalhes, experimentos revertidos e números: `docs/performance-coins.md`.
 
+## Interface do HUD
+
+- **`ResizeObserver` não serve para conteúdo partido entre colunas.**
+  - Um elemento fragmentado num corpo `column-count` de altura fixa cresce sem disparar o observador (Chrome), e o corpo também não muda de tamanho.
+  - Para saber quando o conteúdo passa da borda, use `IntersectionObserver` com o corpo como raiz, observando cada filho. É assim no `src/app/Folheador.tsx`.
+- **Sombra não bloqueia clique.** Um `box-shadow` de 100vmax escurece a tela, mas o ponteiro atravessa até a mesa e joga o dado. Véu que precisa segurar clique é um elemento (`.livro-veu`).
+- **Pinça do touchpad é Ctrl + roda.**
+  - No Chromium ela chega como `wheel` com `ctrlKey`, e no Safari como `gesturestart`. O `touch-action` não pega nenhum dos dois.
+  - O `App` cancela os dois; o `Ctrl + 0` não desfaz esse zoom.
+
 ## Moeda
 
 - Colisor é `roundCylinder`, não o casco (casco fino balança para sempre).

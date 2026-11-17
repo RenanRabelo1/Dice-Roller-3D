@@ -40,3 +40,10 @@ A [auditoria](auditoria-codigo.md) (OS-0066) achou código morto e repetido. O J
 
 - O `typing` repetido entre `mesa` e `selecao`. Ele precisaria virar infra de DOM em `shared/plataforma`, o que exige ADR. Fica para quando o João pedir.
 - A curva cúbica `1 - (1 - t) ** 3` repetida: o ganho é pequeno e mexeria em `shared` só por ela. Só a renomeação no `pressagios` entra, para ninguém "unificar" a curva errada.
+
+## Concluída (2026-11-17)
+
+As 11 ordens estão integradas no `feat/hud-imersivo`. O gate passa: build, lint, 600 testes e os 23 do servidor.
+- **OS-0072 e OS-0080:** feitas pelo orquestrador. Eram pequenas, e destravavam as outras.
+- **`Store` e `Signal`:** ficaram exportados.
+- **Rodada paralela:** dez sessões ao mesmo tempo esgotaram a memória da máquina, e nenhum processo subia. As ordens foram retomadas em grupos de três.
