@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import type { Group } from 'three';
-import { RAIO_MAXIMO } from '../../dados/index.ts';
+import { polyhedron, RAIO_MAXIMO } from '../../dados/index.ts';
 import { AparenciaDoDado } from '../../dados/cena.ts';
 import type { DieKind } from '../../regras/index.ts';
 import { movimentoReduzido, perfilLeve } from '../../../shared/plataforma/index.ts';
@@ -36,7 +36,8 @@ function Fileiras({ dice }: { dice: DieKind[] }) {
       const x = (i % POR_FILEIRA - (naFila - 1) / 2) * PASSO, y = ((fileiras - 1) / 2 - fila) * PASSO;
       // Each die starts at its own phase.
       return <group key={i} ref={(g) => { grupos.current[i] = g; if (g && g.userData.fase === undefined) { g.userData.fase = 1; g.rotation.y = i * 1.1; } }} position={[x, y, 0]}>
-        <AparenciaDoDado index={i} kind={kind} />
+        {/* The coin lies flat in its own frame: stand it up so its face looks at the camera. */}
+        <group rotation={[polyhedron(kind).shape === 'coin' ? Math.PI / 2 : 0, 0, 0]}><AparenciaDoDado index={i} kind={kind} /></group>
       </group>;
     })}
   </>;
