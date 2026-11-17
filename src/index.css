@@ -39,6 +39,8 @@
 
 * { box-sizing: border-box; }
 html, body, #root { width: 100%; height: 100%; margin: 0; }
+/* No pinch zoom or elastic overscroll on a full-screen game: touch keeps scrolling (the book on phones), never zooming. */
+html { touch-action: pan-x pan-y; overscroll-behavior: none; }
 .app { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto; height: 100dvh; }
 .panel { background: var(--panel); padding: 12px 24px; }
 .controls { grid-row: 1; display: flex; align-items: center; gap: 24px; background: var(--barra); min-height: 64px; padding-left: 28px; padding-right: 28px; }

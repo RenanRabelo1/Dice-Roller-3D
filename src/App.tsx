@@ -21,6 +21,14 @@ export default function App() {
   // Every published result goes to the roll history (when the app has an API address; see src/modules/historico).
   // Subscribed here, last, after the modules that subscribe on load (pressagios).
   useEffect(() => iniciarHistorico(), []);
+  // A touchpad pinch reaches the page as a ctrl+wheel (Chromium) or a gesture event (Safari) and zooms the visual
+  // viewport: the whole game then pans off-frame in four directions. Keyboard zoom (Ctrl +/-) stays available.
+  useEffect(() => {
+    const semPinca = (e: Event) => { if (!(e instanceof WheelEvent) || e.ctrlKey) e.preventDefault(); };
+    window.addEventListener('wheel', semPinca, { passive: false });
+    window.addEventListener('gesturestart', semPinca);
+    return () => { window.removeEventListener('wheel', semPinca); window.removeEventListener('gesturestart', semPinca); };
+  }, []);
   // HUD rhythm: gesture phase and charge force go straight to the DOM, so the scene never re-renders on them.
   useEffect(() => {
     const el = app.current!;
