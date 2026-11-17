@@ -6,6 +6,8 @@ import type { Vec3 } from '../../../shared/math.ts';
 // the triangle sits closest below (as `dentTester` in dados/domain/gravacao.ts reads it), so a numeral lights whole or not at all,
 // whatever the slope of its walls. `centers`: 3 numbers per triangle.
 export const UP_INK = 0.5; // ponytail: fixed cone; tune if real models light too little or too much
+// ponytail: the "same face" cone (~11°): the owner of a triangle must be the rolled face itself. Tune it if a real model with near-coplanar faces lights the wrong numeral.
+export const MESMA_FACE = 0.98;
 export function upInk(centers: ArrayLike<number>, mask: Uint8Array, faces: { normal: Vec3; center: Vec3 }[], down: Vec3, min = UP_INK): number[] {
   const out: number[] = [];
   for (let t = 0; t < mask.length; t++) {
@@ -28,7 +30,7 @@ const LIFT = 0.004; // keeps the glow off the ink in the depth buffer
 const kept = new Map<string, BufferGeometry>();
 
 // One mesh in the die group's space with the up-facing inked triangles of every mesh under `model`.
-export function glowMesh(model: Object3D, group: Object3D, faces: { normal: Vec3; center: Vec3 }[], down: Vec3, color: string, key?: string): Mesh | null {
+export function glowMesh(model: Object3D, group: Object3D, faces: { normal: Vec3; center: Vec3 }[], down: Vec3, color: string, key?: string, min = UP_INK): Mesh | null {
   const cached = key ? kept.get(key) : undefined;
   if (cached) return lit(cached, color);
   group.updateWorldMatrix(true, true);
@@ -56,7 +58,7 @@ export function glowMesh(model: Object3D, group: Object3D, faces: { normal: Vec3
       centers.push((a.x + b.x + c.x) / 3, (a.y + b.y + c.y) / 3, (a.z + b.z + c.z) / 3);
       tri.push([a.clone(), b.clone(), c.clone(), n.clone()]);
     }
-    for (const t of upInk(centers, mask, faces, down)) {
+    for (const t of upInk(centers, mask, faces, down, min)) {
       const [p, q, r, m] = tri[t];
       for (const v of [p, q, r]) out.push(v.x + m.x * LIFT, v.y + m.y * LIFT, v.z + m.z * LIFT);
     }
