@@ -6,7 +6,7 @@ import { panoramaTexture } from '../domain/tableImages.ts';
 import { useMesa } from '../ui/useMesa.tsx';
 import { VelaDaMesa } from './VelaDaMesa.tsx';
 
-interface Pano { tex: Texture; rotation: number; intensity: number; blur: number; reflect: boolean }
+interface Pano { tex: Texture; rotation: number; tilt: number; intensity: number; blur: number; reflect: boolean }
 
 /**
  * The table's ambience in the scene: the colour background, the 360° panorama (background and reflections) and the
@@ -23,8 +23,8 @@ export function AmbienteDaMesa({ podeTrocar, luzes, children }: { podeTrocar: ()
   useEffect(() => {
     if (background.kind !== 'panorama') { wanted.current = null; return; }
     let live = true;
-    const { rotation, intensity, blur, reflect } = background;
-    panoramaTexture(background).then((tex) => { if (live) wanted.current = { tex, rotation: rotation * Math.PI / 180, intensity, blur, reflect }; }, () => {});
+    const { rotation, tilt, intensity, blur, reflect } = background;
+    panoramaTexture(background).then((tex) => { if (live) wanted.current = { tex, rotation: rotation * Math.PI / 180, tilt: tilt * Math.PI / 180, intensity, blur, reflect }; }, () => {});
     return () => { live = false; };
   }, [background]);
   useFrame((state) => {
@@ -45,8 +45,8 @@ export function AmbienteDaMesa({ podeTrocar, luzes, children }: { podeTrocar: ()
           drei re-captures when its `children` change: the fragment is a new element on every render (as the shell's
           Lightformers were when this lived there), so a new panorama or background is captured at once. */}
       <EnvironmentPortal resolution={256} map={pano?.reflect ? pano.tex : undefined}
-        backgroundRotation={[0, pano?.rotation ?? 0, 0]} backgroundIntensity={pano?.intensity ?? 1} backgroundBlurriness={pano?.blur ?? 0}
-        environmentRotation={[0, pano?.rotation ?? 0, 0]}>
+        backgroundRotation={[pano?.tilt ?? 0, pano?.rotation ?? 0, 0]} backgroundIntensity={pano?.intensity ?? 1} backgroundBlurriness={pano?.blur ?? 0}
+        environmentRotation={[pano?.tilt ?? 0, pano?.rotation ?? 0, 0]}>
         <>{children}</>
       </EnvironmentPortal>
     </>
