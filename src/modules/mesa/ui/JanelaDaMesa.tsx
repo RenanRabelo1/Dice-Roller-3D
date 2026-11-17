@@ -9,7 +9,7 @@ export function JanelaDaMesa() {
   return (
     <div className="janela-da-mesa" role="img" aria-label="Prévia da mesa">
       <FundoCss />
-      <Canvas dpr={1} gl={{ alpha: true, antialias: true }} camera={{ position: [0, 15, 19], fov: 40 }} frameloop={perfilLeve() ? 'demand' : 'always'} tabIndex={-1}>
+      <Canvas dpr={1} gl={{ alpha: true, antialias: true }} camera={{ position: [0, 14, 20], fov: 40 }} frameloop={perfilLeve() ? 'demand' : 'always'} tabIndex={-1}>
         <MesaDePrevia />
       </Canvas>
     </div>

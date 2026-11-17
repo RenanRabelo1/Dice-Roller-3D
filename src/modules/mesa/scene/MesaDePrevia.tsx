@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import type { PerspectiveCamera } from 'three';
 import { useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import type { Group } from 'three';
@@ -11,7 +12,8 @@ import { useMesa } from '../ui/useMesa.tsx';
 // light (an approximation of the scene, not the scene). A photo or ready-made backdrop is the CSS behind the canvas (FundoCss).
 export function MesaDePrevia() {
   const theme = useMesa((s) => s.theme);
-  const { scene, invalidate } = useThree();
+  const { scene, invalidate, camera, size } = useThree();
+  const controles = useRef<{ update: () => void } | null>(null);
   const [table, setTable] = useState<Group | null>(null);
   const atual = useRef<Group | null>(null);
   const leve = perfilLeve();
@@ -48,6 +50,19 @@ export function MesaDePrevia() {
     return () => { alive = false; scene.background = null; };
   }, [bg, scene, invalidate]);
 
+  // Frames the tray (GUIDE) at ~80% of the canvas width, seen from above at 35° of elevation. Re-frames when the window is resized.
+  const aspecto = size.width / size.height || 1;
+  const fov = (camera as PerspectiveCamera).fov;
+  useEffect(() => {
+    const elevacao = 35 * Math.PI / 180;
+    const d = (GUIDE.size[0] / 0.8) / (2 * Math.tan(fov * Math.PI / 360) * aspecto);
+    const [cx, cy, cz] = GUIDE.center;
+    camera.position.set(cx, cy + d * Math.sin(elevacao), cz + d * Math.cos(elevacao));
+    camera.lookAt(cx, cy, cz);
+    controles.current?.update();
+    invalidate();
+  }, [camera, aspecto, fov, invalidate]);
+
   useEffect(() => { invalidate(); }, [table, bg, invalidate]);
 
   return (
@@ -56,7 +71,7 @@ export function MesaDePrevia() {
       <ambientLight intensity={0.35} />
       <directionalLight position={[4, 10, 6]} intensity={2.5} color="#fff1dc" />
       {table && <primitive object={table} />}
-      <OrbitControls enableZoom={false} enablePan={false} autoRotate={gira} autoRotateSpeed={0.6}
+      <OrbitControls ref={controles as never} enableZoom={false} enablePan={false} autoRotate={gira} autoRotateSpeed={0.6}
         target={[GUIDE.center[0], GUIDE.center[1], GUIDE.center[2]]} onChange={leve ? () => invalidate() : undefined} />
     </>
   );
