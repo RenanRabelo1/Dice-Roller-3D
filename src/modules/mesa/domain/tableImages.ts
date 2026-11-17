@@ -1,6 +1,7 @@
 import { CanvasTexture, DataTexture, DataUtils, EquirectangularReflectionMapping, FloatType, HalfFloatType, RGBAFormat, SRGBColorSpace, Texture } from 'three';
-import { LIMITS } from './tableTheme.ts';
-import { renderizadorPorSoftware } from '../../../shared/plataforma/index.ts';
+import { LIMITS, type PanoramaFormat } from './tableTheme.ts';
+import { panoramaPronto } from './panoramas.ts';
+import { perfilLeve, renderizadorPorSoftware } from '../../../shared/plataforma/index.ts';
 
 // Browser-only image helpers (canvas / createImageBitmap). Photos and textures are re-encoded smaller before saving.
 export class TableError extends Error {} // the message is shown to the player, in pt-BR
@@ -51,35 +52,57 @@ export function warmImageDecoder() {
 }
 
 // --- 360° panorama ---------------------------------------------------------------------------------------------------
-export async function preparePanorama(file: Blob, name: string): Promise<{ image: Blob; format: 'ldr' | 'hdr' }> {
-  if (/\.hdr$/i.test(name) || file.type === 'image/vnd.radiance') {
-    if (file.size > LIMITS.panoramaHdrBytes) throw new TableError(`O arquivo .hdr passa de ${LIMITS.panoramaHdrBytes / 1024 / 1024} MB.`);
-    return { image: file, format: 'hdr' };
+// The largest side kept in memory: 8192 px on the full profile, 4096 on the light one, half of that on a software renderer.
+export const tetoDoPanorama = () => renderizadorPorSoftware() ? LIMITS.panoramaPx / 4 : perfilLeve() ? LIMITS.panoramaPxLeve : LIMITS.panoramaPx;
+
+export async function preparePanorama(file: Blob, name: string): Promise<{ image: Blob; format: PanoramaFormat }> {
+  const raw = /\.hdr$/i.test(name) || file.type === 'image/vnd.radiance' ? 'hdr' : /\.exr$/i.test(name) ? 'exr' : null;
+  if (raw) {
+    if (file.size > LIMITS.panoramaHdrBytes) throw new TableError(`O arquivo .${raw} passa de ${LIMITS.panoramaHdrBytes / 1024 / 1024} MB.`);
+    return { image: file, format: raw };
   }
-  if (!/^image\/(jpeg|png|webp)$/.test(file.type) && !/\.(jpe?g|png|webp)$/i.test(name)) throw new TableError('Use .hdr, .jpg, .png ou .webp.');
-  return { image: await reduceImage(file, LIMITS.panoramaPx, LIMITS.panoramaBytes), format: 'ldr' };
+  if (!/^image\/(jpeg|png|webp)$/.test(file.type) && !/\.(jpe?g|png|webp)$/i.test(name)) throw new TableError('Use .hdr, .exr, .jpg, .png ou .webp.');
+  return { image: await reduceImage(file, tetoDoPanorama(), LIMITS.panoramaBytes), format: 'ldr' };
 }
 
 const BAD_RATIO = 'A foto 360° precisa ter proporção 2:1 (ex.: 4096 × 2048).';
-const panoramas = new WeakMap<Blob, Promise<Texture>>();
+type PanoramaSource = { image?: Blob; pronto?: string; format: PanoramaFormat };
+const panoramas = new WeakMap<Blob, Promise<Texture>>(), prontos = new Map<string, Promise<Texture>>();
 
-// The equirectangular texture of a panorama background (cached per blob). Throws TableError when it is not 2:1.
-export function panoramaTexture(bg: { image: Blob; format: 'ldr' | 'hdr' }): Promise<Texture> {
+// The file of a panorama background: the player's blob, or a ready-made one fetched from the game's own files.
+async function blobOf(bg: PanoramaSource): Promise<Blob> {
+  if (bg.image) return bg.image;
+  const p = panoramaPronto(bg.pronto);
+  if (!p) throw new TableError('Panorama pronto desconhecido.');
+  const res = await fetch(p.arquivo);
+  if (!res.ok) throw new TableError('Não consegui baixar o panorama.');
+  return res.blob();
+}
+
+// The equirectangular texture of a panorama background (cached per blob, or per id for a ready-made one). Throws TableError when it is not 2:1.
+export function panoramaTexture(bg: PanoramaSource): Promise<Texture> {
+  if (!bg.image) {
+    const id = bg.pronto ?? '';
+    let p = prontos.get(id);
+    if (!p) { p = loadPanorama(bg); prontos.set(id, p); p.catch(() => prontos.delete(id)); }
+    return p;
+  }
   let p = panoramas.get(bg.image);
-  if (!p) { p = loadPanorama(bg); panoramas.set(bg.image, p); p.catch(() => panoramas.delete(bg.image)); }
+  if (!p) { p = loadPanorama(bg); panoramas.set(bg.image, p); p.catch(() => panoramas.delete(bg.image!)); }
   return p;
 }
 
-async function loadPanorama(bg: { image: Blob; format: 'ldr' | 'hdr' }): Promise<Texture> {
-  // On a software renderer (SwiftShader, marked by the shell's `app/Cena.tsx` via `marcarRenderizadorPorSoftware()`), half-size panoramas keep the first frame affordable.
-  const maxPx = renderizadorPorSoftware() ? LIMITS.panoramaPx / 2 : LIMITS.panoramaPx;
+async function loadPanorama(bg: PanoramaSource): Promise<Texture> {
+  // On a software renderer (SwiftShader, marked by the shell's `app/Cena.tsx` via `marcarRenderizadorPorSoftware()`), small panoramas keep the first frame affordable.
+  const maxPx = tetoDoPanorama();
+  const blob = await blobOf(bg);
   let tex: Texture, w: number, h: number;
   if (bg.format === 'ldr') {
-    const bitmap = await createImageBitmap(bg.image);
+    const bitmap = await createImageBitmap(blob);
     w = bitmap.width; h = bitmap.height;
     if (!isTwoToOne(w, h)) { bitmap.close(); throw new TableError(BAD_RATIO); }
     const k = Math.min(1, maxPx / w);
-    if (k < 1) { // only the software-renderer cap lands here: stored panoramas are already <= 4096
+    if (k < 1) { // the light profile and the software renderer land here (stored panoramas can be 8K)
       const c = document.createElement('canvas'); c.width = Math.round(w * k); c.height = Math.round(h * k);
       c.getContext('2d')!.drawImage(bitmap, 0, 0, c.width, c.height);
       tex = new CanvasTexture(c);
@@ -87,13 +110,15 @@ async function loadPanorama(bg: { image: Blob; format: 'ldr' | 'hdr' }): Promise
     tex.colorSpace = SRGBColorSpace;
     tex.needsUpdate = true;
   } else {
-    const { HDRLoader } = await import('three/examples/jsm/loaders/HDRLoader.js'); // dynamic: keeps the first load light
-    const loader = new HDRLoader(); loader.setDataType(FloatType);
-    const hdr = loader.parse(await bg.image.arrayBuffer());
+    // dynamic: keeps the first load light
+    const loader = bg.format === 'exr' ? new (await import('three/examples/jsm/loaders/EXRLoader.js')).EXRLoader() : new (await import('three/examples/jsm/loaders/HDRLoader.js')).HDRLoader();
+    loader.setDataType(FloatType);
+    const hdr = loader.parse(await blob.arrayBuffer()) as { width?: number; height?: number; data: unknown };
     w = hdr.width!; h = hdr.height!;
     if (!isTwoToOne(w, h)) throw new TableError(BAD_RATIO);
     let data = hdr.data as Float32Array;
-    while (w > maxPx) { // average 2x2 blocks until it fits
+    const maxHdr = Math.min(maxPx, LIMITS.panoramaPxLeve); // float data costs 16 bytes a pixel: 8K would be 512 MB
+    while (w > maxHdr) { // average 2x2 blocks until it fits
       const nw = w >> 1, nh = h >> 1, out = new Float32Array(nw * nh * 4);
       for (let y = 0; y < nh; y++) for (let x = 0; x < nw; x++) for (let c = 0; c < 4; c++) {
         const i = ((2 * y) * w + 2 * x) * 4 + c;
@@ -112,8 +137,8 @@ async function loadPanorama(bg: { image: Blob; format: 'ldr' | 'hdr' }): Promise
 const isTwoToOne = (w: number, h: number) => w / h >= 1.9 && w / h <= 2.1;
 
 // The panorama as a plain 8-bit picture for the .glb (glTF has no HDR): an LDR one as it is, an HDR one tone-mapped (c / (1 + c), then gamma).
-export async function panoramaPicture(bg: { image: Blob; format: 'ldr' | 'hdr' }): Promise<ImageBitmap | HTMLCanvasElement> {
-  if (bg.format === 'ldr') return createImageBitmap(bg.image);
+export async function panoramaPicture(bg: PanoramaSource): Promise<ImageBitmap | HTMLCanvasElement> {
+  if (bg.format === 'ldr') return createImageBitmap(await blobOf(bg));
   const tex = await panoramaTexture(bg), { data, width, height } = tex.image as { data: Uint16Array; width: number; height: number };
   const canvas = document.createElement('canvas');
   canvas.width = width; canvas.height = height;

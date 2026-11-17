@@ -154,7 +154,7 @@ for (const { name, dice, omen, die, value, sign } of [
     for (let n = 0; n < 2; n++) {
       if (n) { await page.keyboard.press('Space'); await page.waitForFunction(() => window.__dice.state().phase === 'hand'); }
       await page.keyboard.down('Space'); await page.waitForTimeout(300); await page.keyboard.up('Space'); // focus is back on the table
-      await page.waitForFunction(() => window.__dice.state().phase === 'settled', null, { timeout: 30_000 });
+      await page.waitForFunction(() => window.__dice.state().phase === 'settled', null, { timeout: 60_000 });
       const s = await page.evaluate(() => window.__dice.state());
       expect(s.omen, `results ${s.results} · ${warnings.join(' | ')}`).toBe(omen);
       if (die) expect(s.results![s.dice.lastIndexOf(die as DieKind)]).toBe(value);

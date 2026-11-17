@@ -79,7 +79,13 @@ export function presimulate(
 
 // How long (ms) a test throw may look for its omen: in the worker, and on the main thread if the worker failed
 // (there the screen waits; it is a dev tool). A roll takes ~3-8 ms, and a d100 face is 1 in 100.
-export const BIAS_BUDGET = { worker: 6000, local: 3000 };
+// With software rendering (the E2E, slow machines) everything is slower, so the budget is longer.
+export const BIAS_BUDGET = { worker: 6000, local: 3000, workerSoftware: 20000, localSoftware: 10000 };
+
+// The budget a request carries (`RollRequest.orcamento`): picked by the main thread, since the worker cannot read the platform.
+export const orcamentoDaBusca = (software: boolean) => software
+  ? { worker: BIAS_BUDGET.workerSoftware, local: BIAS_BUDGET.localSoftware }
+  : { worker: BIAS_BUDGET.worker, local: BIAS_BUDGET.local };
 
 // The roll a request asks for. With a `bias`, the first of the following seeds whose real roll plays that omen,
 // tried for up to `budgetMs`: the dice still leave the hand with the same aim, force and motion, only the random
@@ -87,9 +93,10 @@ export const BIAS_BUDGET = { worker: 6000, local: 3000 };
 export function presimulateFor({ dice, start, launch, bias }: RollRequest, budgetMs: number): Recording {
   let rec = presimulate(dice, start, launch);
   const end = performance.now() + budgetMs;
-  for (let k = 1; bias && !plays(bias.test, bias.kinds, rec.results) && performance.now() < end; k++) {
+  let k = 1;
+  for (; bias && !plays(bias.test, bias.kinds, rec.results) && performance.now() < end; k++) {
     rec = presimulate(dice, start, { ...launch, seed: (launch.seed + Math.imul(k, 0x9e3779b1)) >>> 0 });
   }
-  if (bias && !plays(bias.test, bias.kinds, rec.results)) console.warn(`Teste de animação: nenhum arremesso com ${bias.test} em ${budgetMs} ms; este saiu comum.`);
+  if (bias && !plays(bias.test, bias.kinds, rec.results)) console.warn(`Teste de animação: nenhum arremesso com ${bias.test} em ${budgetMs} ms (${k} sementes); este saiu comum.`);
   return rec;
 }

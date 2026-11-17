@@ -2,6 +2,7 @@ import { Suspense, useEffect, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Cena } from './app/Cena.tsx';
 import { Painel } from './app/Painel.tsx';
+import { aoMudarLivro } from './app/livro.ts';
 import { BotoesDeTeste, OverlayDoPresagio } from './modules/pressagios/cena.ts';
 import { Failure, Guard, aoMudarMovimentoReduzido, hasWebGL, movimentoReduzido, observarPreferenciaDoSistema, perfil, registrarFalha, useFalha } from './shared/plataforma/index.ts';
 import { arremesso, assinarArremesso } from './modules/arremesso/index.ts';
@@ -29,6 +30,8 @@ export default function App() {
     window.addEventListener('gesturestart', semPinca);
     return () => { window.removeEventListener('wheel', semPinca); window.removeEventListener('gesturestart', semPinca); };
   }, []);
+  // With the book open nothing behind it reacts: no throw, no focus, no clicks (OS-0086).
+  useEffect(() => aoMudarLivro((aberto) => { gameArea.current!.inert = aberto; }), []);
   // HUD rhythm: gesture phase and charge force go straight to the DOM, so the scene never re-renders on them.
   useEffect(() => {
     const el = app.current!;

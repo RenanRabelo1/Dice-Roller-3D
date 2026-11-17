@@ -211,12 +211,12 @@ test('painted numerals: the ink shows on an engraved STL, changes in My dice wit
   const [auto] = await look();
   expect(auto.ink![0]).toBeGreaterThan(0.5); expect(auto.ink![2]).toBeLessThan(0.2);
 
-  await page.getByText('Tinta', { exact: true }).click();
-  await page.getByLabel('Branca').check();
+  const ficha = page.getByRole('region', { name: 'Ficha de Gravado' }); // the die's sheet in My dice (OS-0085)
+  await ficha.getByLabel('Branca').check();
   await expect.poll(async () => (await look())[0]?.ink?.[2] ?? 0).toBeGreaterThan(0.6); // white ink, no reload
-  await page.getByLabel('Sem tinta').check();
+  await ficha.getByLabel('Sem tinta').check();
   await expect.poll(async () => (await look())[0]?.painted, { timeout: 30_000 }).toBe(false);
-  await page.getByLabel('Fosco').check();
+  await ficha.getByLabel('Fosco').check();
   await expect.poll(async () => (await look())[0]?.material, { timeout: 30_000 }).toBe('MeshStandardMaterial');
   expect((await look())[0].opaque).toBe(true);
 
@@ -234,7 +234,7 @@ test('a shard die: the wizard asks about the big faces and calibrates only those
   await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByRole('button', { name: 'Sim, calibrar' }).click();
   await expect(page.getByTestId('import-progress')).toHaveText('1 de 5');
-  const ask = page.getByLabel('Que número você lê com ele apoiado assim?');
+  const ask = page.getByLabel('Com o dado caído assim, que número você lê em cima?');
   for (const v of [1, 2, 3, 4, 5]) { await ask.fill(String(v)); await ask.press('Enter'); }
   await save(page, 'Cristal5');
   const [custom] = await page.evaluate(() => window.__dice.customs());
@@ -255,7 +255,7 @@ test('an engraved shard flies showing its top engraving lit', async ({ page }) =
   await page.getByRole('button', { name: 'Sim, só as grandes' }).click();
   await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByRole('button', { name: 'Sim, calibrar' }).click();
-  const ask = page.getByLabel('Que número você lê com ele apoiado assim?');
+  const ask = page.getByLabel('Com o dado caído assim, que número você lê em cima?');
   for (const v of [1, 2, 3, 4, 5]) { await ask.fill(String(v)); await ask.press('Enter'); }
   await save(page, 'Gravado5');
   const [custom] = await page.evaluate(() => window.__dice.customs());

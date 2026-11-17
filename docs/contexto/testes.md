@@ -66,7 +66,7 @@ Regra 2 do guia (ADR 0006 parte B; ADR 0003 pontos 2 e 5). Varre só produção:
 
 | Método | Para quê |
 |---|---|
-| `table()` | mesa ativa lida da cena: id, nome, fundo (incl. `panorama`), cores do feltro/madeira, textura, se há modelo, caixa da guia, nº de mesas salvas, `reflect` (fundo 360°) e `programs` (nº de programas de shader, para checar recompilação) |
+| `table()` | mesa ativa lida da cena: id, nome, fundo (incl. `panorama`), cores do feltro/madeira, textura, se há modelo, caixa da guia, nº de mesas salvas, `reflect` (fundo 360°) e `programs` (nº de programas de shader, para checar recompilação). Com o livro aberto a cena está congelada, então a leitura desenha um quadro antes (OS-0086); o `throwWithSpace` fecha o livro antes de jogar |
 | `shards()` | cores (feltro/madeira) do primeiro caco do kraken |
 | `state()` | dice, phase, throwId, results, ready, error, aim, showcased, omen, omenDone, reducedMotion, omenTime, trayBroken, burning (fogo do d20 visível), force (carga agora ou do último arremesso) |
 | `select(dice)` | troca a seleção sem clicar |

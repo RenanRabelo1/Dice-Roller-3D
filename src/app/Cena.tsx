@@ -5,7 +5,7 @@ import { Physics } from '@react-three/rapier';
 import { Group, Quaternion } from 'three';
 
 import {
-  arremesso, envelopeDaMao, GRAVITY, inspecao as inspecaoDoArremesso, registroDeCorpos, STEP, TRAY,
+  aoMudarBuscaDoTeste, arremesso, buscandoTeste, envelopeDaMao, GRAVITY, inspecao as inspecaoDoArremesso, registroDeCorpos, STEP, TRAY,
 } from '../modules/arremesso/index.ts';
 import { CorpoDoDado, LoopDoArremesso, MaoDoArremesso, useArremesso } from '../modules/arremesso/cena.ts';
 import type { Vec3 } from '../shared/math.ts';
@@ -14,6 +14,7 @@ import { Vitrine } from '../modules/vitrine/cena.ts';
 import { inspecao as inspecaoDoPresagio, presagio, rigOmen } from '../modules/pressagios/index.ts';
 import { PresagiosNaCena, QuebraDaMesa } from '../modules/pressagios/cena.ts';
 import { installTestHook } from './testHook.ts';
+import { aoMudarLivro, livroAberto } from './livro.ts';
 import { gemaNaRaiz, inspecao } from '../modules/dados/index.ts';
 import { definir } from '../modules/selecao/index.ts';
 import { inspecao as inspecaoDosImportados } from '../modules/meus-dados/index.ts';
@@ -33,7 +34,7 @@ const entreAnimacoes = () => {
 export function Cena({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> }) {
   const selected = useArremesso((state) => state.dice);
   const key = selected.join(',');
-  const { camera, size, scene, gl, setDpr, viewport: { initialDpr, dpr } } = useThree();
+  const { camera, size, scene, gl, setDpr, advance, viewport: { initialDpr, dpr } } = useThree();
   const desiredDpr = useRef(initialDpr), maxDpr = useRef(initialDpr);
   useLayoutEffect(() => {
     const context = gl.getContext(), debug = context.getExtension('WEBGL_debug_renderer_info');
@@ -53,6 +54,15 @@ export function Cena({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> 
     if (!entreAnimacoes()) return;
     setDpr(desiredDpr.current);
   });
+  // The main scene pauses where it stands (no render, no physics, no showcase) while the book is open (OS-0086) and
+  // while a test-button search runs in the worker (arremesso, buscaDoTeste.ts); it resumes when neither holds.
+  const setFrameloop = useThree((s) => s.setFrameloop);
+  useEffect(() => {
+    const aplicar = () => setFrameloop(livroAberto() || buscandoTeste() ? 'never' : 'always');
+    if (livroAberto() || buscandoTeste()) aplicar();
+    const sairL = aoMudarLivro(aplicar), sairB = aoMudarBuscaDoTeste(aplicar);
+    return () => { sairL(); sairB(); };
+  }, [setFrameloop]);
   // The dev omen test button lives in `pressagios`; the throw loop reads it through this.
   const omenTestAtual = useCallback(() => presagio().omenTest, []);
 
@@ -115,7 +125,8 @@ export function Cena({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> 
       inkGlow: (index) => inspecaoDaVitrine(scene).inkGlow(index),
       launches: () => inspecaoDoArremesso().lancamentos(),
       customs: () => inspecaoDosImportados(),
-      table: () => inspecaoDaMesa(scene, info.current.programs?.length ?? 0),
+      // The open book freezes the scene; a read of the table renders one frame first, so it sees what closing would show.
+      table: () => { if (livroAberto()) advance(performance.now()); return inspecaoDaMesa(scene, info.current.programs?.length ?? 0); },
       luzes: () => scene.getObjectsByProperty('isPointLight', true).length,
       shards: () => inspecaoDoPresagio(scene).shards,
       previewSurface: (index, p, q) => {
@@ -129,7 +140,7 @@ export function Cena({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> 
       },
     });
     arremesso().setReady();
-  }, [camera, gameArea, key, selected, scene]);
+  }, [advance, camera, gameArea, key, selected, scene]);
 
 
   return (

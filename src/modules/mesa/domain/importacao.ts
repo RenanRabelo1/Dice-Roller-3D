@@ -16,7 +16,7 @@ interface MesaImportada {
 // anything missing keeps the current background. The name is the theme's, or the file's without `.glb`, up to 40 characters.
 export function temaDaMesaImportada({ read, fileName, bytes, atual: bg, id, createdAt, colors }: MesaImportada): TableTheme {
   const x = read.extras;
-  const background: Background = x ? (x.background.kind === 'image' ? (read.backdrop ? { kind: 'image', image: read.backdrop, blur: x.background.blur, dim: x.background.dim } : bg) : x.background.kind === 'panorama' ? (read.backdrop ? { ...x.background, image: read.backdrop, format: 'ldr' } : bg) : x.background) : read.defaultPanorama && read.backdrop ? { kind: 'panorama', image: read.backdrop, format: 'ldr', rotation: 0, tilt: 0, intensity: 1, blur: 0, reflect: true } : bg;
+  const background: Background = x ? (x.background.kind === 'image' ? (read.backdrop ? { kind: 'image', image: read.backdrop, blur: x.background.blur, dim: x.background.dim } : bg) : x.background.kind === 'panorama' ? (read.backdrop ? { ...x.background, pronto: undefined, image: read.backdrop, format: 'ldr' } : bg) : x.background) : read.defaultPanorama && read.backdrop ? { kind: 'panorama', image: read.backdrop, format: 'ldr', rotation: 0, tilt: 0, intensity: 1, blur: 0, reflect: true } : bg;
   return {
     version: 1, id, name: (x?.name ?? fileName.replace(/\.glb$/i, '')).slice(0, 40), createdAt,
     background, felt: { color: colors.felt, texture: 'liso' }, wood: { color: colors.wood }, model: { name: fileName, bytes },
