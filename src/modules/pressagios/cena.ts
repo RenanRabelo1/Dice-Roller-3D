@@ -9,4 +9,4 @@ export { QuebraDaMesa } from './scene/QuebraDaMesa.tsx';
 export { OverlayDoPresagio } from './ui/OverlayDoPresagio.tsx';
 export { BotoesDeTeste } from './ui/BotoesDeTeste.tsx';
 // The kraken's shards in the table's colours (the module's tests read them).
-export { SHARD_DEFAULT, shard, shardWood } from './scene/Kraken.ts';
+export { shard, shardWood } from './scene/Kraken.ts';

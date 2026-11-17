@@ -35,7 +35,7 @@ export type RollResponse = { throwId: number } & ({ rec: Recording } | { error: 
 export interface UltimoLancamento { before: Pose[]; after: Pose[] }
 
 // The hand's motion at the release (its center and its swing), handed on to the throw.
-export interface HandMotion { center: Vec3; omega: Vec3 }
+interface HandMotion { center: Vec3; omega: Vec3 }
 
 // What `publish` announces, synchronously, right after the result is in the state (ADR 0005).
 // `dice` are the dice of the throw, aligned with `results`/`raw`.

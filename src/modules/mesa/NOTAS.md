@@ -6,14 +6,14 @@ O detalhe que não cabe no [CLAUDE.md](CLAUDE.md). Leia só quando a ordem manda
 
 | Arquivo | Papel |
 |---|---|
-| `index.ts`, `cena.ts` | as portas: `index.ts` puro (`carregar`, `mesa()`, as ações, `coresDaMesa()`, `ocultarPiso(on)`, `temaDaMesaImportada`, `inspecao`, o domínio que o painel usa, `carregarArquivoDeMesa`); `cena.ts` com `useMesa(sel)`, `<MesaNaCena/>`, `<AmbienteDaMesa/>`, `<FundoCss/>` e `<PainelDaMesa/>` (controlado: `aberto`, `onAlternar`, `onFechar`) |
+| `index.ts`, `cena.ts` | as portas: `index.ts` puro (`carregar`, `mesa()`, as ações, `coresDaMesa()`, `ocultarPiso(on)`, `inspecao`, `LIMITS`, `warmImageDecoder`; o domínio que o painel usa fica nos arquivos de `domain/`, sem passar pela porta); `cena.ts` com `<MesaNaCena/>`, `<AmbienteDaMesa/>`, `<FundoCss/>` e `<PainelDaMesa/>` (controlado: `aberto`, `onAlternar`, `onFechar`) |
 | `domain/tableTheme.ts` | puro: `TableTheme`, `DEFAULT_THEME` (= a mesa de antes), temas prontos (`PRESETS`, gradientes CSS), `LIMITS`, `checkTheme`, `extrasOf`/`readExtras` (o tema que viaja no `.glb`) |
 | `store.ts` | store zustand vanilla (`mesa()` fora do React, `useMesa` em `ui/useMesa.tsx`): tema ativo, mesas salvas, `sessionOnly`, `colors` (cores que a mesa realmente mostra; o kraken usa por `coresDaMesa()`; o único escritor é a `MesaNaCena`). A ação `load` sai pelo `index.ts` como `carregar` |
 | `repository.ts` | IndexedDB store `tables` + id ativo em `localStorage['mesa.ativa']` |
 | `shared/db.ts` (fora do módulo) | abertura única do banco `dice-roller` **v2**; não conhece nome de store: `repository.ts` declara `tables` e `modules/meus-dados/repository.ts` declara `customDice` com `defineStore`; o upgrade só cria o que falta |
 | `domain/tableTextures.ts`, `tableImages.ts` | texturas do feltro (veludo/couro desenhadas em canvas, ou a imagem do jogador) e redução de imagens (foto ≤ 4096 px, textura ≤ 2048 px) |
 | `domain/tableBuild.ts` | monta a mesa padrão (`defaultTable`, `buildDefault`), nomes (`roleOf`, `find`), `colorsOf`, `disposeTable`; carregado junto com a cena |
-| `domain/tableFile.ts` | **sob demanda** por `carregarArquivoDeMesa()` (traz GLTFLoader/Exporter): `exportTable`, `readTable` → `cleanTable` → `fitTable`, `buildFor` (qualquer tema) |
+| `domain/tableFile.ts` | **sob demanda** por `import()` dinâmico (no `PainelDaMesa` e na `MesaNaCena`) (traz GLTFLoader/Exporter): `exportTable`, `readTable` → `cleanTable` → `fitTable`, `buildFor` (qualquer tema) |
 | `domain/importacao.ts` | puro: `temaDaMesaImportada({ read, fileName, bytes, atual, id, createdAt, colors })`, a leitura do `.glb` virando tema (fundo, nome, cores, modelo). Só importa o tipo de `tableFile.ts`. O painel passa `crypto.randomUUID()` e `Date.now()` |
 | `scene/MesaNaCena.tsx` | a mesa visível do tema, dentro do `ColisoresDaBandeja` de `arremesso` (colisores fixos); grava `colors`; registra o piso (`tray-surface`) em `scene/piso.ts` |
 | `scene/piso.ts` | sem React: a flag `pisoOculto` e o piso atual. `ocultarPiso(on)` grava a flag e aplica `visible = !on` na hora; um piso novo herda a flag; o que sai volta visível |

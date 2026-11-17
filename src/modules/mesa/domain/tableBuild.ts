@@ -12,7 +12,7 @@ const BASE = { size: [15, 0.42, 10] as const, y: -0.29 }, FELT = { size: [14, 0.
 
 // The felt always has a map (a white pixel when plain), so switching between plain and textured never changes the
 // shader program: a program change is a compile stall that can freeze a frame for seconds on some GPUs.
-export const PLACEHOLDER = new DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1);
+const PLACEHOLDER = new DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1);
 PLACEHOLDER.colorSpace = SRGBColorSpace; PLACEHOLDER.needsUpdate = true; PLACEHOLDER.userData.placeholder = true;
 export const isPlaceholder = (t: unknown) => !!(t as Texture | null)?.userData?.placeholder;
 

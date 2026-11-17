@@ -2,7 +2,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { omenKind, omenOf, type DieKind, type Omen } from '../../regras/index.ts';
 import { omenKinds, plays, type OmenTest } from '../../arremesso/index.ts';
 import { customKind, polyhedron, registerCustom, unregisterCustom } from '../../dados/index.ts';
-import { isD20, OMEN_MS, planoDoPresagio } from '../index.ts';
+import { isD20, OMEN_MS } from '../domain/omen.ts';
+import { planoDoPresagio } from '../domain/plano.ts';
 
 // An imported d20 the player asked to count as one (and one that does not), registered for these tests only.
 const IMPORTADO = customKind('plano-d20'), SEM_PRESAGIO = customKind('plano-d20-sem');

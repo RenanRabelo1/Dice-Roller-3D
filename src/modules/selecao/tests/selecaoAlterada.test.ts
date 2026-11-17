@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { adicionar, definir, remover, selecao, selecaoAlterada } from '../index.ts';
+import { adicionar, definir, selecao, selecaoAlterada } from '../index.ts';
+import { remover } from '../store.ts';
 import { customKind, polyhedron, registerCustom, unregisterCustom, type CustomDie } from '../../dados/index.ts';
 import type { DieKind } from '../../regras/index.ts';
 

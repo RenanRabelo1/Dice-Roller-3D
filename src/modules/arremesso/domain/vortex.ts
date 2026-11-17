@@ -1,4 +1,4 @@
-import type { Vec3 } from '../../../shared/math.ts';
+import { cross, unit, type Vec3 } from '../../../shared/math.ts';
 import { MAX_DICE } from '../../regras/index.ts';
 import { HAND, TRAY } from './world.ts';
 
@@ -27,8 +27,6 @@ export function vortexCenter(n: number, x: number, pull = 0): Vec3 {
   return [Math.max(-limit, Math.min(limit, x)), HAND.y, Math.min(HAND.z + pull, TRAY.halfDepth - MARGIN - reach(n, 2))];
 }
 
-const cross = (a: Vec3, b: Vec3): Vec3 => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
-const unit = (a: Vec3): Vec3 => { const l = Math.hypot(...a); return [a[0] / l, a[1] / l, a[2] / l]; };
 const GOLDEN = Math.PI * (3 - Math.sqrt(5));
 // Evenly spread directions (Fibonacci): over a half sphere for orbit planes (a and −a are the same plane).
 const spread = (i: number, n: number, half: boolean): Vec3 => {
@@ -36,7 +34,7 @@ const spread = (i: number, n: number, half: boolean): Vec3 => {
   return [Math.cos(GOLDEN * i) * r, y, Math.sin(GOLDEN * i) * r];
 };
 
-export interface Orbit { normal: Vec3; u: Vec3; v: Vec3; rate: number; start: number; axis: Vec3; spin: number }
+interface Orbit { normal: Vec3; u: Vec3; v: Vec3; rate: number; start: number; axis: Vec3; spin: number }
 // One per hand slot: its orbit plane (normal, with u and v across it), signed angular rate and starting angle,
 // and the die's own spin axis and signed spin rate.
 export const ORBITS: Orbit[] = Array.from({ length: MAX_DICE }, (_, i) => {
@@ -51,7 +49,7 @@ export const ORBITS: Orbit[] = Array.from({ length: MAX_DICE }, (_, i) => {
   };
 });
 
-export interface Whirl { pos: Vec3[]; phase: number[]; radius: number }
+interface Whirl { pos: Vec3[]; phase: number[]; radius: number }
 export const newWhirl = (center: Vec3): Whirl => ({ pos: ORBITS.map(() => [...center]), phase: ORBITS.map((o) => o.start), radius: 0 });
 
 const pace = (force: number, still: boolean) => (still ? 0 : 1 + VORTEX.boost * force);

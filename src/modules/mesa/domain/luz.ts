@@ -1,6 +1,6 @@
 import { PRESETS, type PresetName, type TableTheme } from './tableTheme.ts';
 
-export interface LuzDaMesa { cor: string; intensidade: number; tremor: boolean }
+interface LuzDaMesa { cor: string; intensidade: number; tremor: boolean }
 
 const PADRAO: LuzDaMesa = { cor: '#ff9a4a', intensidade: 6, tremor: true };
 const PRESET: Record<PresetName, LuzDaMesa> = {

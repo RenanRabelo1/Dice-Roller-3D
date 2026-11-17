@@ -3,7 +3,6 @@ import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { useThree } from '@react-three/fiber';
 import type { Group, Object3D } from 'three';
 import { buildDefault, colorsOf, disposeTable, SURFACE } from '../domain/tableBuild.ts';
-import { carregarArquivoDeMesa } from '../index.ts';
 import { setColors } from '../store.ts';
 import { useMesa } from '../ui/useMesa.tsx';
 import { registrarPiso } from './piso.ts';
@@ -23,7 +22,7 @@ export function MesaNaCena() {
     if (!slow) return;
     let alive = true;
     // Compile its shaders off the main thread before it replaces the table, so the swap never stalls a frame.
-    carregarArquivoDeMesa().then((m) => m.buildFor(theme)).then(async (group) => { await gl.compileAsync(group, camera, scene).catch(() => {}); return group; }).then((group) => { if (alive) setLoaded({ theme, group }); else disposeTable(group); }, () => { if (alive) setLoaded(null); });
+    import('../domain/tableFile.ts').then((m) => m.buildFor(theme)).then(async (group) => { await gl.compileAsync(group, camera, scene).catch(() => {}); return group; }).then((group) => { if (alive) setLoaded({ theme, group }); else disposeTable(group); }, () => { if (alive) setLoaded(null); });
     return () => { alive = false; };
   }, [theme, slow, gl, camera, scene]);
   useEffect(() => () => { if (loaded) disposeTable(loaded.group); }, [loaded]);
