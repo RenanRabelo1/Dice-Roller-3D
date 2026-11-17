@@ -1,4 +1,5 @@
 import { test, expect, type Page, type Route } from '@playwright/test';
+import { ready, settled, throwWithSpace } from './esperas';
 
 // The test server builds the app with VITE_API_URL = http://127.0.0.1:5180, the API stub (playwright.config.ts),
 // so every published result is POSTed to its /rolls; here the route answers it instead of the stub.
@@ -6,12 +7,6 @@ const ROLLS = 'http://127.0.0.1:5180/rolls';
 const CORS = { 'access-control-allow-origin': '*', 'access-control-allow-methods': 'POST, OPTIONS', 'access-control-allow-headers': 'content-type' };
 type Post = { body: { playerId: string; dice: { kind: string; value: number }[]; force: number }; results: number[] | null; throwId: number };
 
-const ready = (p: Page, n?: number) => p.waitForFunction((n) => window.__dice?.state().ready && (n === undefined || window.__dice.bodies().length === n), n);
-const settled = (p: Page) => p.waitForFunction(() => { const s = window.__dice.state(); return s.phase === 'settled' && s.showcased === s.throwId; }, null, { timeout: 90_000 });
-const throwWithSpace = async (p: Page) => {
-  await p.locator('.game-area').focus();
-  await p.keyboard.down('Space'); await p.waitForTimeout(700); await p.keyboard.up('Space');
-};
 const backToHand = async (p: Page) => {
   await p.locator('.game-area').focus(); await p.keyboard.press('Space');
   await p.waitForFunction(() => window.__dice.state().phase === 'hand');

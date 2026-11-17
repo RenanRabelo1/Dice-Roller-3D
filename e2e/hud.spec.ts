@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import type { DieKind, Omen } from '../src/modules/regras/index';
+import { ready } from './esperas';
 
-const ready = (page: Page, n: number) => page.waitForFunction((n) => window.__dice?.state().ready && window.__dice.bodies().length === n, n);
 const shown = (page: Page) => page.waitForFunction(() => { const s = window.__dice.state(); return s.phase === 'settled' && s.showcased === s.throwId; }, null, { timeout: 60_000 });
 const roll = async (page: Page) => {
   await page.locator('.game-area').focus();
@@ -39,7 +39,7 @@ test('the caption carries the omen only on an omen throw', async ({ page }) => {
   await shown(page);
   await expect(page.getByTestId('result')).toHaveAttribute('data-presagio', 'crit');
   await back(page);
-  await rig(page, ['d20'], null);
+  await rig(page, ['d6'], null); // a d6 has no omen: a real d20 would crit or fumble one throw in ten
   await roll(page);
   await shown(page);
   await expect(page.getByTestId('result')).not.toHaveAttribute('data-presagio');

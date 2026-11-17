@@ -1,4 +1,4 @@
-import type { Vec3 } from '../../../shared/math.ts';
+import { clamp01, type Vec3 } from '../../../shared/math.ts';
 import { RAIO_MAXIMO } from '../../dados/index.ts';
 import type { ChargeMode } from '../contracts.ts';
 import { LAUNCH, SPIN, TRAY } from './world.ts';
@@ -14,7 +14,7 @@ export function clampTarget([x, , z]: Vec3): Vec3 {
 
 // How the charge moves while it is held: see ChargeMode in contracts.ts.
 export function charge(ms: number, mode: ChargeMode = 'relative'): number {
-  if (mode === 'static') return Math.min(1, Math.max(0, ms / CHARGE_HALF_CYCLE_MS));
+  if (mode === 'static') return clamp01(ms / CHARGE_HALF_CYCLE_MS);
   return 1 - Math.abs(((ms / CHARGE_HALF_CYCLE_MS) % 2) - 1);
 }
 

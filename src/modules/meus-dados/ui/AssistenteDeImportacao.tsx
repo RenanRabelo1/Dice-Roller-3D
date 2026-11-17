@@ -283,7 +283,7 @@ export function AssistenteDeImportacao({ open, onClose, onSaved }: { open: boole
   const turnLabel = imp && face !== undefined && !isD4 ? sidesOf(imp.poly, face) : 0;
 
   return (
-    <aside ref={panel} id="import-die" className="chat panel import" data-open={open} inert={!open} aria-label="Importar dado">
+    <aside ref={panel} id="import-die" className="chat import" data-open={open} inert={!open} aria-label="Importar dado">
       <header>
         <h2>Importar dado</h2>
         <button aria-label="Fechar importação" onClick={close}>×</button>

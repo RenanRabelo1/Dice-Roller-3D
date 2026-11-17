@@ -92,3 +92,12 @@ Levantados na fase 7 (OS-0050). Não foram apagados porque cada um é de um mód
 ## 7. Busca do botão de teste de presságio
 
 Deixar a busca do botão de teste confiável em máquina lenta: o orçamento de 6 s ("nenhum arremesso com X em 6000 ms") estoura de forma intermitente no `omen.spec.ts` (5 de 15 no `main`, 3 de 15 com o HUD). Dono: `pressagios`.
+
+## 8. Limpeza da auditoria (concluída)
+
+A [auditoria](auditoria-codigo.md) virou as OS-0071 a 0081 ([limpeza-auditoria.md](limpeza-auditoria.md)), concluídas em 2026-11-17.
+
+O que sobrou é intencional ou espera pedido do João:
+- o `typing` repetido entre `mesa` e `selecao` (precisa de ADR para ir a `shared/plataforma`);
+- a curva cúbica repetida;
+- os exports que só os testes usam.

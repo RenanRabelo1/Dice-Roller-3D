@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { ready, settled, throwWithSpace } from './esperas';
 import { polyhedron } from '../src/modules/dados/index';
 import { carregarImportador } from '../src/modules/meus-dados/index';
 import { asFile, glb, modelTriangles, prismTriangles, shardTriangles, stl, subdivided } from '../tests/helpers/models';
@@ -9,12 +10,6 @@ const { detectFree, idealSolid } = await carregarImportador();
 const file = (name: string, buffer: ArrayBuffer, mimeType = 'application/octet-stream') => ({ name, mimeType, buffer: Buffer.from(buffer) });
 const d20 = () => file('caveira.stl', stl(modelTriangles(polyhedron('d20'), { bevel: 0.06 })));
 
-const ready = (p: Page, n?: number) => p.waitForFunction((n) => window.__dice?.state().ready && (n === undefined || window.__dice.bodies().length === n), n);
-const settled = (p: Page) => p.waitForFunction(() => { const s = window.__dice.state(); return s.phase === 'settled' && s.showcased === s.throwId; }, null, { timeout: 90_000 });
-const throwWithSpace = async (p: Page) => {
-  await p.locator('.game-area').focus();
-  await p.keyboard.down('Space'); await p.waitForTimeout(700); await p.keyboard.up('Space');
-};
 // The face looking at the camera.
 const topValue = async (p: Page, i: number) => {
   const [labels, cam] = await p.evaluate((i) => [window.__dice.labels(i), window.__dice.camera()] as const, i);

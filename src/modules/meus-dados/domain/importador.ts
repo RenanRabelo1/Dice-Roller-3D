@@ -1,6 +1,6 @@
 import { Vector3, type Object3D } from 'three';
 import { ConvexHull } from 'three/examples/jsm/math/ConvexHull.js';
-import type { Vec3 } from '../../../shared/math.ts';
+import { cross, dot, sub, type Vec3 } from '../../../shared/math.ts';
 import { ModelError, readModel as readShared, type Model, type ModelFormat } from '../../../shared/modelos3d/index.ts';
 import { FREE_VALUES, SIDES, type CustomBase } from '../../regras/index.ts';
 import { dentTester, fromTriangles, inkTriangles, OPPOSITE_SUM, RADIUS, type Numbering, type Polyhedron, type StdBase } from '../../dados/index.ts';
@@ -94,9 +94,6 @@ export function detectPlanes(positions: Float32Array): { base: StdBase; planes: 
 
 // --- the ideal solid --------------------------------------------------------------------------------------------
 
-const sub3 = (a: Vec3, b: Vec3): Vec3 => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
-const dot3 = (a: Vec3, b: Vec3) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
-const cross3 = (a: Vec3, b: Vec3): Vec3 => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
 const det3 = (m: number[][]) => m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1]) - m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0]) + m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]);
 
 // Pairs opposite planes and makes each pair exactly opposite and equally far from the origin. Returns the centre
@@ -106,7 +103,7 @@ function symmetrise(planes: Plane[]): { planes: Plane[]; center: Vec3 } {
   while (left.length) {
     const i = left.shift()!;
     let best = 0;
-    left.forEach((j, k) => { if (dot3(planes[j].n, planes[i].n) < dot3(planes[left[best]].n, planes[i].n)) best = k; });
+    left.forEach((j, k) => { if (dot(planes[j].n, planes[i].n) < dot(planes[left[best]].n, planes[i].n)) best = k; });
     const [a, b] = [planes[i], planes[left.splice(best, 1)[0]]];
     const n = new Vector3(...a.n).sub(new Vector3(...b.n)).normalize().toArray() as Vec3, h = (a.d + b.d) / 2;
     rows.push({ n, b: (a.d - b.d) / 2 });
@@ -125,12 +122,12 @@ function symmetrise(planes: Plane[]): { planes: Plane[]; center: Vec3 } {
 function corners(planes: Plane[]): Vec3[] {
   const eps = Math.max(...planes.map((p) => Math.abs(p.d))) * 1e-6, pts: Vec3[] = [];
   for (let i = 0; i < planes.length; i++) for (let j = i + 1; j < planes.length; j++) for (let k = j + 1; k < planes.length; k++) {
-    const [a, b, c] = [planes[i], planes[j], planes[k]], det = dot3(a.n, cross3(b.n, c.n));
+    const [a, b, c] = [planes[i], planes[j], planes[k]], det = dot(a.n, cross(b.n, c.n));
     if (Math.abs(det) < 1e-6) continue;
-    const bc = cross3(b.n, c.n), ca = cross3(c.n, a.n), ab = cross3(a.n, b.n);
+    const bc = cross(b.n, c.n), ca = cross(c.n, a.n), ab = cross(a.n, b.n);
     const x = [0, 1, 2].map((m) => (a.d * bc[m] + b.d * ca[m] + c.d * ab[m]) / det) as Vec3;
-    if (planes.some((p) => dot3(p.n, x) > p.d + eps)) continue;
-    if (!pts.some((p) => Math.hypot(...sub3(p, x)) < eps * 10)) pts.push(x);
+    if (planes.some((p) => dot(p.n, x) > p.d + eps)) continue;
+    if (!pts.some((p) => Math.hypot(...sub(p, x)) < eps * 10)) pts.push(x);
   }
   return pts;
 }
@@ -138,16 +135,16 @@ function corners(planes: Plane[]): Vec3[] {
 // The corners of one plane, in counter-clockwise order seen from outside (so a fan of them is outward-wound).
 function facePolygon({ n, d }: Plane, pts: Vec3[]): Vec3[] {
   const eps = Math.max(Math.abs(d), 1) * 1e-5;
-  const on = pts.filter((p) => Math.abs(dot3(n, p) - d) < eps);
+  const on = pts.filter((p) => Math.abs(dot(n, p) - d) < eps);
   if (on.length < 3) return on;
   const mid = [0, 1, 2].map((k) => on.reduce((s, p) => s + p[k], 0) / on.length) as Vec3;
   const u = new Vector3(...n).cross(Math.abs(n[1]) < 0.9 ? new Vector3(0, 1, 0) : new Vector3(1, 0, 0)).normalize();
   const w = new Vector3(...n).cross(u);
-  const angle = (p: Vec3) => { const r = new Vector3(...sub3(p, mid)); return Math.atan2(w.dot(r), u.dot(r)); };
+  const angle = (p: Vec3) => { const r = new Vector3(...sub(p, mid)); return Math.atan2(w.dot(r), u.dot(r)); };
   return on.sort((p, q) => angle(p) - angle(q));
 }
 const fan = (ring: Vec3[]): Vec3[] => ring.slice(2).flatMap((_, k) => [ring[0], ring[k + 1], ring[k + 2]]);
-const polygonArea = (ring: Vec3[]) => ring.slice(2).reduce((s, _, k) => s + Math.hypot(...cross3(sub3(ring[k + 1], ring[0]), sub3(ring[k + 2], ring[0]))) / 2, 0);
+const polygonArea = (ring: Vec3[]) => ring.slice(2).reduce((s, _, k) => s + Math.hypot(...cross(sub(ring[k + 1], ring[0]), sub(ring[k + 2], ring[0]))) / 2, 0);
 
 // Centre of mass of a closed solid given as outward triangles (3 points each): tetrahedra from an inner point.
 function volumeCentroid(tris: Vec3[]): Vec3 {
@@ -156,7 +153,7 @@ function volumeCentroid(tris: Vec3[]): Vec3 {
   const sum: Vec3 = [0, 0, 0];
   for (let i = 0; i < tris.length; i += 3) {
     const [a, b, c] = [tris[i], tris[i + 1], tris[i + 2]];
-    const v = dot3(sub3(a, o), cross3(sub3(b, o), sub3(c, o))) / 6;
+    const v = dot(sub(a, o), cross(sub(b, o), sub(c, o))) / 6;
     vol += v;
     for (let k = 0; k < 3; k++) sum[k] += (v * (o[k] + a[k] + b[k] + c[k])) / 4;
   }
@@ -165,7 +162,7 @@ function volumeCentroid(tris: Vec3[]): Vec3 {
 
 // Is `p`, dropped onto the plane of a convex ring (outward normal n), inside the ring?
 function insideConvex(p: Vec3, ring: Vec3[], n: Vec3): boolean {
-  return ring.every((r, i) => dot3(n, cross3(sub3(ring[(i + 1) % ring.length], r), sub3(p, r))) >= -1e-9);
+  return ring.every((r, i) => dot(n, cross(sub(ring[(i + 1) % ring.length], r), sub(p, r))) >= -1e-9);
 }
 
 const FREE = { minArea: 0.1, minFaces: 3, maxFaces: 60, passes: 3 };
@@ -221,13 +218,13 @@ export function idealSolid(base: CustomBase, found: Plane[]): Solid {
   if (base === 'd4') {
     const v = corners(found);
     center = [0, 1, 2].map((k) => v.reduce((s, p) => s + p[k], 0) / v.length) as Vec3;
-    planes = found.map((p) => ({ n: p.n, d: p.d - dot3(p.n, center) })); // same solid, centred
+    planes = found.map((p) => ({ n: p.n, d: p.d - dot(p.n, center) })); // same solid, centred
   } else ({ planes, center } = symmetrise(found));
   const pts = corners(planes), eps = Math.max(...planes.map((p) => Math.abs(p.d))) * 1e-5;
   const tris: Vec3[] = [];
   let faces = 0;
   for (const { n, d } of planes) {
-    const on = pts.filter((p) => Math.abs(dot3(n, p) - d) < eps);
+    const on = pts.filter((p) => Math.abs(dot(n, p) - d) < eps);
     if (on.length < 3) continue;
     faces++;
     tris.push(...fan(facePolygon({ n, d }, on)));
@@ -245,7 +242,7 @@ function freeSolid(found: Plane[]): Solid {
   if (first.length < 4) throw noFlat();
   const rings0 = found.map((pl) => facePolygon(pl, first)).filter((r) => r.length >= 3);
   const center = volumeCentroid(rings0.flatMap(fan));
-  const planes = found.map((pl) => ({ n: pl.n, d: pl.d - dot3(pl.n, center) }));
+  const planes = found.map((pl) => ({ n: pl.n, d: pl.d - dot(pl.n, center) }));
   const pts = corners(planes);
   const scale = RADIUS.livre / Math.max(...pts.map((p) => Math.hypot(...p)));
   const rings = planes.map((pl) => facePolygon(pl, pts).map((p): Vec3 => [p[0] * scale, p[1] * scale, p[2] * scale]));
@@ -260,15 +257,15 @@ function freeSolid(found: Plane[]): Solid {
 // Distance from the middle of a face (its ring of corners) to its nearest edge: the numeral must fit inside it.
 function inradius(r: Vec3[]): number {
   const c = [0, 1, 2].map((k) => r.reduce((s, p) => s + p[k], 0) / r.length) as Vec3;
-  return Math.min(...r.map((a, i) => { const e = sub3(r[(i + 1) % r.length], a); return Math.hypot(...cross3(e, sub3(c, a))) / Math.hypot(...e); }));
+  return Math.min(...r.map((a, i) => { const e = sub(r[(i + 1) % r.length], a); return Math.hypot(...cross(e, sub(c, a))) / Math.hypot(...e); }));
 }
-const ringOf = (poly: Polyhedron, f: Polyhedron['faces'][number]) => facePolygon({ n: f.normal, d: dot3(f.normal, f.center) }, poly.points);
+const ringOf = (poly: Polyhedron, f: Polyhedron['faces'][number]) => facePolygon({ n: f.normal, d: dot(f.normal, f.center) }, poly.points);
 
 // A free-form die read only from some of its faces (the `readable` normals; null = all). The solid and the collider stay
 // whole: the other faces are tips it can rest on, but they are not a result, have no numeral and do not size it.
 export function withReadable(poly: Polyhedron, readable: Vec3[] | null): Polyhedron {
   if (!readable) return poly;
-  const reads = (n: Vec3) => readable.some((r) => dot3(r, n) > 0.9999);
+  const reads = (n: Vec3) => readable.some((r) => dot(r, n) > 0.9999);
   const faces = poly.faces.map((f) => (reads(f.normal) ? { ...f, readable: undefined } : { ...f, readable: false, value: 0 }));
   const keep = faces.filter((f) => f.readable !== false);
   if (keep.length === faces.length) return { ...poly, faces: poly.faces.map((f) => ({ ...f, readable: undefined })) };
@@ -335,8 +332,8 @@ export function askOrder(poly: Polyhedron): number[] {
   if (poly.shape === 'd4') return poly.tops.map((_, i) => i);
   if (poly.readsDown) { // no opposite pairs: the biggest readable faces first
     const area = (i: number) => {
-      const f = poly.faces[i], on = poly.points.filter((p) => Math.abs(dot3(f.normal, p) - dot3(f.normal, f.center)) < 1e-4);
-      return polygonArea(facePolygon({ n: f.normal, d: dot3(f.normal, f.center) }, on));
+      const f = poly.faces[i], on = poly.points.filter((p) => Math.abs(dot(f.normal, p) - dot(f.normal, f.center)) < 1e-4);
+      return polygonArea(facePolygon({ n: f.normal, d: dot(f.normal, f.center) }, on));
     };
     return poly.faces.map((_, i) => i).filter((i) => poly.faces[i].readable !== false).sort((a, b) => area(b) - area(a));
   }
@@ -344,7 +341,7 @@ export function askOrder(poly: Polyhedron): number[] {
   poly.faces.forEach((f, i) => {
     if (done.has(i)) return;
     let o = -1;
-    poly.faces.forEach((g, j) => { if (j !== i && !done.has(j) && (o < 0 || dot3(g.normal, f.normal) < dot3(poly.faces[o].normal, f.normal))) o = j; });
+    poly.faces.forEach((g, j) => { if (j !== i && !done.has(j) && (o < 0 || dot(g.normal, f.normal) < dot(poly.faces[o].normal, f.normal))) o = j; });
     order.push(i, o); done.add(i).add(o);
   });
   return order;

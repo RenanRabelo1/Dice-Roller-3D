@@ -121,7 +121,7 @@ Tudo cabe no monólito modular, sem módulo novo, sem item novo em `shared/` e s
 | força da carga (0 a 1) | `arremesso` | `assinarArremesso` (`index.ts`), sem render. A casca escreve `--forca` no `.app`. |
 | presságio tocando | `pressagios` | os atributos `data-omen`, `data-kraken` e `data-storm` que o `OverlayDoPresagio` já põe na `.game-area`. A OS-0059 os registra como contrato público. |
 | presságio do resultado mostrado | `vitrine` | `data-presagio` no `output` do resultado (OS-0060). A vitrine já consome o `presagio()`. |
-| movimento reduzido | `shared/plataforma` | `useMovimentoReduzido`. A casca escreve `data-movimento="reduzido"` no `.app`. |
+| movimento reduzido | `shared/plataforma` | `movimentoReduzido()` e `aoMudarMovimentoReduzido`. A casca escreve `data-movimento="reduzido"` no `.app` (OS-0056). |
 
 - **O CSS das reações é da casca**, em `src/index.css`, como todo o HUD. Ele só lê atributos e variáveis; não há regra de negócio em CSS.
 - **Luz na cena é de quem é dono da coisa iluminada:**
@@ -278,3 +278,24 @@ OS-0062 a 0066 integradas.
 - **A orelha:** um triângulo de 56×56 px no canto inferior direito (próxima) e no esquerdo (anterior), com a seta em Cinzel na cor da rubrica e o indicador `folha 1 de N` ao lado. Hover e foco levantam o canto (`scale(1.12)`). Só Tab e Enter; as setas do teclado são da mira.
 - **A virada:** `.folha-virando` gira em `rotateY` em volta da lombada em `--t-longo` com `--ease-cine`, com a luz (`::after`) e a sombra projetada (`::before`). O corpo esmaece (`data-folheando`) e o `scrollLeft` troca na metade, quando a folha está de lado. Só `transform` e `opacity`. Clique durante a virada é ignorado.
 - **Movimento reduzido:** sem folha e sem esmaecer; o `scrollLeft` troca na hora.
+
+## Acabamento do livro e da página (OS-0068 a 0070)
+
+Feito depois do teste do João no navegador.
+
+**O livro** (casca, OS-0068 e 0069):
+- **A orelha percebe o estouro com `IntersectionObserver`.** O raiz é o corpo do capítulo, e o observador vigia cada filho dele. O `ResizeObserver` não serve: o corpo tem altura fixa, e uma seção partida entre colunas não dispara o observador (armadilhas.md).
+- **A orelha fica acima da página:** `z-index` 12, e a folha que vira, 13. O capítulo ainda tem o 10 da regra antiga `.chat`.
+- **O véu é um elemento (`.livro-veu`):** fica entre as faixas, com `z-index` 9.
+  - Antes era um `box-shadow` de 100vmax, que pinta mas não segura clique, e o clique fora do livro jogava o dado.
+  - Clicar nele não faz nada: o livro fecha pelo ×, pelo Esc ou pelo botão do capítulo.
+- **O ×** é um glifo Cormorant sem caixa, logo abaixo da ponta da fita. No hover, brilha e cresce um pouco, sem girar.
+- **A virada** usa `perspective(5000px)` e uma curva só para o giro inteiro. Com 2000px a folha saía do livro, e com o ponto de 50% ela parava de lado e parecia sumir.
+
+**A página do jogo** (casca): sem zoom de pinça.
+- **O que é cancelado:** a pinça do touchpad, que chega como Ctrl + roda no Chromium e como `gesturestart` no Safari. Ela ampliava a área visível, e o jogo inteiro arrastava para fora do enquadramento.
+- **O que fica:** o `html` tem `touch-action: pan-x pan-y` e `overscroll-behavior: none`. A roda normal e o zoom pelo teclado continuam.
+
+**A gravação acesa na forma padrão** (`vitrine`, OS-0070):
+- **Quem acende:** um dado importado de forma padrão (não d4) com números gravados acende só a tinta da face do resultado, com um cone fechado (`MESMA_FACE`) para não pegar as faces vizinhas.
+- **O número solto some:** com brilho, ele não aparece mais por cima da face. É o mesmo efeito que a forma livre já tinha.

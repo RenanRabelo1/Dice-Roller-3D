@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fractureCells, KRAKEN, krakenAt, krakenIndices, stormIndices, trayBrokenAt } from '../index.ts';
+import { fractureCells, KRAKEN, krakenAt, krakenIndices, stormIndices, trayBrokenAt } from '../domain/krakenMotion.ts';
 
 // The kraken's and the storm's rules that need no showcase (OS-0047); the die's path to the result pose is tested
 // with the showcase in src/modules/vitrine/tests/kraken.test.ts.

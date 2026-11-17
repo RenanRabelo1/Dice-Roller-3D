@@ -38,7 +38,7 @@ export function Chat({ aberto, onAlternar, onFechar }: { aberto: boolean; onAlte
   };
 
   return (
-    <aside id="dice-chat" className="chat panel" data-open={aberto} inert={!aberto} aria-label="Chat de dados">
+    <aside id="dice-chat" className="chat" data-open={aberto} inert={!aberto} aria-label="Chat de dados">
       <header>
         <h2>Chat de dados</h2>
         <button aria-label="Fechar chat" onClick={onFechar}>×</button>

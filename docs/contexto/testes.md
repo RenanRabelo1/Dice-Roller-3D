@@ -104,6 +104,16 @@ Padrão dos specs: esperar `state().ready`, interagir pelo teclado/ponteiro na `
 
 Os testes de desempenho têm orçamentos calibrados na máquina do autor (ver `docs/performance-coins.md`); falha só neles em outra máquina pode ser ambiente.
 
+### Helpers comuns dos specs
+
+As esperas e os atalhos repetidos ficam em `e2e/esperas.ts` (OS-0073): `ready`, `settled`, `throwWithSpace`, `advance`, `dice`, `panel` e o arquivo de upload. Variante que difere (timeout, tempo de tecla, retorno) fica no próprio spec.
+
+### Conferir visual sem o painel do navegador do app
+
+- **Painel escondido não serve para medir:** o Chrome não roda `ResizeObserver`, `IntersectionObserver` nem animação em página que não renderiza, então a medição ali engana.
+- **Use um Chromium sem janela:** um script curto com `@playwright/test`, apontando o `executablePath` para o `chrome-headless-shell` instalado em `%LOCALAPPDATA%/ms-playwright`, contra o servidor de dev. Ele mede (`elementFromPoint`, `scrollWidth`, `getComputedStyle`) e tira captura.
+- **Não é E2E:** não passa pelo `playwright.config` nem sobe servidor próprio.
+
 ## Gate antes de entregar
 
 ```bash

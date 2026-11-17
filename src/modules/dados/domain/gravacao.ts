@@ -1,5 +1,5 @@
 import { Mesh, Vector3, type BufferGeometry, type Material, type Object3D, type Texture } from 'three';
-import type { Vec3 } from '../../../shared/math.ts';
+import { dot, type Vec3 } from '../../../shared/math.ts';
 import type { CustomDie } from '../contracts.ts';
 import { RADIUS } from './solidos.ts';
 
@@ -7,7 +7,6 @@ import { RADIUS } from './solidos.ts';
 // (no file reading, so no GLB/STL loaders): meus-dados, the preview and domain/modelo.ts use it.
 
 type Solid = Pick<CustomDie, 'poly' | 'fit'>;
-const dot3 = (a: Vec3, b: Vec3) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 
 // Does the model have numerals cut into (or raised from) its faces? A numeral leaves vertices well below the plane
 // of a face, in the middle of it. An edge chamfer also sits below the planes, but near an edge, so it does not count.
@@ -18,10 +17,10 @@ const INTERIOR_FREE = 0.03;
 // Is this model point sunk into the middle of a face (a numeral), by the rule above? `at(k)` is its coordinate k.
 export function dentTester({ poly, fit }: Solid): (at: (k: number) => number) => boolean {
   const R = RADIUS[poly.shape], interior = poly.shape === 'livre' ? INTERIOR_FREE : INTERIOR;
-  const planes = poly.faces.map((f) => ({ n: f.normal, d: dot3(f.normal, f.center) }));
+  const planes = poly.faces.map((f) => ({ n: f.normal, d: dot(f.normal, f.center) }));
   return (at) => {
     const p: Vec3 = [0, 1, 2].map((k) => (at(k) - fit.center[k]) * fit.scale) as Vec3;
-    const slack = planes.map((pl) => pl.d - dot3(pl.n, p)).sort((a, b) => a - b);
+    const slack = planes.map((pl) => pl.d - dot(pl.n, p)).sort((a, b) => a - b);
     return slack[0] > DENT * R && slack[1] > interior * R;
   };
 }

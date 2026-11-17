@@ -40,8 +40,6 @@ export function modelTriangles(poly: Polyhedron, { bevel = 0, scale = 25, engrav
   return Float32Array.from(out);
 }
 
-export const stockPoly = (base: StdBase) => polyhedron(base);
-
 // Binary STL for a triangle soup.
 export function stl(positions: Float32Array): ArrayBuffer {
   const n = positions.length / 9, buf = new ArrayBuffer(84 + 50 * n), view = new DataView(buf);

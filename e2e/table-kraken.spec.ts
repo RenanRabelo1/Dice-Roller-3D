@@ -1,15 +1,11 @@
 import { expect, test, type Page } from '@playwright/test';
 import { tableGlb } from '../tests/helpers/tableGlb';
+import { advance } from './esperas';
 
 // The d100 critical (kraken) on a customised table: the floor goes away and comes back, the shards wear the table's colours.
 const STATE = '/src/modules/mesa/store.ts'; // a variable, so TypeScript does not resolve the dev-server path
 test.use({ launchOptions: { args: [] } });
 test.setTimeout(180_000);
-
-async function advance(page: Page, ms: number) {
-  const elapsed = await page.evaluate(() => window.__dice.state().omenTime);
-  await page.clock.runFor(Math.max(0, ms - elapsed) + 32);
-}
 
 async function launch(page: Page) {
   await page.evaluate(() => { window.__dice.select(['d100']); window.__dice.rigOmen({ crits: [0], fumbles: [] }); });

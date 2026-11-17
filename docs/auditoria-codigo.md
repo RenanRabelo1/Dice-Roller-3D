@@ -1,5 +1,10 @@
 # Auditoria de código morto e repetido
 
+> **Status (2026-11-17):** a limpeza foi feita nas OS-0071 a 0081 ([limpeza-auditoria.md](limpeza-auditoria.md)). Os achados O-1 e O-2 foram corrigidos antes, na casca.
+> - **`Store` e `Signal` continuam exportados:** são o tipo de retorno de `defineStore` e `createSignal`, que os módulos usam.
+> - **O que ficou de fora de propósito:** o que está na seção 3 e na última linha da 1.2.
+> - **Os números de linha** abaixo são de antes da limpeza.
+
 OS-0066 (HUD imersivo, parte 3). Só relatório: nenhum código foi alterado. Feito em 2026-11-16 sobre `claude/os-0066-auditoria-20b5d2` (base `e7c02c2`). O João decide o que vira ordem de limpeza.
 
 ## Como ler

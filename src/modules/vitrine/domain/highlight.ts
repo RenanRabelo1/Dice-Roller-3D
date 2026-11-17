@@ -8,7 +8,7 @@ export const HL_SIZE = 0.55; // font size of the floating number (world units)
 const LIFT = 0.55;
 const PULSE_HZ = 0.9;
 
-export interface Highlight { p: Vector3; opacity: number; scale: number; glow: number }
+interface Highlight { p: Vector3; opacity: number; scale: number; glow: number }
 
 // Where the highlighted number of die `i` is `ms` after the dice settled. `start` sits just above the
 // settled die, `face` is where the die's rolled numeral is right now (it moves during the flight), and

@@ -61,8 +61,8 @@ describe('componentes: o DOM da roda e do chat', () => {
     const noop = () => {};
     const fechado = html(createElement(Chat, { aberto: false, onAlternar: noop, onFechar: noop }));
     const aberto = html(createElement(Chat, { aberto: true, onAlternar: noop, onFechar: noop }));
-    expect(fechado.startsWith('<aside id="dice-chat" class="chat panel" data-open="false" inert="" aria-label="Chat de dados">')).toBe(true);
-    expect(aberto.startsWith('<aside id="dice-chat" class="chat panel" data-open="true" aria-label="Chat de dados">')).toBe(true);
+    expect(fechado.startsWith('<aside id="dice-chat" class="chat" data-open="false" inert="" aria-label="Chat de dados">')).toBe(true);
+    expect(aberto.startsWith('<aside id="dice-chat" class="chat" data-open="true" aria-label="Chat de dados">')).toBe(true);
     expect(aberto).not.toContain('chat-toggle');
     expect(aberto).toContain('<button aria-label="Fechar chat">×</button>');
   });

@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import type { DieKind, Omen } from '../src/modules/regras/index';
+import { ready } from './esperas';
 
-const ready = (page: Page, n: number) => page.waitForFunction((n) => window.__dice?.state().ready && window.__dice.bodies().length === n, n);
 const shown = (page: Page) => page.waitForFunction(() => { const s = window.__dice.state(); return s.phase === 'settled' && s.showcased === s.throwId; });
 const roll = async (page: Page) => {
   await page.locator('.game-area').focus();

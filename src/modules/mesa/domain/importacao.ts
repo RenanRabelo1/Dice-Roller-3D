@@ -2,7 +2,7 @@
 import type { ImportedTable } from './tableFile.ts'; // only the type: the file reader stays on demand
 import type { Background, TableTheme } from './tableTheme.ts';
 
-export interface MesaImportada {
+interface MesaImportada {
   read: Pick<ImportedTable, 'extras' | 'backdrop' | 'defaultPanorama'>;
   fileName: string;
   bytes: ArrayBuffer;
