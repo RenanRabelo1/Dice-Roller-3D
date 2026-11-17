@@ -27,4 +27,5 @@ export { VORTEX, vortexCenter, vortexRadius } from './domain/vortex.ts';
 export { corposVivos, inspecao, registroDeCorpos } from './scene/corpos.ts';
 
 // The pre-simulation worker. The shell calls this and never points at the module's files itself.
+export { aoMudarBuscaDoTeste, buscandoTeste } from './buscaDoTeste.ts';
 export const criarWorkerDePresimulacao = () => new Worker(new URL('./domain/presim.worker.ts', import.meta.url), { type: 'module' });

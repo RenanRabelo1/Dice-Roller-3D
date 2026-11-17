@@ -93,9 +93,10 @@ export const orcamentoDaBusca = (software: boolean) => software
 export function presimulateFor({ dice, start, launch, bias }: RollRequest, budgetMs: number): Recording {
   let rec = presimulate(dice, start, launch);
   const end = performance.now() + budgetMs;
-  for (let k = 1; bias && !plays(bias.test, bias.kinds, rec.results) && performance.now() < end; k++) {
+  let k = 1;
+  for (; bias && !plays(bias.test, bias.kinds, rec.results) && performance.now() < end; k++) {
     rec = presimulate(dice, start, { ...launch, seed: (launch.seed + Math.imul(k, 0x9e3779b1)) >>> 0 });
   }
-  if (bias && !plays(bias.test, bias.kinds, rec.results)) console.warn(`Teste de animação: nenhum arremesso com ${bias.test} em ${budgetMs} ms; este saiu comum.`);
+  if (bias && !plays(bias.test, bias.kinds, rec.results)) console.warn(`Teste de animação: nenhum arremesso com ${bias.test} em ${budgetMs} ms (${k} sementes); este saiu comum.`);
   return rec;
 }

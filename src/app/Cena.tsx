@@ -5,7 +5,7 @@ import { Physics } from '@react-three/rapier';
 import { Group, Quaternion } from 'three';
 
 import {
-  arremesso, envelopeDaMao, GRAVITY, inspecao as inspecaoDoArremesso, registroDeCorpos, STEP, TRAY,
+  aoMudarBuscaDoTeste, arremesso, buscandoTeste, envelopeDaMao, GRAVITY, inspecao as inspecaoDoArremesso, registroDeCorpos, STEP, TRAY,
 } from '../modules/arremesso/index.ts';
 import { CorpoDoDado, LoopDoArremesso, MaoDoArremesso, useArremesso } from '../modules/arremesso/cena.ts';
 import type { Vec3 } from '../shared/math.ts';
@@ -54,12 +54,14 @@ export function Cena({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> 
     if (!entreAnimacoes()) return;
     setDpr(desiredDpr.current);
   });
-  // The book open freezes the main scene where it stands: no render, no physics, no showcase; it resumes on close (OS-0086).
+  // The main scene pauses where it stands (no render, no physics, no showcase) while the book is open (OS-0086) and
+  // while a test-button search runs in the worker (arremesso, buscaDoTeste.ts); it resumes when neither holds.
   const setFrameloop = useThree((s) => s.setFrameloop);
   useEffect(() => {
-    const aplicar = (aberto: boolean) => setFrameloop(aberto ? 'never' : 'always');
-    if (livroAberto()) aplicar(true);
-    return aoMudarLivro(aplicar);
+    const aplicar = () => setFrameloop(livroAberto() || buscandoTeste() ? 'never' : 'always');
+    if (livroAberto() || buscandoTeste()) aplicar();
+    const sairL = aoMudarLivro(aplicar), sairB = aoMudarBuscaDoTeste(aplicar);
+    return () => { sairL(); sairB(); };
   }, [setFrameloop]);
   // The dev omen test button lives in `pressagios`; the throw loop reads it through this.
   const omenTestAtual = useCallback(() => presagio().omenTest, []);
