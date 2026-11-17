@@ -266,3 +266,24 @@ test('an engraved shard flies showing its top engraving lit', async ({ page }) =
   expect(glow!.triangles).toBeGreaterThan(0); expect(glow!.visible).toBe(true); expect(glow!.opacity).toBeGreaterThan(0);
   expect((await page.evaluate(() => window.__dice.highlights()))[0].visible).toBe(false); // the engraving is the highlight
 });
+
+// OS-0085: the sheet of a forged die, on the right page of "Meus dados". Ink needs engraved numerals, so this is the engraved d6.
+test('the sheet: 3D window, ink, and a nickname that is refused', async ({ page }) => {
+  await open(page, file('d6.stl', stl(modelTriangles(polyhedron('d6'), { bevel: 0.04, engrave: 0.04 }))));
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Sim, calibrar' }).click();
+  const ask = page.getByLabel('Que número está nesta face?');
+  for (const v of [1, 5, 2, 6, 3, 4]) { await ask.fill(String(v)); await ask.press('Enter'); }
+  await save(page, 'Gravado');
+  await meusDados(page);
+  await page.getByRole('button', { name: 'Editar d6 Gravado' }).click();
+  const ficha = page.locator('.ficha-do-dado');
+  await expect(ficha.locator('canvas')).toHaveCount(1);
+  await ficha.getByLabel('Dourada').check();
+  const ink = async () => (await page.evaluate(() => window.__dice.customs()) as unknown as { ink?: string; slug: string }[])[0];
+  await expect.poll(async () => (await ink()).ink).toBe('ouro');
+  const apelido = ficha.getByLabel('Apelido no chat');
+  await apelido.fill('d20'); await apelido.press('Enter');
+  await expect(ficha.getByRole('alert')).toBeVisible();
+  expect((await ink()).slug).toBe('gravado');
+});
