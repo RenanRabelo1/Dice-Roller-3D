@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { finishOf, INK_COLORS, inkColorOf, type CustomDie } from '../index.ts';
+import { finishOf, inkColorOf, type CustomDie } from '../index.ts';
+import { INK_COLORS } from '../domain/tinta.ts';
 
 describe('ink and finish of an imported die', () => {
   const base = { printed: true } as CustomDie;

@@ -8,7 +8,7 @@ import {
   type BufferGeometry,
 } from 'three';
 import { ConvexHull } from 'three/examples/jsm/math/ConvexHull.js';
-import type { Vec3 } from '../../../shared/math.ts';
+import { cross, dot, sub, unit, type Vec3 } from '../../../shared/math.ts';
 import type { BuiltinKind, Shape } from '../../regras/index.ts';
 import type { Face, Label, Numbering, Polyhedron, SymbolName, Top } from '../contracts.ts';
 
@@ -24,10 +24,6 @@ export const RAIO_MAXIMO = 0.9;
 
 export const OPPOSITE_SUM: Partial<Record<Shape, number>> = { d6: 7, d8: 9, d10: 9, d12: 13, d20: 21 };
 
-const sub = (a: Vec3, b: Vec3): Vec3 => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
-const dot = (a: Vec3, b: Vec3) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
-const cross = (a: Vec3, b: Vec3): Vec3 => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
-const unit = (a: Vec3): Vec3 => { const l = Math.hypot(...a); return [a[0] / l, a[1] / l, a[2] / l]; };
 const round6 = (v: number) => Math.round(v * 1e6) / 1e6 + 0; // + 0 turns -0 into 0
 
 // Hand-built pentagonal trapezohedron, scaled so its circumradius is `radius`.

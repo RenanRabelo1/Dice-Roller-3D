@@ -3,9 +3,7 @@
 import { catalogoAlterado as sinalDoCatalogo } from './domain/catalogo.ts';
 import { aparenciaDaGema, numeraisVisiveis, rotulos } from './domain/inspecao.ts';
 
-export type {
-  AparenciaDaGema, CustomDie, Face, Finish, Ink, Label, Numbering, Polyhedron, RotuloNaCena, StdBase, SymbolName,
-} from './contracts.ts';
+export type { CustomDie, Finish, Ink, Numbering, Polyhedron, StdBase } from './contracts.ts';
 export { fromTriangles, OPPOSITE_SUM, RADIUS, RAIO_MAXIMO } from './domain/solidos.ts';
 export {
   allKinds, baseOf, customDie, customKind, customList, customsOf, paraRegras, polyhedron, registerCustom, registerPoly, sortDice, unregisterCustom,
@@ -14,7 +12,7 @@ export {
 export const catalogoAlterado: Pick<typeof sinalDoCatalogo, 'subscribe'> = { subscribe: (listener) => sinalDoCatalogo.subscribe(listener) };
 export { readUp, toResults } from './domain/leitura.ts';
 export { symbolGeometry } from './domain/simbolos.ts';
-export { finishOf, INK_COLORS, inkColorOf } from './domain/tinta.ts';
+export { finishOf, inkColorOf } from './domain/tinta.ts';
 // carregarModelo loads domain/modelo.ts (and the GLB/STL loaders) on demand; never re-export that file here.
 export { carregarModelo, FONT, FONT_URL, GEM, gemColor, nomeDoTipo, SYMBOL } from './domain/aparencia.ts';
 export { dentTester, hasTexture, inkTriangles, markInk } from './domain/gravacao.ts';

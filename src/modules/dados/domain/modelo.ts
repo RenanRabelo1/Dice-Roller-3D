@@ -19,6 +19,6 @@ export function modelObject(die: CustomDie): Promise<Object3D> {
   return p;
 }
 
-export const forgetModel = (kind: string) => { loaded.delete(kind); };
+const forgetModel = (kind: string) => { loaded.delete(kind); };
 // A removed kind frees its parsed model (memory only; nothing the player sees changes). A re-registered kind keeps it.
 catalogoAlterado.subscribe(({ kind, mudanca }) => { if (mudanca === 'removido') forgetModel(kind); });
