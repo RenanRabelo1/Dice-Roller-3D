@@ -11,7 +11,7 @@ const boxOf = (o: Group | Mesh) => { o.updateMatrixWorld(true); return new Box3(
 
 describe('table theme', () => {
   it('the default theme is the table of today', () => {
-    expect(DEFAULT_THEME.background).toEqual({ kind: 'color', color: '#140E10' });
+    expect(DEFAULT_THEME.background).toEqual({ kind: 'panorama', pronto: 'monks_forest', format: 'ldr', rotation: 0, tilt: 0, intensity: 1, blur: 0, reflect: true });
     expect(DEFAULT_THEME.felt).toEqual({ color: '#3A0F1A', texture: 'liso' });
     expect(DEFAULT_THEME.wood.color).toBe('#3B2416');
     expect(checkTheme(DEFAULT_THEME)).toBeNull();
@@ -29,7 +29,7 @@ describe('table theme', () => {
   it('validates and round-trips the 360° background', () => {
     const pano = (o: object): Background => ({ kind: 'panorama', image: new Blob(), format: 'ldr', rotation: 90, tilt: 30, intensity: 1, blur: 0.2, reflect: false, ...o });
     expect(checkTheme(theme({ background: pano({}) }))).toBeNull();
-    for (const bad of [{ rotation: 400 }, { tilt: 91 }, { tilt: 1.5 }, { intensity: 2 }, { blur: 1 }, { format: 'exr' }, { reflect: 1 }])
+    for (const bad of [{ rotation: 400 }, { tilt: 91 }, { tilt: 1.5 }, { intensity: 2 }, { blur: 1 }, { format: 'jpg' }, { reflect: 1 }])
       expect(checkTheme(theme({ background: pano(bad) }))).toMatch(/360/);
     const x = readExtras(JSON.parse(JSON.stringify(extrasOf(theme({ background: pano({ format: 'hdr' }) })))));
     expect(x?.background).toEqual({ kind: 'panorama', format: 'hdr', rotation: 90, tilt: 30, intensity: 1, blur: 0.2, reflect: false });

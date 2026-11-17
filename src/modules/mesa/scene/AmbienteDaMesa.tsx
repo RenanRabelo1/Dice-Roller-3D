@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { EnvironmentPortal } from '@react-three/drei';
-import type { Texture } from 'three';
+import { Color, type Texture } from 'three';
 import { panoramaTexture } from '../domain/tableImages.ts';
 import { useMesa } from '../ui/useMesa.tsx';
 import { VelaDaMesa } from './VelaDaMesa.tsx';
 
+const COR_ESPERA = '#140E10';
 interface Pano { tex: Texture; rotation: number; tilt: number; intensity: number; blur: number; reflect: boolean }
 
 /**
@@ -16,17 +17,21 @@ interface Pano { tex: Texture; rotation: number; tilt: number; intensity: number
  */
 export function AmbienteDaMesa({ podeTrocar, luzes, children }: { podeTrocar: () => boolean; luzes?: ReactNode; children?: ReactNode }) {
   const background = useMesa((state) => state.theme.background);
+  const obterCena = useThree((s) => s.get);
   // The 360° panorama (background + reflections). It is applied only between animations, like the DPR: re-capturing the
   // environment cubemap mid-throw would cost a frame.
   const [pano, setPano] = useState<Pano | null>(null);
   const wanted = useRef<Pano | null>(null);
   useEffect(() => {
     if (background.kind !== 'panorama') { wanted.current = null; return; }
+    // The first frame does not wait for the picture: the dark colour stands in until the texture arrives (a failed load keeps it).
+    const cena = obterCena().scene;
+    if (!cena.background) cena.background = new Color(COR_ESPERA);
     let live = true;
     const { rotation, tilt, intensity, blur, reflect } = background;
     panoramaTexture(background).then((tex) => { if (live) wanted.current = { tex, rotation: rotation * Math.PI / 180, tilt: tilt * Math.PI / 180, intensity, blur, reflect }; }, () => {});
     return () => { live = false; };
-  }, [background]);
+  }, [background, obterCena]);
   useFrame((state) => {
     if (wanted.current === pano) return;
     if (!podeTrocar()) return;
