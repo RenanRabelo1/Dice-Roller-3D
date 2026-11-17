@@ -3,6 +3,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Environment, Lightformer, OrbitControls } from '@react-three/drei';
 import { BufferGeometry, Color, Float32BufferAttribute, Group, Matrix4, Mesh, Quaternion, Vector3 } from 'three';
 import { customKind, GEM, hasTexture, inkColorOf, inkTriangles, markInk, type Finish, type Ink, type Polyhedron, type StdBase } from '../../dados/index.ts';
+import { facesDeCima } from '../domain/pose.ts';
 import { askOrder, unevenOf, withReadable, checkFreeValue, checkFreeValues, checkValue, checkValues, formatOf, importModel, ImportError, inkOf, LIMITS, normaliseValues, renumbered, suggestOpposite, type Imported } from '../domain/importador.ts';
 import { adicionar, slugOf, slugProblem } from '../../selecao/index.ts';
 import { useSelecao } from '../../selecao/cena.ts';
@@ -31,7 +32,8 @@ function orientation(normal: [number, number, number], up: [number, number, numb
 }
 
 // The face being asked, painted over the model (in the ideal solid's space): its polygon, or the corner of a d4.
-function Marker({ poly, face, through }: { poly: Polyhedron; face: number; through: boolean }) {
+type Tone = 'ask' | 'top' | 'rest'; // the asked face (standard); the face on top and the face underneath (free-form, lying on the felt)
+function Marker({ poly, face, tone }: { poly: Polyhedron; face: number; tone: Tone }) {
   const { geometry, outline } = useMemo(() => {
     const g = new BufferGeometry(), line = new BufferGeometry();
     if (poly.shape === 'd4') return { geometry: g, outline: line };
@@ -49,24 +51,26 @@ function Marker({ poly, face, through }: { poly: Polyhedron; face: number; throu
   if (poly.shape === 'd4') return <mesh position={poly.points[face]}><sphereGeometry args={[0.07, 16, 12]} /><meshBasicMaterial color="#ffb000" depthTest={false} /></mesh>;
   return (
     <>
-      <mesh geometry={geometry}><meshBasicMaterial color="#ffb000" transparent opacity={0.08} depthWrite={false} side={2} /></mesh>
-      <lineLoop geometry={outline}><lineBasicMaterial color="#ff8a00" depthTest={!through} /></lineLoop>
+      <mesh geometry={geometry}><meshBasicMaterial color={tone === 'top' ? '#FFE38A' : '#ffb000'} transparent opacity={tone === 'rest' ? 0 : tone === 'top' ? 0.18 : 0.08} depthWrite={false} side={2} /></mesh>
+      <lineLoop geometry={outline}><lineBasicMaterial color={tone === 'top' ? '#FFE38A' : '#ff8a00'} transparent={tone === 'rest'} opacity={tone === 'rest' ? 0.35 : 1} depthTest={tone !== 'rest'} /></lineLoop>
     </>
   );
 }
 
 // Frames the camera on the asked face (and again on demand: `nonce`), after the player has dragged it around.
-function Rig({ distance, nonce, pose, controls }: { distance: number; nonce: number; pose: Quaternion | null; controls: React.RefObject<ElementRef<typeof OrbitControls> | null> }) {
+function Rig({ distance, nonce, pose, lift, controls }: { distance: number; nonce: number; pose: Quaternion | null; lift: boolean; controls: React.RefObject<ElementRef<typeof OrbitControls> | null> }) {
   const camera = useThree((s) => s.camera);
   useEffect(() => {
-    camera.position.set(0, 0, distance); camera.up.set(0, 1, 0); camera.lookAt(0, 0, 0);
+    // `lift`: from above and in front, like the game's camera (~55° over the horizon)
+    if (lift) camera.position.set(0, distance * Math.sin(0.96), distance * Math.cos(0.96)); else camera.position.set(0, 0, distance);
+    camera.up.set(0, 1, 0); camera.lookAt(0, 0, 0);
     controls.current?.update();
-  }, [camera, distance, nonce, pose, controls]);
+  }, [camera, distance, nonce, pose, lift, controls]);
   return null;
 }
 
 // `dressed` (the save step): the engraving wears the chosen `ink` (a colour, or null) and the STL its `finish`, as on the table.
-function Preview({ loaded, color, orient, face, plain, dressed, ink, finish, printed }: { loaded: Loaded; color: string; orient: Quaternion | null; face: number | null; plain: boolean; dressed: boolean; ink: string | null; finish: Finish; printed: boolean }) {
+function Preview({ loaded, color, orient, marks, floor, plain, dressed, ink, finish, printed }: { loaded: Loaded; color: string; orient: Quaternion | null; marks: { face: number; tone: Tone }[]; floor: number | null; plain: boolean; dressed: boolean; ink: string | null; finish: Finish; printed: boolean }) {
   const group = useRef<Group>(null);
   const { imported: { fit, object, poly }, format } = loaded;
   useFrame((_, dt) => {
@@ -91,6 +95,8 @@ function Preview({ loaded, color, orient, face, plain, dressed, ink, finish, pri
   const glb = useMemo(() => (format === 'glb' && dressed && printed ? markInk(object, loaded.imported) : null), [format, dressed, printed, object, loaded.imported]);
   useEffect(() => { if (glb) paintGlb(glb, ink); }, [glb, ink]);
   return (
+    <>
+    {floor !== null && <mesh rotation-x={-Math.PI / 2} position-y={floor - 0.004}><circleGeometry args={[1.9, 48]} /><meshStandardMaterial color="#2f6b45" roughness={1} /></mesh>}
     <group ref={group}>
       {format === 'stl'
         ? <mesh geometry={painted ?? inked ?? (object as Mesh).geometry} position={at} scale={fit.scale}>
@@ -99,8 +105,9 @@ function Preview({ loaded, color, orient, face, plain, dressed, ink, finish, pri
               : <meshPhysicalMaterial color={color} roughness={0.08} clearcoat={1} clearcoatRoughness={0.04} ior={1.6} />}
         </mesh>
         : <primitive object={object} position={at} scale={fit.scale} />}
-      {face !== null && <Marker poly={poly} face={face} through={!!poly.readsDown} />}
+      {marks.map((m) => <Marker key={`${m.tone}${m.face}`} poly={poly} face={m.face} tone={m.tone} />)}
     </group>
+    </>
   );
 }
 
@@ -203,17 +210,31 @@ export function AssistenteDeImportacao({ open, onClose, onSaved }: { open: boole
   // Calibration: what the player sees is the asked face, turned by the numeral's current rotation.
   const preview = useMemo(() => {
     if (!imp || step !== 'numbers' || !asking || face === undefined) return null;
-    const turned = renumbered(imp.poly, { turns: imp.poly.faces.map((_, i) => (i === face ? turns[face] ?? 0 : 0)) });
     if (isD4) return orientation(imp.poly.tops[face].dir, [0, 1, 0.001]);
     const n = imp.poly.faces[face].normal;
-    // A free-form die is read from the face it rests on: show that face turned away, as if seen from above.
-    return orientation(free ? [-n[0], -n[1], -n[2]] : n, turned.labelList[face].up);
+    // A free-form die is read from the face it rests on: it lies on the felt on that face and the player reads what is on top.
+    // The numeral's turn spins it in place.
+    if (free) return new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), ((turns[face] ?? 0) * 2 * Math.PI) / sidesOf(imp.poly, face)).multiply(new Quaternion().setFromUnitVectors(new Vector3(...n), new Vector3(0, -1, 0)));
+    const turned = renumbered(imp.poly, { turns: imp.poly.faces.map((_, i) => (i === face ? turns[face] ?? 0 : 0)) });
+    return orientation(n, turned.labelList[face].up);
   }, [imp, step, asking, face, turns, isD4, free]);
+
+  // Free-form pose: the felt level under the resting face, and the faces that end up on top.
+  const rest = useMemo(() => {
+    if (!imp || !free || face === undefined || !asked) return null;
+    const f = imp.poly.faces[face];
+    return { floor: -(f.normal[0] * f.center[0] + f.normal[1] * f.center[1] + f.normal[2] * f.center[2]), tops: facesDeCima(asked.faces, face) };
+  }, [imp, free, face, asked]);
+  const marks = useMemo(() => {
+    if (!asking || step !== 'numbers' || face === undefined) return [];
+    return free ? [{ face, tone: 'rest' as Tone }, ...(rest?.tops ?? []).map((f) => ({ face: f, tone: 'top' as Tone }))] : [{ face, tone: 'ask' as Tone }];
+  }, [asking, step, face, free, rest]);
 
   const [look, setLook] = useState(0); // "Voltar à face"
   // Close enough that the asked face fills most of the preview (~75%).
   const distance = useMemo(() => {
-    if (!imp || face === undefined || isD4 || free) return 2.8;
+    if (!imp || face === undefined || isD4) return 2.8;
+    if (free) return 3.6;
     const f = imp.poly.faces[face], c = new Vector3(...f.center);
     const reach = Math.max(...imp.poly.points.map((p) => new Vector3(...p)).filter((p) => Math.abs(p.clone().sub(c).dot(new Vector3(...f.normal))) < 1e-4).map((p) => p.distanceTo(c)));
     return c.length() + reach / (0.75 * Math.tan((17.5 * Math.PI) / 180));
@@ -321,10 +342,10 @@ export function AssistenteDeImportacao({ open, onClose, onSaved }: { open: boole
                 <Lightformer position={[-4, 1, 3]} scale={[2, 5, 1]} intensity={3} color="#dceaff" />
               </Environment>
               <Preview loaded={loaded} color={color} orient={step === 'numbers' && asking ? preview : null}
-                face={step === 'numbers' && asking && face !== undefined ? face : null} plain={step === 'numbers'}
+                marks={marks} floor={step === 'numbers' && asking && free ? rest?.floor ?? null : null} plain={step === 'numbers'}
                 dressed={dressed} ink={inkColor} finish={surface} printed={printed} />
               <OrbitControls ref={orbit} enableZoom={false} enablePan={false} />
-              {step === 'numbers' && asking && <Rig distance={distance} nonce={look} pose={preview} controls={orbit} />}
+              {step === 'numbers' && asking && <Rig distance={distance} nonce={look} pose={preview} lift={!!free} controls={orbit} />}
             </Canvas>
           </div>
         )}
@@ -366,7 +387,7 @@ export function AssistenteDeImportacao({ open, onClose, onSaved }: { open: boole
             ) : (
               <form onSubmit={askNext} className="import-ask">
                 <p aria-live="polite" data-testid="import-progress">{pos + 1} de {faceCount}</p>
-                <label>{isD4 ? 'Que número você lê no vértice voltado para você?' : free ? 'Que número você lê com ele apoiado assim?' : 'Que número está nesta face?'}
+                <label>{isD4 ? 'Que número você lê no vértice voltado para você?' : free ? 'Com o dado caído assim, que número você lê em cima?' : 'Que número está nesta face?'}
                   <input key={pos} name="value" type="number" defaultValue={values[face] ?? ''} onChange={() => setError('')} autoFocus /></label>
                 {suggested && <small data-testid="import-suggestion">Sugestão: {values[face]}, porque a face oposta é {values[order[pos % 2 === 0 ? pos + 1 : pos - 1]]}. Troque se o seu dado for diferente.</small>}
                 <div className="import-row">
