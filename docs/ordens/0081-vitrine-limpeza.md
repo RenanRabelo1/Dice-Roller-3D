@@ -12,7 +12,10 @@ Antes de começar, leia [docs/limpeza-auditoria.md](../limpeza-auditoria.md) (as
 
 Decisões do orquestrador:
 
-1. **O `live` do `Vitrine.tsx`** (l.62-67, a mesma lógica do `MaoDoArremesso`) passa a usar `corposVivos()` da porta do `arremesso` (OS-0075).
+1. **O `live` do `Vitrine.tsx`** (l.62-67, a mesma lógica do `MaoDoArremesso`) **não é com você:**
+   - a função `corposVivos()` nasce na OS-0075 (`arremesso`), que roda junto com esta;
+   - o orquestrador troca o `live` depois de integrar as duas;
+   - não mexa no `live`.
 2. **`clamp01`** de `shared/math` em `domain/destaque.ts` e em `scene/Vitrine.tsx` (a auditoria cita a l.187).
 3. **`TextoDoPainel`** (`contracts.ts`), sem nenhum uso, sai.
 4. **Sem `export`** (Anexo A): `DestaqueInspecionado` e `BrilhoInspecionado` (`contracts.ts`), `Highlight` (`domain/highlight.ts`), `UP_INK` (`domain/inkGlow.ts`) e `View` (`domain/showcase.ts`).
