@@ -16,7 +16,8 @@ const openPanel = async (p: Page) => {
 };
 // Colour of a patch of felt on screen (average of 12 x 12 px).
 const feltPixel = (p: Page) => p.evaluate(() => {
-  const src = document.querySelector('canvas')!, c = document.createElement('canvas');
+  window.__dice.table(); // renders a frame while the open book freezes the scene (OS-0086)
+  const src = document.querySelector<HTMLCanvasElement>('.game-area canvas')!, c = document.createElement('canvas');
   c.width = src.width; c.height = src.height;
   const g = c.getContext('2d')!;
   g.drawImage(src, 0, 0);
@@ -32,36 +33,37 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('backdrop by theme, photo and colour; it survives a reload; restore brings back the default', async ({ page }) => {
-  expect((await table(page))).toMatchObject({ id: 'padrao', background: 'color', backgroundColor: '#140E10', felt: '#3a0f1a', wood: '#3b2416', model: false });
+  // The default backdrop is the ready-made forest panorama (OS-0087).
+  expect((await table(page))).toMatchObject({ id: 'padrao', background: 'panorama', backgroundColor: null, felt: '#3a0f1a', wood: '#3b2416', model: false });
   await openPanel(page);
   await panel(page).getByRole('button', { name: 'Tema', exact: true }).click();
   await panel(page).getByRole('button', { name: 'Cosmos' }).click();
-  await expect(page.locator('.backdrop[data-kind="preset"]')).toBeVisible();
+  await expect(page.locator('.game-area .backdrop[data-kind="preset"]')).toBeVisible();
   await page.reload();
   await page.waitForFunction(() => window.__dice?.table().background === 'preset');
-  await expect(page.locator('.backdrop[data-kind="preset"] .backdrop-art')).toHaveCSS('background-image', /radial-gradient/);
+  await expect(page.locator('.game-area .backdrop[data-kind="preset"] .backdrop-art')).toHaveCSS('background-image', /radial-gradient/);
 
   await openPanel(page);
   await page.getByTestId('table-photo').setInputFiles(png);
-  await expect(page.locator('.backdrop[data-kind="image"]')).toBeVisible();
+  await expect(page.locator('.game-area .backdrop[data-kind="image"]')).toBeVisible();
   await panel(page).getByLabel('Desfoque').fill('6');
   await panel(page).getByLabel('Escurecer').fill('30');
-  await expect(page.locator('.backdrop-art')).toHaveCSS('filter', 'blur(6px)');
-  await expect(page.locator('.backdrop-dim')).toHaveCSS('opacity', '0.3');
+  await expect(page.locator('.game-area .backdrop-art')).toHaveCSS('filter', 'blur(6px)');
+  await expect(page.locator('.game-area .backdrop-dim')).toHaveCSS('opacity', '0.3');
   await page.waitForTimeout(600); // the save is debounced
   await page.reload();
   await page.waitForFunction(() => window.__dice?.table().background === 'image');
-  await expect(page.locator('.backdrop-art')).toHaveCSS('filter', 'blur(6px)');
-  await expect(page.locator('.backdrop-art')).toHaveCSS('background-image', /^url\("data:/);
+  await expect(page.locator('.game-area .backdrop-art')).toHaveCSS('filter', 'blur(6px)');
+  await expect(page.locator('.game-area .backdrop-art')).toHaveCSS('background-image', /^url\("data:/);
 
   await openPanel(page);
   await panel(page).getByRole('button', { name: 'Cor', exact: true }).click();
   await panel(page).getByLabel('Cor do fundo').fill('#102030');
   await expect.poll(async () => (await table(page)).backgroundColor).toBe('#102030');
-  await expect(page.locator('.backdrop')).toHaveCount(0);
+  await expect(page.locator('.game-area .backdrop')).toHaveCount(0);
 
   await panel(page).getByRole('button', { name: 'Restaurar mesa padrão' }).click();
-  expect(await table(page)).toMatchObject({ id: 'padrao', background: 'color', backgroundColor: '#140E10' });
+  expect(await table(page)).toMatchObject({ id: 'padrao', background: 'panorama' });
   await page.reload();
   await page.waitForFunction(() => window.__dice?.state().ready);
   expect((await table(page)).id).toBe('padrao');
@@ -103,6 +105,7 @@ test('a felt image shows in its own colours: the felt colour turns white, and ca
 test('opaque textures are exported as JPEG, so a big photo does not balloon the file', async ({ page }) => {
   const big = noisePng(1600); // ~7 MB as PNG
   await openPanel(page);
+  await panel(page).getByRole('button', { name: 'Cor', exact: true }).click(); // the default forest panorama would go in the file too
   await page.getByTestId('table-felt-image').setInputFiles({ name: 'ruido.png', mimeType: 'image/png', buffer: big });
   await expect.poll(async () => (await table(page)).feltTextured).toBe(true);
   const [download] = await Promise.all([page.waitForEvent('download'), panel(page).getByRole('button', { name: 'Exportar mesa' }).click()]);
@@ -147,8 +150,8 @@ test('exporting a table and importing it back gives the same table (M13)', async
   expect(after.background).toBe('image');
   after.guide!.size.forEach((v, i) => expect(v).toBeCloseTo(before.guide!.size[i], 4));
   after.guide!.center.forEach((v, i) => expect(v).toBeCloseTo(before.guide!.center[i], 4));
-  await expect(page.locator('.backdrop-art')).toHaveCSS('filter', 'blur(5px)');
-  await expect(page.locator('.backdrop-dim')).toHaveCSS('opacity', '0.35');
+  await expect(page.locator('.game-area .backdrop-art')).toHaveCSS('filter', 'blur(5px)');
+  await expect(page.locator('.game-area .backdrop-dim')).toHaveCSS('opacity', '0.35');
   await expect(panel(page).getByText('Mesa importada')).toBeVisible();
 
   // A second trip, from the imported table itself, still exports a valid file.
@@ -235,8 +238,11 @@ const bands = (p: Page, w: number, h: number) => p.evaluate(async ([w, h]) => {
   return c.toDataURL('image/png').split(',')[1]!;
 }, [w, h]).then((b64) => ({ name: 'pano.png', mimeType: 'image/png', buffer: Buffer.from(b64, 'base64') }));
 // Mean colour of a w x h patch at (fx, fy) of the canvas.
+// The main scene's canvas (the Mesa chapter has its own preview canvas). With the book open the scene is frozen,
+// so reading the table first renders one frame (OS-0086).
 const patch = (p: Page, fx: number, fy: number, size = 12) => p.evaluate(([fx, fy, size]) => {
-  const src = document.querySelector('canvas')!, c = document.createElement('canvas');
+  window.__dice.table();
+  const src = document.querySelector<HTMLCanvasElement>('.game-area canvas')!, c = document.createElement('canvas');
   c.width = src.width; c.height = src.height;
   const g = c.getContext('2d')!;
   g.drawImage(src, 0, 0);
@@ -248,6 +254,7 @@ const far = (a: number[], b: number[]) => Math.hypot(a[0]! - b[0]!, a[1]! - b[1]
 
 test('360 background: shows behind the table, reflect and rotation work without recompiling shaders, wrong ratio is refused', async ({ page }) => {
   await openPanel(page);
+  await panel(page).getByRole('button', { name: 'Cor', exact: true }).click(); // start from a colour, the default is a panorama
   await page.getByTestId('table-panorama').setInputFiles(await bands(page, 1000, 1000));
   await expect(panel(page).getByText('proporção 2:1')).toBeVisible();
   expect((await table(page)).background).toBe('color');
@@ -283,6 +290,7 @@ test('a 360 background survives export and import with its settings', async ({ p
   const [download] = await Promise.all([page.waitForEvent('download'), panel(page).getByRole('button', { name: 'Exportar mesa' }).click()]);
   const file = readFileSync((await download.path())!);
   await panel(page).getByRole('button', { name: 'Restaurar mesa padrão' }).click();
+  await panel(page).getByRole('button', { name: 'Cor', exact: true }).click(); // the default is a panorama too: start the import from a colour
   expect((await table(page)).background).toBe('color');
   await page.getByTestId('table-import').setInputFiles(glbFile('mesa.glb', file));
   await expect.poll(async () => (await table(page)).imported).toBe(true);
