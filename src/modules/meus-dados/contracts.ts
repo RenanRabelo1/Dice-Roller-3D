@@ -22,4 +22,5 @@ export interface PedidoDeMontagem {
 /** One saved die as the test hook (`window.__dice.customs()`) sees it: what `inspecao()` gives. */
 export interface DadoInspecionado {
   kind: CustomKind; id: string; name: string; slug: string; base: CustomBase; printed: boolean;
+  ink?: string; finish?: string; color: string | null; omens: boolean; // what the sheet (OS-0085) changes
 }

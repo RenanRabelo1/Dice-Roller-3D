@@ -292,3 +292,14 @@ test('a 360 background survives export and import with its settings', async ({ p
   await expect(panel(page).getByLabel('Brilho')).toHaveValue('0.7');
   await expect(panel(page).getByLabel('Desfoque')).toHaveValue('0.2');
 });
+
+test('the table chapter shows a live preview window', async ({ page }) => {
+  await expect(page.locator('canvas')).toHaveCount(1);
+  await openPanel(page);
+  await expect(page.locator('canvas')).toHaveCount(2);
+  await expect(page.locator('.janela-da-mesa canvas')).toHaveCount(1);
+  await panel(page).getByLabel('Feltro', { exact: true }).fill('#2a6f3a');
+  await expect(page.locator('canvas')).toHaveCount(2);
+  await panel(page).getByRole('button', { name: 'Fechar painel da mesa' }).click();
+  await expect(page.locator('canvas')).toHaveCount(1);
+});

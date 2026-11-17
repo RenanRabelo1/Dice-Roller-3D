@@ -11,4 +11,4 @@ export type { Imported, Plane, Solid } from './domain/importador.ts';
 
 // The saved dice as the test hook reads them (`window.__dice.customs()`), in creation order.
 export const inspecao = (): DadoInspecionado[] =>
-  meusDados().customs.map((d) => ({ kind: customKind(d.id), id: d.id, name: d.name, slug: d.slug, base: d.base, printed: d.printed }));
+  meusDados().customs.map((d) => ({ kind: customKind(d.id), id: d.id, name: d.name, slug: d.slug, base: d.base, printed: d.printed, ink: d.ink, finish: d.finish, color: d.color, omens: d.omens }));

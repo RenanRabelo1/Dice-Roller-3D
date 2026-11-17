@@ -23,7 +23,7 @@ describe('temaDaMesaImportada', () => {
     expect(tema({ extras: extras({ kind: 'image', blur: 4, dim: 30 }) }).background).toBe(atual);
   });
   it('extras com fundo panorama: com o plano vira ldr com os ajustes do arquivo; sem o plano, o fundo atual', () => {
-    const pano = { kind: 'panorama', format: 'hdr', rotation: 90, intensity: 1.2, blur: 0.1, reflect: false } as const;
+    const pano = { kind: 'panorama', format: 'hdr', rotation: 90, tilt: 20, intensity: 1.2, blur: 0.1, reflect: false } as const;
     expect(tema({ extras: extras(pano), backdrop: foto }).background).toEqual({ ...pano, image: foto, format: 'ldr' });
     expect(tema({ extras: extras(pano) }).background).toBe(atual);
   });
@@ -33,7 +33,7 @@ describe('temaDaMesaImportada', () => {
   });
   it('sem extras, com defaultPanorama e o plano: o 360° com os ajustes padrão', () => {
     expect(tema({ defaultPanorama: true, backdrop: foto }).background)
-      .toEqual({ kind: 'panorama', image: foto, format: 'ldr', rotation: 0, intensity: 1, blur: 0, reflect: true });
+      .toEqual({ kind: 'panorama', image: foto, format: 'ldr', rotation: 0, tilt: 0, intensity: 1, blur: 0, reflect: true });
     expect(tema({ defaultPanorama: true }).background).toBe(atual);
   });
   it('sem nada: mantém o fundo atual', () => {

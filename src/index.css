@@ -230,7 +230,7 @@ canvas { display: block; }
 .livro > #table-panel fieldset > .import-row:not([role]) { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
 .livro > #table-panel .table-list li { display: flex; gap: 6px; }
 .livro > #table-panel .table-list li button:first-child { flex: 1; text-align: left; }
-.livro > #table-panel small { color: var(--sepia); font-style: italic; font-size: 14px; }
+.livro > #table-panel small { color: #47361f; font-style: italic; font-size: 16px; line-height: 1.45; } /* darker and bigger than --sepia at 14px: the notes were hard to read on the parchment */
 .livro > #table-panel .import-error { color: #9b2a1a; background: none; border: 0; }
 @media (max-width: 800px) { .livro > #table-panel .import-body { column-count: 1; } }
 
@@ -238,11 +238,9 @@ canvas { display: block; }
 .livro > #meus-dados .selection { display: block; }
 .livro > #meus-dados .pick { display: flex; flex-wrap: wrap; align-items: stretch; gap: 6px; border: 1px solid var(--fio); border-radius: 3px; padding: 12px 14px; margin: 0 0 12px; break-inside: avoid; }
 .livro > #meus-dados .pick > button:first-child { flex: 1; text-align: left; }
+.livro > #meus-dados .pick > button[aria-pressed] { min-width: 0; padding: 4px 14px; }
 .livro > #meus-dados .pick .remove { min-width: 0; padding: 4px 12px; border-left: 1px solid var(--fio); font-size: 16px; }
-.livro > #meus-dados .import-body > button.primary { background: var(--lacre); color: var(--papel-claro); border-color: var(--lacre); font-weight: 700; }
-.livro > #meus-dados .ink-pop[open] { flex: 1 1 100%; order: 2; }
-.livro > #meus-dados .ink-pop summary { background: rgba(255, 250, 236, .35); border: 1px solid var(--fio); color: var(--tinta); font-family: EB Garamond, serif; font-size: 16px; min-height: 44px; }
-.livro > #meus-dados .ink-pop .ink-choice { position: static; background: none; border: 0; padding: 10px 0 0; color: var(--tinta); }
+.livro > #meus-dados > button.primary { background: var(--lacre); color: var(--papel-claro); border-color: var(--lacre); font-weight: 700; }
 .livro > #meus-dados .ink-choice legend { color: var(--tinta); }
 
 .livro > #import-die h2 { grid-column: 1 / -1; grid-row: 1; }
@@ -419,3 +417,71 @@ output[data-presagio="duality"] strong { background: linear-gradient(90deg, #ffd
 .app[data-movimento="reduzido"] .folha-virando { display: none; }
 .app[data-movimento="reduzido"] .import-body[data-folheando] { animation: none; }
 .app[data-movimento="reduzido"] .folhear, .app[data-movimento="reduzido"] .folhear > span, .app[data-movimento="reduzido"] .folhear::before { transition: none; }
+
+/* OS-0082: janela da mesa. Página esquerda: o título e a janela (resto da altura); página direita: o corpo dos controles, uma coluna por folha.
+   O Folheador só pagina corpo com column-count computado > 1: o `column-width` enorme faz o count usado ser 1, então a folha é uma coluna do tamanho da página. */
+.livro > #table-panel { grid-template-columns: 1fr 1fr; column-gap: 96px; }
+.livro > #table-panel > header { grid-column: 1; grid-row: 1; }
+.livro > #table-panel .janela-da-mesa { grid-column: 1; grid-row: 2; position: relative; min-height: 0; overflow: hidden;
+  border: 1px solid var(--fio); border-radius: 3px; background: radial-gradient(ellipse at 50% 45%, rgba(255, 250, 236, .35), rgba(255, 250, 236, 0) 70%); }
+.livro > #table-panel .import-body { grid-column: 2; grid-row: 1 / 3; column-count: 2; column-width: 9999px; padding-top: 52px; } /* room for the × in the page corner */
+/* 360° help: always there for the 360° background; for the others only while the 360° button is hovered or focused. Space stays reserved. */
+.livro > #table-panel .ajuda-360 { visibility: hidden; }
+.livro > #table-panel .ajuda-360[data-aberta="true"],
+.livro > #table-panel fieldset:has([aria-label="Tipo de fundo"] > button:nth-child(3):is(:hover, :focus-visible)) .ajuda-360 { visibility: visible; }
+@media (max-width: 800px) {
+  .livro > #table-panel { grid-template-columns: 1fr; column-gap: 0; grid-template-rows: auto auto 1fr; }
+  .livro > #table-panel > header, .livro > #table-panel .janela-da-mesa, .livro > #table-panel .import-body { grid-column: 1; grid-row: auto; }
+  .livro > #table-panel .janela-da-mesa { height: 220px; margin-bottom: 14px; }
+  .livro > #table-panel .import-body { column-count: 1; column-width: auto; }
+}
+/* OS-0083: janela do chat */
+.livro > #dice-chat .janela-dos-dados { grid-column: 2; grid-row: 1 / 3; align-self: end; position: relative; height: 240px; margin-bottom: 64px; }
+.livro > #dice-chat .janela-dos-dados canvas { touch-action: none; }
+.livro > #dice-chat .janela-vazia { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; font-family: Cormorant Garamond, serif; font-style: italic; color: var(--sepia); pointer-events: none; }
+@media (max-width: 800px) { .livro > #dice-chat .janela-dos-dados { grid-column: 1; grid-row: auto; height: 160px; margin-bottom: 0; } }
+
+/* OS-0085: ficha do dado. Esquerda: o título, a lista (paginada pela orelha, uma coluna por folha) e o Forjar; direita: a ficha. Só transform e opacity animam. */
+.livro > #meus-dados { grid-template-columns: 1fr 1fr; column-gap: 96px; grid-template-rows: auto 1fr auto; }
+.livro > #meus-dados > header { grid-column: 1; grid-row: 1; }
+.livro > #meus-dados .import-body { grid-column: 1; grid-row: 2; column-count: 2; column-width: 9999px; }
+.livro > #meus-dados > button.primary { grid-column: 1; grid-row: 3; margin-top: 12px; }
+.livro > #meus-dados .pick { position: relative; transition: transform var(--t-curto) var(--ease-saida); }
+.livro > #meus-dados .pick::after { content: ""; position: absolute; inset: -1px; border: 1px solid var(--rubrica); border-radius: 3px; box-shadow: 0 4px 10px rgba(60, 35, 15, .28);
+  opacity: 0; pointer-events: none; transition: opacity var(--t-curto) var(--ease-saida); }
+.livro > #meus-dados .pick[data-escolhido="true"] { transform: translateY(-2px); }
+.livro > #meus-dados .pick[data-escolhido="true"]::after { opacity: 1; }
+.livro > #meus-dados .ficha-do-dado { grid-column: 2; grid-row: 1 / 4; display: flex; flex-direction: column; gap: 12px; min-height: 0; overflow-y: auto; overflow-x: hidden; padding-top: 52px; transform-origin: 0 50%; }
+.livro > #meus-dados .ficha-vazia { justify-content: center; align-items: center; padding-top: 0; }
+.livro > #meus-dados .ficha-vazia p { font-family: Cormorant Garamond, serif; font-style: italic; font-size: 20px; color: var(--sepia); }
+.livro > #meus-dados .janela-do-dado { position: relative; flex: 0 1 280px; min-height: 160px; } /* shrinks before the fields need a scrollbar */
+.livro > #meus-dados .ficha-lampejo { position: absolute; inset: 0; opacity: 0; pointer-events: none; will-change: opacity;
+  background: radial-gradient(circle at 50% 50%, rgba(214, 150, 40, .85), rgba(214, 150, 40, 0) 62%); }
+.livro > #meus-dados .ficha-dado { position: absolute; inset: 0; }
+.livro > #meus-dados .ficha-dado canvas { touch-action: none; }
+.livro > #meus-dados .ficha-campos { display: flex; flex-direction: column; gap: 12px; transition: opacity 150ms linear, transform 150ms linear; }
+.livro > #meus-dados .ficha-campos[data-saindo="true"] { opacity: 0; transform: translateY(4px); }
+.livro > #meus-dados .ficha-linha { display: flex; flex-direction: column; gap: 4px; color: var(--tinta); animation: ficha-sobe var(--t-medio) var(--ease-saida) calc(200ms + var(--i) * 50ms) both; }
+.livro > #meus-dados .ficha-linha label { display: flex; align-items: center; gap: 8px; }
+.livro > #meus-dados .ficha-linha input:not([type]), .livro > #meus-dados .ficha-linha input[type="text"] { flex: 1; min-width: 0; }
+.livro > #meus-dados .ficha-linha small { color: var(--sepia); font-style: italic; }
+.livro > #meus-dados .ficha-linha input[type="color"] { width: 48px; height: 30px; padding: 0; border: 1px solid #8a6a3e; background: none; }
+.livro > #meus-dados .ficha-linha .ink-choice { padding: 0; }
+.livro > #meus-dados .ficha-linha .import-error { margin: 0; color: #9b2a1a; background: none; border: 0; }
+@keyframes ficha-sobe { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@media (max-width: 800px) {
+  .livro > #meus-dados { grid-template-columns: 1fr; column-gap: 0; grid-template-rows: auto auto auto auto; overflow-y: auto; }
+  .livro > #meus-dados > header, .livro > #meus-dados .import-body, .livro > #meus-dados > button.primary, .livro > #meus-dados .ficha-do-dado { grid-column: 1; grid-row: auto; }
+  .livro > #meus-dados .import-body { column-count: 1; column-width: auto; overflow: visible; }
+  .livro > #meus-dados .ficha-do-dado { padding-top: 12px; overflow: visible; }
+  .livro > #meus-dados .janela-do-dado { flex-basis: 220px; }
+}
+
+/* The book's own scrollbars: a thin sepia stroke on no track, never the system's grey bar; and no sideways scrollbar,
+   which the chapter's page turn (a slight 3D swing) used to flash while the book opened. */
+.livro, .livro * { scrollbar-width: thin; scrollbar-color: rgba(94, 74, 54, .45) transparent; }
+.livro *::-webkit-scrollbar { width: 6px; height: 6px; }
+.livro *::-webkit-scrollbar-track { background: transparent; }
+.livro *::-webkit-scrollbar-thumb { background: rgba(94, 74, 54, .45); border-radius: 3px; }
+.livro *::-webkit-scrollbar-thumb:hover { background: rgba(94, 74, 54, .7); }
+.livro > aside { overflow-x: hidden; }

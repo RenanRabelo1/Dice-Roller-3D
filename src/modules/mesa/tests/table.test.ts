@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { Box3, BoxGeometry, DirectionalLight, Group, Mesh, MeshBasicMaterial, PerspectiveCamera, Vector3 } from 'three';
 import { defaultTable, GUIDE, SURFACE } from '../domain/tableBuild.ts';
 import { cleanTable, fitTable, readTable } from '../domain/tableFile.ts';
-import { checkTheme, clampBlur, type Background, DEFAULT_THEME, EXTRAS_KEY, extrasOf, fileSafe, readExtras, type TableTheme } from '../domain/tableTheme.ts';
+import { checkTheme, clampBlur, clampTilt, migrarTema, type Background, DEFAULT_THEME, EXTRAS_KEY, extrasOf, fileSafe, readExtras, type TableTheme } from '../domain/tableTheme.ts';
 import { glb } from '../../../../tests/helpers/models.ts';
 
 const theme = (patch: Partial<TableTheme> = {}): TableTheme => ({ ...DEFAULT_THEME, ...patch });
@@ -27,14 +27,23 @@ describe('table theme', () => {
     expect(clampBlur(99)).toBe(20);
   });
   it('validates and round-trips the 360° background', () => {
-    const pano = (o: object): Background => ({ kind: 'panorama', image: new Blob(), format: 'ldr', rotation: 90, intensity: 1, blur: 0.2, reflect: false, ...o });
+    const pano = (o: object): Background => ({ kind: 'panorama', image: new Blob(), format: 'ldr', rotation: 90, tilt: 30, intensity: 1, blur: 0.2, reflect: false, ...o });
     expect(checkTheme(theme({ background: pano({}) }))).toBeNull();
-    for (const bad of [{ rotation: 400 }, { intensity: 2 }, { blur: 1 }, { format: 'exr' }, { reflect: 1 }])
+    for (const bad of [{ rotation: 400 }, { tilt: 91 }, { tilt: 1.5 }, { intensity: 2 }, { blur: 1 }, { format: 'exr' }, { reflect: 1 }])
       expect(checkTheme(theme({ background: pano(bad) }))).toMatch(/360/);
     const x = readExtras(JSON.parse(JSON.stringify(extrasOf(theme({ background: pano({ format: 'hdr' }) })))));
-    expect(x?.background).toEqual({ kind: 'panorama', format: 'hdr', rotation: 90, intensity: 1, blur: 0.2, reflect: false });
+    expect(x?.background).toEqual({ kind: 'panorama', format: 'hdr', rotation: 90, tilt: 30, intensity: 1, blur: 0.2, reflect: false });
     const clamped = readExtras({ ...extrasOf(theme({})), background: { kind: 'panorama', format: 'ldr', rotation: 999, intensity: 9, blur: 9, reflect: true } });
     expect(clamped?.background).toMatchObject({ rotation: 359, intensity: 1.5, blur: 0.4 });
+  });
+  it('tilt: clamps to -90..90 in whole degrees; old themes and extras without it stay valid with 0', () => {
+    expect([clampTilt(-200), clampTilt(200), clampTilt(12.6), clampTilt(-0.4)].map((v) => v + 0)).toEqual([-90, 90, 13, 0]);
+    const antigo = { ...DEFAULT_THEME, background: { kind: 'panorama', image: new Blob(), format: 'ldr', rotation: 10, intensity: 1, blur: 0, reflect: true } } as unknown as TableTheme;
+    expect(checkTheme(antigo)).toBeNull();
+    expect(migrarTema(antigo).background).toMatchObject({ rotation: 10, tilt: 0 });
+    const extrasAntigo = { ...extrasOf(DEFAULT_THEME), background: { kind: 'panorama', format: 'ldr', rotation: 10, intensity: 1, blur: 0, reflect: true } };
+    expect(readExtras(extrasAntigo)?.background).toMatchObject({ tilt: 0 });
+    expect(readExtras({ ...extrasAntigo, background: { ...extrasAntigo.background, tilt: -500 } })?.background).toMatchObject({ tilt: -90 });
   });
   it('reads back what it wrote, and nothing it cannot trust', () => {
     const t = theme({ name: 'Taverna', background: { kind: 'preset', preset: 'cosmos' }, felt: { color: '#112233', texture: 'couro' } });

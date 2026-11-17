@@ -101,3 +101,13 @@ O que sobrou é intencional ou espera pedido do João:
 - o `typing` repetido entre `mesa` e `selecao` (precisa de ADR para ir a `shared/plataforma`);
 - a curva cúbica repetida;
 - os exports que só os testes usam.
+
+## 9. Pendências combinadas em 2026-11-17 (fazer depois)
+
+O João pediu para deixar para depois:
+
+- **Confirmar o `e2e/table.spec.ts:103`** (textura de 1600 px exportada como JPEG). Ele falhou no E2E da limpeza e também no commit `7b3e3fe`, em que já tinha passado. A suspeita é a máquina sob pressão de memória, sem prova. Rodar sozinho com a máquina livre, fechando os servidores de dev de outros projetos.
+- **Busca do botão de teste de presságio** confiável em máquina lenta (item 7).
+- **Pose de calibração da forma livre** (item 4).
+- **Fundo padrão da mesa:** decisão do João.
+- **O `typing` repetido entre `mesa` e `selecao`:** levar para `shared/plataforma`, o que exige ADR (auditoria, seção 3).

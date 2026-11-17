@@ -3,13 +3,14 @@ import { colorsOf, disposeTable } from '../domain/tableBuild.ts';
 import { panoramaPicture, panoramaTexture, preparePanorama, reduceImage, TableError } from '../domain/tableImages.ts';
 import { temaDaMesaImportada } from '../domain/importacao.ts';
 import {
-  clampBlur, clampDim, clampIntensity, clampPanoramaBlur, clampRotation, clampTile, DEFAULT_THEME, fileSafe, LIMITS, PRESETS,
+  clampBlur, clampDim, clampIntensity, clampPanoramaBlur, clampRotation, clampTile, clampTilt, DEFAULT_THEME, fileSafe, LIMITS, PRESETS,
   type Background, type PresetName, type TableTheme,
 } from '../domain/tableTheme.ts';
 
 // GLTFLoader/GLTFExporter load on demand, never with the door (ADR 0007, ponto 11).
 const carregarArquivoDeMesa = () => import('../domain/tableFile.ts');
 import { useMesa } from './useMesa.tsx';
+import { JanelaDaMesa } from './JanelaDaMesa.tsx';
 
 const typing = (el: EventTarget | null) =>
   el instanceof HTMLElement && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName));
@@ -48,7 +49,7 @@ export function PainelDaMesa({ aberto, onAlternar, onFechar }: { aberto: boolean
   const panorama = (file: File | undefined) => file && task('Preparando panorama…', async () => {
     const { image, format } = await preparePanorama(file, file.name);
     await panoramaTexture({ image, format }); // decodes it, which checks the 2:1 ratio before anything is saved
-    setBackground({ kind: 'panorama', image, format, rotation: 0, intensity: 1, blur: 0, reflect: true });
+    setBackground({ kind: 'panorama', image, format, rotation: 0, tilt: 0, intensity: 1, blur: 0, reflect: true });
   });
   const feltImage = (file: File | undefined) => file && task('Preparando imagem…', async () => {
     // White, so the picture shows in its own colours; the colour can still be changed afterwards to tint it on purpose.
@@ -94,6 +95,7 @@ export function PainelDaMesa({ aberto, onAlternar, onFechar }: { aberto: boolean
           <h2>Personalizar mesa</h2>
           <button aria-label="Fechar painel da mesa" onClick={onFechar}>×</button>
         </header>
+        {aberto && <JanelaDaMesa />}
         <div className="import-body">
           {sessionOnly && <p className="import-error">Este navegador não guarda dados: a mesa vale só nesta sessão.</p>}
           <fieldset>
@@ -108,6 +110,7 @@ export function PainelDaMesa({ aberto, onAlternar, onFechar }: { aberto: boolean
               <input id="table-photo" data-testid="table-photo" type="file" accept="image/png,image/jpeg,image/webp" hidden
                 onChange={(e) => { photo(e.target.files?.[0]); e.target.value = ''; }} />
             </div>
+            <small className="ajuda-360" data-aberta={bg.kind === 'panorama'}>360°: uma foto panorâmica 2:1 (equirretangular). Aceita .hdr até {LIMITS.panoramaHdrBytes / 1024 / 1024} MB ou .jpg, .png e .webp até {LIMITS.panoramaBytes / 1024 / 1024} MB. O .exr não entra: baixe em HDR ou JPG.</small>
             {bg.kind === 'color' && color('Cor do fundo', bg.color, (v) => setBackground({ kind: 'color', color: v }))}
             {bg.kind === 'preset' && (
               <div className="import-row" role="group" aria-label="Temas de fundo">
@@ -122,10 +125,10 @@ export function PainelDaMesa({ aberto, onAlternar, onFechar }: { aberto: boolean
             </>}
             {bg.kind === 'panorama' && <>
               <label className="table-row">Girar <input type="range" min={0} max={359} step={1} value={bg.rotation} onChange={(e) => setBackground({ ...bg, rotation: clampRotation(+e.target.value) })} /></label>
+              <label className="table-row">Inclinar <input type="range" min={-90} max={90} step={1} value={bg.tilt} onChange={(e) => setBackground({ ...bg, tilt: clampTilt(+e.target.value) })} /></label>
               <label className="table-row">Brilho <input type="range" min={LIMITS.intensity[0]} max={LIMITS.intensity[1]} step={0.05} value={bg.intensity} onChange={(e) => setBackground({ ...bg, intensity: clampIntensity(+e.target.value) })} /></label>
               <label className="table-row">Desfoque <input type="range" min={0} max={LIMITS.panoramaBlur} step={0.02} value={bg.blur} onChange={(e) => setBackground({ ...bg, blur: clampPanoramaBlur(+e.target.value) })} /></label>
               <label className="table-row">Refletir nos dados <input type="checkbox" checked={bg.reflect} onChange={(e) => setBackground({ ...bg, reflect: e.target.checked })} /></label>
-              <small>Use uma foto panorâmica 2:1. O Poly Haven tem HDRIs grátis.</small>
             </>}
           </fieldset>
           <fieldset disabled={model}>
