@@ -20,9 +20,9 @@ Os dados que o jogador traz de arquivo `.stl` ou `.glb`: o assistente de importa
 - O DOM dos componentes (textos, `aria-label`, roles, classes) é contrato dos E2E e do CSS; `tests/componentes.test.ts` confere o DOM dos dois capítulos.
 
 ## Expõe
-- `index.ts`: `carregar()` (a casca chama na montagem), `salvar`, `atualizar`, `excluir`, `meusDados()`, `inspecao()` (o `customs` do test hook), `montarDado`, `tintaPermitida`, `carregarImportador()`.
-- Tipos (`contracts.ts`): `MeusDados`, `DadoInspecionado`, `PedidoDeMontagem`; e `Imported`, `Plane`, `Solid` do importador.
-- `cena.ts`: `useMeusDados()`; `<MeusDados aberto onFechar onImportar/>` (o capítulo: por importado, `<BotaoDeDado kind/>`, Tinta e Excluir; no fim, "Forjar um dado novo"); `<Importacao aberto onFechar onSalvo/>` (o assistente, sob demanda; mora no próprio `cena.ts` porque o `import()` do `AssistenteDeImportacao` lazy fica ali, ADR 0009); `AssistenteDeImportacao`.
+- `index.ts`: `carregar()` (a casca chama na montagem), `atualizar`, `meusDados()`, `inspecao()` (o `customs` do test hook), `carregarImportador()`. `salvar`, `excluir`, `montarDado` e `tintaPermitida` não saem do módulo: o assistente, a lista e os testes os importam de `store.ts` e `domain/montagem.ts`.
+- Tipos: `MeusDados` (`contracts.ts`); e `Imported`, `Plane`, `Solid` do importador. `DadoInspecionado` e `PedidoDeMontagem` ficam em `contracts.ts`, de uso interno.
+- `cena.ts`: `<MeusDados aberto onFechar onImportar/>` (o capítulo: por importado, `<BotaoDeDado kind/>`, Tinta e Excluir; no fim, "Forjar um dado novo"); `<Importacao aberto onFechar onSalvo/>` (o assistente, sob demanda; mora no próprio `cena.ts` porque o `import()` do `AssistenteDeImportacao` lazy fica ali, ADR 0009); `AssistenteDeImportacao`.
 
 ## Consome
 - `dados`: catálogo (`registerCustom`, `unregisterCustom`, `customDie`, `customKind`, `customList`, `nomeDoTipo`), sólido (`fromTriangles`, `RADIUS`, `OPPOSITE_SUM`; `polyhedron` só nos testes), aparência (`GemMaterial`, `usePainted`, `paintGlb`, `GEM`, `inkColorOf`, `finishOf`, `inkTriangles`, `markInk`, `dentTester`, `carregarModelo`, `hasTexture`; `LIMITES_DO_MODELO_SALVO` só nos testes).

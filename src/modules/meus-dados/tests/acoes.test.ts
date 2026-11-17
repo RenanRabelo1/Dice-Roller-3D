@@ -2,7 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { customDie, customKind, customList, polyhedron, unregisterCustom, type CustomDie } from '../../dados/index.ts';
 import { deleteCustomDie, listCustomDice, saveCustomDie } from '../repository.ts';
 import { store } from '../store.ts';
-import { atualizar, carregar, excluir, meusDados, salvar } from '../index.ts';
+import { atualizar, carregar, meusDados } from '../index.ts';
+import { excluir, salvar } from '../store.ts';
 
 // The IndexedDB is the repository's business: here it is replaced, so each test says how the save goes.
 vi.mock('../repository.ts', () => ({ listCustomDice: vi.fn(), saveCustomDie: vi.fn(), deleteCustomDie: vi.fn() }));

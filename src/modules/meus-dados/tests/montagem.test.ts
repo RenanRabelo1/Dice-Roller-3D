@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { polyhedron } from '../../dados/index.ts';
 import type { PedidoDeMontagem } from '../contracts.ts';
-import { montarDado, tintaPermitida } from '../index.ts';
+import { montarDado, tintaPermitida } from '../domain/montagem.ts';
 
 const pedido = (patch: Partial<PedidoDeMontagem> = {}): PedidoDeMontagem => ({
   id: 'm-1', createdAt: 42, nome: 'Caveira', apelido: 'caveira',

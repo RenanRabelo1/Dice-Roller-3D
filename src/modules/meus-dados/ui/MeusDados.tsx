@@ -29,7 +29,7 @@ export function MeusDados({ aberto, onFechar, onImportar }: { aberto: boolean; o
     return () => window.removeEventListener('keydown', onKey);
   }, [aberto, onFechar]);
   return (
-    <aside id="meus-dados" className="chat panel import" data-open={aberto} inert={!aberto} aria-label="Meus dados">
+    <aside id="meus-dados" className="chat import" data-open={aberto} inert={!aberto} aria-label="Meus dados">
       <header><h2>Meus dados</h2><button aria-label="Fechar Meus dados" onClick={onFechar}>×</button></header>
       <div className="import-body">
         {customs.length === 0 && <p className="import-note">Nenhum dado importado ainda.</p>}
