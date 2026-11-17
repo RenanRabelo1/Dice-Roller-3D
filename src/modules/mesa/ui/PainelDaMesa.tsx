@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { PANORAMAS } from '../domain/panoramas.ts';
 import { colorsOf, disposeTable } from '../domain/tableBuild.ts';
 import { panoramaPicture, panoramaTexture, preparePanorama, reduceImage, TableError } from '../domain/tableImages.ts';
 import { temaDaMesaImportada } from '../domain/importacao.ts';
@@ -62,7 +63,7 @@ export function PainelDaMesa({ aberto, onAlternar, onFechar }: { aberto: boolean
     const { CanvasTexture } = await import('three');
     const group = await buildFor(theme);
     const map = bg.kind === 'image' ? new CanvasTexture(await createImageBitmap(bg.image)) : bg.kind === 'panorama' ? new CanvasTexture(await panoramaPicture(bg)) : null;
-    if (bg.kind === 'panorama' && bg.format === 'hdr') setNote('O fundo HDR vai no arquivo como JPEG.');
+    if (bg.kind === 'panorama' && (bg.format === 'hdr' || bg.format === 'exr')) setNote('O fundo HDR vai no arquivo como JPEG.');
     try {
       const bytes = await exportTable(group, theme, map);
       const a = document.createElement('a');
@@ -106,11 +107,11 @@ export function PainelDaMesa({ aberto, onAlternar, onFechar }: { aberto: boolean
               <button aria-pressed={bg.kind === 'panorama'} onClick={() => document.getElementById('table-panorama')?.click()}>360°</button>
               <button aria-pressed={bg.kind === 'preset'} onClick={() => bg.kind !== 'preset' && setBackground({ kind: 'preset', preset: 'taverna' })}>Tema</button>
               <input id="table-panorama" data-testid="table-panorama" type="file" hidden
-                accept=".jpg,.jpeg,.png,.webp,.hdr,image/jpeg,image/png,image/webp" onChange={(e) => { panorama(e.target.files?.[0]); e.target.value = ''; }} />
+                accept=".jpg,.jpeg,.png,.webp,.hdr,.exr,image/jpeg,image/png,image/webp" onChange={(e) => { panorama(e.target.files?.[0]); e.target.value = ''; }} />
               <input id="table-photo" data-testid="table-photo" type="file" accept="image/png,image/jpeg,image/webp" hidden
                 onChange={(e) => { photo(e.target.files?.[0]); e.target.value = ''; }} />
             </div>
-            <small className="ajuda-360" data-aberta={bg.kind === 'panorama'}>360°: uma foto panorâmica 2:1 (equirretangular). Aceita .hdr até {LIMITS.panoramaHdrBytes / 1024 / 1024} MB ou .jpg, .png e .webp até {LIMITS.panoramaBytes / 1024 / 1024} MB. O .exr não entra: baixe em HDR ou JPG.</small>
+            <small className="ajuda-360" data-aberta={bg.kind === 'panorama'}>360°: uma foto panorâmica 2:1 (equirretangular). Aceita .hdr ou .exr até {LIMITS.panoramaHdrBytes / 1024 / 1024} MB; .jpg, .png e .webp até {LIMITS.panoramaBytes / 1024 / 1024} MB.</small>
             {bg.kind === 'color' && color('Cor do fundo', bg.color, (v) => setBackground({ kind: 'color', color: v }))}
             {bg.kind === 'preset' && (
               <div className="import-row" role="group" aria-label="Temas de fundo">
@@ -124,6 +125,15 @@ export function PainelDaMesa({ aberto, onAlternar, onFechar }: { aberto: boolean
               <label className="table-row">Escurecer <input type="range" min={0} max={LIMITS.dim} value={bg.dim} onChange={(e) => setBackground({ ...bg, dim: clampDim(+e.target.value) })} /></label>
             </>}
             {bg.kind === 'panorama' && <>
+              <div className="import-row" role="group" aria-label="Panoramas prontos">
+                <span>Prontos</span>
+                {PANORAMAS.map((p) => (
+                  <button key={p.id} aria-label={`Panorama ${p.nome}`} aria-pressed={bg.pronto === p.id}
+                    onClick={() => setBackground({ kind: 'panorama', pronto: p.id, format: 'ldr', rotation: p.rotation, tilt: p.tilt, intensity: bg.intensity, blur: bg.blur, reflect: bg.reflect })}>
+                    <img src={p.mini} alt="" width={80} height={40} /><br />{p.nome}
+                  </button>
+                ))}
+              </div>
               <label className="table-row">Girar <input type="range" min={0} max={359} step={1} value={bg.rotation} onChange={(e) => setBackground({ ...bg, rotation: clampRotation(+e.target.value) })} /></label>
               <label className="table-row">Inclinar <input type="range" min={-90} max={90} step={1} value={bg.tilt} onChange={(e) => setBackground({ ...bg, tilt: clampTilt(+e.target.value) })} /></label>
               <label className="table-row">Brilho <input type="range" min={LIMITS.intensity[0]} max={LIMITS.intensity[1]} step={0.05} value={bg.intensity} onChange={(e) => setBackground({ ...bg, intensity: clampIntensity(+e.target.value) })} /></label>

@@ -1,3 +1,4 @@
+import { panoramaPronto, PANORAMAS } from './panoramas.ts';
 // The look of the table and the backdrop. Pure data + validation: nothing here touches physics or results.
 export type FeltTexture = 'liso' | 'veludo' | 'couro' | { image: Blob; tile: number };
 export type PresetName = 'taverna' | 'poquer' | 'cosmos';
@@ -5,8 +6,10 @@ export type Background =
   | { kind: 'color'; color: string }
   | { kind: 'preset'; preset: PresetName }
   | { kind: 'image'; image: Blob; blur: number; dim: number }
-  | { kind: 'panorama'; image: Blob; format: PanoramaFormat; rotation: number; tilt: number; intensity: number; blur: number; reflect: boolean };
-type PanoramaFormat = 'ldr' | 'hdr';
+  | PanoramaBg;
+// A 360° is the player's file (`image`) or a ready-made one (`pronto`, the id in `PANORAMAS`): the theme keeps only the id, never the picture.
+export type PanoramaBg = { kind: 'panorama'; image?: Blob; pronto?: string; format: PanoramaFormat; rotation: number; tilt: number; intensity: number; blur: number; reflect: boolean };
+export type PanoramaFormat = 'ldr' | 'hdr' | 'exr';
 export interface TableTheme {
   version: 1;
   id: string; name: string; createdAt: number;
@@ -19,7 +22,7 @@ export interface TableTheme {
 export const DEFAULT_ID = 'padrao';
 export const DEFAULT_THEME: TableTheme = {
   version: 1, id: DEFAULT_ID, name: 'Mesa padrão', createdAt: 0,
-  background: { kind: 'color', color: '#140E10' },
+  background: { kind: 'panorama', pronto: 'monks_forest', format: 'ldr', rotation: PANORAMAS[0]!.rotation, tilt: PANORAMAS[0]!.tilt, intensity: 1, blur: 0, reflect: true },
   felt: { color: '#3A0F1A', texture: 'liso' }, wood: { color: '#3B2416' }, model: null,
 };
 
@@ -33,7 +36,7 @@ export const PRESETS: Record<PresetName, { label: string; css: string }> = {
 export const LIMITS = {
   photoBytes: 15 * 1024 * 1024, photoPx: 4096, texturePx: 2048,
   tableBytes: 20 * 1024 * 1024, tableTriangles: 100_000, blur: 20, dim: 60, tile: [0.5, 8] as const,
-  panoramaBytes: 15 * 1024 * 1024, panoramaHdrBytes: 25 * 1024 * 1024, panoramaPx: 4096,
+  panoramaBytes: 20 * 1024 * 1024, panoramaHdrBytes: 40 * 1024 * 1024, panoramaPx: 8192, panoramaPxLeve: 4096,
   intensity: [0.3, 1.5] as const, panoramaBlur: 0.4, panoramaTilt: 90,
 };
 
@@ -56,7 +59,9 @@ export function checkTheme(t: TableTheme): string | null {
   if (b.kind === 'preset' && !(b.preset in PRESETS)) return 'Tema de fundo desconhecido.';
   if (b.kind === 'image' && (b.blur !== clampBlur(b.blur) || b.dim !== clampDim(b.dim))) return 'Desfoque ou escurecer fora dos limites.';
   if (b.kind === 'panorama') {
-    const ok = (b.format === 'ldr' || b.format === 'hdr') && typeof b.reflect === 'boolean'
+    if (b.pronto !== undefined && (!panoramaPronto(b.pronto) || b.format !== 'ldr')) return 'Panorama pronto desconhecido.';
+    if (b.pronto === undefined && !(b.image instanceof Blob)) return 'Fundo 360° sem imagem.';
+    const ok = (b.format === 'ldr' || b.format === 'hdr' || b.format === 'exr') && typeof b.reflect === 'boolean'
       && b.rotation === clampRotation(b.rotation) && (b.tilt ?? 0) === clampTilt(b.tilt ?? 0) && b.intensity === clampIntensity(b.intensity) && b.blur === clampPanoramaBlur(b.blur);
     if (!ok) return 'Ajustes do fundo 360° fora dos limites.';
   }
@@ -68,7 +73,7 @@ export function checkTheme(t: TableTheme): string | null {
 export interface ThemeExtras {
   version: 1; name: string;
   background: { kind: 'color'; color: string } | { kind: 'preset'; preset: PresetName } | { kind: 'image'; blur: number; dim: number }
-    | { kind: 'panorama'; format: PanoramaFormat; rotation: number; tilt: number; intensity: number; blur: number; reflect: boolean };
+    | { kind: 'panorama'; pronto?: string; format: PanoramaFormat; rotation: number; tilt: number; intensity: number; blur: number; reflect: boolean };
   felt: { color: string; texture: 'liso' | 'veludo' | 'couro' | 'imagem'; tile: number };
   wood: { color: string };
 }
@@ -79,7 +84,7 @@ export function extrasOf(t: TableTheme): ThemeExtras {
   return {
     version: 1, name: t.name,
     background: b.kind === 'image' ? { kind: 'image', blur: b.blur, dim: b.dim }
-      : b.kind === 'panorama' ? { kind: 'panorama', format: b.format, rotation: b.rotation, tilt: b.tilt, intensity: b.intensity, blur: b.blur, reflect: b.reflect }
+      : b.kind === 'panorama' ? { kind: 'panorama', format: b.pronto ? 'ldr' : b.format, rotation: b.rotation, tilt: b.tilt, intensity: b.intensity, blur: b.blur, reflect: b.reflect }
       : b,
     felt: { color: t.felt.color, texture: typeof tx === 'object' ? 'imagem' : tx, tile: typeof tx === 'object' ? tx.tile : 2 },
     wood: { color: t.wood.color },
@@ -96,12 +101,18 @@ export function readExtras(x: unknown): ThemeExtras | null {
   const background = b.kind === 'color' ? (isHex(b.color) ? b : null)
     : b.kind === 'preset' ? (b.preset in PRESETS ? b : null)
     : b.kind === 'image' ? { kind: 'image' as const, blur: clampBlur(b.blur), dim: clampDim(b.dim) }
-    : b.kind === 'panorama' ? { kind: 'panorama' as const, format: b.format === 'hdr' ? 'hdr' as const : 'ldr' as const, rotation: clampRotation(b.rotation), tilt: clampTilt(b.tilt ?? 0), intensity: clampIntensity(b.intensity), blur: clampPanoramaBlur(b.blur), reflect: b.reflect !== false } : null;
+    : b.kind === 'panorama' ? { kind: 'panorama' as const, ...(panoramaPronto(b.pronto) ? { pronto: b.pronto } : {}), format: b.format === 'hdr' || b.format === 'exr' ? b.format : 'ldr' as const, rotation: clampRotation(b.rotation), tilt: clampTilt(b.tilt ?? 0), intensity: clampIntensity(b.intensity), blur: clampPanoramaBlur(b.blur), reflect: b.reflect !== false } : null;
   if (!background) return null;
   return { version: 1, name: e.name.slice(0, 40), background, felt: { color: f.color, texture: f.texture, tile: clampTile(f.tile) }, wood: { color: e.wood.color } };
 }
 
 // Themes saved before the tilt existed have no `tilt` on the 360° background: they stay valid, with 0.
-export const migrarTema = (t: TableTheme): TableTheme => t.background.kind === 'panorama' && typeof t.background.tilt !== 'number' ? { ...t, background: { ...t.background, tilt: 0 } } : t;
+// A ready-made panorama that left the game falls back to the default backdrop.
+export const migrarTema = (t: TableTheme): TableTheme => {
+  const b = t.background;
+  if (b.kind !== 'panorama') return t;
+  if (b.pronto !== undefined && !panoramaPronto(b.pronto)) return { ...t, background: DEFAULT_THEME.background };
+  return typeof b.tilt !== 'number' ? { ...t, background: { ...b, tilt: 0 } } : t;
+};
 
 export const fileSafe = (name: string) => name.normalize('NFD').replace(/\p{M}/gu, '').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase() || 'mesa';
