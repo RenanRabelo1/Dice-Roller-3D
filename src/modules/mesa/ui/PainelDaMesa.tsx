@@ -1,9 +1,14 @@
 import { useEffect, useState } from 'react';
+import { colorsOf, disposeTable } from '../domain/tableBuild.ts';
+import { panoramaPicture, panoramaTexture, preparePanorama, reduceImage, TableError } from '../domain/tableImages.ts';
+import { temaDaMesaImportada } from '../domain/importacao.ts';
 import {
-  carregarArquivoDeMesa, clampBlur, clampDim, clampIntensity, clampPanoramaBlur, clampRotation, clampTile, colorsOf, DEFAULT_THEME, disposeTable, fileSafe, LIMITS,
-  panoramaPicture, panoramaTexture, preparePanorama, PRESETS, reduceImage, TableError, temaDaMesaImportada, type Background, type PresetName,
-  type TableTheme,
-} from '../index.ts';
+  clampBlur, clampDim, clampIntensity, clampPanoramaBlur, clampRotation, clampTile, DEFAULT_THEME, fileSafe, LIMITS, PRESETS,
+  type Background, type PresetName, type TableTheme,
+} from '../domain/tableTheme.ts';
+
+// GLTFLoader/GLTFExporter load on demand, never with the door (ADR 0007, ponto 11).
+const carregarArquivoDeMesa = () => import('../domain/tableFile.ts');
 import { useMesa } from './useMesa.tsx';
 
 const typing = (el: EventTarget | null) =>
@@ -84,7 +89,7 @@ export function PainelDaMesa({ aberto, onAlternar, onFechar }: { aberto: boolean
   const texture = typeof theme.felt.texture === 'object' ? 'imagem' : theme.felt.texture;
 
   return (
-      <aside id="table-panel" className="chat panel import table-panel" data-open={aberto} inert={!aberto} aria-label="Personalizar mesa">
+      <aside id="table-panel" className="chat import table-panel" data-open={aberto} inert={!aberto} aria-label="Personalizar mesa">
         <header>
           <h2>Personalizar mesa</h2>
           <button aria-label="Fechar painel da mesa" onClick={onFechar}>×</button>

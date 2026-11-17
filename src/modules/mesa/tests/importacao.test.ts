@@ -1,6 +1,6 @@
 // The imported table becomes a theme (what the panel did inline in importFile until OS-0037).
 import { describe, it, expect } from 'vitest';
-import { temaDaMesaImportada } from '../index.ts';
+import { temaDaMesaImportada } from '../domain/importacao.ts';
 import type { Background, ThemeExtras } from '../domain/tableTheme.ts';
 
 const foto = new Blob(['foto']), atual: Background = { kind: 'preset', preset: 'cosmos' };

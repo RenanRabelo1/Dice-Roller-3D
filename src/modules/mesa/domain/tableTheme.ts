@@ -6,7 +6,7 @@ export type Background =
   | { kind: 'preset'; preset: PresetName }
   | { kind: 'image'; image: Blob; blur: number; dim: number }
   | { kind: 'panorama'; image: Blob; format: PanoramaFormat; rotation: number; intensity: number; blur: number; reflect: boolean };
-export type PanoramaFormat = 'ldr' | 'hdr';
+type PanoramaFormat = 'ldr' | 'hdr';
 export interface TableTheme {
   version: 1;
   id: string; name: string; createdAt: number;
@@ -37,7 +37,7 @@ export const LIMITS = {
   intensity: [0.3, 1.5] as const, panoramaBlur: 0.4,
 };
 
-export const isHex = (s: unknown): s is string => typeof s === 'string' && /^#[0-9a-f]{6}$/i.test(s);
+const isHex = (s: unknown): s is string => typeof s === 'string' && /^#[0-9a-f]{6}$/i.test(s);
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, Number.isFinite(v) ? v : lo));
 export const clampBlur = (v: number) => clamp(v, 0, LIMITS.blur);
 export const clampDim = (v: number) => clamp(v, 0, LIMITS.dim);
