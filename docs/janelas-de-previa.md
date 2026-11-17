@@ -64,3 +64,7 @@ Com o livro aberto, o véu e as páginas cobrem a cena.
 - **Pausar a cena principal com o livro aberto:** economizaria GPU, mas a cena aparece por trás do véu e congelaria a vela. Fica para depois, se o perfil leve não bastar.
 - **Panoramas prontos para escolher:** hoje o 360° exige um arquivo. Ter alguns de fábrica é outra decisão, e outra spec.
 - **Luz idêntica à da cena e reflexo do 360° na janela.**
+
+## Terceira janela: a ficha do dado forjado (OS-0085)
+
+Pedida pelo João em 2026-11-17. No capítulo Meus dados, o botão **Editar** abre a ficha do dado na página da direita, com motion design (virada da página, o dado se materializando, lampejo de forja e campos em cascata). A ficha tem a janela 3D do dado e os campos editáveis ao vivo: tinta e acabamento, cor da gema, nome e apelido, e presságios do d20. O "Forjar um dado novo" vai para baixo da lista. Detalhe na [OS-0085](ordens/0085-meus-dados-ficha-do-dado.md).
