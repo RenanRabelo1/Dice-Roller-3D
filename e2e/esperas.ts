@@ -4,6 +4,8 @@ import type { Page } from '@playwright/test';
 export const ready = (p: Page, n?: number) => p.waitForFunction((n) => window.__dice?.state().ready && (n === undefined || window.__dice.bodies().length === n), n);
 export const settled = (p: Page) => p.waitForFunction(() => { const s = window.__dice.state(); return s.phase === 'settled' && s.showcased === s.throwId; }, null, { timeout: 90_000 });
 export const throwWithSpace = async (p: Page) => {
+  // The open book freezes the scene and locks the game area (OS-0086): close it first, as a player would.
+  if (await p.locator('.livro[data-aberto="true"]').count()) await p.keyboard.press('Escape');
   await p.locator('.game-area').focus();
   await p.keyboard.down('Space'); await p.waitForTimeout(700); await p.keyboard.up('Space');
 };

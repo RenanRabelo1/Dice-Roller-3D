@@ -111,3 +111,4 @@ O João pediu para deixar para depois:
 - **Pose de calibração da forma livre** (item 4).
 - **Fundo padrão da mesa:** decisão do João.
 - **O `typing` repetido entre `mesa` e `selecao`:** levar para `shared/plataforma`, o que exige ADR (auditoria, seção 3).
+- **Pausar a cena com o livro aberto:** feito na OS-0086. A cena principal congela e a área de jogo fica `inert` enquanto o livro está aberto.

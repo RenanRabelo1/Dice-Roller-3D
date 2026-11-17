@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { BarraDeForca, DicaDaFase, ModoDeRolagem, useArremesso } from '../modules/arremesso/cena.ts';
 import { PainelDoResultado } from '../modules/vitrine/cena.ts';
 import { Chat, RodaDeDados } from '../modules/selecao/cena.ts';
@@ -6,6 +6,7 @@ import { Chat, RodaDeDados } from '../modules/selecao/cena.ts';
 import { Importacao, MeusDados } from '../modules/meus-dados/cena.ts';
 import { PainelDaMesa } from '../modules/mesa/cena.ts';
 import { Folheador, type Capitulo } from './Folheador.tsx';
+import { definirLivroAberto } from './livro.ts';
 
 export function Painel() {
   const phase = useArremesso((s) => s.gesture.phase);
@@ -13,6 +14,7 @@ export function Painel() {
   const [capitulo, setCapitulo] = useState<Capitulo | null>(null);
   const gatilhos = useRef<Partial<Record<Capitulo, HTMLButtonElement | null>>>({});
   const alternar = (c: Capitulo) => setCapitulo((a) => (a === c ? null : c));
+  useEffect(() => definirLivroAberto(capitulo !== null), [capitulo]);
   const fechar = (c: Capitulo) => { setCapitulo((a) => (a === c ? null : a)); gatilhos.current[c]?.focus(); };
   return (
     <>
