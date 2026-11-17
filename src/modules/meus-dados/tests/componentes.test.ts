@@ -25,7 +25,7 @@ afterEach(() => so());
 describe('<MeusDados/>: o capítulo "Meus dados"', () => {
   it('vazio e fechado: aside inerte, nota de vazio e o botão de forjar', () => {
     const h = renderToStaticMarkup(createElement(MeusDados, { aberto: false, ...acoes }));
-    expect(h).toContain('<aside id="meus-dados" class="chat panel import" data-open="false" inert="" aria-label="Meus dados">');
+    expect(h).toContain('<aside id="meus-dados" class="chat import" data-open="false" inert="" aria-label="Meus dados">');
     expect(h).toContain('<p class="import-note">Nenhum dado importado ainda.</p>');
     expect(h).toContain('<div class="selection"></div>');
     expect(h).toContain('<button class="primary">Forjar um dado novo</button>');
@@ -61,7 +61,7 @@ describe('<Importacao/>: o capítulo "Importar dado"', () => {
     await import('../ui/AssistenteDeImportacao.tsx');
     await new Promise((r) => setTimeout(r, 50));
     const h = html(true);
-    expect(h).toContain('<aside id="import-die" class="chat panel import" data-open="true"');
+    expect(h).toContain('<aside id="import-die" class="chat import" data-open="true"');
     expect(h).toContain('<ol class="import-passos"><li aria-current="step">Arquivo</li><li>Forma</li><li>Números</li><li>Salvar</li></ol>');
     expect(h).toContain('class="sr-only"');
     expect(h).toContain('Escolher arquivo');
