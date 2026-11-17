@@ -419,3 +419,15 @@ output[data-presagio="duality"] strong { background: linear-gradient(90deg, #ffd
 .app[data-movimento="reduzido"] .folha-virando { display: none; }
 .app[data-movimento="reduzido"] .import-body[data-folheando] { animation: none; }
 .app[data-movimento="reduzido"] .folhear, .app[data-movimento="reduzido"] .folhear > span, .app[data-movimento="reduzido"] .folhear::before { transition: none; }
+
+/* OS-0082: janela da mesa. A janela é o primeiro filho do corpo em colunas: ocupa a coluna esquerda da primeira folha (com o título em cima)
+   e o resto dos controles segue na direita, então a orelha de folhear (OS-0067) continua paginando por folhas de duas colunas. */
+.livro > #table-panel .janela-da-mesa { position: relative; height: 100%; break-inside: avoid; break-after: column; overflow: hidden;
+  border: 1px solid var(--fio); border-radius: 3px; background: radial-gradient(ellipse at 50% 45%, rgba(255, 250, 236, .35), rgba(255, 250, 236, 0) 70%); }
+/* 360° help: always there for the 360° background; for the others only while the 360° button is hovered or focused. Space stays reserved. */
+.livro > #table-panel .ajuda-360 { visibility: hidden; }
+.livro > #table-panel .ajuda-360[data-aberta="true"],
+.livro > #table-panel fieldset:has([aria-label="Tipo de fundo"] > button:nth-child(3):is(:hover, :focus-visible)) .ajuda-360 { visibility: visible; }
+@media (max-width: 800px) {
+  .livro > #table-panel .janela-da-mesa { height: 220px; margin-bottom: 14px; break-after: auto; }
+}
