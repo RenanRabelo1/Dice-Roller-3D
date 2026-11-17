@@ -121,7 +121,7 @@ Tudo cabe no monólito modular, sem módulo novo, sem item novo em `shared/` e s
 | força da carga (0 a 1) | `arremesso` | `assinarArremesso` (`index.ts`), sem render. A casca escreve `--forca` no `.app`. |
 | presságio tocando | `pressagios` | os atributos `data-omen`, `data-kraken` e `data-storm` que o `OverlayDoPresagio` já põe na `.game-area`. A OS-0059 os registra como contrato público. |
 | presságio do resultado mostrado | `vitrine` | `data-presagio` no `output` do resultado (OS-0060). A vitrine já consome o `presagio()`. |
-| movimento reduzido | `shared/plataforma` | `useMovimentoReduzido`. A casca escreve `data-movimento="reduzido"` no `.app`. |
+| movimento reduzido | `shared/plataforma` | `movimentoReduzido()` e `aoMudarMovimentoReduzido`. A casca escreve `data-movimento="reduzido"` no `.app` (OS-0056). |
 
 - **O CSS das reações é da casca**, em `src/index.css`, como todo o HUD. Ele só lê atributos e variáveis; não há regra de negócio em CSS.
 - **Luz na cena é de quem é dono da coisa iluminada:**

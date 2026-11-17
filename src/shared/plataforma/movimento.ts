@@ -1,4 +1,3 @@
-import { useSyncExternalStore } from 'react'
 import { createSignal } from '../events.ts'
 
 // Whether the player asked for reduced motion (ADR 0005, ADR 0008). The value is private to this file and every
@@ -8,7 +7,6 @@ const mudou = createSignal<boolean>()
 
 export const movimentoReduzido = (): boolean => reduzido
 export const aoMudarMovimentoReduzido = (ouvinte: (v: boolean) => void): (() => void) => mudou.subscribe(ouvinte)
-export const useMovimentoReduzido = (): boolean => useSyncExternalStore(mudou.subscribe, movimentoReduzido)
 // Emits on every call, even when the value repeats: turning it on always drops the omen being shown.
 export const definirMovimentoReduzido = (v: boolean) => { reduzido = v; mudou.emit(v) }
 
