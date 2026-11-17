@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { adicionar, definir, remover, selecao } from '../index.ts';
+import { adicionar, definir, selecao } from '../index.ts';
+import { remover } from '../store.ts';
 import { customKind, polyhedron, registerCustom, unregisterCustom, type CustomDie } from '../../dados/index.ts';
 
 beforeEach(() => definir(['d20']));
