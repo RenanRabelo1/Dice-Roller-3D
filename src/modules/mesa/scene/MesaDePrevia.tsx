@@ -42,7 +42,7 @@ export function MesaDePrevia() {
     panoramaTexture(bg).then((tex) => {
       if (!alive) return;
       scene.background = tex;
-      scene.backgroundRotation.set(0, bg.rotation * Math.PI / 180, 0);
+      scene.backgroundRotation.set(bg.tilt * Math.PI / 180, bg.rotation * Math.PI / 180, 0);
       scene.backgroundIntensity = bg.intensity;
       scene.backgroundBlurriness = bg.blur;
       invalidate();

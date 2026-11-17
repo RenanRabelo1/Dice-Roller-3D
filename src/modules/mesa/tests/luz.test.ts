@@ -12,7 +12,7 @@ describe('luzDaMesa', () => {
     [{ kind: 'preset', preset: 'poquer' }, '#ffe2b0', 5, false],
     [{ kind: 'preset', preset: 'cosmos' }, '#8fa8ff', 3, false],
     [{ kind: 'image', image: blob, blur: 0, dim: 0 }, '#ffb070', 5, true],
-    [{ kind: 'panorama', image: blob, format: 'ldr', rotation: 0, intensity: 1, blur: 0, reflect: true }, '#ffd2a0', 2, false],
+    [{ kind: 'panorama', image: blob, format: 'ldr', rotation: 0, tilt: 0, intensity: 1, blur: 0, reflect: true }, '#ffd2a0', 2, false],
   ] as [Background, string, number, boolean][])('%j', (bg, cor, intensidade, tremor) => {
     expect(luzDaMesa(com(bg))).toEqual({ cor, intensidade, tremor });
   });
