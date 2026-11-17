@@ -10,7 +10,7 @@ O detalhe que não cabe no [CLAUDE.md](CLAUDE.md). Leia só quando a ordem manda
 | `store.ts` | store zustand vanilla: `showcased`; lido por `vitrine()`, `vitrineConcluida(throwId)` e `useVitrine` |
 | `domain/showcase.ts` | `showcasePoses`, `CAPTION`: onde cada dado pousa na frente da câmera |
 | `domain/highlight.ts` | `highlightAt`, `SHOW`, `HL_SIZE`: o número flutuante |
-| `domain/inkGlow.ts` | `upInk`, `glowMesh`, `UP_INK`: a gravação acesa e o cache da geometria por `kind\|valor` |
+| `domain/inkGlow.ts` | `upInk`, `glowMesh`, `UP_INK`, `MESMA_FACE`: a gravação acesa e o cache da geometria por `kind\|valor` |
 | `domain/painel.ts` | `resultText`: o texto do painel |
 | `scene/Vitrine.tsx` | a cena (era `src/scene/Hand.tsx`, só a parte `settled`; a mão do arremesso é a `MaoDoArremesso` de `arremesso`, montada logo antes) |
 | `ui/PainelDoResultado.tsx`, `ui/useVitrine.tsx` | o painel (`<output data-testid="result">`, montado pelo `Painel` da casca, `src/app/Painel.tsx`) e o hook |
@@ -40,6 +40,7 @@ Na `Vitrine`, ao entrar em `settled`:
 - dado com símbolo (Vampiro) sobe o símbolo (`symbolGeometry`) em vez do número;
 - a pose vai por `moverDado` (de `arremesso`, o único que escreve pose em `settled`); ao pousar, fixa a pose exata a cada quadro e grava `setShowcased` um quadro depois de pousar;
 - **dado de forma livre gravado** (`readsDown` + `printed`): vista de cima, como na calibração (`showcasePoses(..., above)`); a gravação de cima acende (`upInk` escolhe os triângulos de tinta voltados para cima, `glowMesh` monta a malha `ink-glow-i`, que pulsa no ritmo do destaque) no lugar do número solto; sem gravação achada, o número fica na frente do dado, no tamanho `FONT.livre`. A geometria do brilho fica guardada por `kind|valor`;
+- **dado de forma padrão gravado** (`printed`, não d4, não `readsDown`): mantém a pose de sempre, com a face do resultado para a câmera, e acende só a tinta dessa face (`glowMesh` com `down` = `-normal` do rótulo e `min = MESMA_FACE`, 0,98) no lugar do número solto; `glows[i]` decide o destaque, `above[i]` só a pose. O cone de `UP_INK` (60°) acenderia também as faces vizinhas (no d20, a ~42°, cos ≈ 0,74), por isso o cone fechado. O d4 fica de fora: lê o vértice, e o número sorteado aparece em três faces. Sem tinta achada na face, vale o caminho comum (número subindo e grudando). Kraken e tempestade: o brilho segue `movimento.revela`. Movimento reduzido: sem brilho, o número aparece acima do dado.
 - movimento reduzido: sem voo, o número só aparece acima do dado, e `setShowcased` sai na hora. Ligá-lo no meio do voo devolve os dados para onde pousaram.
 
 ## Destaque (`domain/highlight.ts`)

@@ -8,7 +8,7 @@ export type { BrilhoInspecionado, DestaqueInspecionado, EstadoDaVitrine, TextoDo
 export { setShowcased, vitrine, vitrineConcluida } from './store.ts';
 export { CAPTION, showcasePoses, type View } from './domain/showcase.ts';
 export { highlightAt, HL_SIZE, SHOW, type Highlight } from './domain/highlight.ts';
-export { glowMesh, UP_INK, upInk } from './domain/inkGlow.ts';
+export { glowMesh, MESMA_FACE, UP_INK, upInk } from './domain/inkGlow.ts';
 export { resultText } from './domain/painel.ts';
 
 // The showcase as the test hook sees it in the scene. The names `result-highlights` and `ink-glow-i` (set by <Vitrine/>)
