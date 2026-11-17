@@ -426,7 +426,7 @@ output[data-presagio="duality"] strong { background: linear-gradient(90deg, #ffd
 .livro > #table-panel > header { grid-column: 1; grid-row: 1; }
 .livro > #table-panel .janela-da-mesa { grid-column: 1; grid-row: 2; position: relative; min-height: 0; overflow: hidden;
   border: 1px solid var(--fio); border-radius: 3px; background: radial-gradient(ellipse at 50% 45%, rgba(255, 250, 236, .35), rgba(255, 250, 236, 0) 70%); }
-.livro > #table-panel .import-body { grid-column: 2; grid-row: 1 / 3; column-count: 2; column-width: 9999px; }
+.livro > #table-panel .import-body { grid-column: 2; grid-row: 1 / 3; column-count: 2; column-width: 9999px; padding-top: 52px; } /* room for the × in the page corner */
 /* 360° help: always there for the 360° background; for the others only while the 360° button is hovered or focused. Space stays reserved. */
 .livro > #table-panel .ajuda-360 { visibility: hidden; }
 .livro > #table-panel .ajuda-360[data-aberta="true"],

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { PerspectiveCamera } from 'three';
+import { Box3, Sphere, Vector3, type PerspectiveCamera } from 'three';
 import { useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import type { Group } from 'three';
@@ -50,29 +50,37 @@ export function MesaDePrevia() {
     return () => { alive = false; scene.background = null; };
   }, [bg, scene, invalidate]);
 
-  // Frames the tray (GUIDE) at ~80% of the canvas width, seen from above at 35° of elevation. Re-frames when the window is resized.
+  // Frames the built table (base, frame and felt; not the backdrop plane, which is far bigger), seen from above at 35° of
+  // elevation: its bounding sphere fits the narrower of the two view angles, so it never spills, whatever the window's shape
+  // or the turn. Before the table is built, the play area (GUIDE) stands in. Re-frames on resize and when the table changes.
   const aspecto = size.width / size.height || 1;
   const fov = (camera as PerspectiveCamera).fov;
   useEffect(() => {
+    const caixa = new Box3();
+    if (table) table.traverse((o) => { if ('isMesh' in o && o.visible && !/^fundo/i.test(o.name)) caixa.expandByObject(o); });
+    if (caixa.isEmpty()) caixa.setFromCenterAndSize(new Vector3(...GUIDE.center), new Vector3(...GUIDE.size));
+    const esfera = caixa.getBoundingSphere(new Sphere());
     const elevacao = 35 * Math.PI / 180;
-    const d = (GUIDE.size[0] / 0.8) / (2 * Math.tan(fov * Math.PI / 360) * aspecto);
-    const [cx, cy, cz] = GUIDE.center;
-    camera.position.set(cx, cy + d * Math.sin(elevacao), cz + d * Math.cos(elevacao));
-    camera.lookAt(cx, cy, cz);
+    const meioV = fov * Math.PI / 360, meioH = Math.atan(Math.tan(meioV) * aspecto);
+    const d = (esfera.radius / Math.sin(Math.min(meioV, meioH))) * 0.95;
+    const c = esfera.center;
+    camera.position.set(c.x, c.y + d * Math.sin(elevacao), c.z + d * Math.cos(elevacao));
+    camera.lookAt(c);
+    (controles.current as { target?: Vector3 } | null)?.target?.copy(c);
     controles.current?.update();
     invalidate();
-  }, [camera, aspecto, fov, invalidate]);
+  }, [camera, aspecto, fov, table, invalidate]);
 
   useEffect(() => { invalidate(); }, [table, bg, invalidate]);
 
   return (
     <>
       {bg.kind === 'color' && <color attach="background" args={[bg.color]} />}
-      <ambientLight intensity={0.35} />
+      <ambientLight intensity={0.9} /> {/* the scene also has an environment map (the shell's Lightformers); the window has none, so more ambient */}
       <directionalLight position={[4, 10, 6]} intensity={2.5} color="#fff1dc" />
       {table && <primitive object={table} />}
       <OrbitControls ref={controles as never} enableZoom={false} enablePan={false} autoRotate={gira} autoRotateSpeed={0.6}
-        target={[GUIDE.center[0], GUIDE.center[1], GUIDE.center[2]]} onChange={leve ? () => invalidate() : undefined} />
+        onChange={leve ? () => invalidate() : undefined} />
     </>
   );
 }
