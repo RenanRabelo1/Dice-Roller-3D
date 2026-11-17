@@ -39,6 +39,8 @@
 
 * { box-sizing: border-box; }
 html, body, #root { width: 100%; height: 100%; margin: 0; }
+/* No pinch zoom or elastic overscroll on a full-screen game: touch keeps scrolling (the book on phones), never zooming. */
+html { touch-action: pan-x pan-y; overscroll-behavior: none; }
 .app { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto; height: 100dvh; }
 .panel { background: var(--panel); padding: 12px 24px; }
 .controls { grid-row: 1; display: flex; align-items: center; gap: 24px; background: var(--barra); min-height: 64px; padding-left: 28px; padding-right: 28px; }
@@ -127,7 +129,6 @@ canvas { display: block; }
 .import-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .import-ask { display: flex; flex-direction: column; gap: 10px; }
 .import-ask label { display: flex; flex-direction: column; gap: 4px; }
-.import input:not([type="checkbox"]):not([type="color"]):not([type="file"]):not([type="radio"]) { font: inherit; color: var(--chalk); background: #1E1517; border: 1px solid #786958; border-radius: 3px; padding: 8px 10px; }
 .import-error { color: #F28B6B; margin: 0; }
 .import-note { color: var(--brass); margin: 0; font-size: 14px; }
 .ink-pop { position: relative; }
@@ -175,7 +176,6 @@ canvas { display: block; }
 .roda-anel .pick > button[aria-pressed="true"] { background: var(--luz); color: #0b0b0d; border-color: var(--luz); }
 .roda-anel .pick .remove { position: absolute; top: -6px; left: -6px; width: 26px; height: 26px; min-width: 0; min-height: 0; padding: 0;
   border-radius: 50%; border: 1px solid var(--luz); background: var(--barra); font-size: 16px; line-height: 1; }
-@media (prefers-reduced-motion: reduce) { .roda-anel, .roda[data-open="true"] .roda-anel { transition: none; } }
 @media (max-width: 800px) {
   .roda-anel { position: fixed; right: auto; left: 50%; bottom: 96px; width: 240px; height: 240px; margin-left: -120px; }
   .roda-anel .pick { width: 52px; height: 52px; margin: -26px 0 0 -26px;
@@ -188,9 +188,11 @@ canvas { display: block; }
 .livro[data-aberto="true"] { display: block; position: fixed; top: 92px; left: 0; right: 0; margin: 0 auto; z-index: 10;
   --h: min(680px, calc(100dvh - 64px - 72px - 56px)); width: min(1120px, calc(100vw - 32px)); height: var(--h); padding: 14px; border-radius: 10px;
   background: radial-gradient(ellipse at 50% 0%, var(--couro-brilho), var(--couro));
-  box-shadow: inset 0 0 0 2px #6e3a22, inset 0 0 0 6px var(--couro), inset 0 0 0 7px rgba(212, 169, 63, .5), 0 40px 90px rgba(0, 0, 0, .75), 0 0 0 100vmax rgba(5, 5, 6, .55);
-  /* the veil is the 100vmax shadow, clipped to the scene between the bands (top 64px, bottom 72px) */
-  clip-path: inset(-28px -100vmax calc(-1 * (100dvh - 164px - var(--h))) -100vmax); }
+  box-shadow: inset 0 0 0 2px #6e3a22, inset 0 0 0 6px var(--couro), inset 0 0 0 7px rgba(212, 169, 63, .5), 0 40px 90px rgba(0, 0, 0, .75);  }
+/* the veil is a real element: it blocks the scene between the bands (top 64px, bottom 72px); shadows do not take clicks */
+.livro-veu { position: fixed; top: 64px; bottom: 72px; left: 0; right: 0; z-index: 9; background: rgba(5, 5, 6, .55); animation: veu-abre 200ms ease-out; }
+@keyframes veu-abre { from { opacity: 0; } to { opacity: 1; } }
+.app[data-movimento="reduzido"] .livro-veu { animation: none; }
 .livro[data-aberto="true"]::after { content: ""; position: absolute; top: -10px; right: 72px; width: 22px; height: 54px; background: var(--lacre);
   clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%); pointer-events: none; }
 .livro > aside { position: absolute; inset: 14px; transform: none; width: auto; border: 0; box-shadow: none; display: none; padding: 34px 40px;
@@ -200,7 +202,12 @@ canvas { display: block; }
 .livro > aside h2 { font-family: Cinzel, serif; font-weight: 700; font-size: 30px; margin: 0 0 12px; padding-bottom: 18px;
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='8'%3E%3Cpath d='M0 4h66M94 4h66' stroke='%23b99a66' fill='none'/%3E%3Cpath d='M80 0l4 4-4 4-4-4z' fill='%238e2a1c'/%3E%3C/svg%3E") left bottom / 160px 8px no-repeat; }
 .livro > aside h2::first-letter { font-size: 44px; color: var(--rubrica); }
-.livro > aside header button { position: absolute; top: 14px; right: 18px; width: 44px; height: 44px; font-size: 24px; }
+.livro > aside header button { position: absolute; top: 36px; right: 20px; width: 44px; height: 44px; padding: 0; background: none; border: 0; border-radius: 0; box-shadow: none;
+  font-family: Cormorant Garamond, serif; font-weight: 500; font-size: 52px; line-height: 44px; color: var(--sepia);
+  transition: color var(--t-curto) var(--ease-saida), transform var(--t-curto) var(--ease-saida), text-shadow var(--t-curto) var(--ease-saida); }
+.livro > aside header button:hover, .livro > aside header button:focus-visible { color: var(--rubrica); transform: scale(1.12); text-shadow: 0 0 12px rgba(142, 42, 28, .45); }
+.app[data-movimento="reduzido"] .livro > aside header button { transition: none; }
+.app[data-movimento="reduzido"] .livro > aside header button:hover, .app[data-movimento="reduzido"] .livro > aside header button:focus-visible { transform: none; }
 .livro > aside button { background: rgba(255, 250, 236, .35); border: 1px solid var(--fio); color: var(--tinta); font-family: EB Garamond, serif; font-size: 16px; min-height: 44px; }
 .livro > aside button[aria-pressed="true"], .livro > aside button[type="submit"] { background: var(--lacre); color: #f6ecd6; }
 .livro > aside button:focus-visible { outline: 2px solid var(--tinta); outline-offset: 2px; }
@@ -224,7 +231,7 @@ canvas { display: block; }
 
 /* OS-0053: the table chapter. .import-body is the double page: Fundo and Mesa on the left, Arquivo and Mesas salvas on the right. */
 .livro > #table-panel { grid-template-rows: auto 1fr; }
-.livro > #table-panel .import-body { column-count: 2; column-gap: 96px; overflow-y: auto; min-height: 0; display: block; }
+.livro > #table-panel .import-body { column-count: 2; column-gap: 96px; overflow: hidden; min-height: 0; display: block; }
 .livro > #table-panel fieldset, .livro > #table-panel .import-body > p, .livro > #table-panel [role="alertdialog"] { break-inside: avoid; }
 .livro > #table-panel fieldset { border: 0; border-radius: 0; padding: 0 0 18px; margin: 0; }
 .livro > #table-panel legend { font-family: Cinzel, serif; font-weight: 700; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--rubrica); padding: 0 0 8px; }
@@ -243,7 +250,7 @@ canvas { display: block; }
 
 /* OS-0054: "Meus dados" and "Importar dado" chapters. */
 .livro > #meus-dados, .livro > #import-die { grid-template-rows: auto 1fr; }
-.livro > #meus-dados .import-body { column-count: 2; column-gap: 96px; display: block; overflow-y: auto; min-height: 0; }
+.livro > #meus-dados .import-body { column-count: 2; column-gap: 96px; display: block; overflow: hidden; min-height: 0; }
 .livro > #meus-dados .selection { display: block; }
 .livro > #meus-dados .pick { display: flex; flex-wrap: wrap; align-items: stretch; gap: 6px; border: 1px solid var(--fio); border-radius: 3px; padding: 12px 14px; margin: 0 0 12px; break-inside: avoid; }
 .livro > #meus-dados .pick > button:first-child { flex: 1; text-align: left; }
@@ -284,10 +291,6 @@ canvas { display: block; }
 /* OS-0055: finish. The book opens in 200 ms; chapters do not animate here. */
 @keyframes livro-abre { from { opacity: 0; transform: scale(.97); } to { opacity: 1; transform: none; } }
 .livro[data-aberto="true"] { animation: livro-abre 200ms ease-out; }
-@media (prefers-reduced-motion: reduce) {
-  .livro[data-aberto="true"], output { animation: none; }
-  .roda-anel, .roda[data-open="true"] .roda-anel, output { transition: none; }
-}
 
 /* OS-0055: phone. Book is one parchment page filling the screen above the bands; the nav is a row of four touch targets. */
 @media (max-width: 800px) {
@@ -296,10 +299,140 @@ canvas { display: block; }
   nav kbd { display: none; }
   .livro[data-aberto="true"] { inset: 0; top: 0; width: auto; height: auto; margin: 0; padding: 0; border-radius: 0; z-index: 20; overflow-y: auto;
     box-shadow: none; clip-path: none; background: linear-gradient(var(--pergaminho-claro), var(--pergaminho-escuro)); }
+  .livro-veu { display: none; }
   .livro[data-aberto="true"]::after { display: none; }
   .livro > aside { position: relative; inset: auto; min-height: 100%; padding: 24px 20px; border-radius: 0; background: none; }
   .livro > aside h2 { padding-right: 56px; }
-  .livro > aside header button { position: fixed; top: 8px; right: 10px; z-index: 1; background: var(--pergaminho-claro); }
+  .livro > aside header button { position: fixed; top: 8px; right: 10px; z-index: 1; background: var(--pergaminho-claro); border-radius: 50%; }
   .livro > #table-panel [aria-label="Tipo de fundo"], .livro > #table-panel [aria-label="Temas de fundo"] { grid-template-columns: repeat(2, 1fr); }
   .import-passos { flex-wrap: wrap; height: auto; gap: 8px 14px; margin: 0 0 12px; }
 }
+
+/* OS-0057: dica */
+footer.status > p { animation: dica var(--t-curto, 160ms) ease-out; }
+@keyframes dica { from { opacity: 0; } to { opacity: 1; } }
+.app[data-movimento="reduzido"] footer.status > p { animation: none; }
+/* OS-0056: ritmo */
+@property --forca { syntax: '<number>'; inherits: true; initial-value: 0; }
+:root { --t-curto: 160ms; --t-medio: 320ms; --t-longo: 700ms; --ease-saida: cubic-bezier(0.22, 1, 0.36, 1); --ease-cine: cubic-bezier(0.65, 0, 0.35, 1); }
+
+/* OS-0062: perfil e camadas baratas */
+/* Inner cinema bands: two elements that scale in from the edges (transform only, no repaint of the play area). */
+.faixa { position: absolute; left: 0; right: 0; height: 28px; background: var(--barra); pointer-events: none; z-index: 1;
+  transform: scaleY(0); transition: transform var(--t-longo) var(--ease-cine); }
+.faixa-cima { top: 0; transform-origin: top; }
+.faixa-baixo { bottom: 0; transform-origin: bottom; }
+.app[data-fase="rolling"] .faixa, .app[data-fase="returning"] .faixa { transform: scaleY(1); }
+@media (max-width: 800px) { .faixa { height: 16px; } }
+
+/* Charge strength: the tight vignette is drawn once and fades in with the force (opacity only). */
+.game-area::before { content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 1; opacity: 0; will-change: opacity;
+  background: radial-gradient(ellipse at 50% 52%, rgba(255,170,90,.08) 0%, rgba(0,0,0,0) 28%, rgba(0,0,0,.85) 100%); }
+.app[data-fase="charging"] .game-area::before { opacity: var(--forca); }
+
+/* Band texts step back while the dice roll; the caption (.feedback) does not. */
+header.controls > *, footer.status > * { transition: opacity var(--t-medio); }
+.app[data-fase="rolling"] header.controls > *, .app[data-fase="returning"] header.controls > *,
+.app[data-fase="rolling"] footer.status > :not(.feedback), .app[data-fase="returning"] footer.status > :not(.feedback) { opacity: .35; }
+
+/* Caption reveal (runs on mount: vitrine only mounts the text with a result). */
+@keyframes revelar { from { opacity: 0; transform: translateY(12px); filter: blur(8px); } to { opacity: 1; transform: none; filter: none; } }
+output strong { animation: revelar var(--t-longo) var(--ease-saida); }
+output span { animation: revelar var(--t-longo) var(--ease-saida) 200ms both; }
+
+/* Charge strength: brighter force line (the vignette is above). */
+.app[data-fase="charging"] progress { box-shadow: 0 0 calc(6px + 14px * var(--forca)) rgba(242, 239, 232, .8); }
+
+/* Wheel fan: the button animates, not .pick (its transform is the position). */
+.roda-anel .pick > button:not(.remove) { opacity: 0; transform: scale(.6);
+  transition: opacity var(--t-medio) var(--ease-saida), transform var(--t-medio) var(--ease-saida); transition-delay: calc(var(--i) * 20ms); }
+.roda[data-open="true"] .roda-anel .pick > button:not(.remove) { opacity: 1; transform: none; }
+
+/* Page turn: the new chapter enters from the spine; a shadow sweeps spine to edge. */
+@keyframes virar { from { transform: perspective(1600px) rotateY(8deg); opacity: .4; } to { transform: none; opacity: 1; } }
+@keyframes sombra-varre { from { transform: translateX(0); opacity: .5; } to { transform: translateX(100%); opacity: 0; } }
+.livro > aside[data-open="true"] { transform-origin: 50% 50%; animation: virar var(--t-medio) var(--ease-saida); }
+.livro > aside[data-open="true"]::after { content: ""; position: absolute; inset: 0 auto 0 50%; width: 50%; pointer-events: none; opacity: 0;
+  background: linear-gradient(90deg, rgba(60, 35, 15, .35), rgba(60, 35, 15, 0)); animation: sombra-varre var(--t-medio) var(--ease-saida) backwards; }
+/* backwards, not both: once swept, the shadow rests invisible at the spine instead of parked past the page edge (that widened the chapter's scroll). */
+@media (max-width: 800px) { .livro > aside[data-open="true"]::after { display: none; } }
+
+/* Reduced motion: only the HUD pieces (the omen CSS belongs to its module). Bands keep their final state. */
+.app[data-movimento="reduzido"] header.controls, .app[data-movimento="reduzido"] header.controls *,
+.app[data-movimento="reduzido"] footer.status, .app[data-movimento="reduzido"] footer.status *,
+.app[data-movimento="reduzido"] .livro, .app[data-movimento="reduzido"] .livro *,
+.app[data-movimento="reduzido"] .roda, .app[data-movimento="reduzido"] .roda *,
+.app[data-movimento="reduzido"] .faixa, .app[data-movimento="reduzido"] .game-area::before, .app[data-movimento="reduzido"] .game-area::after { animation: none; transition: none; }
+
+/* OS-0061: reações */
+/* Vignette border takes the omen's color while it plays (attributes: pressagios contract). */
+.game-area::after { transition: box-shadow var(--t-medio); }
+.game-area[data-omen="crit"]::after { box-shadow: inset 0 0 120px 12px rgba(212,169,63,.45); }
+.game-area[data-omen="fumble"]::after { box-shadow: inset 0 0 120px 12px rgba(200,60,20,.5); }
+.game-area[data-omen="duality"]::after { box-shadow: inset 0 0 120px 12px rgba(212,169,63,.45); animation: dualidade 1000ms steps(1, end) infinite; }
+.game-area[data-kraken]::after { box-shadow: inset 0 0 120px 12px rgba(10,60,50,.6); }
+.game-area[data-storm]::after { box-shadow: inset 0 0 120px 12px rgba(40,70,120,.5); }
+@keyframes dualidade {
+  0% { box-shadow: inset 0 0 120px 12px rgba(212,169,63,.45); }
+  50% { box-shadow: inset 0 0 120px 12px rgba(200,60,20,.5); }
+}
+/* Bands: gold thread on crit, 2px tremor on fumble. */
+@keyframes tremor { 0%, 100% { transform: none; } 25% { transform: translateX(-2px); } 75% { transform: translateX(2px); } }
+.app:has(.game-area[data-omen="crit"]) header.controls { box-shadow: inset 0 -1px rgba(212,169,63,.8); }
+.app:has(.game-area[data-omen="crit"]) footer.status { box-shadow: inset 0 1px rgba(212,169,63,.8); }
+.app:has(.game-area[data-omen="fumble"]) header.controls, .app:has(.game-area[data-omen="fumble"]) footer.status { animation: tremor 300ms linear; }
+/* Caption by omen (vitrine contract: output[data-presagio]). */
+output[data-presagio="crit"] strong { color: #ffd479; text-shadow: 0 0 24px rgba(255,190,80,.8), 0 2px 18px rgba(0,0,0,.95); }
+output[data-presagio="fumble"] strong { color: #ff8a5c; text-shadow: 0 0 24px rgba(200,60,20,.8), 0 2px 18px rgba(0,0,0,.95); }
+output[data-presagio="duality"] strong { background: linear-gradient(90deg, #ffd479, #ff8a5c); background-clip: text; -webkit-background-clip: text; color: transparent; text-shadow: none;
+  filter: drop-shadow(0 0 14px rgba(255,160,70,.7)) drop-shadow(0 2px 12px rgba(0,0,0,.9)); }
+/* Reduced motion: static omen color (duality stays gold), no tremor. */
+.app[data-movimento="reduzido"] .game-area::after, .app[data-movimento="reduzido"] header.controls, .app[data-movimento="reduzido"] footer.status { animation: none; }
+
+/* Reduced motion beats the fumble tremor: same specificity as its :has() rule (0,4,1), and later in the file. */
+.app[data-movimento="reduzido"]:has(.game-area) header.controls, .app[data-movimento="reduzido"]:has(.game-area) footer.status { animation: none; }
+
+/* OS-0067: folhear. The column body does not scroll: its corner turns the page. Only transform and opacity animate. */
+@media (max-width: 800px) {
+  .livro > #table-panel .import-body, .livro > #meus-dados .import-body { overflow-x: hidden; overflow-y: auto; }
+}
+.folhear { position: absolute; bottom: 14px; z-index: 12; width: 56px; height: 56px; min-width: 44px; min-height: 44px; padding: 0; border: 0; border-radius: 0; cursor: pointer;
+  display: flex; align-items: flex-end; font: 700 24px/1 Cinzel, serif; color: var(--rubrica); background: transparent;
+  transition: transform var(--t-curto) var(--ease-saida); }
+.folhear-frente { right: 14px; justify-content: flex-end; transform-origin: 100% 100%;
+  background: linear-gradient(315deg, var(--pergaminho-claro) 50%, transparent 50%); }
+.folhear-tras { left: 14px; justify-content: flex-start; transform-origin: 0 100%;
+  background: linear-gradient(45deg, var(--pergaminho-claro) 50%, transparent 50%); }
+.folhear > span { display: block; padding: 0 9px 6px; transition: transform var(--t-curto) var(--ease-saida); }
+/* the fold: a thin shadow along the diagonal; it deepens (opacity) when the corner lifts */
+.folhear::before { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .55; transition: opacity var(--t-curto) var(--ease-saida); }
+.folhear-frente::before { background: linear-gradient(315deg, transparent 50%, rgba(60, 35, 15, .45) 50%, rgba(60, 35, 15, 0) 62%); }
+.folhear-tras::before { background: linear-gradient(45deg, transparent 50%, rgba(60, 35, 15, .45) 50%, rgba(60, 35, 15, 0) 62%); }
+.folhear:hover, .folhear:focus-visible { transform: scale(1.12); }
+.folhear:hover::before, .folhear:focus-visible::before { opacity: 1; }
+.folhear-frente:hover > span, .folhear-frente:focus-visible > span { transform: translateX(2px); }
+.folhear-tras:hover > span, .folhear-tras:focus-visible > span { transform: translateX(-2px); }
+.folhear:focus-visible { outline: 2px solid var(--tinta); outline-offset: 2px; }
+.folhear-indice { position: absolute; right: 80px; bottom: 22px; z-index: 12; font: italic 14px EB Garamond, serif; color: var(--sepia); pointer-events: none; }
+
+/* The turning sheet sits over the page it leaves and swings around the spine. */
+.folha-virando { position: absolute; top: 14px; bottom: 14px; width: calc(50% - 14px); z-index: 13; pointer-events: none; backface-visibility: visible; opacity: 0;
+  animation-duration: var(--t-longo); animation-timing-function: var(--ease-cine); animation-fill-mode: both; }
+.folha-virando[data-sentido="frente"] { left: 50%; transform-origin: left center; border-radius: 0 3px 3px 0;
+  background: linear-gradient(90deg, var(--pergaminho-escuro), var(--pergaminho-claro)); animation-name: folhear-frente; }
+.folha-virando[data-sentido="tras"] { right: 50%; transform-origin: right center; border-radius: 3px 0 0 3px;
+  background: linear-gradient(270deg, var(--pergaminho-escuro), var(--pergaminho-claro)); animation-name: folhear-tras; }
+.folha-virando::before, .folha-virando::after { content: ""; position: absolute; inset: 0; border-radius: inherit; opacity: 0; animation: inherit; animation-fill-mode: both; }
+.folha-virando::before { box-shadow: 0 0 40px rgba(40, 20, 8, .35); animation-name: folha-sombra; }
+.folha-virando[data-sentido="frente"]::after { background: linear-gradient(90deg, rgba(40, 20, 8, .7), rgba(40, 20, 8, 0)); }
+.folha-virando[data-sentido="tras"]::after { background: linear-gradient(270deg, rgba(40, 20, 8, .7), rgba(40, 20, 8, 0)); }
+.folha-virando::after { animation-name: folha-luz; }
+.import-body[data-folheando] { animation: folha-esmaece var(--t-longo) linear; }
+@keyframes folhear-frente { 0% { transform: perspective(5000px) rotateY(0deg); opacity: 0; } 8% { opacity: 1; } 92% { opacity: 1; } 100% { transform: perspective(5000px) rotateY(-180deg); opacity: 0; } }
+@keyframes folhear-tras { 0% { transform: perspective(5000px) rotateY(0deg); opacity: 0; } 8% { opacity: 1; } 92% { opacity: 1; } 100% { transform: perspective(5000px) rotateY(180deg); opacity: 0; } }
+@keyframes folha-luz { 0% { opacity: 0; } 50% { opacity: .45; } 100% { opacity: 0; } }
+@keyframes folha-sombra { 0%, 15% { opacity: 0; } 30%, 70% { opacity: 1; } 85%, 100% { opacity: 0; } }
+@keyframes folha-esmaece { 0% { opacity: 1; } 40%, 60% { opacity: 0; } 100% { opacity: 1; } }
+.app[data-movimento="reduzido"] .folha-virando { display: none; }
+.app[data-movimento="reduzido"] .import-body[data-folheando] { animation: none; }
+.app[data-movimento="reduzido"] .folhear, .app[data-movimento="reduzido"] .folhear > span, .app[data-movimento="reduzido"] .folhear::before { transition: none; }

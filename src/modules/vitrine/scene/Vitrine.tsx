@@ -6,11 +6,11 @@ import { Text } from 'troika-three-text';
 import { customDie, dadoNaRaiz, FONT, FONT_URL, gemaNaRaiz, gemColor, inkColorOf, polyhedron, RADIUS, sombraNaGema, SYMBOL, symbolGeometry } from '../../dados/index.ts';
 import { isCustom, MAX_DICE } from '../../regras/index.ts';
 import { easeOut, type Pose, type Quat, type Vec3 } from '../../../shared/math.ts';
-import { movimentoReduzido, renderizadorPorSoftware } from '../../../shared/plataforma/index.ts';
+import { movimentoReduzido, perfilLeve, renderizadorPorSoftware } from '../../../shared/plataforma/index.ts';
 import { arremesso, moverDado, registroDeCorpos } from '../../arremesso/index.ts';
 import { CAPTION, showcasePoses } from '../domain/showcase.ts';
 import { highlightAt, HL_SIZE, SHOW } from '../domain/highlight.ts';
-import { glowMesh } from '../domain/inkGlow.ts';
+import { glowMesh, MESMA_FACE } from '../domain/inkGlow.ts';
 import { intensidadeDoDestaque } from '../domain/destaque.ts';
 import { setShowcased, vitrine } from '../store.ts';
 import { indicesComPercurso, movimentoNoPresagio, presagio, presagioTocando } from '../../pressagios/index.ts';
@@ -22,7 +22,8 @@ type Mark = { local: Vector3; turn: Quaternion; start: Vector3; face: Vector3; s
 export function Vitrine() {
   const { camera, scene } = useThree();
   const mode = useRef('');
-  // The highlight light: always mounted (the light count never changes), off at intensity 0, no shadow.
+  // The highlight light: mounted always in the full profile (the light count never changes), off at intensity 0, no shadow;
+  // not mounted in the light profile (ADR 0011), where `destacar` exits early on the null ref.
   const luz = useRef<PointLight>(null);
   const luzAntes = useRef(0);
   const showcase = useRef<{ at: number; throwId: number; from: Pose[]; to: Pose[]; kraken: number[]; storm: number[]; omenAt: number; gems: (Object3D | undefined)[]; marks: Mark[]; above: boolean[]; glows: (Mesh | null)[]; still?: boolean; landed?: boolean } | null>(null);
@@ -109,6 +110,8 @@ export function Vitrine() {
         const still = movimentoReduzido();
         // An engraved free-form die is seen from above, as it lay, and its engraving lights up.
         const above = state.dice.map((k, i) => !still && isCustom(k) && !!customDie(k)?.printed && !!polys[i].readsDown);
+        // An engraved standard-shape die (not the d4, which reads a vertex) keeps its pose: the rolled face's own engraving lights.
+        const gravadoPadrao = state.dice.map((k, i) => !still && isCustom(k) && !!customDie(k)?.printed && !polys[i].readsDown && polys[i].shape !== 'd4' && polys[i].shape !== 'coin');
         const to = still ? from : showcasePoses(polys, raw,
           { position: cam.position, quaternion: cam.quaternion, fov: cam.fov, aspect: cam.aspect }, above);
         // A d100 1 is carried off and brought back by the kraken; a d100 100 drifts to you in the storm.
@@ -133,13 +136,14 @@ export function Vitrine() {
         });
         const gems = current.map((_, i) => gemaNaRaiz(scene, i));
         const glows = above.map((a, i) => {
-          if (!a) return null;
+          if (!a && !gravadoPadrao[i]) return null;
           const die = customDie(state.dice[i] as `custom:${string}`)!, group = dadoNaRaiz(scene, i);
           const ink = inkColorOf(die, gemColor(state.dice[i]));
-          const down = polys[i].labelList.find((l) => l.value === raw[i])!.normal;
-          const glow = gems[i] && group ? glowMesh(gems[i], group, polys[i].faces, down, ink ? `#${new Color(ink).lerp(new Color('#FFE38A'), 0.6).getHexString()}` : '#FFE38A', `${state.dice[i]}|${raw[i]}`) : null;
+          const normal = polys[i].labelList.find((l) => l.value === raw[i])!.normal;
+          const down: Vec3 = a ? normal : [-normal[0], -normal[1], -normal[2]]; // standard shape: "up" means the rolled face itself
+          const glow = gems[i] && group ? glowMesh(gems[i], group, polys[i].faces, down, ink ? `#${new Color(ink).lerp(new Color('#FFE38A'), 0.6).getHexString()}` : '#FFE38A', `${state.dice[i]}|${raw[i]}`, a ? undefined : MESMA_FACE) : null;
           if (glow) { glow.name = `ink-glow-${i}`; group!.add(glow); numbers[i].visible = glyphs[i].visible = false; }
-          else marks[i].scale = FONT.livre / HL_SIZE; // no engraving found: the number floats in front of the die
+          else if (a) marks[i].scale = FONT.livre / HL_SIZE; // no engraving found: the number floats in front of the die
           return glow;
         });
         showcase.current = { at: now, throwId: state.throwId, from, to, kraken, storm, omenAt: state.omenAt, marks, above, glows, still, gems };
@@ -180,7 +184,8 @@ export function Vitrine() {
           const p = new Vector3(...movimento.pose.p), q = new Quaternion(...movimento.pose.q);
           sombraNaGema(gems[i], ms <= movimento.sombra);
           pin(i, p, q);
-          draw(i, marks[i].local.clone().applyQuaternion(q).add(p), q, 1, movimento.revela);
+          if (glows[i]) (glows[i]!.material as MeshBasicMaterial).opacity = movimento.revela; // engraved: the engraving lights, no loose number
+          else draw(i, marks[i].local.clone().applyQuaternion(q).add(p), q, 1, movimento.revela);
           if (ms < movimento.fim) done = false;
           return;
         }
@@ -193,6 +198,10 @@ export function Vitrine() {
         const q = new Quaternion(...from[i].q).slerp(new Quaternion(...to[i].q), e);
         // Landed: pin the exact pose every frame (physics steps can lag frames on slow GPUs).
         pin(i, p, q, t === 1);
+        if (!above[i] && glows[i]) { // standard shape, engraved: the rolled face's own engraving glows, no loose number
+          (glows[i]!.material as MeshBasicMaterial).opacity = t * highlightAt(now - at, i, marks[i].start, marks[i].face, marks[i].scale).glow;
+          return;
+        }
         if (above[i]) { // seen from above: its engraving glows, or (none found) the number floats in front of it
           const glow = glows[i];
           if (glow) (glow.material as MeshBasicMaterial).opacity = t * highlightAt(now - at, i, marks[i].start, marks[i].face, marks[i].scale).glow;
@@ -213,7 +222,7 @@ export function Vitrine() {
   return (
     <>
       <group ref={numbersGroup} name="result-highlights" />
-      <pointLight ref={luz} color="#ffe8c0" intensity={0} distance={8} decay={2} />
+      {!perfilLeve() && <pointLight ref={luz} color="#ffe8c0" intensity={0} distance={8} decay={2} />}
     </>
   );
 }

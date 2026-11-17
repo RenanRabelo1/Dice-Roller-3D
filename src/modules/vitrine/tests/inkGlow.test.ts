@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { BufferGeometry, Float32BufferAttribute, Group, Mesh } from 'three';
-import { glowMesh, upInk } from '../index.ts';
+import { glowMesh, MESMA_FACE, upInk } from '../index.ts';
 
 const unit = (deg: number): [number, number, number] => [Math.sin((deg * Math.PI) / 180), Math.cos((deg * Math.PI) / 180), 0]; // deg from straight up
 const faceAt = (deg: number) => ({ normal: unit(deg), center: unit(deg) });
@@ -13,6 +13,20 @@ describe('upInk', () => {
     const faces = [faceAt(55), faceAt(90), faceAt(0)];
     expect(upInk(centers, Uint8Array.from([1, 1, 1, 1]), faces, [0, -1, 0])).toEqual([0, 1, 2]);
     expect(upInk(centers, Uint8Array.from([1, 0, 1, 1]), faces, [0, -1, 0])).toEqual([0, 2]); // plain triangles never
+  });
+});
+
+describe('upInk, same face', () => {
+  // two neighbouring faces 42° apart (as on a d20), one inked triangle just under each
+  const faces = [faceAt(0), faceAt(42)];
+  const centers = [0, 0.97, 0, ...unit(42).map((v) => v * 0.97)];
+  const mask = Uint8Array.from([1, 1]);
+  const down = [0, -1, 0] as [number, number, number]; // the rolled face A rests "up"
+  it('lights only the rolled face with the closed cone', () => {
+    expect(upInk(centers, mask, faces, down, MESMA_FACE)).toEqual([0]);
+  });
+  it('lights the neighbour too with the default cone', () => {
+    expect(upInk(centers, mask, faces, down)).toEqual([0, 1]);
   });
 });
 

@@ -5,8 +5,7 @@ import { Chat, RodaDeDados } from '../modules/selecao/cena.ts';
 // Importacao mounts the wizard on demand: the importer (and the model loaders) only load when the player opens it.
 import { Importacao, MeusDados } from '../modules/meus-dados/cena.ts';
 import { PainelDaMesa } from '../modules/mesa/cena.ts';
-
-type Capitulo = 'chat' | 'mesa' | 'meus' | 'importar';
+import { Folheador, type Capitulo } from './Folheador.tsx';
 
 export function Painel() {
   const phase = useArremesso((s) => s.gesture.phase);
@@ -30,11 +29,13 @@ export function Painel() {
             aria-controls="dice-chat" aria-keyshortcuts="C" onClick={() => alternar('chat')}>Chat <kbd>C</kbd></button>
         </nav>
       </header>
+      {capitulo && <div className="livro-veu" aria-hidden="true" />}
       <div className="livro" data-aberto={capitulo !== null}>
         <PainelDaMesa aberto={capitulo === 'mesa'} onAlternar={() => alternar('mesa')} onFechar={() => fechar('mesa')} />
         <MeusDados aberto={capitulo === 'meus'} onFechar={() => fechar('meus')} onImportar={() => setCapitulo('importar')} />
         <Importacao aberto={capitulo === 'importar'} onFechar={() => fechar('importar')} onSalvo={() => setCapitulo('meus')} />
         <Chat aberto={capitulo === 'chat'} onAlternar={() => alternar('chat')} onFechar={() => fechar('chat')} />
+        <Folheador capitulo={capitulo} />
       </div>
       <footer className="status panel">
         <ModoDeRolagem />

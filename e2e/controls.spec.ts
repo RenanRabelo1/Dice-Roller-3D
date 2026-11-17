@@ -102,3 +102,46 @@ test('"Meus dados" with nothing imported says so, and "Forjar um dado novo" turn
   await expect(meus).toHaveAttribute('data-open', 'false');
   await expect(capitulo(page, 'import-die')).toHaveAttribute('data-open', 'true');
 });
+
+test('no chapter scrolls sideways once its page has turned', async ({ page }) => {
+  for (const [nome, id] of [['Mesa', 'table-panel'], ['Meus dados', 'meus-dados'], ['Importar dado', 'import-die'], ['Chat', 'dice-chat']]) {
+    await botao(page, nome).click();
+    await expect(capitulo(page, id)).toHaveAttribute('data-open', 'true');
+    await page.waitForTimeout(600); // past the page turn (--t-medio)
+    expect(await capitulo(page, id).evaluate((el) => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(1);
+  }
+});
+
+test('a chapter that does not fit turns its pages instead of scrolling', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 560 });
+  await botao(page, 'Mesa').click();
+  await expect(capitulo(page, 'table-panel')).toHaveAttribute('data-open', 'true');
+  await page.waitForTimeout(600); // past the chapter's page turn
+  const corpo = page.locator('#table-panel .import-body');
+  const proxima = page.getByRole('button', { name: 'Próxima página' });
+  const anterior = page.getByRole('button', { name: 'Página anterior' });
+  const indice = page.locator('.folhear-indice');
+  expect(await corpo.evaluate((el) => getComputedStyle(el).overflowX)).toBe('hidden');
+  await expect(proxima).toBeVisible();
+  await expect(anterior).toHaveCount(0);
+  await expect(indice).toHaveText(/^folha 1 de ([2-9]|\d{2,})$/);
+  const folha = () => corpo.evaluate((el) => el.clientWidth + parseFloat(getComputedStyle(el).columnGap));
+
+  await proxima.click();
+  await page.waitForTimeout(1000); // the turn lasts --t-longo
+  expect(Math.abs((await corpo.evaluate((el) => el.scrollLeft)) - (await folha()))).toBeLessThanOrEqual(2);
+  await expect(indice).toHaveText(/^folha 2 de /);
+  await expect(anterior).toBeVisible();
+
+  await anterior.click();
+  await page.waitForTimeout(1000);
+  expect(await corpo.evaluate((el) => el.scrollLeft)).toBe(0);
+
+  // Reduced motion: the page changes at once and no sheet is drawn.
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.waitForFunction(() => window.__dice.state().reducedMotion === true);
+  await proxima.click();
+  await expect(page.locator('.folha-virando')).toHaveCount(0);
+  await expect(indice).toHaveText(/^folha 2 de /);
+  expect(Math.abs((await corpo.evaluate((el) => el.scrollLeft)) - (await folha()))).toBeLessThanOrEqual(2);
+});

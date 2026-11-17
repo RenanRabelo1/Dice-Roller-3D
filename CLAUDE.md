@@ -22,7 +22,7 @@ As regras 1, 2 e 4 são verificadas por `tests/arquitetura/`, que roda no `npm t
 | Pasta | O que é |
 |---|---|
 | `src/main.tsx`, `src/App.tsx`, `src/app/` | A casca, raiz de composição. Não é módulo e nenhum módulo a importa. `app/Cena.tsx` monta a cena; `app/Painel.tsx` compõe as faixas, o livro e a roda com os componentes dos módulos; `app/testHook.ts` monta o `window.__dice` (ADR 0008) |
-| `src/shared/` | Infraestrutura: `events.ts`, `math.ts`, `db.ts` (`defineStore`), `plataforma/` (falha, Guard, WebGL, software, movimento reduzido), `modelos3d/` (GLB/STL com limites por parâmetro) |
+| `src/shared/` | Infraestrutura: `events.ts`, `math.ts`, `db.ts` (`defineStore`), `plataforma/` (falha, Guard, WebGL, software, perfil leve/completo, movimento reduzido), `modelos3d/` (GLB/STL com limites por parâmetro) |
 | `src/modules/<m>/` | Os módulos, criados a cada extração: `CLAUDE.md`, `index.ts`, `contracts.ts`, `tests/` |
 | `server/` | A API de histórico, um pacote à parte |
 | `tests/`, `e2e/` | A rede de segurança, os testes de arquitetura e os E2E do sistema inteiro |

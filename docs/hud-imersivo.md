@@ -202,3 +202,79 @@ Tudo cabe no monólito modular, sem módulo novo, sem item novo em `shared/` e s
 - **Som:** sem pedido.
 - **Partículas, poeira e névoa no ar:** custo de cena sem pedido.
 - **Mudar o fundo padrão da mesa:** decisão do João.
+
+## Parte 2 concluída na OS-0061
+
+A casca reage aos presságios só por CSS (vinheta colorida, filete dourado no crítico, tremor na falha, legenda por `data-presagio`; movimento reduzido sem tremor nem alternância). Os E2E novos estão em `e2e/hud.spec.ts`. **Corte de luz: nenhum.** `coin-performance` passou com as 4 luzes; o `coin-software` passou na rodada da OS-0061, mas falhou duas vezes seguidas no E2E focado do marco 2 (3 e 14 quadros no recolhimento, mínimo 5 e 15). Isso abriu a [parte 3](#parte-3-o-mesmo-efeito-mais-leve). O `omen.spec.ts` falha de forma intermitente pelo orçamento de 6 s da busca do botão de teste, também no `main` sem o HUD (5 de 15 lá, 3 de 15 aqui): não é regressão (armadilhas.md e backlog).
+
+## Parte 3: o mesmo efeito, mais leve
+
+**Por quê.** A parte 2 deixou o aparelho fraco abaixo do orçamento de quadro: o `coin-software.spec.ts`, que simula um aparelho sem placa de vídeo, falhou duas vezes seguidas no marco 2. O custo não está no tamanho do código. Está em três coisas que pesam a cada quadro ou a cada pixel:
+
+| Custo | De onde vem | Por que pesa |
+|---|---|---|
+| 3 luzes pontuais novas (vela, carga, destaque) | OS-0057, 0058, 0060 | O shader de todo material calcula todas as luzes em cada pixel, **mesmo com intensidade 0**. A cena foi de 1 para 4 luzes pontuais. "Apagar com intensidade 0" evita recompilar, mas não economiza o cálculo. |
+| Vinheta da força | OS-0056 | O `radial-gradient` da tela inteira depende de `--forca`, que muda a cada quadro da carga: repintura da área de jogo inteira por quadro. |
+| Faixas de cinema | OS-0056 | Animam `background-size`: repintura da área de jogo inteira durante a transição. |
+
+**A regra do João:** a versão completa não perde nada (animação, efeito ou função). O aparelho fraco ganha, no máximo, uma versão leve.
+
+**Três categorias, e só uma muda o que se vê, e só no aparelho fraco:**
+
+| Categoria | O que muda | Visual na versão completa |
+|---|---|---|
+| A. Mesmo efeito, implementação barata | Faixas viram dois elementos que animam `transform: scaleY` (compostas pela GPU, sem repintura). A vinheta da força vira uma camada desenhada uma vez, com `opacity: var(--forca)`. | Igual nas faixas. Equivalente na vinheta: a interpolação passa a ser por opacidade entre "solta" e "apertada", e não pelo raio do gradiente. O orquestrador confere por captura antes e depois. |
+| B. Perfil leve | Em aparelho fraco, as 3 luzes decorativas **não são montadas**. Fica a luz do presságio (que já existia antes do HUD), todos os presságios, o HUD, o livro, a roda e as reações. | Nenhum. O perfil completo continua com as 4 luzes. |
+| C. Auditoria de código morto e repetido | Só relatório, sem mudar código. O João decide o que cortar. | Nenhum. |
+
+### O perfil
+
+- **Dono:** `shared/plataforma`, ao lado de `renderizadorPorSoftware()`. Função `perfil(): 'completo' | 'leve'` e atalho `perfilLeve()`. Item novo em `shared/`: [ADR 0011](adr/0011-perfil-leve.md).
+- **Decidido uma vez, antes do canvas.** O `hasWebGL()` já cria um contexto de teste no `useState` do `App`, antes do `<Canvas>`. Ele passa a ler ali o nome do renderizador. Com isso o perfil está fechado antes de qualquer luz montar e antes do `Show.compile`. O número de luzes nunca muda durante o uso (a regra de armadilhas.md continua valendo).
+- **Critério conservador** (na dúvida, completo):
+  1. `?perfil=leve` ou `?perfil=completo` no endereço manda, para testar;
+  2. renderizador por software (SwiftShader, llvmpipe, "software") → leve;
+  3. `navigator.deviceMemory <= 2` → leve;
+  4. `navigator.deviceMemory <= 4` **e** `navigator.hardwareConcurrency <= 4` → leve;
+  5. o resto → completo. `deviceMemory` só existe no Chromium; sem ele, conta como desconhecido e não puxa para leve.
+- **A casca escreve `data-perfil` no `.app`**, junto do `data-fase`, para o CSS (e para os E2E).
+- **Cada luz é desligada pelo módulo dono**, lendo `perfilLeve()` da porta de `shared/plataforma`: a vela (`mesa`), a carga (`arremesso`) e o destaque (`vitrine`). A luz do presságio não muda.
+- **Os E2E rodam em SwiftShader, então caem no leve.** Para não perder a cobertura do completo, o teste de "número fixo de luzes" do `hud.spec.ts` roda também com `?perfil=completo`.
+
+### Ordens da parte 3
+
+| Ordem | Dono | Entrega | Depende de |
+|---|---|---|---|
+| [OS-0062](ordens/0062-plataforma-perfil-e-casca-barata.md) | `shared/plataforma` + casca | o perfil, o ADR 0011, `data-perfil`, as faixas e a vinheta baratas, E2E | — |
+| [OS-0063](ordens/0063-mesa-vela-no-perfil.md) | `mesa` | a vela não monta no leve | OS-0062 |
+| [OS-0064](ordens/0064-arremesso-carga-no-perfil.md) | `arremesso` | a luz da carga não monta no leve | OS-0062 |
+| [OS-0065](ordens/0065-vitrine-destaque-no-perfil.md) | `vitrine` | o destaque não monta no leve | OS-0062 |
+| [OS-0066](ordens/0066-auditoria-codigo.md) | nenhum (só leitura) | relatório de código morto e repetido | — |
+
+OS-0062 e OS-0066 rodam juntas. OS-0063 a 0065 rodam juntas depois da 0062.
+
+**Aceite da parte 3** (orquestrador):
+- `coin-software` passa duas vezes seguidas, sozinho, com a máquina livre; `coin-performance`, `hud`, `controls` e `roll` passam.
+- Captura da cena real (com placa de vídeo, no navegador do app, `?perfil=completo`) antes e depois da OS-0062, na mão, carregando, rolando e no resultado com presságio: lado a lado, sem diferença visível fora da vinheta da força.
+- `screens.spec.ts` (d4/d10 sem tinta em 1440 px no marco 2): o orquestrador bissecta entre o fim do marco 1 (`4dd61ab`) e a OS-0058 antes de aceitar. Se for a luz base do `Cena.tsx`, vira ordem de correção à parte.
+
+**Fora da parte 3:** escolha manual de qualidade na interface (fica para quando alguém pedir), trocar o perfil durante o uso e mudar qualquer efeito do perfil completo.
+
+## Parte 3 concluída
+
+OS-0062 a 0066 integradas.
+- **Aparelho fraco:** o `coin-software` passa em todas as rodadas, e o `omen` passou 15 de 15 com a cena mais leve.
+- **E2E completo:** 17 de 17 specs. O `table.spec.ts:34` estourou o tempo uma vez e passou ao repetir.
+- **`screens.spec.ts`:** a falha do d4/d10 não voltou depois do perfil leve, então não foi preciso bisseccionar.
+- **Correções na conferência:** o campo de texto do livro com o estilo do pergaminho (O-2 da auditoria), a sombra da virada sem alargar a rolagem do capítulo e o movimento reduzido desligando o tremor da falha (O-1).
+- **Pendente de decisão do João:** a limpeza sugerida em [auditoria-codigo.md](auditoria-codigo.md).
+- **Comparação visual da vinheta da força** no perfil completo: o João avalia na cena real.
+
+## Folhear: o livro não rola
+
+(OS-0067) Mesa e Meus dados têm o corpo em duas colunas com altura fixa. Quando o conteúdo não cabe, o navegador cria colunas novas à direita e a rolagem vira uma barra horizontal, o que quebra a imersão. No desktop (≥ 801 px) o corpo agora é `overflow: hidden` e quem anda é o `scrollLeft`, uma folha (uma página dupla, `clientWidth + column-gap`) por vez. No celular o capítulo continua em uma coluna e rola na vertical.
+
+- **Quem faz:** o `Folheador` (`src/app/Folheador.tsx`), dentro do `.livro`; a conta é pura, em `src/app/folhas.ts`. Ele só pagina se o `column-count` do `.import-body` do capítulo aberto for maior que 1, e mede com `ResizeObserver`, `MutationObserver` e o evento `scroll`. Trocar de capítulo ou fechar o livro volta à folha 1.
+- **A orelha:** um triângulo de 56×56 px no canto inferior direito (próxima) e no esquerdo (anterior), com a seta em Cinzel na cor da rubrica e o indicador `folha 1 de N` ao lado. Hover e foco levantam o canto (`scale(1.12)`). Só Tab e Enter; as setas do teclado são da mira.
+- **A virada:** `.folha-virando` gira em `rotateY` em volta da lombada em `--t-longo` com `--ease-cine`, com a luz (`::after`) e a sombra projetada (`::before`). O corpo esmaece (`data-folheando`) e o `scrollLeft` troca na metade, quando a folha está de lado. Só `transform` e `opacity`. Clique durante a virada é ignorado.
+- **Movimento reduzido:** sem folha e sem esmaecer; o `scrollLeft` troca na hora.
