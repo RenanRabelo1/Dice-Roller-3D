@@ -29,7 +29,7 @@ export type OmenTest = 'lightning' | 'fire' | 'kraken' | 'storm' | 'duality';
 export interface Recording { frames: Pose[][]; raw: number[]; results: number[]; timedOut: boolean; escaped: boolean; recovered: boolean }
 // `customs`: the imported dice of the selection, because the worker has no registry of its own.
 // `bias` (dev test buttons only): look for a roll that plays this omen; `kinds` from omenKinds.
-export interface RollRequest { dice: DieKind[]; start: Pose[]; launch: Launch; customs: Record<CustomKind, Polyhedron>; bias?: { test: OmenTest; kinds: DieKind[] } }
+export interface RollRequest { dice: DieKind[]; start: Pose[]; launch: Launch; customs: Record<CustomKind, Polyhedron>; bias?: { test: OmenTest; kinds: DieKind[] }; orcamento?: { worker: number; local: number } }
 export type RollResponse = { throwId: number } & ({ rec: Recording } | { error: string });
 // The poses of the dice just before and just after a launch was applied (the test hook's `launches().last`).
 export interface UltimoLancamento { before: Pose[]; after: Pose[] }

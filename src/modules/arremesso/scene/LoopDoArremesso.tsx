@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { useBeforePhysicsStep, type RapierRigidBody } from '@react-three/rapier';
 import { customsOf } from '../../dados/index.ts';
-import { registrarFalha } from '../../../shared/plataforma/index.ts';
+import { registrarFalha, renderizadorPorSoftware } from '../../../shared/plataforma/index.ts';
 import type { OmenTest, Recording, RollRequest, RollResponse } from '../contracts.ts';
 import { bodyStates } from '../domain/apply.ts';
-import { BIAS_BUDGET, presimulateFor } from '../domain/presim.ts';
+import { BIAS_BUDGET, orcamentoDaBusca, presimulateFor } from '../domain/presim.ts';
 import { omenKinds } from '../domain/vies.ts';
 import { criarWorkerDePresimulacao } from '../index.ts';
 import { arremesso } from '../store.ts';
@@ -24,7 +24,7 @@ export function LoopDoArremesso({ omenTest: testeAtual }: { omenTest: () => Omen
     worker.current?.terminate(); worker.current = null;
     const pending = play.current, state = arremesso();
     if (pending && !pending.rec && pending.throwId === state.throwId && state.gesture.phase === 'rolling') {
-      try { pending.rec = presimulateFor(pending.request, BIAS_BUDGET.local); } catch (error) {
+      try { pending.rec = presimulateFor(pending.request, pending.request.orcamento?.local ?? BIAS_BUDGET.local); } catch (error) {
         console.error(error);
         state.reiniciar();
         registrarFalha('physics');
@@ -56,15 +56,15 @@ export function LoopDoArremesso({ omenTest: testeAtual }: { omenTest: () => Omen
     if (play.current?.throwId !== throwId) {
       if (current.length !== dice.length) return;
       const start = bodyStates(current).map(({ p, q }) => ({ p, q }));
-      const request: RollRequest = { dice, start, launch, customs: customsOf(dice), ...(omenTest && { bias: { test: omenTest, kinds: omenKinds(dice) } }) };
+      const request: RollRequest = { dice, start, launch, customs: customsOf(dice), ...(omenTest && { bias: { test: omenTest, kinds: omenKinds(dice) }, orcamento: orcamentoDaBusca(renderizadorPorSoftware()) }) };
       play.current = { throwId, request, rec: null, at: 0, sent: performance.now() };
       registrarFalha(null);
       if (worker.current) worker.current.postMessage(request);
-      else play.current.rec = presimulateFor(request, BIAS_BUDGET.local);
+      else play.current.rec = presimulateFor(request, request.orcamento?.local ?? BIAS_BUDGET.local);
       registrarLancamento({ before: start, after: bodyStates(current).map(({ p, q }) => ({ p, q })) });
     }
     const { rec } = play.current;
-    if (!rec) { if (performance.now() - play.current.sent > WORKER_TIMEOUT + (play.current.request.bias ? BIAS_BUDGET.worker : 0)) fallback(); return; }
+    if (!rec) { if (performance.now() - play.current.sent > WORKER_TIMEOUT + (play.current.request.bias ? play.current.request.orcamento?.worker ?? BIAS_BUDGET.worker : 0)) fallback(); return; }
     rec.frames[play.current.at].forEach(({ p, q }, i) => {
       current[i].setNextKinematicTranslation({ x: p[0], y: p[1], z: p[2] });
       current[i].setNextKinematicRotation({ x: q[0], y: q[1], z: q[2], w: q[3] });

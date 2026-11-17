@@ -13,7 +13,7 @@ self.onmessage = async ({ data }: MessageEvent<RollRequest>) => {
     const error = await ready;
     if (error) throw new Error(error);
     for (const kind of Object.keys(customs) as CustomKind[]) registerPoly(kind, customs[kind]);
-    response = { throwId: launch.throwId, rec: presimulateFor(data, BIAS_BUDGET.worker) };
+    response = { throwId: launch.throwId, rec: presimulateFor(data, data.orcamento?.worker ?? BIAS_BUDGET.worker) };
   } catch (error) {
     response = { throwId: launch.throwId, error: String(error) };
   }
