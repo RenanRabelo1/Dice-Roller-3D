@@ -18,14 +18,14 @@ Mostrar o resultado depois de `settled`. Os dados voam até a frente da câmera 
 - Painel (`<PainelDoResultado/>`): o total (`regras.total`) e o detalhe só quando há resultado e nenhum presságio tocando. Detalhe: o valor de cada dado, e "Cara"/"Coroa" nas moedas; só moedas: "Cara", "2 caras, 1 coroa". `data-testid="result"`, `aria-live`; `data-presagio="crit|fumble|duality"` (`omenKind`) quando há texto e o presságio é do mesmo `throwId`.
 
 ## Expõe
-- `index.ts`: `vitrine()` (o `showcased` da spec é `vitrine().showcased`), `vitrineConcluida(throwId)` (a casca usa para o DPR e o panorama), `setShowcased`; `showcasePoses`, `CAPTION`, `highlightAt`, `HL_SIZE`, `SHOW`, `glowMesh`, `upInk`, `UP_INK`, `MESMA_FACE`, `resultText`; `inspecao(cena)` → `{ highlights(), inkGlow(i) }` (os campos do `window.__dice`).
+- `index.ts`: `vitrine()` (o `showcased` da spec é `vitrine().showcased`), `vitrineConcluida(throwId)` (a casca usa para o DPR e o panorama), `resultText` (um teste da raiz usa); `inspecao(cena)` → `{ highlights(), inkGlow(i) }` (os campos do `window.__dice`). O resto (`setShowcased`, `showcasePoses`, `CAPTION`, `highlightAt`, `HL_SIZE`, `SHOW`, `glowMesh`, `upInk`, `MESMA_FACE`) fica nos arquivos de `domain/` e `store.ts`, que só os testes do módulo importam.
 - Contrato do DOM: `data-presagio` no `<output data-testid="result">`; consumidor, o CSS da casca (OS-0061).
-- Tipos (`contracts.ts`): `EstadoDaVitrine`, `TextoDoPainel`, `VitrineInspecionada`, `DestaqueInspecionado`, `BrilhoInspecionado`.
-- `cena.ts`: `useVitrine(sel)`; `<Vitrine/>` (a casca monta dentro do `<Physics>`, logo depois de `<MaoDoArremesso/>`); `<PainelDoResultado/>` (o `Painel` da casca, `src/app/Painel.tsx`, monta em `.feedback`).
+- Tipos (`contracts.ts`): `EstadoDaVitrine` e `VitrineInspecionada`, só dentro do módulo (nenhum fora da porta).
+- `cena.ts`: `<Vitrine/>` (a casca monta dentro do `<Physics>`, logo depois de `<MaoDoArremesso/>`); `<PainelDoResultado/>` (o `Painel` da casca, `src/app/Painel.tsx`, monta em `.feedback`).
 - Os nomes `result-highlights` (o grupo dos números) e `ink-glow-i` (o brilho) existem só aqui; de fora, use `inspecao`.
 
 ## Consome
-- `arremesso`: `arremesso()` (fase, `throwId`, `raw`, `ready`), `registroDeCorpos`, `moverDado`; no painel, `useArremesso` (`cena.ts`).
+- `arremesso`: `arremesso()` (fase, `throwId`, `raw`, `ready`), `corposVivos()`, `moverDado`; no painel, `useArremesso` (`cena.ts`).
 - `pressagios`: `presagio()` (`omen`, `omenAt`), `presagioTocando()`, `indicesComPercurso`, `movimentoNoPresagio`; no painel, `usePresagioTocando` e `usePresagio` (`cena.ts`).
 - `dados`: `polyhedron`, `customDie`, `symbolGeometry`, `FONT`, `FONT_URL`, `SYMBOL`, `RADIUS`, `RAIO_MAXIMO`, `gemColor`, `inkColorOf`, `dadoNaRaiz`, `gemaNaRaiz`, `sombraNaGema`, `allKinds`, `nomeDoTipo`.
 - `regras`: `total`, `isCustom`, `MAX_DICE`, `omenKind`.

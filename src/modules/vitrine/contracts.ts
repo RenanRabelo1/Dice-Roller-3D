@@ -6,13 +6,10 @@ export interface EstadoDaVitrine {
   setShowcased: (throwId: number) => void;
 }
 
-// The text of the result panel: the total and, with more than one die, the detail per kind.
-export interface TextoDoPainel { total: string; detail: string }
-
 // What the test hook (`window.__dice`) reads of the showcase's scene, through `inspecao(cena)` (OS-0044): the rolled
 // numbers over the dice (a symbol has no text) and the lit engraving of die `index`, if it has one.
-export interface DestaqueInspecionado { text: string | null; visible: boolean; position: [number, number, number] }
-export interface BrilhoInspecionado { visible: boolean; triangles: number; opacity: number }
+interface DestaqueInspecionado { text: string | null; visible: boolean; position: [number, number, number] }
+interface BrilhoInspecionado { visible: boolean; triangles: number; opacity: number }
 export interface VitrineInspecionada {
   highlights(): DestaqueInspecionado[];
   inkGlow(index: number): BrilhoInspecionado | null;

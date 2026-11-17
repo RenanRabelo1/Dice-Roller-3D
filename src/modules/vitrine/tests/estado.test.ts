@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { setShowcased, vitrine, vitrineConcluida } from '../index.ts';
+import { setShowcased, vitrine, vitrineConcluida } from '../store.ts';
 
 afterEach(() => setShowcased(0));
 

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { PerspectiveCamera, Quaternion, Vector3 } from 'three';
 import { polyhedron } from '../../dados/index.ts';
 import { KRAKEN, krakenDieAt, STORM, stormAt, stormDieAt } from '../../pressagios/index.ts';
-import { showcasePoses } from '../index.ts';
+import { showcasePoses } from '../domain/showcase.ts';
 import type { Pose } from '../../../shared/math.ts';
 
 const camera = (aspect: number) => {
