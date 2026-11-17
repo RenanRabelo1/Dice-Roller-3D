@@ -21,7 +21,7 @@ export const SPIN = { min: 10, max: 25 };
 export const SETTLE = { timeoutSteps: 240, calmSteps: 12, speed: 0.08, spin: 0.15 };
 export const HAND = { y: 3, z: 3, spacing: 1.9, cols: 5, pull: 0.6 };
 
-export interface Box {
+interface Box {
   kind: 'floor' | 'wall' | 'lid';
   center: Vec3;
   half: Vec3;

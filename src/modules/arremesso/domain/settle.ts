@@ -3,7 +3,7 @@ import type { Phase } from '../contracts.ts';
 import { isOutside, recoveryPoint, SETTLE } from './world.ts';
 
 export interface BodyState { p: Vec3; q: Quat; speed: number; spin: number }
-export interface SettleState { throwId: number; expected: number; steps: number; calm: number; done: boolean }
+interface SettleState { throwId: number; expected: number; steps: number; calm: number; done: boolean }
 export type SettleAction =
   | { type: 'wait' }
   | { type: 'recover'; moves: { index: number; p: Vec3 }[] }

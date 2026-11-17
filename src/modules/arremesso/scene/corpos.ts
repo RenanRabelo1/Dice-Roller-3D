@@ -4,8 +4,17 @@
 import type { RapierRigidBody } from '@react-three/rapier';
 import type { Quat, Vec3 } from '../../../shared/math.ts';
 import type { UltimoLancamento } from '../contracts.ts';
+import { arremesso } from '../store.ts';
 
 export const registroDeCorpos: { current: (RapierRigidBody | null)[] } = { current: [] };
+
+// The registered bodies of the current selection, or `null` unless the hand is ready and the count matches.
+export const corposVivos = (): RapierRigidBody[] | null => {
+  const state = arremesso();
+  const expected = state.dice.length, selection = state.dice.join(',');
+  const registered = registroDeCorpos.current.filter((b): b is RapierRigidBody => b !== null && b.isValid() && (b.userData as { selection?: string } | undefined)?.selection === selection);
+  return state.ready && registered.length === expected ? registered : null;
+};
 
 // How many launches were applied, and the poses just before and after the last one (`LoopDoArremesso` writes it).
 let lancamentos: { count: number; last: UltimoLancamento | null } = { count: 0, last: null };
