@@ -451,10 +451,10 @@ output[data-presagio="duality"] strong { background: linear-gradient(90deg, #ffd
   opacity: 0; pointer-events: none; transition: opacity var(--t-curto) var(--ease-saida); }
 .livro > #meus-dados .pick[data-escolhido="true"] { transform: translateY(-2px); }
 .livro > #meus-dados .pick[data-escolhido="true"]::after { opacity: 1; }
-.livro > #meus-dados .ficha-do-dado { grid-column: 2; grid-row: 1 / 4; display: flex; flex-direction: column; gap: 12px; min-height: 0; overflow-y: auto; padding-top: 52px; transform-origin: 0 50%; }
+.livro > #meus-dados .ficha-do-dado { grid-column: 2; grid-row: 1 / 4; display: flex; flex-direction: column; gap: 12px; min-height: 0; overflow-y: auto; overflow-x: hidden; padding-top: 52px; transform-origin: 0 50%; }
 .livro > #meus-dados .ficha-vazia { justify-content: center; align-items: center; padding-top: 0; }
 .livro > #meus-dados .ficha-vazia p { font-family: Cormorant Garamond, serif; font-style: italic; font-size: 20px; color: var(--sepia); }
-.livro > #meus-dados .janela-do-dado { position: relative; flex: 0 0 280px; }
+.livro > #meus-dados .janela-do-dado { position: relative; flex: 0 1 280px; min-height: 160px; } /* shrinks before the fields need a scrollbar */
 .livro > #meus-dados .ficha-lampejo { position: absolute; inset: 0; opacity: 0; pointer-events: none; will-change: opacity;
   background: radial-gradient(circle at 50% 50%, rgba(214, 150, 40, .85), rgba(214, 150, 40, 0) 62%); }
 .livro > #meus-dados .ficha-dado { position: absolute; inset: 0; }
@@ -476,3 +476,12 @@ output[data-presagio="duality"] strong { background: linear-gradient(90deg, #ffd
   .livro > #meus-dados .ficha-do-dado { padding-top: 12px; overflow: visible; }
   .livro > #meus-dados .janela-do-dado { flex-basis: 220px; }
 }
+
+/* The book's own scrollbars: a thin sepia stroke on no track, never the system's grey bar; and no sideways scrollbar,
+   which the chapter's page turn (a slight 3D swing) used to flash while the book opened. */
+.livro, .livro * { scrollbar-width: thin; scrollbar-color: rgba(94, 74, 54, .45) transparent; }
+.livro *::-webkit-scrollbar { width: 6px; height: 6px; }
+.livro *::-webkit-scrollbar-track { background: transparent; }
+.livro *::-webkit-scrollbar-thumb { background: rgba(94, 74, 54, .45); border-radius: 3px; }
+.livro *::-webkit-scrollbar-thumb:hover { background: rgba(94, 74, 54, .7); }
+.livro > aside { overflow-x: hidden; }
