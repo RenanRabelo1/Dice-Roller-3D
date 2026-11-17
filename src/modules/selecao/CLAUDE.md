@@ -25,8 +25,8 @@ Quais dados estão na mão do jogador e como ele os escolhe: os botões de cada 
 - O DOM dos componentes (textos, `aria-label`, roles, classes) é contrato dos E2E e do CSS; `tests/componentes.test.ts` o compara com o cabeçalho de antes da extração (fixture).
 
 ## Expõe
-- `index.ts`: `selecao()`, `adicionar(kind)`, `remover(kind)`, `definir(dice)`, `selecaoAlterada` (só `subscribe`), `parseDice`, `formatDice`, `slugProblem`, `slugOf`.
-- Tipos (`contracts.ts`): `SelecaoAlterada`, `LeituraDaNotacao`.
+- `index.ts`: `selecao()`, `adicionar(kind)`, `definir(dice)`, `selecaoAlterada` (só `subscribe`), `parseDice`, `formatDice`, `slugProblem`, `slugOf`. O `remover(kind)` fica interno (`store.ts`): a UI do módulo o usa, e os testes o importam de lá.
+- Tipo (`contracts.ts`): `SelecaoAlterada`. O `LeituraDaNotacao` é interno (retorno de `parseDice`).
 - `cena.ts`: `useSelecao()`; `<BotoesDeDados/>` (o `div.selection` "Dados" com `--n`, um `div.pick` com `--i` por tipo embutido); `<BotaoDeDado kind/>` (o par Adicionar/Remover como fragmento, sem o `div.pick`, que "Meus dados" monta); `<ResumoDaMao/>` (o `span.pool`); `<RodaDeDados/>` (a roda e o botão da mão); `<Chat aberto onAlternar onFechar/>` (só o `aside`, sem botão).
 
 ## Consome
