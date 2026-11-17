@@ -238,11 +238,9 @@ canvas { display: block; }
 .livro > #meus-dados .selection { display: block; }
 .livro > #meus-dados .pick { display: flex; flex-wrap: wrap; align-items: stretch; gap: 6px; border: 1px solid var(--fio); border-radius: 3px; padding: 12px 14px; margin: 0 0 12px; break-inside: avoid; }
 .livro > #meus-dados .pick > button:first-child { flex: 1; text-align: left; }
+.livro > #meus-dados .pick > button[aria-pressed] { min-width: 0; padding: 4px 14px; }
 .livro > #meus-dados .pick .remove { min-width: 0; padding: 4px 12px; border-left: 1px solid var(--fio); font-size: 16px; }
-.livro > #meus-dados .import-body > button.primary { background: var(--lacre); color: var(--papel-claro); border-color: var(--lacre); font-weight: 700; }
-.livro > #meus-dados .ink-pop[open] { flex: 1 1 100%; order: 2; }
-.livro > #meus-dados .ink-pop summary { background: rgba(255, 250, 236, .35); border: 1px solid var(--fio); color: var(--tinta); font-family: EB Garamond, serif; font-size: 16px; min-height: 44px; }
-.livro > #meus-dados .ink-pop .ink-choice { position: static; background: none; border: 0; padding: 10px 0 0; color: var(--tinta); }
+.livro > #meus-dados > button.primary { background: var(--lacre); color: var(--papel-claro); border-color: var(--lacre); font-weight: 700; }
 .livro > #meus-dados .ink-choice legend { color: var(--tinta); }
 
 .livro > #import-die h2 { grid-column: 1 / -1; grid-row: 1; }
@@ -442,3 +440,39 @@ output[data-presagio="duality"] strong { background: linear-gradient(90deg, #ffd
 .livro > #dice-chat .janela-dos-dados canvas { touch-action: none; }
 .livro > #dice-chat .janela-vazia { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; font-family: Cormorant Garamond, serif; font-style: italic; color: var(--sepia); pointer-events: none; }
 @media (max-width: 800px) { .livro > #dice-chat .janela-dos-dados { grid-column: 1; grid-row: auto; height: 160px; margin-bottom: 0; } }
+
+/* OS-0085: ficha do dado. Esquerda: o título, a lista (paginada pela orelha, uma coluna por folha) e o Forjar; direita: a ficha. Só transform e opacity animam. */
+.livro > #meus-dados { grid-template-columns: 1fr 1fr; column-gap: 96px; grid-template-rows: auto 1fr auto; }
+.livro > #meus-dados > header { grid-column: 1; grid-row: 1; }
+.livro > #meus-dados .import-body { grid-column: 1; grid-row: 2; column-count: 2; column-width: 9999px; }
+.livro > #meus-dados > button.primary { grid-column: 1; grid-row: 3; margin-top: 12px; }
+.livro > #meus-dados .pick { position: relative; transition: transform var(--t-curto) var(--ease-saida); }
+.livro > #meus-dados .pick::after { content: ""; position: absolute; inset: -1px; border: 1px solid var(--rubrica); border-radius: 3px; box-shadow: 0 4px 10px rgba(60, 35, 15, .28);
+  opacity: 0; pointer-events: none; transition: opacity var(--t-curto) var(--ease-saida); }
+.livro > #meus-dados .pick[data-escolhido="true"] { transform: translateY(-2px); }
+.livro > #meus-dados .pick[data-escolhido="true"]::after { opacity: 1; }
+.livro > #meus-dados .ficha-do-dado { grid-column: 2; grid-row: 1 / 4; display: flex; flex-direction: column; gap: 12px; min-height: 0; overflow-y: auto; padding-top: 52px; transform-origin: 0 50%; }
+.livro > #meus-dados .ficha-vazia { justify-content: center; align-items: center; padding-top: 0; }
+.livro > #meus-dados .ficha-vazia p { font-family: Cormorant Garamond, serif; font-style: italic; font-size: 20px; color: var(--sepia); }
+.livro > #meus-dados .janela-do-dado { position: relative; flex: 0 0 280px; }
+.livro > #meus-dados .ficha-lampejo { position: absolute; inset: 0; opacity: 0; pointer-events: none; will-change: opacity;
+  background: radial-gradient(circle at 50% 50%, rgba(214, 150, 40, .85), rgba(214, 150, 40, 0) 62%); }
+.livro > #meus-dados .ficha-dado { position: absolute; inset: 0; }
+.livro > #meus-dados .ficha-dado canvas { touch-action: none; }
+.livro > #meus-dados .ficha-campos { display: flex; flex-direction: column; gap: 12px; transition: opacity 150ms linear, transform 150ms linear; }
+.livro > #meus-dados .ficha-campos[data-saindo="true"] { opacity: 0; transform: translateY(4px); }
+.livro > #meus-dados .ficha-linha { display: flex; flex-direction: column; gap: 4px; color: var(--tinta); animation: ficha-sobe var(--t-medio) var(--ease-saida) calc(200ms + var(--i) * 50ms) both; }
+.livro > #meus-dados .ficha-linha label { display: flex; align-items: center; gap: 8px; }
+.livro > #meus-dados .ficha-linha input:not([type]), .livro > #meus-dados .ficha-linha input[type="text"] { flex: 1; min-width: 0; }
+.livro > #meus-dados .ficha-linha small { color: var(--sepia); font-style: italic; }
+.livro > #meus-dados .ficha-linha input[type="color"] { width: 48px; height: 30px; padding: 0; border: 1px solid #8a6a3e; background: none; }
+.livro > #meus-dados .ficha-linha .ink-choice { padding: 0; }
+.livro > #meus-dados .ficha-linha .import-error { margin: 0; color: #9b2a1a; background: none; border: 0; }
+@keyframes ficha-sobe { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@media (max-width: 800px) {
+  .livro > #meus-dados { grid-template-columns: 1fr; column-gap: 0; grid-template-rows: auto auto auto auto; overflow-y: auto; }
+  .livro > #meus-dados > header, .livro > #meus-dados .import-body, .livro > #meus-dados > button.primary, .livro > #meus-dados .ficha-do-dado { grid-column: 1; grid-row: auto; }
+  .livro > #meus-dados .import-body { column-count: 1; column-width: auto; overflow: visible; }
+  .livro > #meus-dados .ficha-do-dado { padding-top: 12px; overflow: visible; }
+  .livro > #meus-dados .janela-do-dado { flex-basis: 220px; }
+}

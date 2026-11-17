@@ -1,10 +1,13 @@
 // The chapters' DOM is contract of the E2E and the CSS: text, aria-label, roles and classes (OS-0054).
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { AssistenteDeImportacao, Importacao, MeusDados } from '../cena.ts';
 import { store } from '../store.ts';
 import { customKind, customList, polyhedron, registerCustom, unregisterCustom, type CustomDie } from '../../dados/index.ts';
+
+// The sheet's window asks for the platform profile, which reads the browser: not in Node.
+vi.mock('../../../shared/plataforma/index.ts', async (orig) => ({ ...(await orig<object>()), perfilLeve: () => false, movimentoReduzido: () => false }));
 
 // renderToStaticMarkup reads zustand's server snapshot (the initial state); point it at the live store.
 (store as { getInitialState: () => unknown }).getInitialState = () => store.getState();
@@ -42,9 +45,18 @@ describe('<MeusDados/>: o capítulo "Meus dados"', () => {
     expect(h).not.toContain('role="group"');
   });
 
-  it('dado impresso ganha o botão Tinta', () => {
+  it('todo dado ganha o botão Editar, marcado no escolhido, e o Forjar fica embaixo da lista', () => {
     so(die('run', 'Runa', 'runa', true));
-    expect(renderToStaticMarkup(createElement(MeusDados, { aberto: true, ...acoes }))).toContain('<summary aria-label="Tinta de Runa">Tinta</summary>');
+    const h = renderToStaticMarkup(createElement(MeusDados, { aberto: true, ...acoes }));
+    expect(h).toContain('<button aria-label="Editar d6 Runa" aria-pressed="true">Editar</button>');
+    expect(h).not.toContain('Tinta de');
+    expect(h.indexOf('Editar d6 Runa')).toBeLessThan(h.indexOf('Forjar um dado novo'));
+    expect(h).toContain('<section class="ficha-do-dado" aria-label="Ficha de Runa">');
+    expect(h).toContain('Tinta dos números'); // engraved: the ink field is on the sheet
+  });
+
+  it('sem dados: a página da direita convida a forjar', () => {
+    expect(renderToStaticMarkup(createElement(MeusDados, { aberto: true, ...acoes }))).toContain('Forje um dado para vê-lo aqui.');
   });
 });
 
