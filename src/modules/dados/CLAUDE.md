@@ -23,15 +23,15 @@ O dado como objeto: o catálogo dos tipos jogáveis (embutidos e importados regi
 ## Expõe
 - `index.ts`, catálogo: `allKinds`, `baseOf`, `customDie`, `customKind`, `customList`, `customsOf` (os sólidos que o worker precisa), `paraRegras`, `polyhedron`, `registerCustom`, `registerPoly`, `sortDice`, `unregisterCustom`, `catalogoAlterado` (só `subscribe`).
 - `index.ts`, sólidos e leitura: `fromTriangles`, `OPPOSITE_SUM`, `RADIUS`, `RAIO_MAXIMO`, `readUp`, `toResults`, `symbolGeometry`.
-- `index.ts`, aparência pura: `GEM`, `gemColor`, `FONT`, `FONT_URL`, `SYMBOL`, `nomeDoTipo`, `finishOf`, `inkColorOf`, `INK_COLORS`, `carregarModelo` (sob demanda), `hasTexture`, `markInk`, `inkTriangles`, `dentTester`, `LIMITES_DO_MODELO_SALVO`.
+- `index.ts`, aparência pura: `GEM`, `gemColor`, `FONT`, `FONT_URL`, `SYMBOL`, `nomeDoTipo`, `finishOf`, `inkColorOf`, `carregarModelo` (sob demanda), `hasTexture`, `markInk`, `inkTriangles`, `dentTester`, `LIMITES_DO_MODELO_SALVO`.
 - `index.ts`, teste: `inspecao = { rotulos, numeraisVisiveis, aparenciaDaGema }`, que recebe a raiz onde procurar (`die-i`/`gem-i`) e o índice; o `window.__dice` usa.
 - `index.ts`, o dado na cena: `dadoNaRaiz`, `gemaNaRaiz`, `definirOpacidade` (todas as malhas sob `die-i`, o brilho da gravação incluído) e `definirSombra` (as malhas de `gem-i`), que recebem a raiz onde procurar e o índice; `sombraNaGema(gema, on)`, a mesma sombra sobre uma gema já achada com `gemaNaRaiz`, para quem a troca a cada quadro sem procurar na cena. Os nomes `die-i`/`gem-i` só existem dentro de `dados`.
-- Tipos (`contracts.ts`): `CustomDie`, `Polyhedron`, `Face`, `Label`, `Numbering`, `StdBase`, `SymbolName`, `Ink`, `Finish`, `RotuloNaCena`, `AparenciaDaGema`.
+- Tipos (`index.ts`): `CustomDie`, `Polyhedron`, `Numbering`, `StdBase`, `Ink`, `Finish`. `Face`, `Label`, `SymbolName`, `RotuloNaCena` e `AparenciaDaGema` ficam em `contracts.ts`, fora da porta.
 - `cena.ts`: `<AparenciaDoDado index kind />` (malha e numerais, sem corpo físico), `GemMaterial`, `usePainted`, `paintGlb`.
 
 ## Consome
 - `regras`: `BASE`, `KINDS`, `isCustom`, `tipoParaPresagio` e os tipos de dado.
-- `src/shared/events` (`createSignal`), `src/shared/math` (`Vec3`, `Quat`) e `src/shared/modelos3d` (`readModel`, leitura do arquivo do modelo).
+- `src/shared/events` (`createSignal`), `src/shared/math` (`Vec3`, `Quat`, `sub`, `dot`, `cross`, `unit`) e `src/shared/modelos3d` (`readModel`, leitura do arquivo do modelo).
 
 ## Fora do escopo
 - O corpo físico e o colisor do dado (`modules/arremesso/scene/CorpoDoDado.tsx`): `arremesso`.
