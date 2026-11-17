@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useRef, type RefObject } from 'react';
+import { useEffect, useRef, type RefObject } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import type { RapierRigidBody } from '@react-three/rapier';
 import { ArrowHelper, Color, Plane, PointLight, Quaternion, Raycaster, Vector2, Vector3 } from 'three';
 import { definirOpacidade, definirSombra, polyhedron } from '../../dados/index.ts';
 import type { Quat, Vec3 } from '../../../shared/math.ts';
@@ -11,7 +10,7 @@ import { intensidadeDaCarga, LUZ_DA_CARGA } from '../domain/luz.ts';
 import { newWhirl, ORBITS, restingPlaces, spinAngle, stepWhirl, vortexCenter } from '../domain/vortex.ts';
 import { HAND } from '../domain/world.ts';
 import { arremesso } from '../store.ts';
-import { registroDeCorpos } from './corpos.ts';
+import { corposVivos } from './corpos.ts';
 
 // The hand in the throw: pointer and keyboard input, the aim and its arrow, the whirl of the dice in the hand, the
 // hand's motion handed on to the launch, and the return to the hand. What happens in `settled` is not here.
@@ -30,12 +29,6 @@ export function MaoDoArremesso({ gameArea }: { gameArea: RefObject<HTMLDivElemen
   const arrow = useRef<ArrowHelper>(null);
   const luz = useRef<PointLight>(null);
   const preview = import.meta.env.MODE === 'test' && new URLSearchParams(location.search).has('surface-preview');
-  const live = useCallback(() => {
-    const state = arremesso();
-    const expected = state.dice.length, selection = state.dice.join(',');
-    const registered = registroDeCorpos.current.filter((b): b is RapierRigidBody => b !== null && b.isValid() && (b.userData as { selection?: string } | undefined)?.selection === selection);
-    return state.ready && registered.length === expected ? registered : null;
-  }, []);
 
   useEffect(() => {
     const area = gameArea.current;
@@ -49,7 +42,7 @@ export function MaoDoArremesso({ gameArea }: { gameArea: RefObject<HTMLDivElemen
     };
     const down = (e: PointerEvent) => {
       // Only the table starts a throw: a press on a panel laid over it (the animation tests) belongs to that panel.
-      if (e.button !== 0 || !live() || (e.target !== area && !(e.target instanceof HTMLCanvasElement))) return;
+      if (e.button !== 0 || !corposVivos() || (e.target !== area && !(e.target instanceof HTMLCanvasElement))) return;
       const state = arremesso();
       if (state.gesture.phase !== 'hand' && state.gesture.phase !== 'settled') return;
       area.focus({ preventScroll: true });
@@ -73,7 +66,7 @@ export function MaoDoArremesso({ gameArea }: { gameArea: RefObject<HTMLDivElemen
       if (e.target !== area) return;
       if (e.code === 'Space') {
         e.preventDefault();
-        if (!e.repeat && live()) arremesso().input({ type: 'press', source: { kind: 'key' }, at: performance.now(), repeat: false });
+        if (!e.repeat && corposVivos()) arremesso().input({ type: 'press', source: { kind: 'key' }, at: performance.now(), repeat: false });
       } else if (e.key.startsWith('Arrow')) {
         e.preventDefault();
         const state = arremesso(), aim: Vec3 = [...state.aim];
@@ -102,7 +95,7 @@ export function MaoDoArremesso({ gameArea }: { gameArea: RefObject<HTMLDivElemen
       area.removeEventListener('keydown', keydown); area.removeEventListener('keyup', keyup);
       window.removeEventListener('blur', cancel);
     };
-  }, [camera, gameArea, gl, live]);
+  }, [camera, gameArea, gl]);
 
   useFrame((_, elapsed) => {
     const state = arremesso(), phase = state.gesture.phase;
@@ -113,7 +106,7 @@ export function MaoDoArremesso({ gameArea }: { gameArea: RefObject<HTMLDivElemen
       light.intensity = intensidadeDaCarga(phase, state.force, renderizadorPorSoftware());
       if (light.intensity > 0) light.position.set(state.aim[0], state.aim[1] + LUZ_DA_CARGA.altura, state.aim[2]);
     }
-    const current = live();
+    const current = corposVivos();
     marker.visible = !preview && !!current && (phase === 'hand' || phase === 'charging');
     if (!current) return;
     const now = performance.now(), dt = Math.max(0.0001, Math.min(elapsed, 0.1));
