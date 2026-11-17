@@ -199,7 +199,7 @@ canvas { display: block; }
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='8'%3E%3Cpath d='M0 4h66M94 4h66' stroke='%23b99a66' fill='none'/%3E%3Cpath d='M80 0l4 4-4 4-4-4z' fill='%238e2a1c'/%3E%3C/svg%3E") left bottom / 160px 8px no-repeat; }
 .livro > aside h2::first-letter { font-size: 44px; color: var(--rubrica); }
 .livro > aside header button { position: absolute; top: 34px; right: 40px; width: 44px; height: 44px; padding: 0; background: none; border: 0; border-radius: 0; box-shadow: none;
-  font-family: Cormorant Garamond, serif; font-weight: 600; font-size: 34px; line-height: 1; color: var(--sepia);
+  font-family: Cormorant Garamond, serif; font-weight: 500; font-size: 52px; line-height: 44px; color: var(--sepia);
   transition: color var(--t-curto) var(--ease-saida), transform var(--t-curto) var(--ease-saida); }
 .livro > aside header button:hover, .livro > aside header button:focus-visible { color: var(--rubrica); transform: rotate(90deg); }
 .app[data-movimento="reduzido"] .livro > aside header button { transition: none; }

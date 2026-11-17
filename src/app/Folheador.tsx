@@ -40,9 +40,13 @@ export function Folheador({ capitulo }: { capitulo: Capitulo | null }) {
       setEstado((e) => (e.total === total && e.folha === folha ? e : { ...e, total, folha }));
     };
     ler();
-    // The body has a fixed size: growth shows up in its children, so those are observed too.
+    // The body has a fixed size, so its own resize only covers the window changing. Content that grows inside it
+    // shows up as a section crossing the sheet's edge: a section split across columns never fires a ResizeObserver
+    // (Chrome), but its box moving in or out of the visible sheet fires an IntersectionObserver rooted at the body.
     const ro = new ResizeObserver(ler);
-    const observar = () => { ro.disconnect(); ro.observe(corpo); Array.from(corpo.children).forEach((f) => ro.observe(f)); };
+    ro.observe(corpo);
+    const io = new IntersectionObserver(ler, { root: corpo, threshold: [0, 0.25, 0.5, 0.75, 1] });
+    const observar = () => { io.disconnect(); Array.from(corpo.children).forEach((f) => io.observe(f)); };
     observar();
     // Switching the background type adds fields; the focus ring can also scroll the body to another sheet (scroll).
     const mo = new MutationObserver(() => { observar(); ler(); });
@@ -55,7 +59,7 @@ export function Folheador({ capitulo }: { capitulo: Capitulo | null }) {
     corpo.addEventListener('load', ler, true);
     return () => {
       vivo = false;
-      ro.disconnect(); mo.disconnect(); corpo.removeEventListener('scroll', ler);
+      ro.disconnect(); io.disconnect(); mo.disconnect(); corpo.removeEventListener('scroll', ler);
       document.fonts.removeEventListener('loadingdone', ler); corpo.removeEventListener('load', ler, true);
       timers.current.forEach(clearTimeout); timers.current = [];
       corpo.scrollLeft = 0; delete corpo.dataset.folheando;
