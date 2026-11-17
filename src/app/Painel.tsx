@@ -29,6 +29,7 @@ export function Painel() {
             aria-controls="dice-chat" aria-keyshortcuts="C" onClick={() => alternar('chat')}>Chat <kbd>C</kbd></button>
         </nav>
       </header>
+      {capitulo && <div className="livro-veu" aria-hidden="true" />}
       <div className="livro" data-aberto={capitulo !== null}>
         <PainelDaMesa aberto={capitulo === 'mesa'} onAlternar={() => alternar('mesa')} onFechar={() => fechar('mesa')} />
         <MeusDados aberto={capitulo === 'meus'} onFechar={() => fechar('meus')} onImportar={() => setCapitulo('importar')} />

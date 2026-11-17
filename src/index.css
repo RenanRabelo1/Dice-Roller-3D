@@ -186,9 +186,11 @@ canvas { display: block; }
 .livro[data-aberto="true"] { display: block; position: fixed; top: 92px; left: 0; right: 0; margin: 0 auto; z-index: 10;
   --h: min(680px, calc(100dvh - 64px - 72px - 56px)); width: min(1120px, calc(100vw - 32px)); height: var(--h); padding: 14px; border-radius: 10px;
   background: radial-gradient(ellipse at 50% 0%, var(--couro-brilho), var(--couro));
-  box-shadow: inset 0 0 0 2px #6e3a22, inset 0 0 0 6px var(--couro), inset 0 0 0 7px rgba(212, 169, 63, .5), 0 40px 90px rgba(0, 0, 0, .75), 0 0 0 100vmax rgba(5, 5, 6, .55);
-  /* the veil is the 100vmax shadow, clipped to the scene between the bands (top 64px, bottom 72px) */
-  clip-path: inset(-28px -100vmax calc(-1 * (100dvh - 164px - var(--h))) -100vmax); }
+  box-shadow: inset 0 0 0 2px #6e3a22, inset 0 0 0 6px var(--couro), inset 0 0 0 7px rgba(212, 169, 63, .5), 0 40px 90px rgba(0, 0, 0, .75);  }
+/* the veil is a real element: it blocks the scene between the bands (top 64px, bottom 72px); shadows do not take clicks */
+.livro-veu { position: fixed; top: 64px; bottom: 72px; left: 0; right: 0; z-index: 9; background: rgba(5, 5, 6, .55); animation: veu-abre 200ms ease-out; }
+@keyframes veu-abre { from { opacity: 0; } to { opacity: 1; } }
+.app[data-movimento="reduzido"] .livro-veu { animation: none; }
 .livro[data-aberto="true"]::after { content: ""; position: absolute; top: -10px; right: 72px; width: 22px; height: 54px; background: var(--lacre);
   clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%); pointer-events: none; }
 .livro > aside { position: absolute; inset: 14px; transform: none; width: auto; border: 0; box-shadow: none; display: none; padding: 34px 40px;
@@ -198,10 +200,10 @@ canvas { display: block; }
 .livro > aside h2 { font-family: Cinzel, serif; font-weight: 700; font-size: 30px; margin: 0 0 12px; padding-bottom: 18px;
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='8'%3E%3Cpath d='M0 4h66M94 4h66' stroke='%23b99a66' fill='none'/%3E%3Cpath d='M80 0l4 4-4 4-4-4z' fill='%238e2a1c'/%3E%3C/svg%3E") left bottom / 160px 8px no-repeat; }
 .livro > aside h2::first-letter { font-size: 44px; color: var(--rubrica); }
-.livro > aside header button { position: absolute; top: 34px; right: 40px; width: 44px; height: 44px; padding: 0; background: none; border: 0; border-radius: 0; box-shadow: none;
+.livro > aside header button { position: absolute; top: 36px; right: 20px; width: 44px; height: 44px; padding: 0; background: none; border: 0; border-radius: 0; box-shadow: none;
   font-family: Cormorant Garamond, serif; font-weight: 500; font-size: 52px; line-height: 44px; color: var(--sepia);
-  transition: color var(--t-curto) var(--ease-saida), transform var(--t-curto) var(--ease-saida); }
-.livro > aside header button:hover, .livro > aside header button:focus-visible { color: var(--rubrica); transform: rotate(90deg); }
+  transition: color var(--t-curto) var(--ease-saida), transform var(--t-curto) var(--ease-saida), text-shadow var(--t-curto) var(--ease-saida); }
+.livro > aside header button:hover, .livro > aside header button:focus-visible { color: var(--rubrica); transform: scale(1.12); text-shadow: 0 0 12px rgba(142, 42, 28, .45); }
 .app[data-movimento="reduzido"] .livro > aside header button { transition: none; }
 .app[data-movimento="reduzido"] .livro > aside header button:hover, .app[data-movimento="reduzido"] .livro > aside header button:focus-visible { transform: none; }
 .livro > aside button { background: rgba(255, 250, 236, .35); border: 1px solid var(--fio); color: var(--tinta); font-family: EB Garamond, serif; font-size: 16px; min-height: 44px; }
@@ -295,6 +297,7 @@ canvas { display: block; }
   nav kbd { display: none; }
   .livro[data-aberto="true"] { inset: 0; top: 0; width: auto; height: auto; margin: 0; padding: 0; border-radius: 0; z-index: 20; overflow-y: auto;
     box-shadow: none; clip-path: none; background: linear-gradient(var(--pergaminho-claro), var(--pergaminho-escuro)); }
+  .livro-veu { display: none; }
   .livro[data-aberto="true"]::after { display: none; }
   .livro > aside { position: relative; inset: auto; min-height: 100%; padding: 24px 20px; border-radius: 0; background: none; }
   .livro > aside h2 { padding-right: 56px; }
@@ -391,7 +394,7 @@ output[data-presagio="duality"] strong { background: linear-gradient(90deg, #ffd
 @media (max-width: 800px) {
   .livro > #table-panel .import-body, .livro > #meus-dados .import-body { overflow-x: hidden; overflow-y: auto; }
 }
-.folhear { position: absolute; bottom: 14px; z-index: 2; width: 56px; height: 56px; min-width: 44px; min-height: 44px; padding: 0; border: 0; border-radius: 0; cursor: pointer;
+.folhear { position: absolute; bottom: 14px; z-index: 12; width: 56px; height: 56px; min-width: 44px; min-height: 44px; padding: 0; border: 0; border-radius: 0; cursor: pointer;
   display: flex; align-items: flex-end; font: 700 24px/1 Cinzel, serif; color: var(--rubrica); background: transparent;
   transition: transform var(--t-curto) var(--ease-saida); }
 .folhear-frente { right: 14px; justify-content: flex-end; transform-origin: 100% 100%;
@@ -408,10 +411,10 @@ output[data-presagio="duality"] strong { background: linear-gradient(90deg, #ffd
 .folhear-frente:hover > span, .folhear-frente:focus-visible > span { transform: translateX(2px); }
 .folhear-tras:hover > span, .folhear-tras:focus-visible > span { transform: translateX(-2px); }
 .folhear:focus-visible { outline: 2px solid var(--tinta); outline-offset: 2px; }
-.folhear-indice { position: absolute; right: 80px; bottom: 22px; z-index: 2; font: italic 14px EB Garamond, serif; color: var(--sepia); pointer-events: none; }
+.folhear-indice { position: absolute; right: 80px; bottom: 22px; z-index: 12; font: italic 14px EB Garamond, serif; color: var(--sepia); pointer-events: none; }
 
 /* The turning sheet sits over the page it leaves and swings around the spine. */
-.folha-virando { position: absolute; top: 14px; bottom: 14px; width: calc(50% - 14px); z-index: 3; pointer-events: none; backface-visibility: visible; opacity: 0;
+.folha-virando { position: absolute; top: 14px; bottom: 14px; width: calc(50% - 14px); z-index: 13; pointer-events: none; backface-visibility: visible; opacity: 0;
   animation-duration: var(--t-longo); animation-timing-function: var(--ease-cine); animation-fill-mode: both; }
 .folha-virando[data-sentido="frente"] { left: 50%; transform-origin: left center; border-radius: 0 3px 3px 0;
   background: linear-gradient(90deg, var(--pergaminho-escuro), var(--pergaminho-claro)); animation-name: folhear-frente; }
