@@ -1,7 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
+import { dice, panel } from './esperas';
 
-const dice = (p: Page) => p.evaluate(() => window.__dice.state().dice);
-const panel = (p: Page) => p.locator('#table-panel');
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');

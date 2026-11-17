@@ -1,9 +1,8 @@
 import { test, expect, type Page } from '@playwright/test';
+import { ready, settled, throwWithSpace } from './esperas';
 
 // The physics worker, replaced by addInitScript (no hook in src/): LoopDoArremesso in src/modules/arremesso/scene waits
 // WORKER_TIMEOUT (2 s) for an answer, then falls back to the main thread (terminate + local presimulation).
-const ready = (p: Page, n?: number) => p.waitForFunction((n) => window.__dice?.state().ready && (n === undefined || window.__dice.bodies().length === n), n);
-const settled = (p: Page) => p.waitForFunction(() => { const s = window.__dice.state(); return s.phase === 'settled' && s.showcased === s.throwId; }, null, { timeout: 90_000 });
 const topValue = async (p: Page, i: number) => {
   const [labels, cam] = await p.evaluate((i) => [window.__dice.labels(i), window.__dice.camera()] as const, i);
   const toward = (l: (typeof labels)[number]) => {
@@ -11,10 +10,6 @@ const topValue = async (p: Page, i: number) => {
     return l.normal.reduce((s, v, k) => s + v * d[k] / n, 0);
   };
   return String(labels.reduce((a, b) => toward(b) > toward(a) ? b : a).value || 10); // a d10's 0 face is the 10
-};
-const throwWithSpace = async (p: Page) => {
-  await p.locator('.game-area').focus();
-  await p.keyboard.down('Space'); await p.waitForTimeout(700); await p.keyboard.up('Space');
 };
 type Silent = { requests: number; sentAt: number | null; terminatedAt: number | null; poisonedReads: number };
 const silent = (p: Page) => p.evaluate(() => (window as unknown as { silentWorker: Silent }).silentWorker);

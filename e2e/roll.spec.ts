@@ -1,7 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
+import { ready, settled, throwWithSpace } from './esperas';
 
-const ready = (p: Page, n?: number) => p.waitForFunction((n) => window.__dice?.state().ready && (n === undefined || window.__dice.bodies().length === n), n);
-const settled = (p: Page) => p.waitForFunction(() => { const s = window.__dice.state(); return s.phase === 'settled' && s.showcased === s.throwId; }, null, { timeout: 90_000 });
 const topValue = async (p: Page, i: number, d4 = false) => {
   const [labels, cam] = await p.evaluate((i) => [window.__dice.labels(i), window.__dice.camera()] as const, i);
   // Each shown face looks straight at the camera.
@@ -12,10 +11,6 @@ const topValue = async (p: Page, i: number, d4 = false) => {
   // The rolled face looks at the camera; on a d4 its number is the label nearest the top corner.
   const best = labels.reduce((a, b) => (d4 ? b.position[1] > a.position[1] : toward(b) > toward(a)) ? b : a);
   return String(best.value || 10); // a d10's 0 face is the 10
-};
-const throwWithSpace = async (p: Page) => {
-  await p.locator('.game-area').focus();
-  await p.keyboard.down('Space'); await p.waitForTimeout(700); await p.keyboard.up('Space');
 };
 const equivalent = (a: number[], b: number[]) => expect(Math.abs(a.reduce((dot, v, i) => dot + v * b[i], 0))).toBeCloseTo(1, 5);
 
