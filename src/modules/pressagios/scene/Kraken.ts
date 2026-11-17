@@ -12,7 +12,7 @@ const UP = new Vector3(0, 1, 0), Z = new Vector3(0, 0, 1);
 const FLESH = new Color('#E8AFB9'), SKIN = new Color('#41243F'), TIP = new Color('#915C82');
 // The shards take the table's own colours; their wood is the lit inside of the plank, lighter than the planks' face
 // (the default table's #3B2416 shows as #815435, and any other wood gets the same lift).
-export const SHARD_DEFAULT = { felt: '#3A0F1A', wood: '#815435' };
+const SHARD_DEFAULT = { felt: '#3A0F1A', wood: '#815435' };
 export const shardWood = (wood: string) => {
   if (wood.toLowerCase() === '#3b2416') return new Color(SHARD_DEFAULT.wood);
   const c = new Color(wood), hsl = { h: 0, s: 0, l: 0 };

@@ -11,7 +11,7 @@ const UP = new Vector3(0, 1, 0);
 // brings it to the screen with the 1 toward you, lets go and sinks while the tray mends.
 export const KRAKEN = { rupture: 450, grab: 1150, lift: 1750, fling: 2050, away: 2650, catch: 3350, shown: 4350, release: 5300, restored: 6300, duration: 6500 };
 // Where the die is flung: high and far behind the tray, out of the camera's sight.
-export const FAR: Vec3 = [0, 14, -19];
+const FAR: Vec3 = [0, 14, -19];
 
 export const krakenIndices = (omen: Omen | null, dice: DieKind[]) =>
   omen && !omen.fumbles.length ? omen.crits.filter((i) => dice[i] === 'd100') : [];

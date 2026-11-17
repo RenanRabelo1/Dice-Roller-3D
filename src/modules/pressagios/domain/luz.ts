@@ -22,7 +22,7 @@ const FORCA_DOS_PICOS = [28, 18], DECAIMENTO = 120;
 
 export const COR_KRAKEN = '#3fd6a0';
 export const COR_TEMPESTADE = '#bcd4ff';
-export const COR_DUALIDADE = ['#ffd36a', '#9cc8ff'];
+const COR_DUALIDADE = ['#ffd36a', '#9cc8ff'];
 export const POS_KRAKEN: [number, number, number] = [0, 0.3, 0]; // low, "from below"
 export const POS_TEMPESTADE: [number, number, number] = [0, 9, -3];
 export const POS_DUALIDADE: [number, number, number] = [0, 2, 1.5]; // under the taiji (it floats at y 4)

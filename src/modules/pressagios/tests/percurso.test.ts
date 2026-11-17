@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Pose } from '../../../shared/math.ts';
-import { indicesComPercurso, KRAKEN, krakenAt, krakenDieAt, movimentoNoPresagio, STORM, stormAt, stormDieAt } from '../index.ts';
+import { indicesComPercurso, movimentoNoPresagio } from '../domain/percurso.ts';
+import { KRAKEN, krakenAt, krakenDieAt, STORM, stormAt, stormDieAt } from '../domain/krakenMotion.ts';
 
 const de: Pose = { p: [2, 0.9, -2], q: [0, 0, 0, 1] }, para: Pose = { p: [0, 6, 4], q: [0, 0.7071, 0, 0.7071] };
 

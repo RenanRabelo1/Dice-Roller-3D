@@ -23,7 +23,7 @@ import { Fire } from './Fire.ts';
 // `planoDoPresagio`. Effect materials are compiled at mount and hidden (0 draw calls) outside an omen. When the show
 // ends it marks the omen done, and the result goes on.
 
-const easeOut = (t: number) => 1 - (1 - clamp01(t)) ** 3;
+const easeOutCubica = (t: number) => 1 - (1 - clamp01(t)) ** 3;
 const easeIn = (t: number) => clamp01(t) ** 3;
 
 function glowTexture(): CanvasTexture {
@@ -94,7 +94,7 @@ class Bolt {
       m.visible = flash >= 0;
       m.geometry.setDrawRange(0, drawn === BOLT - 1 ? Infinity : drawn * 6);
     }
-    const k = t < 60 ? easeOut(t / 60) : 1 - span(t, 60, 900);
+    const k = t < 60 ? easeOutCubica(t / 60) : 1 - span(t, 60, 900);
     this.flash.visible = k > 0;
     this.flash.position.copy(this.target).y += 0.5;
     this.flash.scale.setScalar(3 * k + 0.01);
@@ -138,7 +138,7 @@ class TaiJi {
     this.group.position.set(0, 4, 1.5);
     this.group.quaternion.copy(camera.quaternion); // the disc faces the viewer
     const p = clamp01(t / DUALITY_HIT), after = t - DUALITY_HIT;
-    const spin = t < DUALITY_HIT ? 4 * Math.PI * p * p : 4 * Math.PI + 2 * Math.PI * easeOut(after / 900);
+    const spin = t < DUALITY_HIT ? 4 * Math.PI * p * p : 4 * Math.PI + 2 * Math.PI * easeOutCubica(after / 900);
     const r = t < DUALITY_HIT ? 6.5 * (1 - p * p) : 0;
     this.fish.forEach((f, k) => {
       const a = spin + f.userData.turn + Math.PI; // the light fish starts on the left
@@ -146,14 +146,14 @@ class TaiJi {
       f.rotation.set(0, (1 - p) ** 2 * 3 * (k ? 1 : -1), spin + f.userData.turn); // tumbling in 3D until they lock
     });
     const out = easeIn(span(t, 2000, 2600));
-    const pulse = after > 0 ? 1 + 0.25 * (1 - easeOut(after / 400)) : 1;
+    const pulse = after > 0 ? 1 + 0.25 * (1 - easeOutCubica(after / 400)) : 1;
     this.disc.scale.setScalar(pulse * (1 - out) + 0.001);
     this.group.position.y += 1.5 * out;
     this.aura.scale.setScalar(5.5 * (1 - out) + 0.01);
     (this.aura.material as SpriteMaterial).opacity = (after > 0 ? 0.6 : 0.35 * p) * (1 - out);
     const b = after > 0 ? span(after, 0, 400) : 0;
     this.burst.visible = after > 0 && b < 1;
-    this.burst.scale.setScalar(9 * easeOut(after / 250) + 0.01);
+    this.burst.scale.setScalar(9 * easeOutCubica(after / 250) + 0.01);
     (this.burst.material as SpriteMaterial).opacity = 1 - b;
   }
   hide() { this.group.visible = false; }
