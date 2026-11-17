@@ -1,5 +1,5 @@
 // The DOM of the components is contract of the E2E and the CSS: text, aria-label, roles and classes.
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { createElement, Fragment } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { BotaoDeDado, BotoesDeDados, Chat, ResumoDaMao, RodaDeDados } from '../cena.ts';
@@ -59,6 +59,8 @@ describe('componentes: o DOM da roda e do chat', () => {
 
   it('<Chat/>: só o aside, sem botão da casca, com data-open e inert seguindo `aberto`', () => {
     const noop = () => {};
+    // The preview window reads the platform profile (perfilLeve), which needs a browser's location.
+    vi.stubGlobal('location', { search: '' });
     const fechado = html(createElement(Chat, { aberto: false, onAlternar: noop, onFechar: noop }));
     const aberto = html(createElement(Chat, { aberto: true, onAlternar: noop, onFechar: noop }));
     expect(fechado.startsWith('<aside id="dice-chat" class="chat" data-open="false" inert="" aria-label="Chat de dados">')).toBe(true);
