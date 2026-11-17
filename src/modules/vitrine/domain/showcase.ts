@@ -3,7 +3,7 @@ import type { Polyhedron } from '../../dados/index.ts';
 import { RAIO_MAXIMO } from '../../dados/index.ts';
 import type { Pose, Quat, Vec3 } from '../../../shared/math.ts';
 
-export interface View { position: Vector3; quaternion: Quaternion; fov: number; aspect: number }
+interface View { position: Vector3; quaternion: Quaternion; fov: number; aspect: number }
 
 const SPACING = 2 * RAIO_MAXIMO + 0.2;
 const MIN_DISTANCE = 6; // one die must not fill the screen

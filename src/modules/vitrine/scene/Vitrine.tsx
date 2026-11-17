@@ -1,13 +1,12 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import type { RapierRigidBody } from '@react-three/rapier';
 import { Color, Group, PointLight, Matrix4, Mesh, MeshBasicMaterial, Quaternion, Vector3, type BufferGeometry, type Object3D, type PerspectiveCamera } from 'three';
 import { Text } from 'troika-three-text';
 import { customDie, dadoNaRaiz, FONT, FONT_URL, gemaNaRaiz, gemColor, inkColorOf, polyhedron, RADIUS, sombraNaGema, SYMBOL, symbolGeometry } from '../../dados/index.ts';
 import { isCustom, MAX_DICE } from '../../regras/index.ts';
-import { easeOut, type Pose, type Quat, type Vec3 } from '../../../shared/math.ts';
+import { clamp01, easeOut, type Pose, type Quat, type Vec3 } from '../../../shared/math.ts';
 import { movimentoReduzido, perfilLeve, renderizadorPorSoftware } from '../../../shared/plataforma/index.ts';
-import { arremesso, moverDado, registroDeCorpos } from '../../arremesso/index.ts';
+import { arremesso, corposVivos, moverDado } from '../../arremesso/index.ts';
 import { CAPTION, showcasePoses } from '../domain/showcase.ts';
 import { highlightAt, HL_SIZE, SHOW } from '../domain/highlight.ts';
 import { glowMesh, MESMA_FACE } from '../domain/inkGlow.ts';
@@ -60,12 +59,6 @@ export function Vitrine() {
     const glows = showcase.current?.glows;
     glows?.forEach((g, i) => { if (g) { g.removeFromParent(); (g.material as MeshBasicMaterial).dispose(); glows[i] = null; } });
   };
-  const live = useCallback(() => {
-    const state = arremesso();
-    const expected = state.dice.length, selection = state.dice.join(',');
-    const registered = registroDeCorpos.current.filter((b): b is RapierRigidBody => b !== null && b.isValid() && (b.userData as { selection?: string } | undefined)?.selection === selection);
-    return state.ready && registered.length === expected ? registered : null;
-  }, []);
 
   // Rides the flight: at the arrival poses' centre, toward the camera. Outside the showcase it fades to 0 in 200 ms.
   const destacar = (show: { at: number; to: Pose[]; still?: boolean } | null, now: number) => {
@@ -85,7 +78,7 @@ export function Vitrine() {
     const state = { ...arremesso(), ...presagio(), ...vitrine() }, phase = state.gesture.phase;
     const now = performance.now();
     destacar(phase === 'settled' ? showcase.current : null, now);
-    const current = live();
+    const current = corposVivos();
     if (!current) return;
     const identity = state.dice.join(',');
     const active = phase === 'hand' || phase === 'charging';
@@ -189,7 +182,7 @@ export function Vitrine() {
           if (ms < movimento.fim) done = false;
           return;
         }
-        const t = Math.min(1, Math.max(0, (now - at - SHOW.delay - i * SHOW.stagger) / SHOW.duration));
+        const t = clamp01((now - at - SHOW.delay - i * SHOW.stagger) / SHOW.duration);
         if (t < 1) done = false;
         sombraNaGema(gems[i], t === 0); // the shadow goes away as the die lifts off
         const e = easeOut(t);
