@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test';
-
-const dice = (p: import('@playwright/test').Page) => p.evaluate(() => window.__dice.state().dice);
+import { dice } from './esperas';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');

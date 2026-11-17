@@ -1,12 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
+import { advance } from './esperas';
 
 test.use({ launchOptions: { args: [] } });
 test.setTimeout(180_000);
-
-async function advance(page: Page, ms: number) {
-  const elapsed = await page.evaluate(() => window.__dice.state().omenTime);
-  await page.clock.runFor(Math.max(0, ms - elapsed) + 32);
-}
 
 async function launch(page: Page, naturalOne = false) {
   await page.evaluate((naturalOne) => {

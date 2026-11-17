@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { test, expect, type Page } from '@playwright/test';
 import { noisePng } from '../tests/helpers/noisePng';
 import { tableGlb } from '../tests/helpers/tableGlb';
+import { panel } from './esperas';
 
 // 1x1 PNG: enough for a backdrop / texture fixture.
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
@@ -9,7 +10,6 @@ const png = { name: 'fundo.png', mimeType: 'image/png', buffer: PNG };
 const glbFile = (name: string, buffer: ArrayBuffer | Buffer) => ({ name, mimeType: 'model/gltf-binary', buffer: Buffer.from(buffer as ArrayBuffer) });
 
 const table = (p: Page) => p.evaluate(() => window.__dice.table());
-const panel = (p: Page) => p.locator('#table-panel');
 const openPanel = async (p: Page) => {
   if (await panel(p).getAttribute('data-open') !== 'true') await p.locator('.chat-toggle', { hasText: 'Mesa' }).click();
   await expect(panel(p)).toHaveAttribute('data-open', 'true');
