@@ -1,48 +1,73 @@
 import {
-  BackSide, Box3, BufferAttribute, BufferGeometry, CylinderGeometry, DoubleSide, DynamicDrawUsage, Euler, Group, LatheGeometry,
-  Mesh, MeshStandardMaterial, Quaternion, SphereGeometry, Vector2, Vector3, type Camera, type Material, type PerspectiveCamera,
+  BackSide, Box3, BufferAttribute, BufferGeometry, CatmullRomCurve3, DoubleSide, DynamicDrawUsage, Euler, Group, LatheGeometry,
+  Mesh, MeshStandardMaterial, Quaternion, Vector2, Vector3, type Camera, type Material, type PerspectiveCamera,
 } from 'three';
-import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import type { TipoVampiro } from '../../regras/index.ts';
 import { span, type Vec3 } from '../../../shared/math.ts';
 import { fechamentoDaPegada, VAMPIRO, vampiroAt } from '../domain/vampiroMotion.ts';
 import { CENTRO_DA_PEGA, mangaDaCamera, maoDoVampiro } from './vampiroMao.ts';
+import { elipsoide as sphere, soldar, superficie } from './malhaLisa.ts';
 
 const UP = new Vector3(0, 1, 0);
-const COLUMNS = 16, ROWS = 14, CAPE_SWEEP = 1.94;
+const COLUMNS = 56, ROWS = 32, CAPE_SWEEP = 1.94;
 const SHOULDERS = 1.68;
-const SCALE: Record<TipoVampiro, number> = { 'par-de-criticos': 4.1, 'critico-bestial': 3.35, 'falha-bestial': 3.95 };
+const SCALE: Record<TipoVampiro, number> = { 'par-de-criticos': 2.15, 'critico-bestial': 3.35, 'falha-bestial': 3.95 };
 
-const sphere = (p: Vec3, s: Vec3, angle = 0) => new SphereGeometry(1, 12, 8).scale(...s).rotateZ(angle).translate(...p);
-
-function taper(a: Vec3, b: Vec3, r0: number, r1: number, sides = 8): BufferGeometry {
+function taper(a: Vec3, b: Vec3, r0: number, r1: number): BufferGeometry {
   const start = new Vector3(...a), end = new Vector3(...b), axis = end.clone().sub(start);
   const length = axis.length();
-  return new CylinderGeometry(r1, r0, length, sides)
-    .applyQuaternion(new Quaternion().setFromUnitVectors(UP, axis.normalize())).translate(...start.lerp(end, 0.5).toArray());
+  // Hemispherical ends continue the shoulder, elbow and boot surfaces at the joints.
+  const rings: Vector2[] = [];
+  const cap = (r: number, y: number, first: number, last: number, segments: number) => {
+    for (let i = 0; i <= segments; i++) {
+      const a = first + (last - first) * i / segments;
+      rings.push(new Vector2(r * Math.cos(a), y + r * Math.sin(a)));
+    }
+  };
+  cap(r0, 0, -Math.PI / 2, 0, 10);
+  for (let i = 1; i < 7; i++) rings.push(new Vector2(r0 + (r1 - r0) * i / 7, length * i / 7));
+  cap(r1, length, 0, Math.PI / 2, 10);
+  return superficie(28, rings.length - 1, (u, v) => {
+    const ring = rings[Math.round(v * (rings.length - 1))];
+    const a = 2 * Math.PI * u;
+    return [ring.x * Math.sin(a), ring.y, ring.x * Math.cos(a)];
+  })
+    .applyQuaternion(new Quaternion().setFromUnitVectors(UP, axis.normalize())).translate(...a);
 }
 
-const profile = (rings: [number, number][], depth: number) =>
-  new LatheGeometry(rings.map(([radius, y]) => new Vector2(radius, y)), 18).scale(1, 1, depth);
+function profile(rings: [number, number][], depth: number) {
+  const curve = new CatmullRomCurve3(rings.map(([x, y]) => new Vector3(x, y, 0)));
+  const points = curve.getPoints(72).map(({ x, y }) => new Vector2(x, y));
+  return new LatheGeometry(points, 48).scale(1, 1, depth);
+}
 
-function plate(a: Vec3, b: Vec3, c: Vec3, d: Vec3): BufferGeometry {
-  const g = new BufferGeometry();
-  g.setAttribute('position', new BufferAttribute(new Float32Array([...a, ...b, ...c, ...a, ...c, ...d]), 3));
-  g.computeVertexNormals();
-  return g;
+function gola() {
+  // Swept crescent. The rounded cross-section closes the lining and outer fabric at the lip.
+  return superficie(48, 46, (u, v) => {
+    const a = (u * 2 - 1) * 2.02;
+    const section = v * 2 * Math.PI;
+    const ends = Math.cos(Math.PI * u) ** 10;
+    const width = 0.245 * (1 - 0.42 * ends);
+    const thickness = 0.132 * (1 - 0.46 * ends);
+    const d = Math.hypot(thickness * Math.cos(section), width * Math.sin(section));
+    const rise = width ** 2 * Math.sin(section) / d;
+    const r = 0.42 + 0.35 * rise + thickness ** 2 * Math.cos(section) / d;
+    const y = 1.74 + 0.14 * Math.sin(a) ** 2 + rise;
+    return [Math.sin(a) * r, y, -Math.cos(a) * r - 0.07];
+  });
 }
 
 function sweptHair() {
   const g = new BufferGeometry(), vertices: number[] = [], indices: number[] = [];
-  const loops = 14, strands = 36;
+  const loops = 25, strands = 60;
   for (let row = 0; row <= loops; row++) for (let col = 0; col <= strands; col++) {
     const a = 2 * Math.PI * col / strands, r = row / loops;
-    const front = Math.cos(a), widow = Math.exp(-((Math.acos(front) / 0.24) ** 2));
-    const edge = front > 0 ? 1.06 + 0.39 * (1 - front) + widow * 0.51 : 1.45 - 0.63 * front;
+    const front = Math.cos(a), widow = Math.exp(-((Math.acos(front) / 0.34) ** 2));
+    const edge = 1.40 - 0.43 * front + widow * 0.34;
     const b = 0.001 + edge * r;
-    const groove = 1 + 0.021 * Math.cos(18 * a + 2.9 * r) * Math.sin(Math.PI * r * 0.7);
+    const groove = 1 + 0.002 * Math.cos(9 * a + 2.9 * r) * Math.sin(Math.PI * r * 0.7);
     vertices.push(Math.sin(a) * Math.sin(b) * 0.39 * groove, 0.56 + 0.455 * Math.cos(b) * groove,
-      -0.045 + Math.cos(a) * Math.sin(b) * 0.369 * groove - 0.051 * (1 - r));
+      -0.045 + Math.cos(a) * Math.sin(b) * 0.369 * groove);
     const i = row * (strands + 1) + col, next = i + strands + 1;
     if (row < loops && col < strands) indices.push(i, next, i + 1, i + 1, next, next + 1);
   }
@@ -54,14 +79,7 @@ function sweptHair() {
 
 // Weld the static pieces of each material at a joint. The arm and hand can each move independently.
 function batch(material: MeshStandardMaterial, pieces: BufferGeometry[]) {
-  const parts = pieces.map((g) => {
-    g.deleteAttribute('uv');
-    return g.index ? g.toNonIndexed() : g;
-  });
-  const geometry = mergeGeometries(parts);
-  new Set([...pieces, ...parts]).forEach((g) => g.dispose());
-  if (!geometry) throw new Error('Could not batch Vampire geometry');
-  return new Mesh(geometry, material);
+  return new Mesh(soldar(pieces), material);
 }
 
 class Cape {
@@ -79,16 +97,17 @@ class Cape {
     const outside = new Mesh(this.geometry, black), lining = new Mesh(this.geometry, red);
     outside.frustumCulled = lining.frustumCulled = false;
     this.group.add(outside, lining);
+    this.group.name = 'vampiro-capa';
     this.update(0, 0, 0);
   }
 
-  update(t: number, step: number, lean: number) {
+  update(t: number, step: number, lean: number, opened = false) {
     for (let row = 0; row <= ROWS; row++) {
       const v = row / ROWS;
       for (let col = 0; col <= COLUMNS; col++) {
         const angle = (col / COLUMNS * 2 - 1) * CAPE_SWEEP;
-        const folds = v * (0.06 * Math.cos(angle * 13) + 0.10 * Math.sin(t * 0.006 + angle * 4 - v * 5));
-        const radius = 0.72 + v * 0.81;
+        const folds = v * (0.028 * Math.cos(angle * 7) + 0.052 * Math.sin(t * 0.005 + angle * 4 - v * 5));
+        const radius = 0.72 + v * (opened ? 1.12 : 0.81);
         const x = Math.sin(angle) * (radius + folds) + 0.22 * step * v * v;
         const y = 1.61 - v * (3.04 - 0.12 * Math.cos(angle * 3)) + v * v * 0.11 * Math.abs(step);
         const z = -Math.cos(angle) * (0.38 + 0.83 * v + folds) - 0.09 - v * (0.36 * Math.abs(step) + 0.65 * lean);
@@ -161,18 +180,18 @@ export class Vampiro {
   private cape: Cape;
 
   constructor() {
-    const coat = new MeshStandardMaterial({ color: '#231b27', roughness: 0.71 });
-    const velvet = new MeshStandardMaterial({ color: '#67162f', roughness: 0.74 });
-    const red = new MeshStandardMaterial({ color: '#75142a', roughness: 0.67, side: DoubleSide });
-    const trim = new MeshStandardMaterial({ color: '#a47d5c', roughness: 0.38, metalness: 0.5 });
-    const black = new MeshStandardMaterial({ color: '#120e19', roughness: 0.74 });
-    const lining = new MeshStandardMaterial({ color: '#84152e', roughness: 0.72, side: BackSide });
-    const leather = new MeshStandardMaterial({ color: '#1c1820', roughness: 0.39 });
-    const skin = new MeshStandardMaterial({ color: '#c8adaa', roughness: 0.57, emissive: '#381e23', emissiveIntensity: 0.36 });
-    const bone = new MeshStandardMaterial({ color: '#f4e5d1', roughness: 0.42, side: DoubleSide });
-    const nail = new MeshStandardMaterial({ color: '#581128', roughness: 0.31, metalness: 0.16 });
-    const hair = new MeshStandardMaterial({ color: '#151019', roughness: 0.34 });
-    const iris = new MeshStandardMaterial({ color: '#c6122c', emissive: '#ed0e29', emissiveIntensity: 1.65, roughness: 0.38 });
+    const coat = new MeshStandardMaterial({ name: 'coat', color: '#231b27', roughness: 0.71 });
+    const velvet = new MeshStandardMaterial({ name: 'velvet', color: '#67162f', roughness: 0.74 });
+    const red = new MeshStandardMaterial({ name: 'red', color: '#75142a', roughness: 0.67, side: DoubleSide });
+    const trim = new MeshStandardMaterial({ name: 'trim', color: '#a47d5c', roughness: 0.38, metalness: 0.5 });
+    const black = new MeshStandardMaterial({ name: 'black', color: '#120e19', roughness: 0.74 });
+    const lining = new MeshStandardMaterial({ name: 'lining', color: '#84152e', roughness: 0.72, side: BackSide });
+    const leather = new MeshStandardMaterial({ name: 'leather', color: '#1c1820', roughness: 0.39 });
+    const skin = new MeshStandardMaterial({ name: 'skin', color: '#c8adaa', roughness: 0.57, emissive: '#381e23', emissiveIntensity: 0.36 });
+    const bone = new MeshStandardMaterial({ name: 'bone', color: '#f4e5d1', roughness: 0.42, side: DoubleSide });
+    const nail = new MeshStandardMaterial({ name: 'nail', color: '#581128', roughness: 0.31, metalness: 0.16 });
+    const hair = new MeshStandardMaterial({ name: 'hair', color: '#151019', roughness: 0.34 });
+    const iris = new MeshStandardMaterial({ name: 'iris', color: '#c6122c', emissive: '#ed0e29', emissiveIntensity: 1.65, roughness: 0.38 });
     this.root.name = 'vampiro';
     this.body.name = 'vampiro-corpo';
     this.head.name = 'vampiro-cabeca';
@@ -181,23 +200,18 @@ export class Vampiro {
     this.cape = new Cape(black, lining);
     const vest = profile([[0.0, -0.19], [0.4, -0.10], [0.46, 0.25], [0.52, 0.75], [0.64, 1.31], [0.57, 1.52], [0.16, 1.67], [0, 1.69]], 0.64);
     const sides = [-1, 1];
-    const panels = sides.flatMap((s) => [
-      plate([s * 0.46, -0.15, 0.235], [s * 0.48, 1.39, 0.355], [s * 0.29, 1.51, 0.405], [s * 0.28, 0.22, 0.31]),
-      plate([s * 0.23, 1.08, 0.415], [s * 0.55, 1.54, 0.32], [s * 0.47, 1.74, 0.165], [s * 0.17, 1.65, 0.34]),
-      plate([s * 0.18, 1.58, 0.10], [s * 0.41, 1.53, -0.13], [s * 0.60, 2.13, -0.28], [s * 0.18, 2.00, -0.41]),
-    ]);
     this.torso.add(
       this.cape.group,
       batch(velvet, [vest]),
       batch(coat, [profile([[0, -0.5], [0.47, -0.35], [0.49, 0.55], [0.65, 1.35], [0.5, 1.6], [0, 1.72]], 0.50)]),
-      batch(red, panels),
+      batch(red, [gola(),
+        ...sides.map((s) => sphere([s * 0.36, 1.17, 0.29], [0.12, 0.47, 0.12], -s * 0.26))]),
       batch(bone, [
-        plate([-0.15, 1.65, 0.375], [0.15, 1.65, 0.375], [0.12, 1.38, 0.439], [-0.10, 1.27, 0.43]),
-        sphere([-0.035, 1.34, 0.421], [0.076, 0.18, 0.042], -0.32),
-        sphere([0.052, 1.31, 0.418], [0.053, 0.17, 0.035], 0.39),
+        sphere([-0.047, 1.44, 0.379], [0.083, 0.24, 0.086], -0.26),
+        sphere([0.052, 1.41, 0.38], [0.075, 0.23, 0.08], 0.33),
       ]),
       batch(trim, [sphere([0, 1.4, 0.464], [0.041, 0.067, 0.031]),
-        ...[0.32, 0.54, 0.76, 0.98].flatMap((y) => sides.map((s) => sphere([s * 0.11, y, 0.327 + 0.06 * y], [0.034, 0.034, 0.025])))]),
+        sphere([0, 1.02, 0.388], [0.034, 0.034, 0.025])]),
     );
 
     // The face has a closed hairline, a broad forehead and a narrow but continuous jaw.
@@ -211,11 +225,11 @@ export class Vampiro {
         ...sides.map((s) => sphere([s * 0.305, 0.442, -0.026], [0.092, 0.158, 0.077], s * -0.24))]),
       batch(hair, [sweptHair(),
         ...sides.map((s) => taper([s * 0.066, 0.550, 0.289], [s * 0.245, 0.602, 0.225], 0.024, 0.013))]),
-      batch(leather, [taper([0, -0.25, -0.055], [0, -0.04, -0.039], 0.198, 0.18, 18),
-        sphere([0, 0.203, 0.231], [0.117, 0.050, 0.026]),
-        ...sides.map((s) => sphere([s * 0.151, 0.51, 0.242], [0.097, 0.041, 0.030], s * 0.20))]),
-      batch(iris, sides.map((s) => sphere([s * 0.138, 0.509, 0.271], [0.049, 0.021, 0.024], s * 0.20))),
-      batch(bone, sides.map((s) => taper([s * 0.071, 0.228, 0.256], [s * 0.067, 0.149, 0.265], 0.022, 0.001))),
+      batch(leather, [taper([0, -0.25, -0.055], [0, -0.04, -0.039], 0.198, 0.18),
+        sphere([0, 0.205, 0.155], [0.121, 0.061, 0.064]),
+        ...sides.map((s) => sphere([s * 0.151, 0.51, 0.218], [0.086, 0.053, 0.054], s * 0.20))]),
+      batch(iris, sides.map((s) => sphere([s * 0.140, 0.510, 0.251], [0.042, 0.023, 0.027], s * 0.22))),
+      batch(bone, sides.map((s) => taper([s * 0.073, 0.214, 0.218], [s * 0.067, 0.152, 0.227], 0.016, 0.005))),
     );
     this.torso.add(this.head);
 
@@ -274,21 +288,18 @@ export class Vampiro {
       this.body.scale.setScalar(SCALE[tipo]);
       this.torso.position.y = 1.45 - corpo.crouch * 0.55;
       this.torso.rotation.x = corpo.lean;
-      this.head.rotation.x = -0.64 - 0.80 * corpo.lean;
+      this.head.rotation.x = tipo === 'par-de-criticos' ? -0.24 : -0.64 - 0.80 * corpo.lean;
       this.legs.forEach((leg, i) => {
         leg.position.y = 1.45 - corpo.crouch * 0.27;
         leg.rotation.x = (i === 0 ? corpo.step : -corpo.step) * 0.67 - corpo.crouch * 0.23;
       });
-      this.cape.update(t, corpo.step, corpo.lean);
+      this.cape.update(t, corpo.step, corpo.lean, tipo === 'par-de-criticos');
       this.body.updateWorldMatrix(true, true);
-      const both = fase === 'pega' && tipo === 'par-de-criticos' || fase === 'junta';
-      const holding = fase === 'pega' || fase === 'junta' || fase === 'prepara' || fase === 'entrega' || fase === 'ataque';
+      const holding = fase === 'pega' || fase === 'entrega' || fase === 'ataque';
       const clawsForward = fase === 'espera' || fase === 'ataque';
       const [leftClosure, rightClosure] = fechamentoDaPegada(tipo, t);
-      const leftObstacles = both ? [direita, ...otherDice] : otherDice;
-      const rightObstacles = both ? [esquerda, ...otherDice] : otherDice;
-      bendArm(this.arms[0], this.body, this.torso, esquerda, camera, both, clawsForward, leftClosure, leftObstacles);
-      bendArm(this.arms[1], this.body, this.torso, direita, camera, holding || fase === 'arremesso', clawsForward, rightClosure, rightObstacles);
+      bendArm(this.arms[0], this.body, this.torso, esquerda, camera, false, clawsForward, leftClosure, otherDice);
+      bendArm(this.arms[1], this.body, this.torso, direita, camera, holding, clawsForward, rightClosure, otherDice);
     }
     if (cobertura > 0) {
       camera.getWorldPosition(this.eyes.position);

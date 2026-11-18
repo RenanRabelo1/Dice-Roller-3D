@@ -4,13 +4,13 @@ import { TRAY } from '../../arremesso/index.ts';
 import type { PresagioVampiro } from '../../regras/index.ts';
 import type { Pose, Vec3 } from '../../../shared/math.ts';
 import { indicesComPercurso, movimentoNoPresagio } from '../domain/percurso.ts';
-import { fechamentoDaPegada, VAMPIRO, VAMPIRO_MS, vampiroAt } from '../domain/vampiroMotion.ts';
+import { fechamentoDaPegada, PAR, parAt, revoadaAt, VAMPIRO, VAMPIRO_MS, vampiroAt } from '../domain/vampiroMotion.ts';
 
 const de: Pose = { p: [1, 0.8, -1.5], q: [0, 0, 0, 1] };
 const para: Pose = { p: [0.5, 8, 6], q: [0, Math.SQRT1_2, 0, Math.SQRT1_2] };
 const camera: Vec3 = [0, 17, 17 * 10 / 14];
 const casos: [PresagioVampiro, number, number, number[]][] = [
-  [{ tipo: 'par-de-criticos', dados: [1, 2] }, 1500, 5600, Object.values(VAMPIRO.par)],
+  [{ tipo: 'par-de-criticos', dados: [1, 2] }, 3000, 5600, Object.values(PAR)],
   [{ tipo: 'critico-bestial', dados: [1] }, 1500, 4600, Object.values(VAMPIRO.critico)],
   [{ tipo: 'falha-bestial', dados: [1] }, 3500, 5400, Object.values(VAMPIRO.falha)],
 ];
@@ -34,27 +34,40 @@ describe('Vampire motion', () => {
     }
   });
 
-  it('throws both dice almost to the camera before they recede to the result', () => {
-    const v: PresagioVampiro = { tipo: 'par-de-criticos', dados: [1, 2] };
-    const a = move(v, 3750, 1).pose.p, b = move(v, 3750, 2).pose.p;
-    expect(distance(a, camera)).toBeLessThan(3);
-    expect(distance(b, camera)).toBeLessThan(3);
-    expect(distance(a, b)).toBeGreaterThan(1);
-    expect(move(v, 4300).pose).toBe(para);
-    expect(vampiroAt(v.tipo, 1900, [de.p]).esquerda).toEqual(move(v, 1900).pose.p);
-    expect(vampiroAt(v.tipo, 2700).direita).toEqual(move(v, 2700, 2).pose.p);
+  it('runs the pair from emergence through flight, blood and reveal on one ordered clock', () => {
+    const marks = [0, ...Object.values(PAR)];
+    expect(marks.every((mark, i) => i === 0 || mark > marks[i - 1])).toBe(true);
+    expect(parAt(0)).toEqual({ aparece: 0, revoada: 0, sangue: 0, revela: 0, voo: 0 });
+    expect(parAt(PAR.surge).aparece).toBe(1);
+    expect(PAR.revoada).toBe(1000);
+    expect(revoadaAt(PAR.revoada)).toEqual([]);
+    expect(parAt(PAR.cobre).revoada).toBeGreaterThan(0);
+    expect(parAt(PAR.descobre).revoada).toBeGreaterThan(parAt(PAR.cobre).revoada);
+    expect(revoadaAt(PAR.sangue)).toEqual([]);
+    expect(parAt(PAR.sangue).sangue).toBe(0);
+    expect(parAt(PAR.revela).revela).toBe(0);
+    expect(parAt(PAR.mostrado).revela).toBe(1);
+    expect(parAt(PAR.sai)).toEqual({ aparece: 1, revoada: 1, sangue: 1, revela: 1, voo: 1 });
+    expect(parAt(PAR.duration)).toEqual({ aparece: 0, revoada: 1, sangue: 0, revela: 1, voo: 1 });
+    for (let t = 0; t <= PAR.duration; t += 10) {
+      const before = parAt(t - 10).sangue, { sangue } = parAt(t);
+      if (t <= PAR.sangue) expect(sangue).toBe(0);
+      else if (t <= PAR.sai) expect(sangue).toBeGreaterThan(before);
+      else expect(sangue).toBeLessThan(before);
+    }
   });
 
-  it('staggers contact, separates the pair on pickup and opens the left hand for the transfer', () => {
-    const type = 'par-de-criticos', origins: Vec3[] = [[-4, 0.7, -2], [-3.05, 0.7, -2]];
-    const [first, second] = fechamentoDaPegada(type, 1740);
-    expect(first).toBeGreaterThan(second);
-    for (const t of [1900, 2700]) {
-      const { esquerda, direita } = vampiroAt(type, t, origins);
-      expect(Math.hypot(esquerda[0] - direita[0], esquerda[2] - direita[2])).toBeGreaterThan(2.4);
-      expect(fechamentoDaPegada(type, t)).toEqual([1, 1]);
+  it('leaves both dice on the felt through the flock and lights the numbers as they reach the result', () => {
+    const v: PresagioVampiro = { tipo: 'par-de-criticos', dados: [1, 2] };
+    for (const i of v.dados) {
+      for (let t = 0; t <= PAR.sangue; t += 10) expect(move(v, t, i).pose).toBe(de);
+      expect(move(v, PAR.revela - 1, i).revela).toBe(0);
+      expect(move(v, (PAR.revela + PAR.mostrado) / 2, i).revela).toBeCloseTo(0.5);
+      for (const t of [PAR.mostrado, PAR.sai, PAR.duration]) {
+        expect(move(v, t, i).pose).toBe(para);
+        expect(move(v, t, i).revela).toBe(1);
+      }
     }
-    expect(fechamentoDaPegada(type, 3000)).toEqual([0, 1]);
   });
 
   it('holds the Fome die still until the attack and opens the camera hands as it approaches', () => {
@@ -70,11 +83,20 @@ describe('Vampire motion', () => {
     expect(vampiroAt(v.tipo, 5000).corpo.visivel).toBe(false);
   });
 
-  it('keeps the pair beside the right wall and the waiting attacker behind the back wall', () => {
+  it('keeps the pair centered behind the back wall and the waiting attacker behind it', () => {
     const origins: Vec3[] = [[-6, 0.7, -3.5], [3, 0.7, 3.5]];
-    for (const t of Object.values(VAMPIRO.par)) {
-      expect(vampiroAt('par-de-criticos', t, origins).corpo.p[0]).toBeGreaterThan(TRAY.halfWidth + TRAY.wallThickness);
+    const type = 'par-de-criticos';
+    const back = -TRAY.halfDepth - TRAY.wallThickness;
+    for (const t of Object.values(PAR)) {
+      const { corpo, esquerda, direita } = vampiroAt(type, t, origins);
+      expect(corpo.p[0]).toBe(0);
+      expect(corpo.p[2]).toBeLessThan(back);
+      expect(esquerda[2]).toBeLessThan(back);
+      expect(direita[2]).toBeLessThan(back);
+      expect(fechamentoDaPegada(type, t)).toEqual([0, 0]);
     }
+    expect(vampiroAt(type, PAR.surge).corpo.p[1]).toBeGreaterThan(vampiroAt(type, 0).corpo.p[1]);
+    expect(vampiroAt(type, PAR.duration).corpo.visivel).toBe(false);
     expect(vampiroAt('falha-bestial', 3200, origins).corpo.p[2]).toBeLessThan(-TRAY.halfDepth - TRAY.wallThickness);
   });
 });

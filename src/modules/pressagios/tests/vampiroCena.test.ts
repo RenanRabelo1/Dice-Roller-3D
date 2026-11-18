@@ -1,10 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { Mesh, PerspectiveCamera, Scene, Vector3, type BufferGeometry, type Material, type Object3D, type WebGLRenderer } from 'three';
-import { arremesso, input, publish } from '../../arremesso/index.ts';
+import { Box3, InstancedMesh, Mesh, PerspectiveCamera, Scene, Vector3, type BufferGeometry, type Material, type Object3D, type WebGLRenderer } from 'three';
+import { arremesso, input, publish, TRAY } from '../../arremesso/index.ts';
 import { definir } from '../../selecao/index.ts';
 import { definirMovimentoReduzido } from '../../../shared/plataforma/index.ts';
 import { presagio, reiniciarPresagio } from '../index.ts';
-import { VAMPIRO, VAMPIRO_MS } from '../domain/vampiroMotion.ts';
+import { PAR, VAMPIRO } from '../domain/vampiroMotion.ts';
 import { Show } from '../scene/PresagiosNaCena.tsx';
 import { Vampiro } from '../scene/Vampiro.ts';
 import { CENTRO_DA_PEGA } from '../scene/vampiroMao.ts';
@@ -30,16 +30,19 @@ function showOfScene() {
   vi.stubGlobal('document', { createElement: () => ({ getContext: () => ctx }) });
   const scene = new Scene(), show = new Show();
   scene.add(show.root);
-  return { show, scene, vampire: scene.getObjectByName('vampiro')! };
+  const vampire = scene.getObjectByName('vampiro')!;
+  const bats = scene.getObjectByName('revoada')!;
+  const blood = scene.getObjectByName('sangue')!;
+  return { show, scene, vampire, bats, blood };
 }
 
 const target = () => new Vector3(0, 0.7, 0);
 const roll = () => {
   const source = { kind: 'key' } as const;
-  definir(['hunger']);
+  definir(['vtm', 'vtm']);
   input({ type: 'press', source, at: 0, repeat: false });
   input({ type: 'release', source, at: 550 });
-  publish(arremesso().throwId, [10]);
+  publish(arremesso().throwId, [10, 10]);
 };
 
 afterEach(() => {
@@ -49,17 +52,21 @@ afterEach(() => {
 });
 
 describe('Vampire scene', () => {
-  it('warms the figure and camera hands in the shared shader compile, then hides them', () => {
-    const { show, scene, vampire } = showOfScene();
+  it('warms the figure, camera hands, bats and blood in the shared compile, then hides them', () => {
+    const { show, scene, vampire, bats, blood } = showOfScene();
     expect(vampire.visible).toBe(false);
     const compile = vi.fn(() => {
       expect(vampire.visible).toBe(true);
       expect(vampire.getObjectByName('vampiro-cabeca')?.visible).toBe(true);
       expect(vampire.getObjectByName('vampiro-maos-da-camera')?.visible).toBe(true);
+      expect(bats.visible).toBe(true);
+      expect(blood.visible).toBe(true);
     });
     show.compile({ compile } as unknown as WebGLRenderer, scene, camera);
     expect(compile).toHaveBeenCalledExactlyOnceWith(scene, camera);
     expect(vampire.visible).toBe(false);
+    expect(bats.visible).toBe(false);
+    expect(blood.visible).toBe(false);
     show.dispose();
   });
 
@@ -78,6 +85,30 @@ describe('Vampire scene', () => {
     const dispose = [...first.geometries, ...first.materials].map((asset) => vi.spyOn(asset, 'dispose'));
     vampire.dispose();
     for (const released of dispose) expect(released).toHaveBeenCalledTimes(1);
+  });
+
+  it('releases every bat and blood geometry, material and instance buffer once', () => {
+    const { show, bats, blood } = showOfScene();
+    const parts = [bats, blood];
+    const assets = parts.flatMap((root) => {
+      const { geometries, materials } = resources(root);
+      return [...geometries, ...materials, ...(root.children as InstancedMesh[])];
+    });
+    const releases = assets.map((asset) => vi.spyOn(asset, 'dispose'));
+    roll();
+    for (const t of [PAR.cobre, PAR.sai, PAR.duration]) show.frame(presagio().omenAt + t, camera, target, 800);
+    show.dispose();
+    for (const release of releases) expect(release).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the entire pair figure beyond the outer face of the back wall', () => {
+    const vampire = new Vampiro();
+    const body = vampire.root.getObjectByName('vampiro-corpo')!;
+    for (const t of [400, 900, PAR.cobre, PAR.sai, 5200]) {
+      vampire.update('par-de-criticos', t, camera);
+      expect(new Box3().setFromObject(body, true).max.z).toBeLessThan(-TRAY.halfDepth - TRAY.wallThickness);
+    }
+    vampire.dispose();
   });
 
   it('puts the cupped palm around the die in the foreground attack', () => {
@@ -121,31 +152,36 @@ describe('Vampire scene', () => {
   });
 
   it('hides on finish, pickup, selection change and reduced motion', () => {
-    const { show, vampire } = showOfScene();
+    const { show, vampire, bats, blood } = showOfScene();
     const at = (t: number) => show.frame(presagio().omenAt + t, camera, target, 800);
+    const visible = () => [vampire.visible, bats.visible, blood.visible];
     at(0);
-    expect(vampire.visible).toBe(false);
+    expect(visible()).toEqual([false, false, false]);
     roll();
-    at(1200);
-    expect(vampire.visible).toBe(true);
-    expect(at(VAMPIRO_MS['critico-bestial'] + 1)).toBe(arremesso().throwId);
-    expect(vampire.visible).toBe(false);
+    at(PAR.cobre);
+    expect(visible()).toEqual([true, true, false]);
+    at(PAR.sai);
+    expect(visible()).toEqual([true, false, true]);
+    expect(at(PAR.duration + 1)).toBe(arremesso().throwId);
+    expect(visible()).toEqual([false, false, false]);
     roll();
-    at(1200);
-    expect(vampire.visible).toBe(true);
+    at(PAR.cobre);
+    expect(visible()).toEqual([true, true, false]);
     input({ type: 'press', source: { kind: 'key' }, at: 1200, repeat: false });
-    at(1300);
-    expect(vampire.visible).toBe(false);
+    at(PAR.cobre + 1);
+    expect(visible()).toEqual([false, false, false]);
     roll();
-    at(1200);
+    at(PAR.sai);
+    expect(visible()).toEqual([true, false, true]);
     definir(['d20']);
-    at(1300);
-    expect(vampire.visible).toBe(false);
+    at(PAR.sai + 1);
+    expect(visible()).toEqual([false, false, false]);
     roll();
-    at(1200);
+    at(PAR.sai);
+    expect(visible()).toEqual([true, false, true]);
     definirMovimentoReduzido(true);
-    at(1300);
-    expect(vampire.visible).toBe(false);
+    at(PAR.sai + 1);
+    expect(visible()).toEqual([false, false, false]);
     show.dispose();
   });
 });
