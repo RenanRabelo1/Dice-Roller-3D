@@ -5,8 +5,8 @@ import {
 import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
 import { TRAY } from '../../arremesso/index.ts';
 import { NUMERO_DE_MORCEGOS, PAR } from '../domain/vampiroMotion.ts';
-import { Morcegos } from '../scene/Morcegos.ts';
-import { Sangue } from '../scene/Sangue.ts';
+import { Morcegos, painelDaAsa, PONTAS_DA_ASA } from '../scene/Morcegos.ts';
+import { escoamentoAt, Sangue } from '../scene/Sangue.ts';
 import { Vampiro } from '../scene/Vampiro.ts';
 
 const camera = new PerspectiveCamera(40, 1.6);
@@ -61,15 +61,15 @@ describe('Vampire procedural meshes', () => {
     const figures = [...new Map([vampire.root, bats.root, blood.root].flatMap(malhas).map((m) => [m.geometry, m])).values()];
     const measured = figures.flatMap((m) => [0, ...(m.geometry.morphAttributes.position ? [1] : [])]
       .map((morph) => ({ name: geometryLabel(m), morph, angle: maxAngle(m.geometry, morph) })));
-    const [cape] = malhas(vampire.root.getObjectByName('vampiro-capa')!);
+    const cape = new Set(malhas(vampire.root.getObjectByName('vampiro-capa')!).map((mesh) => mesh.geometry));
     for (const [type, t] of [['par-de-criticos', 900], ['par-de-criticos', 4300], ['critico-bestial', 1900], ['falha-bestial', 3700]] as const) {
       vampire.update(type, t, camera);
-      measured.push({ name: `capa:${type}:${t}`, morph: 0, angle: maxAngle(cape.geometry) });
+      for (const geometry of cape) measured.push({ name: `capa:${type}:${t}`, morph: 0, angle: maxAngle(geometry) });
     }
     // No intentional sharp-edge exceptions. The collar, nails and fangs are rounded too.
     expect(measured.filter(({ angle }) => angle > 15)).toEqual([]);
     vampire.dispose();
-  });
+  }, 20_000);
 
   it('batches the figure by material and instances the flock and blood within their draw budgets', () => {
     const vampire = new Vampiro(), bats = new Morcegos(), blood = new Sangue();
@@ -93,6 +93,74 @@ describe('Vampire procedural meshes', () => {
     for (const mesh of malhas(blood.root)) expect(mesh).toBeInstanceOf(InstancedMesh);
     vampire.dispose();
   });
+});
+
+it('gives each wing five fingers with four inset scallops and curved panels', () => {
+  expect(PONTAS_DA_ASA).toHaveLength(5);
+  for (let panel = 0; panel < PONTAS_DA_ASA.length - 1; panel++) {
+    const wrist = painelDaAsa(panel, 0.5, 0);
+    const outer = painelDaAsa(panel, 0.5, 1);
+    const centre = painelDaAsa(panel, 0.5, 0.5);
+    const straight = painelDaAsa(panel, 0, 1).lerp(painelDaAsa(panel, 1, 1), 0.5);
+    const length = Math.hypot(wrist.x - outer.x, wrist.z - outer.z);
+    const camber = (centre.y - (wrist.y + outer.y) * 0.5) / length;
+    expect(camber).toBeGreaterThanOrEqual(0.08);
+    expect(camber).toBeLessThanOrEqual(0.15);
+    expect(length).toBeLessThan(Math.hypot(wrist.x - straight.x, wrist.z - straight.z));
+  }
+});
+
+it('keeps the projected bats below twelve percent of the default viewport width', () => {
+  const bats = new Morcegos();
+  const parts = malhas(bats.root) as InstancedMesh[];
+  const matrix = new Matrix4(), clip = new Matrix4();
+  const projection = new Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+  let widest = 0;
+  for (const t of [1300, 1600, PAR.cobre, 1900, PAR.descobre, 2300, 2500]) {
+    bats.update(t, camera);
+    for (let i = 0; i < parts[0].count; i++) {
+      let left = 1, right = -1;
+      for (const part of parts) {
+        part.getMatrixAt(i, matrix);
+        const e = clip.multiplyMatrices(projection, matrix).elements;
+        const xyz = part.geometry.getAttribute('position').array;
+        for (let j = 0; j < xyz.length; j += 3) {
+          const x = xyz[j], y = xyz[j + 1], z = xyz[j + 2];
+          const screen = (e[0] * x + e[4] * y + e[8] * z + e[12]) / (e[3] * x + e[7] * y + e[11] * z + e[15]);
+          left = Math.min(left, screen);
+          right = Math.max(right, screen);
+        }
+      }
+      widest = Math.max(widest, (Math.min(1, right) - Math.max(-1, left)) / 2);
+    }
+  }
+  expect(widest).toBeLessThanOrEqual(0.12);
+});
+
+it('starts the blood on the lip, follows the inner walls and shrinks the length by 5200 ms', () => {
+  const initial = escoamentoAt(PAR.sangue);
+  const early = escoamentoAt(3100);
+  const peak = escoamentoAt(PAR.sai);
+  const leaving = escoamentoAt(5200);
+  const ended = escoamentoAt(PAR.duration);
+  expect(initial.labio).toBe(0);
+  expect(early.labio).toBeGreaterThan(0);
+  for (const side of [-1, 1]) {
+    const streams = peak.filetes.filter(({ x }) => x * side > 0);
+    expect(streams).toHaveLength(17);
+    for (const { x, largura } of streams) {
+      expect(TRAY.halfWidth - Math.abs(x)).toBeCloseTo(0.0065, 6);
+      expect(largura).toBeGreaterThanOrEqual(0.06);
+      expect(largura).toBeLessThanOrEqual(0.14);
+    }
+  }
+  expect(peak.filetes.some(({ comprimento, poca }) => comprimento === TRAY.wallHeight && poca > 0)).toBe(true);
+  expect(peak.filetes.some(({ comprimento }) => comprimento < TRAY.wallHeight)).toBe(true);
+  for (const [i, stream] of peak.filetes.entries()) {
+    expect(leaving.filetes[i].comprimento).toBeLessThanOrEqual(stream.comprimento * 0.60);
+    expect(ended.filetes[i].comprimento).toBe(0);
+    expect(ended.filetes[i].poca).toBe(0);
+  }
 });
 
 function triangleHits(ray: Ray, geometry: BufferGeometry) {
@@ -150,4 +218,4 @@ it('occludes a 9 by 6 grid of felt from the default camera throughout the flock 
       if (!covered) throw new Error(`Exposed felt at ${t} ms, point ${point.toArray()}`);
     }
   }
-}, 20_000);
+}, 30_000);

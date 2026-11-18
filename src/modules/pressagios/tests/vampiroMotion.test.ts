@@ -4,7 +4,7 @@ import { TRAY } from '../../arremesso/index.ts';
 import type { PresagioVampiro } from '../../regras/index.ts';
 import type { Pose, Vec3 } from '../../../shared/math.ts';
 import { indicesComPercurso, movimentoNoPresagio } from '../domain/percurso.ts';
-import { fechamentoDaPegada, PAR, parAt, revoadaAt, VAMPIRO, VAMPIRO_MS, vampiroAt } from '../domain/vampiroMotion.ts';
+import { AMPLITUDE_DA_ASA, ENVERGADURA, fechamentoDaPegada, PAR, parAt, revoadaAt, VAMPIRO, VAMPIRO_MS, vampiroAt } from '../domain/vampiroMotion.ts';
 
 const de: Pose = { p: [1, 0.8, -1.5], q: [0, 0, 0, 1] };
 const para: Pose = { p: [0.5, 8, 6], q: [0, Math.SQRT1_2, 0, Math.SQRT1_2] };
@@ -19,6 +19,36 @@ const distance = (a: Vec3, b: Vec3) => new Vector3(...a).distanceTo(new Vector3(
 const move = (v: PresagioVampiro, ms: number, i = 1) => movimentoNoPresagio(i, ms, de, para, [], [], v, camera)!;
 
 describe('Vampire motion', () => {
+  it('shows the bats from above with varied wingbeats, world scale and flight layers', () => {
+    const eye = new Vector3(0, 14, 10);
+    const dorsal = new Vector3();
+    const towardCamera = new Vector3();
+    for (const t of [1300, PAR.cobre, 1900, PAR.descobre, 2500]) {
+      const flock = revoadaAt(t);
+      const next = revoadaAt(t + 10);
+      let maxAngle = 0, minSpan = Infinity, maxSpan = 0, lowHz = Infinity, highHz = 0;
+      for (const [i, bat] of flock.entries()) {
+        const angle = dorsal.set(0, 1, 0).applyQuaternion(bat.orientacao)
+          .angleTo(towardCamera.subVectors(eye, bat.p));
+        maxAngle = Math.max(maxAngle, angle);
+        minSpan = Math.min(minSpan, ENVERGADURA * bat.escala);
+        maxSpan = Math.max(maxSpan, ENVERGADURA * bat.escala);
+        const hz = (next[i].fase - bat.fase) / (2 * Math.PI * 0.010);
+        lowHz = Math.min(lowHz, hz);
+        highHz = Math.max(highHz, hz);
+      }
+      expect(maxAngle).toBeLessThanOrEqual(Math.PI / 6);
+      expect(minSpan).toBeGreaterThanOrEqual(1.1);
+      expect(maxSpan).toBeLessThanOrEqual(1.8);
+      expect(lowHz).toBeGreaterThanOrEqual(6);
+      expect(highHz).toBeLessThanOrEqual(9);
+      expect(new Set(flock.map((bat) => bat.fase)).size).toBe(flock.length);
+      expect(new Set(flock.map((bat) => Math.round(eye.clone().sub(bat.p).dot(eye.clone().normalize())))).size).toBeGreaterThanOrEqual(2);
+      expect(next[0].p.x).toBeGreaterThan(flock[0].p.x);
+    }
+    expect(AMPLITUDE_DA_ASA * 180 / Math.PI).toBeGreaterThanOrEqual(50);
+  });
+
   it.each(casos)('carries only its own dice, continuously, for %j', (v, sombra, fim, marks) => {
     expect(VAMPIRO_MS[v.tipo]).toBe(fim);
     expect(indicesComPercurso(null, ['d20', 'vtm', 'vtm'], v).vampiro).toBe(v);

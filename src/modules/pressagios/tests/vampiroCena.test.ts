@@ -111,6 +111,18 @@ describe('Vampire scene', () => {
     vampire.dispose();
   });
 
+  it('holds the pair figure above the wall at the waist during its presence', () => {
+    const vampire = new Vampiro();
+    const body = vampire.root.getObjectByName('vampiro-corpo')!;
+    for (const t of [900, 3100, 4300]) {
+      vampire.update('par-de-criticos', t, camera);
+      const waist = body.localToWorld(new Vector3(0, 1.45, 0));
+      expect(waist.y).toBeGreaterThan(TRAY.wallHeight);
+      expect(waist.z).toBeLessThan(-TRAY.halfDepth - TRAY.wallThickness);
+    }
+    vampire.dispose();
+  });
+
   it('puts the cupped palm around the die in the foreground attack', () => {
     const vampire = new Vampiro();
     const carried = new Vector3(0.65, 11, 7.7);
