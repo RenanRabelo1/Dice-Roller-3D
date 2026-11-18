@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { omenKind, omenOf, type DieKind, type Omen } from '../../regras/index.ts';
+import { omenKind, omenOf, presagioVampiro, type DieKind, type Omen, type PresagioVampiro } from '../../regras/index.ts';
 import { omenKinds, plays, type OmenTest } from '../../arremesso/index.ts';
 import { customKind, polyhedron, registerCustom, unregisterCustom } from '../../dados/index.ts';
 import { isD20, OMEN_MS } from '../domain/omen.ts';
@@ -20,32 +20,42 @@ afterAll(() => { unregisterCustom(IMPORTADO); unregisterCustom(SEM_PRESAGIO); })
 
 describe('planoDoPresagio: which effect plays on which die', () => {
   it('no omen, no effect', () => {
-    expect(planoDoPresagio(null, ['d20', 'd100'])).toEqual({ kind: null, raios: [], kraken: [], tempestade: [], fogo: [], ms: 0 });
+    expect(planoDoPresagio(null, ['d20', 'd100'])).toEqual({ kind: null, raios: [], kraken: [], tempestade: [], fogo: [], vampiro: null, ms: 0 });
   });
 
   it('a crit: lightning on each d20 (imported ones counted as d20 too), the kraken on a d100', () => {
     expect(planoDoPresagio({ crits: [0, 2], fumbles: [] }, ['d20', 'd6', IMPORTADO])).toEqual(
-      { kind: 'crit', raios: [0, 2], kraken: [], tempestade: [], fogo: [], ms: OMEN_MS.lightning });
+      { kind: 'crit', raios: [0, 2], kraken: [], tempestade: [], fogo: [], vampiro: null, ms: OMEN_MS.lightning });
     expect(planoDoPresagio({ crits: [0], fumbles: [] }, [SEM_PRESAGIO]).raios).toEqual([]);
     expect(planoDoPresagio({ crits: [1], fumbles: [] }, ['d20', 'd100'])).toEqual(
-      { kind: 'crit', raios: [], kraken: [1], tempestade: [], fogo: [], ms: OMEN_MS.kraken });
+      { kind: 'crit', raios: [], kraken: [1], tempestade: [], fogo: [], vampiro: null, ms: OMEN_MS.kraken });
     expect(planoDoPresagio({ crits: [0, 1], fumbles: [] }, ['d20', 'd100'])).toEqual(
-      { kind: 'crit', raios: [0], kraken: [1], tempestade: [], fogo: [], ms: OMEN_MS.kraken });
+      { kind: 'crit', raios: [0], kraken: [1], tempestade: [], fogo: [], vampiro: null, ms: OMEN_MS.kraken });
   });
 
   it('a fumble: fire on each d20, the storm on a d100, lasting the longer of the two', () => {
     expect(planoDoPresagio({ crits: [], fumbles: [0] }, [IMPORTADO])).toEqual(
-      { kind: 'fumble', raios: [], kraken: [], tempestade: [], fogo: [0], ms: OMEN_MS.fire });
+      { kind: 'fumble', raios: [], kraken: [], tempestade: [], fogo: [0], vampiro: null, ms: OMEN_MS.fire });
     expect(planoDoPresagio({ crits: [], fumbles: [1] }, ['d20', 'd100'])).toEqual(
-      { kind: 'fumble', raios: [], kraken: [], tempestade: [1], fogo: [], ms: OMEN_MS.storm });
+      { kind: 'fumble', raios: [], kraken: [], tempestade: [1], fogo: [], vampiro: null, ms: OMEN_MS.storm });
     expect(planoDoPresagio({ crits: [], fumbles: [0, 1] }, ['d20', 'd100'])).toEqual(
-      { kind: 'fumble', raios: [], kraken: [], tempestade: [1], fogo: [0], ms: Math.max(OMEN_MS.fire, OMEN_MS.storm) });
+      { kind: 'fumble', raios: [], kraken: [], tempestade: [1], fogo: [0], vampiro: null, ms: Math.max(OMEN_MS.fire, OMEN_MS.storm) });
   });
 
   it('a duality: only the fish, none of the per-die effects', () => {
     expect(planoDoPresagio({ crits: [0], fumbles: [1] }, ['d20', 'd100'])).toEqual(
-      { kind: 'duality', raios: [], kraken: [], tempestade: [], fogo: [], ms: OMEN_MS.duality });
+      { kind: 'duality', raios: [], kraken: [], tempestade: [], fogo: [], vampiro: null, ms: OMEN_MS.duality });
     expect(planoDoPresagio({ crits: [1], fumbles: [0] }, ['d20', 'd100']).kraken).toEqual([]);
+  });
+
+  it.each<[PresagioVampiro, number]>([
+    [{ tipo: 'par-de-criticos', dados: [1, 2] }, 5600],
+    [{ tipo: 'critico-bestial', dados: [3] }, 4600],
+    [{ tipo: 'falha-bestial', dados: [3] }, 5400],
+  ])('uses the indices and duration of %j', (vampiro, ms) => {
+    const dice: DieKind[] = ['d20', 'vtm', 'vtm', 'hunger'];
+    expect(planoDoPresagio(null, dice, vampiro)).toEqual({ kind: null, raios: [], kraken: [], tempestade: [], fogo: [], vampiro, ms });
+    expect(planoDoPresagio({ crits: [0], fumbles: [] }, dice, vampiro).vampiro).toBeNull();
   });
 });
 
@@ -115,17 +125,24 @@ describe('the HTML layer can read the flash and the heat from the plan (decision
 // import pressagios. The two must agree: the button for an effect finds exactly the rolls whose plan plays it.
 describe('plays (arremesso) agrees with planoDoPresagio', () => {
   it('for every test button, on every roll of these hands', () => {
-    const faces: Record<string, number[]> = { d20: [1, 10, 20], d100: [1, 50, 100], d6: [1, 6] };
-    const hands: DieKind[][] = [['d20'], ['d100'], ['d20', 'd100'], ['d20', 'd20'], ['d100', 'd100'], [IMPORTADO], [SEM_PRESAGIO, 'd100'], ['d6', 'd20'], [IMPORTADO, 'd100']];
+    const faces: Record<string, number[]> = { d20: [1, 10, 20], d100: [1, 50, 100], d6: [1, 6], vtm: [1, 9, 10], hunger: [1, 9, 10] };
+    const hands: DieKind[][] = [
+      ['d20'], ['d100'], ['d20', 'd100'], ['d20', 'd20'], ['d100', 'd100'], [IMPORTADO],
+      [SEM_PRESAGIO, 'd100'], ['d6', 'd20'], [IMPORTADO, 'd100'],
+      ['vtm', 'vtm', 'hunger', 'd20'], ['vtm', 'hunger', 'hunger', 'd100'], ['vtm', 'vtm', IMPORTADO],
+    ];
     const valuesOf = (k: DieKind) => faces[k] ?? faces.d20;
     let checked = 0;
     for (const dice of hands) {
       const rolls = dice.reduce<number[][]>((acc, k) => acc.flatMap((r) => valuesOf(k).map((v) => [...r, v])), [[]]);
       for (const results of rolls) {
-        const kinds = omenKinds(dice), plan = planoDoPresagio(omenOf(kinds, results), dice);
+        const kinds = omenKinds(dice), plan = planoDoPresagio(omenOf(kinds, results), dice, presagioVampiro(kinds, results));
         const expected: Record<OmenTest, boolean> = {
           lightning: plan.kind === 'crit' && plan.raios.length > 0, fire: plan.fogo.length > 0,
           kraken: plan.kraken.length > 0, storm: plan.tempestade.length > 0, duality: plan.kind === 'duality',
+          'par-de-criticos': plan.vampiro?.tipo === 'par-de-criticos',
+          'critico-bestial': plan.vampiro?.tipo === 'critico-bestial',
+          'falha-bestial': plan.vampiro?.tipo === 'falha-bestial',
         };
         for (const test of Object.keys(expected) as OmenTest[]) expect(plays(test, kinds, results), `${test} ${dice} ${results}`).toBe(expected[test]);
         checked++;

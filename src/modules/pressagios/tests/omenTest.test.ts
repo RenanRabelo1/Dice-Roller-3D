@@ -27,6 +27,16 @@ describe('animation test buttons', () => {
     expect(withDiceFor('kraken', Array<DieKind>(10).fill('d6'))).toEqual(['d100']); // no room: just what it needs
   });
 
+  it('adds the Vampire dice without going over ten', () => {
+    expect(withDiceFor('par-de-criticos', ['d20'])).toEqual(['d20', 'vtm', 'vtm']);
+    expect(withDiceFor('par-de-criticos', ['vtm'])).toEqual(['vtm', 'vtm']);
+    expect(withDiceFor('par-de-criticos', Array<DieKind>(9).fill('d20'))).toEqual(['vtm', 'vtm']);
+    expect(withDiceFor('critico-bestial', ['d20'])).toEqual(['d20', 'hunger']);
+    expect(withDiceFor('falha-bestial', Array<DieKind>(10).fill('d20'))).toEqual(['hunger']);
+    const hand: DieKind[] = ['d20', 'hunger'];
+    expect(withDiceFor('falha-bestial', hand)).toBe(hand);
+  });
+
   it('a test throw is a real roll that lands on the omen; an ordinary throw is untouched', async () => {
     await initRapier();
     const request = (dice: DieKind[], seed: number, test?: 'kraken' | 'storm' | 'fire'): RollRequest => {

@@ -7,13 +7,13 @@ const de: Pose = { p: [2, 0.9, -2], q: [0, 0, 0, 1] }, para: Pose = { p: [0, 6, 
 
 describe('indicesComPercurso: the dice the omen carries itself (no ordinary flight)', () => {
   it('the d100 of a kraken (crit without fumble) and of a storm (fumble without crit)', () => {
-    expect(indicesComPercurso({ crits: [1], fumbles: [] }, ['d20', 'd100'])).toEqual({ kraken: [1], tempestade: [] });
-    expect(indicesComPercurso({ crits: [], fumbles: [0, 1] }, ['d100', 'd100'])).toEqual({ kraken: [], tempestade: [0, 1] });
+    expect(indicesComPercurso({ crits: [1], fumbles: [] }, ['d20', 'd100'])).toEqual({ kraken: [1], tempestade: [], vampiro: null });
+    expect(indicesComPercurso({ crits: [], fumbles: [0, 1] }, ['d100', 'd100'])).toEqual({ kraken: [], tempestade: [0, 1], vampiro: null });
   });
   it('none for a d20, a duality or no omen', () => {
-    expect(indicesComPercurso({ crits: [0], fumbles: [] }, ['d20'])).toEqual({ kraken: [], tempestade: [] });
-    expect(indicesComPercurso({ crits: [0], fumbles: [1] }, ['d100', 'd100'])).toEqual({ kraken: [], tempestade: [] });
-    expect(indicesComPercurso(null, ['d100'])).toEqual({ kraken: [], tempestade: [] });
+    expect(indicesComPercurso({ crits: [0], fumbles: [] }, ['d20'])).toEqual({ kraken: [], tempestade: [], vampiro: null });
+    expect(indicesComPercurso({ crits: [0], fumbles: [1] }, ['d100', 'd100'])).toEqual({ kraken: [], tempestade: [], vampiro: null });
+    expect(indicesComPercurso(null, ['d100'])).toEqual({ kraken: [], tempestade: [], vampiro: null });
   });
 });
 

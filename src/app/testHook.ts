@@ -1,4 +1,4 @@
-import type { DieKind, Omen, OmenKind } from '../modules/regras/index.ts';
+import type { DieKind, Omen, OmenKind, TipoVampiro } from '../modules/regras/index.ts';
 import type { Falha } from '../shared/plataforma/index.ts';
 import type { Quat, Vec3 } from '../shared/math.ts';
 import type { Phase } from '../modules/arremesso/index.ts';
@@ -7,7 +7,7 @@ export interface DiceHook {
   state(): {
     dice: DieKind[]; phase: Phase; throwId: number;
     results: number[] | null; ready: boolean; error: Falha | null; aim: Vec3; showcased: number;
-    omen: OmenKind | null; omenDone: number; reducedMotion: boolean; // omen: this throw's
+    omen: OmenKind | null; vampiro: TipoVampiro | null; omenDone: number; reducedMotion: boolean; // omen: this throw's
     omenTime: number; trayBroken: boolean; burning: boolean; force: number; // force: the charge now, or the last throw's
   };
   rigOmen(omen: Omen | null): void; // the next throws play this omen whatever they roll

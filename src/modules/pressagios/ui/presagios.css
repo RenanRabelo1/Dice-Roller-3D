@@ -44,3 +44,34 @@
   36% { transform: translate(-7px, -4px) rotate(-0.3deg); } 50% { transform: translate(5px, 4px); }
   66% { transform: translate(-3px, 2px); } 82% { transform: translate(2px, -1px); } 100% { transform: none; }
 }
+
+.omen-vampiro, .vampiro-sombra, .vampiro-rasgos { position: absolute; inset: 0; }
+.game-area[data-vampiro="par-de-criticos"] canvas { animation: omen-shake 270ms linear var(--vampiro-impacto); }
+.game-area[data-vampiro="critico-bestial"] .omen-vampiro {
+  background: radial-gradient(ellipse at 50% 54%, transparent 35%, rgba(105, 8, 31, 0.28) 80%, rgba(52, 0, 13, 0.5));
+  animation: omen-in 650ms ease-out both;
+}
+.vampiro-sombra {
+  background: radial-gradient(ellipse at center, rgba(9, 1, 5, 0.42), rgba(8, 0, 4, 0.88));
+  animation: vampiro-escurece var(--fecha) cubic-bezier(.333, 0, .667, 1) both,
+    vampiro-clareia var(--abertura) cubic-bezier(.333, 0, .667, 1) var(--fecha) forwards;
+}
+.vampiro-rasgos {
+  display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 6vh;
+  transform: rotate(-24deg); opacity: 0;
+  animation: vampiro-golpe var(--rasgos-ms) ease-out var(--rasgos-em) both;
+}
+.vampiro-rasgos i {
+  width: 112%; height: clamp(12px, 3vh, 38px); background: linear-gradient(180deg, #f53346, #95041e 68%, #450013);
+  clip-path: polygon(0 73%, 14% 29%, 46% 16%, 85% 0, 100% 19%, 81% 51%, 36% 65%, 9% 97%);
+}
+.vampiro-rasgos i:nth-child(2) { margin-left: 12%; }
+.vampiro-rasgos i:nth-child(3) { margin-left: 23%; }
+@keyframes vampiro-escurece { from { opacity: 0; } to { opacity: 1; } }
+@keyframes vampiro-clareia { from { opacity: 1; } to { opacity: 0; } }
+@keyframes vampiro-golpe {
+  0% { opacity: 0; clip-path: inset(0 100% 0 0); }
+  30% { opacity: 0.9; clip-path: inset(0); }
+  80% { opacity: 0.58; clip-path: inset(0); }
+  100% { opacity: 0; clip-path: inset(0); }
+}

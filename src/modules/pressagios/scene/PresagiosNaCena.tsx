@@ -9,7 +9,7 @@ import { MAX_DICE } from '../../regras/index.ts';
 import { presagio, presagioTocando, setOmenDone } from '../store.ts';
 import { DUALITY_HIT } from '../domain/omen.ts';
 import { fireAt } from '../domain/fireMotion.ts';
-import { COR_KRAKEN, COR_TEMPESTADE, corDaDualidade, fonteDaLuz, luzDaDualidade, luzDaTempestade, luzDoKraken, POS_DUALIDADE, POS_KRAKEN, POS_TEMPESTADE, type FonteDaLuz } from '../domain/luz.ts';
+import { COR_KRAKEN, COR_TEMPESTADE, COR_VAMPIRO, corDaDualidade, fonteDaLuz, luzDaDualidade, luzDaTempestade, luzDoKraken, luzDoVampiro, POS_DUALIDADE, POS_KRAKEN, POS_TEMPESTADE, POS_VAMPIRO, type FonteDaLuz } from '../domain/luz.ts';
 import { planoDoPresagio } from '../domain/plano.ts';
 import { arremesso, registroDeCorpos } from '../../arremesso/index.ts';
 import { clamp01, span } from '../../../shared/math.ts';
@@ -168,7 +168,7 @@ class Show {
   private kraken = new Kraken();
   private fire = new Fire();
   private taiji = new TaiJi(this.map);
-  private light = new PointLight('#CFE6FF', 0, 10, 2); // the one omen light: fire, lightning, storm, kraken or duality, in that priority (domain/luz.ts)
+  private light = new PointLight('#CFE6FF', 0, 10, 2); // shared by all omens, see domain/luz.ts
   private run: { throwId: number; at: number; ms: number; bolts: number; kraken: 'grab' | 'storm' | null; fire: number[]; duality: boolean; luz: FonteDaLuz | null; over: boolean } | null = null;
   constructor() {
     for (const b of this.bolts) this.root.add(b.glow, b.core, b.flash);
@@ -193,12 +193,12 @@ class Show {
   }
   hide() { this.bolts.forEach((b) => b.hide()); this.kraken.hide(); this.fire.hide(); this.taiji.hide(); this.light.intensity = 0; this.run = null; }
   frame(now: number, camera: Camera, at: (i: number) => Vector3 | null, pixels: number): number | null {
-    const s = { ...arremesso(), ...presagio() }, o = s.omen;
+    const s = { ...arremesso(), ...presagio() }, current = s.omen ?? s.vampiro;
     // This throw's omen, while its dice lie settled (after the show only the fire is left).
-    if (!o || o.throwId !== s.throwId || s.gesture.phase !== 'settled') { if (this.run) this.hide(); return null; }
-    if (this.run?.throwId !== o.throwId) {
+    if (!current || current.throwId !== s.throwId || s.gesture.phase !== 'settled') { if (this.run) this.hide(); return null; }
+    if (this.run?.throwId !== current.throwId) {
       this.hide();
-      const plano = planoDoPresagio(o, s.dice), positions = (indices: number[]) => indices.map(at).filter((p): p is Vector3 => !!p);
+      const plano = planoDoPresagio(s.omen, s.dice, s.vampiro), positions = (indices: number[]) => indices.map(at).filter((p): p is Vector3 => !!p);
       const { raios: lit, kraken: grab, tempestade: storm, fogo: fire } = plano;
       positions(lit).forEach((p, i) => this.bolts[i].start(p));
       if (grab.length) this.kraken.start('grab', positions(grab), grab[0], coresDaMesa());
@@ -207,11 +207,12 @@ class Show {
       const first = positions(lit)[0] ?? positions(fire)[0];
       if (first) this.light.position.copy(first).y += 1.2;
       const luz = fonteDaLuz(plano);
-      this.light.color.set(luz === 'fogo' ? '#FF7A2A' : luz === 'tempestade' ? COR_TEMPESTADE : luz === 'kraken' ? COR_KRAKEN : '#CFE6FF');
+      this.light.color.set(luz === 'fogo' ? '#FF7A2A' : luz === 'tempestade' ? COR_TEMPESTADE : luz === 'kraken' ? COR_KRAKEN : luz === 'vampiro' ? COR_VAMPIRO : '#CFE6FF');
       if (luz === 'tempestade') this.light.position.set(...POS_TEMPESTADE);
       else if (luz === 'kraken') this.light.position.set(...POS_KRAKEN);
       else if (luz === 'dualidade') this.light.position.set(...POS_DUALIDADE);
-      this.run = { throwId: o.throwId, at: s.omenAt, ms: plano.ms, bolts: lit.length, kraken: grab.length ? 'grab' : storm.length ? 'storm' : null, fire, duality: plano.kind === 'duality', luz, over: false };
+      else if (luz === 'vampiro') this.light.position.set(...POS_VAMPIRO);
+      this.run = { throwId: current.throwId, at: s.omenAt, ms: plano.ms, bolts: lit.length, kraken: grab.length ? 'grab' : storm.length ? 'storm' : null, fire, duality: plano.kind === 'duality', luz, over: false };
     }
     const r = this.run, t = now - r.at;
     if (r.fire.length) { // burns on after the show, on the dice now at the front
@@ -230,11 +231,12 @@ class Show {
     else if (r.luz === 'tempestade') this.light.intensity = luzDaTempestade(t);
     else if (r.luz === 'kraken') this.light.intensity = luzDoKraken(t, r.ms);
     else if (r.luz === 'dualidade') { this.light.intensity = luzDaDualidade(t, r.ms); this.light.color.set(corDaDualidade(t)); }
+    else if (r.luz === 'vampiro') this.light.intensity = luzDoVampiro(t, r.ms);
     if (t < r.ms) return null;
     this.bolts.forEach((b) => b.hide()); this.kraken.hide(); this.taiji.hide();
     if (!r.fire.length) this.light.intensity = 0;
     r.over = true;
-    return o.throwId;
+    return current.throwId;
   }
   dispose() {
     this.root.traverse((o) => {
@@ -255,7 +257,7 @@ export function PresagiosNaCena() {
   useEffect(() => { show.compile(gl, scene, camera); return () => show.dispose(); }, [camera, gl, scene, show]);
   useFrame(() => {
     // Environment builds its reflection texture after mount; warm the final shader variants as well.
-    if (!warmed.current && scene.environment && gl.info.render.frame > 5 && !presagio().omen) {
+    if (!warmed.current && scene.environment && gl.info.render.frame > 5 && !presagio().omen && !presagio().vampiro) {
       show.compile(gl, scene, camera, true); warmed.current = true;
     }
     const pixels = gl.domElement.height / (2 * Math.tan(((camera as PerspectiveCamera).fov * Math.PI) / 360));

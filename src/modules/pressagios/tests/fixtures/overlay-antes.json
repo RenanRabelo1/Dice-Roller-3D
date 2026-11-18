@@ -52,5 +52,17 @@
   "encerrado": {
     "html": "",
     "atributos": {}
+  },
+  "par-de-criticos": {
+    "html": "<div class=\"omen\" style=\"--ms:5600ms\" aria-hidden=\"true\"><div class=\"omen-vampiro\"></div></div><p class=\"sr-only\" role=\"status\">Crítico em par!</p>",
+    "atributos": { "data-vampiro": "par-de-criticos" }
+  },
+  "critico-bestial": {
+    "html": "<div class=\"omen\" style=\"--ms:4600ms\" aria-hidden=\"true\"><div class=\"omen-vampiro\"></div></div><p class=\"sr-only\" role=\"status\">Crítico bestial!</p>",
+    "atributos": { "data-vampiro": "critico-bestial" }
+  },
+  "falha-bestial": {
+    "html": "<div class=\"omen\" style=\"--ms:5400ms\" aria-hidden=\"true\"><div class=\"omen-vampiro\" style=\"--fecha:1700ms;--abertura:1000ms;--rasgos-em:3500ms;--rasgos-ms:800ms\"><div class=\"vampiro-sombra\"></div><div class=\"vampiro-rasgos\"><i></i><i></i><i></i></div></div></div><p class=\"sr-only\" role=\"status\">Falha bestial!</p>",
+    "atributos": { "data-vampiro": "falha-bestial" }
   }
 }

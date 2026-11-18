@@ -96,13 +96,13 @@ export function Cena({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> 
     installTestHook({
       state: () => {
         const state = arremesso(), { showcased } = vitrine();
-        const { omen, omenDone, omenTime, trayBroken, burning } = inspecaoDoPresagio(scene); // the omen's fields, from pressagios
+        const { omen, vampiro, omenDone, omenTime, trayBroken, burning } = inspecaoDoPresagio(scene); // the omen's fields, from pressagios
         return {
           dice: state.dice, phase: state.gesture.phase, throwId: state.throwId,
           results: state.results,
           ready: state.ready && state.dice.join(',') === key && registroDeCorpos.current.filter((b) => b?.isValid()).length === selected.length,
           error: falha(), aim: state.aim, showcased,
-          omen, omenDone, reducedMotion: movimentoReduzido(), omenTime, trayBroken, burning, force: state.force,
+          omen, vampiro, omenDone, reducedMotion: movimentoReduzido(), omenTime, trayBroken, burning, force: state.force,
         };
       },
       select: (next) => definir(next),

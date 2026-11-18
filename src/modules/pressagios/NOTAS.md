@@ -11,7 +11,7 @@ O detalhe que não cabe no [CLAUDE.md](CLAUDE.md). Leia só quando a ordem manda
 | `domain/omen.ts` | `OMEN_MS`, `omenMs`, `DUALITY_HIT`, `isD20` |
 | `domain/plano.ts` | `planoDoPresagio(omen, dice)`: que efeito em que dado, e a duração |
 | `domain/percurso.ts` | `indicesComPercurso`, `movimentoNoPresagio` (o percurso do d100 que a vitrine pergunta) |
-| `domain/krakenMotion.ts`, `domain/fireMotion.ts` | o movimento do kraken, da tempestade e do fogo (puros, testados) |
+| `domain/krakenMotion.ts`, `domain/fireMotion.ts`, `domain/vampiroMotion.ts` | o movimento do kraken, da tempestade, do fogo e do vampiro (puros, testados) |
 | `domain/omenTest.ts` | `OMEN_TESTS` e `withDiceFor` (os botões de teste) |
 | `scene/PresagiosNaCena.tsx`, `Kraken.ts`, `Fire.ts`, `QuebraDaMesa.tsx` | o lado 3D e a quebra da mesa |
 | `ui/OverlayDoPresagio.tsx`, `ui/presagios.css` | o lado HTML (era `src/ui/OmenOverlay.tsx`; o CSS saiu de `src/index.css`) |
@@ -20,7 +20,7 @@ O detalhe que não cabe no [CLAUDE.md](CLAUDE.md). Leia só quando a ordem manda
 
 ## Presságios (`domain/omen.ts`)
 
-Só d20 (embutido, ou importado de base d20 com `omens: true`: `isD20`) e d100 contam:
+O d20 (embutido ou importado de base d20 com `omens: true`) e o d100 geram os presságios abaixo.
 
 | | d20 | d100 |
 |---|---|---|
@@ -62,6 +62,14 @@ Desempenho (não quebrar):
 
 - `domain/fireMotion.ts` (puro, testado): `fireIndices` (d20 com falha, sem crítico), `fireReach` (raio até o canto mais distante), `fireAt(t, reach)` → `die/radius/tray`.
 - `scene/Fire.ts`: chamas como partículas na GPU (um `Points`, shader próprio em forma de língua de fogo) no feltro e em cada d20 aceso, e um plano de feltro queimado com linha de brasa. O objeto chama `fire`; o test hook expõe `burning`.
+
+## Vampiro
+
+- `presagioVampiro` de `regras` decide pelo primeiro 10 no d10 Fome (crítico bestial), pelos dois primeiros 10 no d10 Vampiro (par de críticos) ou pelo primeiro 1 no d10 Fome (falha bestial), nessa ordem. Um presságio de d20 ou d100 tem prioridade.
+- `domain/vampiroMotion.ts` usa o mesmo relógio de `omenAt` para o corpo, as duas mãos, a cobertura das mãos nos olhos e os dados carregados. `VAMPIRO_MS` dá 5.600 ms para o par, 4.600 ms para o crítico bestial e 5.400 ms para a falha bestial. O par chega perto da câmera aos 3.750 ms. A falha mantém o dado no lugar até o contato da mão no ataque.
+- `OverlayDoPresagio` anuncia a animação em `role="status"` e junta `.omen-vampiro` a `data-vampiro` em `.game-area`. O par treme no impacto, o crítico bestial tem vinheta vermelha e a falha escurece enquanto as mãos cobrem a visão e traça três rasgos durante o ataque.
+- Os botões Par de críticos, Crítico bestial e Falha bestial usam o mesmo viés dos outros testes e garantem dois d10 Vampiro ou um d10 Fome na mão. `window.__dice.state().vampiro` informa o tipo da jogada atual.
+- Os três usam a luz compartilhada na cor `#b3122a`, baixa sobre a mesa, na última prioridade. Recolher, trocar a mão ou ligar movimento reduzido encerra o efeito.
 
 ## Lado HTML (`ui/OverlayDoPresagio.tsx`)
 
