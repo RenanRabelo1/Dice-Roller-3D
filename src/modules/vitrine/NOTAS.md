@@ -32,8 +32,8 @@ publish ─► presságio? ──sim──► toca (PresagiosNaCena 3D + Overlay
 `showcasePoses(polys, raw, view, above?)`: fileira(s) na frente da câmera (5 colunas em paisagem, 3 em retrato), na ordem do resultado, cada dado girado para a face sorteada olhar a câmera com o número em pé. Usa `raw` (valor físico), nunca relê o dado.
 
 Na `Vitrine`, ao entrar em `settled`:
-- monta `from` (pose atual), `to` (a vitrine), os índices do kraken e da tempestade e `marks` (onde fica o numeral sorteado no espaço do dado);
-- o d100 do kraken ou da tempestade faz o percurso do presságio, não o voo: `indicesComPercurso` e `movimentoNoPresagio` (pose, número revelado, até quando tem sombra e quando acaba), de `pressagios`;
+- monta `from` (pose atual), `to` (a vitrine), os dados carregados pelo presságio e `marks` (onde fica o numeral sorteado no espaço do dado);
+- o d100 do kraken ou da tempestade e os dados que o vampiro carrega seguem a pose, a revelação e a sombra de `movimentoNoPresagio`. `indicesComPercurso` seleciona os dados do arremesso atual. A pose final é a mesma que `showcasePoses` calcula para o restante da mão;
 - anima por `SHOW` (`highlight.ts`): o número sobe em 550 ms, o voo começa em 1.000 ms, dura 650 ms, escalonado 70 ms por dado;
 - a sombra do dado some quando ele decola (`sombraNaGema`, de `dados`);
 - **moeda** voa como os dados e mostra o desenho; o texto "Cara"/"Coroa" fica **embaixo** dela (`CAPTION`), e as fileiras com moeda se afastam para o texto não encostar na de baixo;
