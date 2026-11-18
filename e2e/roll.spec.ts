@@ -62,7 +62,7 @@ test('a mixed selection (d10 + 2d12 + d100) rolls together and each die shows it
   await expect(page.getByTestId('result')).toContainText(String(results.reduce((a, b) => a + b, 0)));
 });
 
-for (const kind of ['d4', 'd8', 'fire'] as const) {
+for (const kind of ['d4', 'd8', 'd6'] as const) {
   test(`${kind} × 3 rolls and each die shows its published result`, async ({ page }) => {
     await page.evaluate((kind) => window.__dice.select(Array(3).fill(kind)), kind); await ready(page, 3);
     await throwWithSpace(page); await settled(page);

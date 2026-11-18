@@ -14,7 +14,7 @@ O dado como objeto: o catálogo dos tipos jogáveis (embutidos e importados regi
 - Ordem do catálogo: embutidos em `KINDS`, depois os importados em ordem de criação. Importado fora do catálogo vale como d20 (`baseOf`).
 - `paraRegras(kind)`: um importado d20 com `omens` conta como `'d20'` para presságio (via `regras.tipoParaPresagio`).
 - Tinta de importado: `auto` usa a escura (`#1B1A16`) se a luminância linear da gema passa de 0,5, senão a dourada (`#D4A93F`). Sem gravação ou `nenhuma`, sem tinta. Acabamento padrão: `gema`.
-- Nome de exibição (`nomeDoTipo`): `d10 Vampiro`, `d10 Fome`, `d6 Fogo`, `Moeda`; importado `<base> <nome>`; forma livre só `<nome>`.
+- Nome de exibição (`nomeDoTipo`): `d10 Vampiro`, `d10 Fome`, `Moeda`; importado `<base> <nome>`; forma livre só `<nome>`.
 - Um objeto por dado para todos os numerais (desempenho). Gema sem passe de refração.
 - `catalogoAlterado` emite `registrado` em `registerCustom` (também ao re-registrar o mesmo `kind` numa edição) e `removido` em `unregisterCustom`. `registerPoly` (só o worker) não emite. `customDie` devolve a mesma referência entre emissões.
 - A aparência segue o catálogo sozinha: `AparenciaDoDado` lê o registro com `useSyncExternalStore` e a cor com `gemColor`.

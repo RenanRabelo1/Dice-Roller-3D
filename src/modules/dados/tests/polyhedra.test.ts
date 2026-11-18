@@ -82,15 +82,9 @@ describe('custom dice', () => {
     expect(polyhedron('vtm').labelList.every((l) => l.text === '')).toBe(true);
     expect(polyhedron('d10').labelList.every((l) => l.symbol === undefined && l.text !== '')).toBe(true);
   });
-  it('the Fireball d6 is the d6 itself, numbers and all', () => {
-    const p = polyhedron('fire'), base = polyhedron('d6');
-    expect(p.shape).toBe('d6');
-    expect(p.faces).toBe(base.faces);
-    expect(p.labelList).toEqual(base.labelList);
-  });
   it('custom dice come after the standard ones, in the UI and in a sorted hand', () => {
-    expect(KINDS).toEqual(['d4', 'd6', 'd8', 'd10', 'd12', 'd20', 'd100', 'vtm', 'hunger', 'fire', 'coin']);
-    expect(sortDice(['fire', 'hunger', 'd100', 'vtm', 'd4'])).toEqual(['d4', 'd100', 'vtm', 'hunger', 'fire']);
+    expect(KINDS).toEqual(['d4', 'd6', 'd8', 'd10', 'd12', 'd20', 'd100', 'vtm', 'hunger', 'coin']);
+    expect(sortDice(['hunger', 'd100', 'vtm', 'd4'])).toEqual(['d4', 'd100', 'vtm', 'hunger']);
   });
 });
 
@@ -105,5 +99,5 @@ describe('coin', () => {
   it('has face and crown drawings, with text reserved for the raised result', () => {
     expect(p.labelList.map((l) => [l.value, l.symbol, l.text])).toEqual([[1, 'heads', 'Cara'], [2, 'crown', 'Coroa']]);
   });
-  it('sorts after the dice', () => expect(sortDice(['coin', 'd20', 'fire'])).toEqual(['d20', 'fire', 'coin']));
+  it('sorts after the dice', () => expect(sortDice(['coin', 'd20', 'hunger'])).toEqual(['d20', 'hunger', 'coin']));
 });

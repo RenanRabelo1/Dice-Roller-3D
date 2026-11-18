@@ -30,8 +30,8 @@ describe('results', () => {
     expect(toResults(['d10', 'd10', 'd12', 'd100'], [0, 7, 12, 100])).toEqual([10, 7, 12, 100]);
     expect(toResults(['d6'], [3])).toEqual([3]);
   });
-  it('custom dice count like their base die (Vampire d10s: 0 is 10; fire d6 as is)', () => {
-    expect(toResults(['vtm', 'hunger', 'hunger', 'fire'], [0, 0, 1, 6])).toEqual([10, 10, 1, 6]);
+  it('Vampire d10s count like their base die (0 is 10)', () => {
+    expect(toResults(['vtm', 'hunger', 'hunger'], [0, 0, 1])).toEqual([10, 10, 1]);
   });
   it('a coin reads heads (1) face up and tails (2) face down, even leaning on its rim', () => {
     const coin = polyhedron('coin');
