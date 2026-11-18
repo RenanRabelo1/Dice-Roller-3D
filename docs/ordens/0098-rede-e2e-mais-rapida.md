@@ -7,7 +7,7 @@ Escopo de escrita:
 - Nenhum arquivo em `src/` ou `server/`
 
 Objetivo:
-- O `npm run e2e` completo cai de ~38 min para **≤ 15 min**, sem perder cobertura.
+- O `npm run e2e` completo cai de ~38 min para **≤ 15 min**, sem perder cobertura. **Revisto na revisão:** ≤ 30 min com 3 workers. O SwiftShader é limitado pela CPU: 3 workers rodaram em 17 min e 4 em 31. A primeira entrega mediu 44min11s → 28min41s. Como a suíte completa agora só roda nos marcos (fim de um grupo de ordens e antes do PR), o ganho que importa no dia a dia é o `e2e:rapido`.
 - Um `npm run e2e:rapido` de **≤ 4 min** serve para o dia a dia.
 
 Medição de hoje (`npm run e2e`, `workers: 1`, 116 testes, 37,7 min):
