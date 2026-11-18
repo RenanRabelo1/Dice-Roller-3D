@@ -9,11 +9,11 @@ import { CENTRO_DA_PEGA, mangaDaCamera, maoDoVampiro } from './vampiroMao.ts';
 import { elipsoide as sphere, soldar, superficie } from './malhaLisa.ts';
 
 const UP = new Vector3(0, 1, 0);
-const COLUMNS = 56, ROWS = 32, CAPE_SWEEP = 1.94;
+const COLUMNS = 76, ROWS = 32, CAPE_SWEEP = 1.94;
 const SHOULDERS = 1.68;
-const SCALE: Record<TipoVampiro, number> = { 'par-de-criticos': 2.15, 'critico-bestial': 3.35, 'falha-bestial': 3.95 };
+const SCALE: Record<TipoVampiro, number> = { 'par-de-criticos': 0.66, 'critico-bestial': 3.35, 'falha-bestial': 3.95 };
 
-function taper(a: Vec3, b: Vec3, r0: number, r1: number): BufferGeometry {
+function taper(a: Vec3, b: Vec3, r0: number, r1: number, fullness = 0): BufferGeometry {
   const start = new Vector3(...a), end = new Vector3(...b), axis = end.clone().sub(start);
   const length = axis.length();
   // Hemispherical ends continue the shoulder, elbow and boot surfaces at the joints.
@@ -25,7 +25,10 @@ function taper(a: Vec3, b: Vec3, r0: number, r1: number): BufferGeometry {
     }
   };
   cap(r0, 0, -Math.PI / 2, 0, 10);
-  for (let i = 1; i < 7; i++) rings.push(new Vector2(r0 + (r1 - r0) * i / 7, length * i / 7));
+  for (let i = 1; i < 7; i++) {
+    const u = i / 7;
+    rings.push(new Vector2(r0 + (r1 - r0) * u + fullness * Math.sin(Math.PI * u) ** 2, length * u));
+  }
   cap(r1, length, 0, Math.PI / 2, 10);
   return superficie(28, rings.length - 1, (u, v) => {
     const ring = rings[Math.round(v * (rings.length - 1))];
@@ -85,18 +88,32 @@ function batch(material: MeshStandardMaterial, pieces: BufferGeometry[]) {
 class Cape {
   readonly group = new Group();
   private geometry = new BufferGeometry();
+  private hem: BufferGeometry;
+  private pleatColors = new BufferAttribute(new Float32Array((COLUMNS + 1) * (ROWS + 1) * 3), 3);
   private positions = new BufferAttribute(new Float32Array((COLUMNS + 1) * (ROWS + 1) * 3), 3).setUsage(DynamicDrawUsage);
 
-  constructor(black: MeshStandardMaterial, red: MeshStandardMaterial) {
+  constructor(black: MeshStandardMaterial, red: MeshStandardMaterial, hemMaterial: MeshStandardMaterial) {
     const indices: number[] = [];
     for (let row = 0; row < ROWS; row++) for (let col = 0; col < COLUMNS; col++) {
       const a = row * (COLUMNS + 1) + col, b = a + 1, c = a + COLUMNS + 1, d = c + 1;
       indices.push(a, b, c, b, d, c);
     }
-    this.geometry.setIndex(indices).setAttribute('position', this.positions);
+    this.geometry.setIndex(indices).setAttribute('position', this.positions).setAttribute('color', this.pleatColors);
+    for (let row = 0; row <= ROWS; row++) for (let col = 0; col <= COLUMNS; col++) {
+      const stripe = Math.cos((col / COLUMNS * 2 - 1) * CAPE_SWEEP * 4.5);
+      const tint = 1 + (0.43 * stripe + 0.16 * stripe ** 2) * (row / ROWS) ** 0.72;
+      this.pleatColors.setXYZ(row * (COLUMNS + 1) + col, tint, tint * 0.98, tint);
+    }
     const outside = new Mesh(this.geometry, black), lining = new Mesh(this.geometry, red);
     outside.frustumCulled = lining.frustumCulled = false;
-    this.group.add(outside, lining);
+    lining.position.z = 0.01;
+    this.hem = superficie(COLUMNS, 18, () => [0, 0, 0]);
+    const hemPositions = this.hem.getAttribute('position') as BufferAttribute;
+    hemPositions.setUsage(DynamicDrawUsage);
+    const edge = new Mesh(this.hem, hemMaterial);
+    edge.name = 'vampiro-barra-da-capa';
+    edge.frustumCulled = false;
+    this.group.add(outside, lining, edge);
     this.group.name = 'vampiro-capa';
     this.update(0, 0, 0);
   }
@@ -105,17 +122,42 @@ class Cape {
     for (let row = 0; row <= ROWS; row++) {
       const v = row / ROWS;
       for (let col = 0; col <= COLUMNS; col++) {
-        const angle = (col / COLUMNS * 2 - 1) * CAPE_SWEEP;
-        const folds = v * (0.028 * Math.cos(angle * 7) + 0.052 * Math.sin(t * 0.005 + angle * 4 - v * 5));
-        const radius = 0.72 + v * (opened ? 1.12 : 0.81);
-        const x = Math.sin(angle) * (radius + folds) + 0.22 * step * v * v;
-        const y = 1.61 - v * (3.04 - 0.12 * Math.cos(angle * 3)) + v * v * 0.11 * Math.abs(step);
-        const z = -Math.cos(angle) * (0.38 + 0.83 * v + folds) - 0.09 - v * (0.36 * Math.abs(step) + 0.65 * lean);
+        const angle = (col / COLUMNS * 2 - 1) * (opened ? 2.12 : CAPE_SWEEP);
+        const pleats = v * (0.032 * Math.cos(angle * 4.5) + 0.023 * Math.sin(t * 0.005 + angle * 3.2 - v * 3));
+        const shoulder = 0.18 * Math.sin(Math.PI * v) * (1 - v);
+        const radius = 0.70 + shoulder + v * (opened ? 1.51 : 0.59);
+        const x = Math.sin(angle) * (radius + pleats) + 0.15 * step * v * v;
+        const wave = 0.098 * Math.cos(angle * 3.4) + 0.014 * Math.cos(angle * 6.1 + t * 0.004);
+        const y = 1.68 - v * (opened ? 2.88 : 2.18) + v ** 3 * wave + 0.13 * v ** 2 * Math.abs(step);
+        const drape = Math.cos(angle) * (0.39 + 0.35 * v + pleats);
+        const z = -drape - 0.16 - v * (0.24 + 0.22 * Math.abs(step) + 0.42 * lean)
+          - pleats * 0.72 * Math.abs(Math.sin(angle))
+          + (opened ? 0 : wave * 0.50 * v ** 3);
         this.positions.setXYZ(row * (COLUMNS + 1) + col, x, y, z);
       }
     }
     this.positions.needsUpdate = true;
     this.geometry.computeVertexNormals();
+    const hem = this.hem.getAttribute('position');
+    const p = new Vector3(), before = new Vector3(), after = new Vector3();
+    const tangent = new Vector3(), fall = new Vector3(), normal = new Vector3(), point = new Vector3();
+    const base = ROWS * (COLUMNS + 1);
+    for (let col = 0; col <= COLUMNS; col++) {
+      p.fromBufferAttribute(this.positions, base + col);
+      before.fromBufferAttribute(this.positions, base + Math.max(col - 1, 0));
+      after.fromBufferAttribute(this.positions, base + Math.min(col + 1, COLUMNS));
+      tangent.subVectors(after, before).normalize();
+      fall.copy(p).sub(before.fromBufferAttribute(this.positions, base + col - (COLUMNS + 1)));
+      fall.addScaledVector(tangent, -fall.dot(tangent)).normalize();
+      normal.crossVectors(tangent, fall).normalize();
+      for (let row = 0; row <= 18; row++) {
+        const a = row / 18 * Math.PI;
+        point.copy(p).addScaledVector(fall, Math.sin(a) * 0.013).addScaledVector(normal, (1 - Math.cos(a)) * 0.013);
+        hem.setXYZ(row * (COLUMNS + 1) + col, point.x, point.y, point.z);
+      }
+    }
+    hem.needsUpdate = true;
+    this.hem.computeVertexNormals();
   }
 }
 
@@ -184,8 +226,8 @@ export class Vampiro {
     const velvet = new MeshStandardMaterial({ name: 'velvet', color: '#67162f', roughness: 0.74 });
     const red = new MeshStandardMaterial({ name: 'red', color: '#75142a', roughness: 0.67, side: DoubleSide });
     const trim = new MeshStandardMaterial({ name: 'trim', color: '#a47d5c', roughness: 0.38, metalness: 0.5 });
-    const black = new MeshStandardMaterial({ name: 'black', color: '#120e19', roughness: 0.74 });
-    const lining = new MeshStandardMaterial({ name: 'lining', color: '#84152e', roughness: 0.72, side: BackSide });
+    const black = new MeshStandardMaterial({ name: 'black', color: '#22181e', roughness: 0.74, vertexColors: true });
+    const lining = new MeshStandardMaterial({ name: 'lining', color: '#84152e', roughness: 0.72, side: BackSide, vertexColors: true });
     const leather = new MeshStandardMaterial({ name: 'leather', color: '#1c1820', roughness: 0.39 });
     const skin = new MeshStandardMaterial({ name: 'skin', color: '#c8adaa', roughness: 0.57, emissive: '#381e23', emissiveIntensity: 0.36 });
     const bone = new MeshStandardMaterial({ name: 'bone', color: '#f4e5d1', roughness: 0.42, side: DoubleSide });
@@ -197,7 +239,7 @@ export class Vampiro {
     this.head.name = 'vampiro-cabeca';
     this.eyes.name = 'vampiro-maos-da-camera';
 
-    this.cape = new Cape(black, lining);
+    this.cape = new Cape(black, lining, red);
     const vest = profile([[0.0, -0.19], [0.4, -0.10], [0.46, 0.25], [0.52, 0.75], [0.64, 1.31], [0.57, 1.52], [0.16, 1.67], [0, 1.69]], 0.64);
     const sides = [-1, 1];
     this.torso.add(
@@ -234,11 +276,10 @@ export class Vampiro {
     this.torso.add(this.head);
 
     this.arms = sides.map((side) => {
-      const sleeve = batch(coat, [taper([0, -0.08, 0], [0, 1, 0], 0.26, 0.15), sphere([0, 0.06, 0], [0.26, 0.22, 0.23])]);
+      const sleeve = batch(coat, [taper([0, -0.05, 0], [0, 1, 0], 0.19, 0.10, 0.075)]);
       const cuff = new Group();
-      cuff.add(batch(coat, [taper([0, -0.05, 0], [0, 1.02, 0], 0.173, 0.125)]),
-        batch(velvet, [taper([0, 0.73, 0], [0, 0.96, 0], 0.15, 0.158)]),
-        batch(trim, [sphere([0.02 * side, 0.88, 0.15], [0.038, 0.033, 0.027])]));
+      cuff.add(batch(coat, [taper([0, -0.06, 0], [0, 1, 0], 0.116, 0.076, 0.045)]),
+        batch(velvet, [taper([0, 0.76, 0], [0, 0.95, 0], 0.105, 0.087)]));
       const palm = maoDoVampiro(side, skin, nail);
       palm.name = side < 0 ? 'vampiro-mao-esquerda' : 'vampiro-mao-direita';
       this.body.add(sleeve, cuff, palm);
@@ -288,7 +329,7 @@ export class Vampiro {
       this.body.scale.setScalar(SCALE[tipo]);
       this.torso.position.y = 1.45 - corpo.crouch * 0.55;
       this.torso.rotation.x = corpo.lean;
-      this.head.rotation.x = tipo === 'par-de-criticos' ? -0.24 : -0.64 - 0.80 * corpo.lean;
+      this.head.rotation.x = tipo === 'par-de-criticos' ? -0.16 : -0.64 - 0.80 * corpo.lean;
       this.legs.forEach((leg, i) => {
         leg.position.y = 1.45 - corpo.crouch * 0.27;
         leg.rotation.x = (i === 0 ? corpo.step : -corpo.step) * 0.67 - corpo.crouch * 0.23;

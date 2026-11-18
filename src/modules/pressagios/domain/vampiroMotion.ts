@@ -77,33 +77,44 @@ export function parAt(t: number) {
   };
 }
 
-const OLHO = new Vector3(...CAMERA_PADRAO);
 const HORIZONTAL = new Vector3(1, 0, 0);
 const VERTICAL = new Vector3(0, 10, -14).normalize();
-const NORMAL = OLHO.clone().normalize();
-export const RUMO_DA_REVOADA = new Quaternion().setFromUnitVectors(new Vector3(0, 1, 0), NORMAL);
-const COLUNAS = 23, FILEIRAS = 12;
-export const NUMERO_DE_MORCEGOS = COLUNAS * FILEIRAS;
+const NORMAL = new Vector3(...CAMERA_PADRAO).normalize();
+const DORSO = new Vector3(0, 1, 0), EIXO_LONGITUDINAL = new Vector3(0, 0, 1);
+const COLUNAS = 33, FILEIRAS = 18, CAMADAS = 3;
+export const NUMERO_DE_MORCEGOS = COLUNAS * FILEIRAS * CAMADAS;
+export const ENVERGADURA = 1.46;
+export const AMPLITUDE_DA_ASA = MathUtils.degToRad(53);
 
-// A wide, staggered flock crosses from left to right. Its flight plane sits in front
-// of the dice and faces the camera at the fixed tray viewing angle.
+// Coordinates are registered to the same rays at three flight depths. The layers
+// stagger their wingbeats and centres so openings in one are filled by the others.
 export function revoadaAt(t: number, camera: Vec3 = CAMERA_PADRAO) {
   const { revoada: u } = parAt(t);
   if (u === 0 || u === 1) return [];
-  // Slow down while spanning the table so several wingbeats are visible at the peak.
-  const sweep = 30 * (u - 0.5) - 2.85 * Math.sin((u - 0.5) * 2 * Math.PI);
-  const eye = new Vector3(...camera).multiplyScalar(0.56);
+  const sweep = 35 * (u - 0.5) - 4.34 * Math.sin((u - 0.5) * 2 * Math.PI);
+  const eye = new Vector3(...camera);
+  const reference = eye.length() * 0.73;
+  const ondaDaBorda = MathUtils.smootherstep(Math.abs(u - 0.5), 0.10, 0.30);
   return Array.from({ length: NUMERO_DE_MORCEGOS }, (_, i) => {
-    const row = Math.floor(i / COLUNAS), col = i % COLUNAS;
+    const layer = Math.floor(i / (COLUNAS * FILEIRAS));
+    const row = Math.floor(i / COLUNAS) % FILEIRAS, col = i % COLUNAS;
     const seed = i * 2.399963;
-    const fase = t * (0.014 + 0.002 * Math.cos(seed)) + seed;
-    const x = sweep + (col - (COLUNAS - 1) / 2) * 0.69 + (row % 2 - 0.5) * 0.34;
-    const y = (row - (FILEIRAS - 1) / 2) * 0.44;
-    const p = eye.clone()
-      .addScaledVector(HORIZONTAL, x + 0.15 * Math.sin(t * 0.002 + seed))
-      .addScaledVector(VERTICAL, y + 0.12 * Math.sin(t * 0.004 + seed))
-      .addScaledVector(NORMAL, 0.40 * Math.cos(seed * 2.217));
-    return { p, rumo: -0.78 + 0.28 * Math.sin(t * 0.003 + seed), fase, escala: 0.83 + 0.27 * Math.cos(seed * 1.41) ** 2 };
+    const frequencia = 7.3 + Math.cos(seed) * 0.85;
+    const fase = t / 1000 * frequencia * 2 * Math.PI + seed;
+    const x = sweep + (col - (COLUNAS - 1) / 2) * 0.49 + (row % 2 - 0.5) * 0.24 + layer * 0.16;
+    const onda = ondaDaBorda * (0.76 * Math.sin(row * 0.46 + t * 0.004 + layer * 0.7) + 0.16 * Math.cos(seed));
+    const y = (row - (FILEIRAS - 1) / 2) * 0.47 + (layer - 1) * 0.14;
+    const depth = reference + (layer - 1) * 0.61 + 0.10 * Math.cos(seed * 2.217);
+    const p = eye.clone().addScaledVector(NORMAL, -depth)
+      .addScaledVector(HORIZONTAL, (x + onda + 0.105 * Math.sin(t * 0.004 + seed)) * depth / reference)
+      .addScaledVector(VERTICAL, (y + 0.082 * Math.sin(t * 0.006 + seed)) * depth / reference);
+    const rumo = -0.20 + 0.16 * Math.sin(t * 0.003 + seed);
+    const dorsal = eye.clone().sub(p).normalize();
+    const orientacao = new Quaternion().setFromUnitVectors(DORSO, dorsal)
+      .multiply(new Quaternion().setFromAxisAngle(DORSO, rumo))
+      .multiply(new Quaternion().setFromAxisAngle(EIXO_LONGITUDINAL, 0.13 * Math.cos(t * 0.008 + seed)));
+    const escala = 0.815 + 0.097 * Math.cos(seed * 1.41) ** 2;
+    return { p, rumo, fase, escala, orientacao, frequencia, batida: AMPLITUDE_DA_ASA * Math.sin(fase) };
   });
 }
 
@@ -117,12 +128,12 @@ export function fechamentoDaPegada(tipo: TipoVampiro, t: number): readonly [numb
 
 function presencaAt(t: number): Quadro {
   const { aparece } = parAt(t);
-  const p: Vec3 = [0, -12.35 + aparece * (6.55 + 0.05 * Math.sin(t / 450)), fundo - 1.21];
+  const p: Vec3 = [0, -5.6 + aparece * (6.20 + 0.018 * Math.sin(t / 450)), fundo - 0.56];
   return {
     fase: 'presenca', cobertura: 0,
     corpo: { p, yaw: 0, lean: 0.025 * Math.sin(t / 550), crouch: 0, step: 0, visivel: aparece > 0 },
-    esquerda: offset(p, -1.55, 3.55, 0.02),
-    direita: offset(p, 1.55, 3.55, 0.02),
+    esquerda: offset(p, -0.31, 1.18, -0.32),
+    direita: offset(p, 0.31, 1.18, -0.32),
   };
 }
 
