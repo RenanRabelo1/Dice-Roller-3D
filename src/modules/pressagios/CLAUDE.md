@@ -20,12 +20,16 @@ Decidir se um resultado publicado tem presságio e mostrá-lo antes do resultado
 - Acessibilidade: "Crítico!", "Falha crítica!" e "Dualidade: crítico e falha!" num `role="status"`. O DOM do overlay e os atributos de `.game-area` são contrato dos E2E e do CSS (`tests/overlay.test.ts` com a fixture `tests/fixtures/overlay-antes.json`).
 
 ## Expõe
-- `index.ts`: `presagio()`, `presagioTocando()`, `rigOmen`, `setOmenTest`, `setOmenDone`; `reiniciarPresagio()` (volta o store ao estado inicial, para os testes e a casca, se um dia precisarem); `indicesComPercurso`, `movimentoNoPresagio`; `OMEN_MS`, `omenMs`, `isD20`; o movimento que a `vitrine` lê (`KRAKEN`, `STORM`, `krakenDieAt`, `stormAt`, `stormDieAt`); `inspecao(cena)` → `{ omen, omenDone, omenTime, trayBroken, burning, shards }` (os campos do `window.__dice`).
+- `index.ts`: `presagio()`, `presagioTocando()`, `rigOmen`, `setOmenTest`, `setOmenDone`; `reiniciarPresagio()` (restaura o store inicial); `indicesComPercurso`, `movimentoNoPresagio`; `OMEN_MS`, `omenMs`, `isD20`; o movimento que a `vitrine` lê (`KRAKEN`, `STORM`, `krakenDieAt`, `stormAt`, `stormDieAt`); `inspecao(cena)` → `{ omen, vampiro, omenDone, omenTime, trayBroken, burning, shards }` (os campos do `window.__dice`).
 - Tipos (`contracts.ts`, sem re-export na porta; ninguém de fora os usa): `EstadoDoPresagio`, `PlanoDoPresagio`, `MovimentoNoPresagio`, `PresagioInspecionado`. `planoDoPresagio`, `DUALITY_HIT`, `OMEN_TESTS`, o resto do movimento do kraken e o do fogo ficam internos (os testes do módulo importam de `domain/`).
 - `cena.ts`: `usePresagio(sel)`, `usePresagioTocando()`; `<PresagiosNaCena/>` (3D, depois da física), `<QuebraDaMesa/>` (logo antes da `<MesaNaCena/>`), `<OverlayDoPresagio gameArea/>` (atributos em `.game-area` e CSS), `<BotoesDeTeste gameArea/>` (o `App` monta só em `DEV`); `shard`, `shardWood` (só para os testes do módulo). Os botões Par de críticos, Crítico bestial e Falha bestial escolhem os dados e viés desses presságios.
 
 - **Contrato da `.game-area`**. Enquanto um presságio toca, o `OverlayDoPresagio` põe `data-omen="crit|fumble|duality"`, `data-kraken` (durante o kraken), `data-storm` (durante a tempestade) ou `data-vampiro="par-de-criticos|critico-bestial|falha-bestial"`. Todos somem quando o presságio acaba.
-- A luz do presságio (`domain/luz.ts`): uma `PointLight` só, sem luz nova. Prioridade: fogo, raio, tempestade, kraken, dualidade (`fonteDaLuz`). Fogo e raio têm curva própria no `Show`; kraken (`#3fd6a0`, rasante), tempestade (`#bcd4ff`, dois relâmpagos presos ao `thunder` do CSS por `TROVAO`) e dualidade (alterna `#ffd36a`/`#9cc8ff`) só valem quando eles não estão ativos. Apagar a luz é intensidade 0, nunca tirá-la da cena.
+- A `PointLight` do presságio atende fogo, raio, tempestade, kraken, dualidade e vampiro nessa ordem de prioridade (`fonteDaLuz`). Fogo e raio têm curvas no `Show`. As demais ficam em `domain/luz.ts`. Apagar a luz põe a intensidade em 0.
+
+## Vampiro
+
+`scene/Vampiro.ts` monta um personagem procedural reaproveitado pelos três presságios e um par de mãos que acompanha a câmera na falha bestial. `Show.compile` aquece a figura com os outros efeitos, usando a mesma luz. `vampiroMotion` fornece o corpo e os pontos de apoio dos dados. No par, a cabeça fica oculta, e nas variantes bestiais ela aparece. Recolher, mudar a mão ou ativar movimento reduzido esconde a figura e as mãos da câmera.
 
 ## Consome
 - `arremesso`: `arremesso()`, `useArremesso`, `resultadoPublicado`, `registroDeCorpos` (os corpos dos dados), `omenKinds`, `TRAY`, o tipo `OmenTest`. O `LoopDoArremesso` lê o botão de teste escolhido pela casca (`presagio().omenTest`).
