@@ -52,15 +52,44 @@ const fit = (value: number, limit: number) => Math.max(-limit, Math.min(limit, v
 
 // The hand travels down to the resting die, meets it, then rises to the carry point.
 const contact = (start: number, stop: number) => start + (stop - start) * 0.25;
-const pickupHand = (t: number, start: number, stop: number, idle: Vec3, die: Vec3, hold: Vec3, reachForward = 0.95): Vec3 => {
+const pickupHand = (t: number, start: number, stop: number, idle: Vec3, die: Vec3, hold: Vec3, arc: Vec3): Vec3 => {
   const reach = contact(start, stop);
-  return t < reach ? mix(idle, die, smooth(t, start, reach)) : pickupDie(t, start, stop, die, hold, reachForward);
+  return t < reach ? mix(idle, die, smooth(t, start, reach)) : pickupDie(t, start, stop, die, hold, arc);
 };
-const pickupDie = (t: number, start: number, stop: number, die: Vec3, hold: Vec3, reachForward = 0.95): Vec3 => {
+const pickupDie = (t: number, start: number, stop: number, die: Vec3, hold: Vec3, [x, y, z]: Vec3): Vec3 => {
   const u = smooth(t, contact(start, stop), stop), lift = Math.sin(Math.PI * u);
-  return offset(mix(die, hold, u), 0, 0.25 * lift, reachForward * lift);
+  return offset(mix(die, hold, u), x * lift, y * lift, z * lift);
 };
-const ENTREGA_A_FRENTE = 2.95;
+const ENTREGA_A_FRENTE: Vec3 = [0, 0.25, 2.95];
+const pair = {
+  starts: [VAMPIRO.par.pega, VAMPIRO.par.pega + 125],
+  // Separate the grips in depth and clear the dice still on the felt.
+  arcs: [[0.35, 1.10, -2.35], [1.45, 0.68, 2.25]] satisfies Vec3[],
+  releases: 2860,
+};
+const leftHold: Vec3 = [4.0, 3.25, -0.8], rightHold: Vec3 = [5.9, 3.8, 0.8];
+
+function transferencia(t: number) {
+  const u = smooth(t, VAMPIRO.par.junta, VAMPIRO.par.prepara);
+  const gap = Math.sin(Math.PI * u);
+  return offset(mix(leftHold, segundoDado(rightHold), u), -2.05 * gap, 0.25 * gap, -0.75 * gap);
+}
+
+export function fechamentoDaPegada(tipo: TipoVampiro, t: number): readonly [number, number] {
+  if (tipo === 'par-de-criticos') {
+    const closes = (slot: number) => {
+      const reach = contact(pair.starts[slot], VAMPIRO.par.junta);
+      return smooth(t, reach - 45, reach + 92);
+    };
+    return [closes(0) * (1 - smooth(t, pair.releases - 55, pair.releases + 50)),
+      closes(1) * (1 - smooth(t, VAMPIRO.par.arremesso - 75, VAMPIRO.par.arremesso + 28))];
+  }
+  if (tipo === 'critico-bestial') {
+    const { pega, entrega, sai } = VAMPIRO.critico, reach = contact(pega, entrega);
+    return [0, smooth(t, reach - 40, reach + 110) * (1 - smooth(t, sai - 120, sai))];
+  }
+  return [0, 0];
+}
 
 function parAt(t: number, [a, b]: readonly Vec3[]): Quadro {
   const m = VAMPIRO.par;
@@ -81,16 +110,14 @@ function parAt(t: number, [a, b]: readonly Vec3[]): Quadro {
   const shift = walking[0] - stance[0];
   const leftIdle = offset(leftStart, shift, 0.27 * step, 0.5 * step);
   const rightIdle = offset(rightStart, shift, -0.27 * step, -0.52 * step);
-  const leftHold: Vec3 = [4.0, 3.25, -0.8], rightHold: Vec3 = [5.9, 3.8, 0.8];
   const wind = mix(rightHold, [6.5, 5.1, -0.25], ready);
   const throwTo = mix(wind, [2.0, 5.35, 3.8], cast);
   const direita = t < m.pega ? rightIdle : t < m.junta
-    ? pickupHand(t, m.pega, m.junta, rightStart, b ?? rightHold, rightHold)
+    ? pickupHand(t, pair.starts[1], m.junta, rightStart, b ?? rightHold, rightHold, pair.arcs[1])
     : mix(throwTo, rightIdle, smooth(t, m.impacto, m.assenta));
-  const transfer = mix(leftHold, segundoDado(rightHold), smooth(t, m.junta, m.prepara));
   const esquerda = t < m.pega ? leftIdle : t < m.junta
-    ? pickupHand(t, m.pega, m.junta, leftStart, a ?? leftHold, leftHold)
-    : mix(transfer, leftIdle, smooth(t, m.prepara, m.arremesso));
+    ? pickupHand(t, pair.starts[0], m.junta, leftStart, a ?? leftHold, leftHold, pair.arcs[0])
+    : mix(transferencia(Math.min(t, pair.releases)), leftIdle, smooth(t, pair.releases, m.arremesso));
   const fase = t < m.pega ? 'entra' : t < m.junta ? 'pega' : t < m.prepara ? 'junta'
     : t < m.arremesso ? 'prepara' : t < m.impacto ? 'arremesso' : t < m.sai ? 'assenta' : 'sai';
   return { fase, corpo, esquerda, direita, cobertura: 0 };
@@ -172,9 +199,9 @@ function parDieAt(t: number, slot: number, de: Pose, para: Pose, camera: Vec3): 
   if (t < m.pega) return de;
   if (t >= m.assenta) return para;
   const grip = (ms: number) => {
-    const { esquerda, direita } = vampiroAt('par-de-criticos', ms);
+    const { direita } = vampiroAt('par-de-criticos', ms);
     // The two dice occupy separate positions once they share the right palm.
-    return slot === 0 ? (ms < m.prepara ? esquerda : segundoDado(direita)) : direita;
+    return slot === 0 ? (ms < m.prepara ? transferencia(ms) : segundoDado(direita)) : direita;
   };
   const hold = grip(m.junta);
   const eye = new Vector3(...camera), axis = eye.clone().normalize();
@@ -184,7 +211,7 @@ function parDieAt(t: number, slot: number, de: Pose, para: Pose, camera: Vec3): 
   near.addScaledVector(new Vector3(0, axis.z, -axis.y), side * (1 - relativeWidth) * 0.86);
   const impact = near.toArray();
   let p: Vec3;
-  if (t < m.junta) p = pickupDie(t, m.pega, m.junta, de.p, hold);
+  if (t < m.junta) p = pickupDie(t, pair.starts[slot], m.junta, de.p, hold, pair.arcs[slot]);
   else if (t < m.arremesso) p = grip(t);
   else if (t < m.impacto) p = mix(grip(m.arremesso), impact, easeOut(span(t, m.arremesso, m.impacto)));
   else p = mix(impact, para.p, smooth(t, m.impacto, m.assenta));

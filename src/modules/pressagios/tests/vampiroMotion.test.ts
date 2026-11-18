@@ -4,7 +4,7 @@ import { TRAY } from '../../arremesso/index.ts';
 import type { PresagioVampiro } from '../../regras/index.ts';
 import type { Pose, Vec3 } from '../../../shared/math.ts';
 import { indicesComPercurso, movimentoNoPresagio } from '../domain/percurso.ts';
-import { VAMPIRO, VAMPIRO_MS, vampiroAt } from '../domain/vampiroMotion.ts';
+import { fechamentoDaPegada, VAMPIRO, VAMPIRO_MS, vampiroAt } from '../domain/vampiroMotion.ts';
 
 const de: Pose = { p: [1, 0.8, -1.5], q: [0, 0, 0, 1] };
 const para: Pose = { p: [0.5, 8, 6], q: [0, Math.SQRT1_2, 0, Math.SQRT1_2] };
@@ -43,6 +43,18 @@ describe('Vampire motion', () => {
     expect(move(v, 4300).pose).toBe(para);
     expect(vampiroAt(v.tipo, 1900, [de.p]).esquerda).toEqual(move(v, 1900).pose.p);
     expect(vampiroAt(v.tipo, 2700).direita).toEqual(move(v, 2700, 2).pose.p);
+  });
+
+  it('staggers contact, separates the pair on pickup and opens the left hand for the transfer', () => {
+    const type = 'par-de-criticos', origins: Vec3[] = [[-4, 0.7, -2], [-3.05, 0.7, -2]];
+    const [first, second] = fechamentoDaPegada(type, 1740);
+    expect(first).toBeGreaterThan(second);
+    for (const t of [1900, 2700]) {
+      const { esquerda, direita } = vampiroAt(type, t, origins);
+      expect(Math.hypot(esquerda[0] - direita[0], esquerda[2] - direita[2])).toBeGreaterThan(2.4);
+      expect(fechamentoDaPegada(type, t)).toEqual([1, 1]);
+    }
+    expect(fechamentoDaPegada(type, 3000)).toEqual([0, 1]);
   });
 
   it('holds the Fome die still until the attack and opens the camera hands as it approaches', () => {

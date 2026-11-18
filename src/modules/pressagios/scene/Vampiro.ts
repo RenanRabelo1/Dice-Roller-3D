@@ -1,12 +1,12 @@
 import {
-  BackSide, BufferAttribute, BufferGeometry, CylinderGeometry, DoubleSide, DynamicDrawUsage, Euler, Group, LatheGeometry,
+  BackSide, Box3, BufferAttribute, BufferGeometry, CylinderGeometry, DoubleSide, DynamicDrawUsage, Euler, Group, LatheGeometry,
   Mesh, MeshStandardMaterial, Quaternion, SphereGeometry, Vector2, Vector3, type Camera, type Material, type PerspectiveCamera,
 } from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import type { TipoVampiro } from '../../regras/index.ts';
-import type { Vec3 } from '../../../shared/math.ts';
-import { VAMPIRO, vampiroAt } from '../domain/vampiroMotion.ts';
-import { CENTRO_DA_PEGA, maoDoVampiro } from './vampiroMao.ts';
+import { span, type Vec3 } from '../../../shared/math.ts';
+import { fechamentoDaPegada, VAMPIRO, vampiroAt } from '../domain/vampiroMotion.ts';
+import { CENTRO_DA_PEGA, mangaDaCamera, maoDoVampiro } from './vampiroMao.ts';
 
 const UP = new Vector3(0, 1, 0);
 const COLUMNS = 16, ROWS = 14, CAPE_SWEEP = 1.94;
@@ -102,18 +102,35 @@ class Cape {
 
 interface Arm { sleeve: Mesh; cuff: Group; palm: Group; side: number }
 
+// Keep the wrist and the bulk of the palm on the clear side of a neighbouring die.
+function gripRoll(grip: Vec3, rest: number, cameraRotation: Quaternion, obstacles: readonly Vec3[]) {
+  let closest: Vec3 | undefined, best = 2.8;
+  for (const p of obstacles) {
+    const distance = Math.hypot(p[0] - grip[0], p[2] - grip[2], (p[1] - grip[1]) * 1.25);
+    if (distance < best) { closest = p; best = distance; }
+  }
+  if (!closest) return rest;
+  const screen = new Vector3(...closest).sub(new Vector3(...grip)).applyQuaternion(cameraRotation.clone().invert());
+  if (Math.hypot(screen.x, screen.y) < 0.08) return rest;
+  const turn = Math.atan2(-screen.x, screen.y) - rest;
+  return rest + Math.atan2(Math.sin(turn), Math.cos(turn)) * (1 - span(best, 1.25, 2.8));
+}
+
 // The world-space grip point is the centre of the die. Sleeves aim at an elbow and the wrist; the palm sits beneath it.
-function bendArm(arm: Arm, root: Group, torso: Group, grip: Vec3, camera: Camera, holding: boolean, attack: boolean) {
+function bendArm(arm: Arm, root: Group, torso: Group, grip: Vec3, camera: Camera, holding: boolean, attack: boolean, closure: number, obstacles: readonly Vec3[]) {
   const { side, sleeve, cuff, palm } = arm;
   const shoulder = root.worldToLocal(torso.localToWorld(new Vector3(side * 0.59, SHOULDERS - 0.13, -0.015)));
   const point = root.worldToLocal(new Vector3(...grip));
-  const cameraFacing = root.getWorldQuaternion(new Quaternion()).invert().multiply(camera.getWorldQuaternion(new Quaternion()));
+  const cameraRotation = camera.getWorldQuaternion(new Quaternion());
+  const cameraFacing = root.getWorldQuaternion(new Quaternion()).invert().multiply(cameraRotation);
   palm.quaternion.setFromEuler(new Euler(attack ? 0.62 : -0.36, side * 0.42, side * 0.24));
   if (holding) {
     palm.quaternion.copy(cameraFacing);
-    palm.rotateZ(side * (attack ? -0.58 : -0.30));
+    const rest = side * (attack ? -0.58 : -0.30);
+    palm.rotateZ(closure > 0 ? gripRoll(grip, rest, cameraRotation, obstacles) : rest);
     palm.rotateX(attack ? -0.13 : -0.20);
   }
+  for (const mesh of palm.children as Mesh[]) mesh.morphTargetInfluences![0] = closure;
   palm.position.copy(point).sub(new Vector3(...CENTRO_DA_PEGA).applyQuaternion(palm.quaternion));
   const wrist = new Vector3(0, -0.31, -0.035).applyQuaternion(palm.quaternion).add(palm.position);
   const direction = wrist.clone().sub(shoulder), half = direction.length() / 2;
@@ -140,6 +157,7 @@ export class Vampiro {
   private arms: Arm[];
   private legs: Group[];
   private cameraHands: Group[];
+  private cameraBounds: Box3[][];
   private cape: Cape;
 
   constructor() {
@@ -222,7 +240,18 @@ export class Vampiro {
       return leg;
     });
 
-    this.cameraHands = sides.map((s) => maoDoVampiro(s, skin, nail, true));
+    const cuff = mangaDaCamera();
+    this.cameraHands = sides.map((side) => {
+      const palm = maoDoVampiro(side, skin, nail, true), sleeve = new Mesh(cuff, coat);
+      sleeve.scale.x = -side;
+      palm.add(sleeve);
+      return palm;
+    });
+    this.cameraBounds = this.cameraHands.map((palm) => (palm.children as Mesh[]).map((mesh) => {
+      mesh.geometry.computeBoundingBox();
+      mesh.updateMatrix();
+      return mesh.geometry.boundingBox!.clone().applyMatrix4(mesh.matrix);
+    }));
     this.eyes.add(...this.cameraHands);
     this.body.add(this.torso);
     this.root.add(this.body, this.eyes);
@@ -234,7 +263,7 @@ export class Vampiro {
     this.update('falha-bestial', VAMPIRO.falha.destapa, camera);
   }
 
-  update(tipo: TipoVampiro, t: number, camera: Camera, origins: readonly Vec3[] = [], carried?: Vec3) {
+  update(tipo: TipoVampiro, t: number, camera: Camera, origins: readonly Vec3[] = [], carried?: Vec3, otherDice: readonly Vec3[] = []) {
     const { corpo, esquerda, direita, fase, cobertura } = vampiroAt(tipo, t, origins, carried);
     this.root.visible = corpo.visivel || cobertura > 0;
     this.eyes.visible = cobertura > 0;
@@ -255,8 +284,11 @@ export class Vampiro {
       const both = fase === 'pega' && tipo === 'par-de-criticos' || fase === 'junta';
       const holding = fase === 'pega' || fase === 'junta' || fase === 'prepara' || fase === 'entrega' || fase === 'ataque';
       const clawsForward = fase === 'espera' || fase === 'ataque';
-      bendArm(this.arms[0], this.body, this.torso, esquerda, camera, both, clawsForward);
-      bendArm(this.arms[1], this.body, this.torso, direita, camera, holding || fase === 'arremesso', clawsForward);
+      const [leftClosure, rightClosure] = fechamentoDaPegada(tipo, t);
+      const leftObstacles = both ? [direita, ...otherDice] : otherDice;
+      const rightObstacles = both ? [esquerda, ...otherDice] : otherDice;
+      bendArm(this.arms[0], this.body, this.torso, esquerda, camera, both, clawsForward, leftClosure, leftObstacles);
+      bendArm(this.arms[1], this.body, this.torso, direita, camera, holding || fase === 'arremesso', clawsForward, rightClosure, rightObstacles);
     }
     if (cobertura > 0) {
       camera.getWorldPosition(this.eyes.position);
@@ -264,12 +296,17 @@ export class Vampiro {
       const { fov = 40, aspect = 1.6 } = camera as PerspectiveCamera;
       this.cameraHands.forEach((palm, i) => {
         const side = i === 0 ? -1 : 1;
-        const depth = 3.56 - 0.86 * i;
+        const depth = 3.18;
         const halfY = depth * Math.tan(fov * Math.PI / 360), halfX = halfY * aspect;
         const reach = 1 - (1 - cobertura) ** 1.54;
-        palm.position.set(side * halfX * (2.06 - 1.34 * reach), side * halfY * 0.23, -depth);
-        palm.rotation.set(-0.095, side * (0.35 - 0.24 * cobertura), side * (1.42 + 0.07 * cobertura));
-        palm.scale.setScalar(halfY * Math.min(2.48, 1.15 + aspect * 0.77));
+        const angle = side * (1.40 + 0.111 * cobertura), sx = 2.74 * halfY, sy = 0.565 * halfX;
+        const inwardX = -side * Math.cos(angle) * sx, inwardY = side * Math.sin(angle) * sy;
+        // Clip the whole silhouette by placement, keeping a slit between the two sets of claws at full reach.
+        const extent = Math.max(...this.cameraBounds[i].map(({ min, max }) =>
+          inwardX * (inwardX > 0 ? max.x : min.x) + inwardY * (inwardY > 0 ? max.y : min.y)));
+        palm.position.set(side * (extent + halfX * (0.012 + 0.82 * (1 - reach))), halfY * (0.24 - 0.56 * (1 - cobertura)), -depth);
+        palm.rotation.set(0, 0, angle);
+        palm.scale.set(sx, sy, halfY * 1.87);
       });
     }
   }

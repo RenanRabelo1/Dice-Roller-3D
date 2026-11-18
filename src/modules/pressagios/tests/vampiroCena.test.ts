@@ -89,6 +89,37 @@ describe('Vampire scene', () => {
     vampire.dispose();
   });
 
+  it('keeps each camera hand and its cuff on its own side throughout coverage', () => {
+    const vampire = new Vampiro();
+    const hands = vampire.root.getObjectByName('vampiro-maos-da-camera')!;
+    const world = new Vector3();
+    for (const t of [900, 1600, 2300]) {
+      vampire.update('falha-bestial', t, camera);
+      hands.updateWorldMatrix(true, true);
+      hands.children.forEach((hand, side) => hand.traverse((mesh) => {
+        if (!(mesh instanceof Mesh)) return;
+        const vertices = mesh.geometry.getAttribute('position');
+        for (let i = 0; i < vertices.count; i++) {
+          const x = world.fromBufferAttribute(vertices, i).applyMatrix4(mesh.matrixWorld).project(camera).x;
+          if (side === 0 ? x >= 0 : x <= 0) throw new Error(`Camera hand ${side} crossed the frame at ${t} ms`);
+        }
+      }));
+    }
+    vampire.dispose();
+  });
+
+  it('closes the grip around its die with the wrist away from an adjacent spectator die', () => {
+    const vampire = new Vampiro(), die = new Vector3(0, 6, 4);
+    vampire.update('critico-bestial', 2800, camera, [], die.toArray(), [[1.1, 6, 4]]);
+    const palm = vampire.root.getObjectByName('vampiro-mao-direita')!;
+    const [skin, nails] = palm.children as Mesh[];
+    expect(skin.morphTargetInfluences).toEqual([1]);
+    expect(nails.morphTargetInfluences).toEqual([1]);
+    expect(palm.localToWorld(new Vector3(...CENTRO_DA_PEGA)).distanceTo(die)).toBeLessThan(1e-6);
+    expect(palm.localToWorld(new Vector3(0, -0.31, -0.035)).x).toBeLessThan(-1.1);
+    vampire.dispose();
+  });
+
   it('hides on finish, pickup, selection change and reduced motion', () => {
     const { show, vampire } = showOfScene();
     const at = (t: number) => show.frame(presagio().omenAt + t, camera, target, 800);

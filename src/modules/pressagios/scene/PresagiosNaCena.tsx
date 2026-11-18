@@ -233,7 +233,16 @@ export class Show {
     for (let i = 0; i < r.bolts; i++) striking = this.bolts[i].update(t, camera.position) || striking;
     if (r.kraken) this.kraken.update(t, camera, at);
     if (r.duality) this.taiji.update(t, camera);
-    if (r.vampiro) this.vampiro.update(r.vampiro.tipo, t, camera, r.origins, at(r.vampiro.dados[0])?.toArray());
+    if (r.vampiro) {
+      const vampiro = r.vampiro;
+      const otherDice: Vec3[] = [];
+      if (vampiro.tipo !== 'falha-bestial') s.dice.forEach((_, i) => {
+        if (vampiro.dados.includes(i)) return;
+        const pos = at(i);
+        if (pos) otherDice.push(pos.toArray());
+      });
+      this.vampiro.update(vampiro.tipo, t, camera, r.origins, at(vampiro.dados[0])?.toArray(), otherDice);
+    }
     if (r.bolts) this.light.intensity = (striking ? 30 : 0) + 10 * (1 - span(t, 0, 900));
     else if (r.luz === 'tempestade') this.light.intensity = luzDaTempestade(t);
     else if (r.luz === 'kraken') this.light.intensity = luzDoKraken(t, r.ms);
