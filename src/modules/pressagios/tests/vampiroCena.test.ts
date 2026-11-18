@@ -4,9 +4,10 @@ import { arremesso, input, publish } from '../../arremesso/index.ts';
 import { definir } from '../../selecao/index.ts';
 import { definirMovimentoReduzido } from '../../../shared/plataforma/index.ts';
 import { presagio, reiniciarPresagio } from '../index.ts';
-import { VAMPIRO_MS } from '../domain/vampiroMotion.ts';
+import { VAMPIRO, VAMPIRO_MS } from '../domain/vampiroMotion.ts';
 import { Show } from '../scene/PresagiosNaCena.tsx';
 import { Vampiro } from '../scene/Vampiro.ts';
+import { CENTRO_DA_PEGA } from '../scene/vampiroMao.ts';
 
 const camera = new PerspectiveCamera(40, 1.6);
 camera.position.set(0, 14, 10);
@@ -69,7 +70,7 @@ describe('Vampire scene', () => {
     expect(first.geometries.size).toBeLessThanOrEqual(32);
     expect(first.materials.size).toBeLessThanOrEqual(12);
     vampire.update('par-de-criticos', 1900, camera, [[1, 0.8, -1], [2, 0.8, 1]]);
-    expect(vampire.root.getObjectByName('vampiro-cabeca')?.visible).toBe(false);
+    expect(vampire.root.getObjectByName('vampiro-cabeca')?.visible).toBe(true);
     vampire.update('critico-bestial', 1980, camera, [[1, 0.8, -1]]);
     vampire.update('falha-bestial', 1600, camera);
     vampire.hide();
@@ -77,6 +78,15 @@ describe('Vampire scene', () => {
     const dispose = [...first.geometries, ...first.materials].map((asset) => vi.spyOn(asset, 'dispose'));
     vampire.dispose();
     for (const released of dispose) expect(released).toHaveBeenCalledTimes(1);
+  });
+
+  it('puts the cupped palm around the die in the foreground attack', () => {
+    const vampire = new Vampiro();
+    const carried = new Vector3(0.65, 11, 7.7);
+    vampire.update('falha-bestial', VAMPIRO.falha.rasante, camera, [[-3, 0.7, -2]], carried.toArray());
+    const palm = vampire.root.getObjectByName('vampiro-mao-direita')!;
+    expect(palm.localToWorld(new Vector3(...CENTRO_DA_PEGA)).distanceTo(carried)).toBeLessThan(1e-6);
+    vampire.dispose();
   });
 
   it('hides on finish, pickup, selection change and reduced motion', () => {

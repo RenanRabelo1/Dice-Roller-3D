@@ -57,21 +57,23 @@
     vampiro-clareia var(--abertura) cubic-bezier(.333, 0, .667, 1) var(--fecha) forwards;
 }
 .vampiro-rasgos {
-  display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 6vh;
-  transform: rotate(-24deg); opacity: 0;
+  display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 0.6vh;
+  transform: rotate(-29deg); opacity: 0; filter: drop-shadow(0 0 8px #44000c);
   animation: vampiro-golpe var(--rasgos-ms) ease-out var(--rasgos-em) both;
 }
 .vampiro-rasgos i {
-  width: 112%; height: clamp(12px, 3vh, 38px); background: linear-gradient(180deg, #f53346, #95041e 68%, #450013);
-  clip-path: polygon(0 73%, 14% 29%, 46% 16%, 85% 0, 100% 19%, 81% 51%, 36% 65%, 9% 97%);
+  flex: 0 0 clamp(36px, 8.6vh, 96px); width: 104%; margin-block: -1.55vh;
+  background: radial-gradient(ellipse at 53% 39%, #ff4458 0%, #f9203d 25%, #af0926 48%, #510014 71%, #290009 100%);
+  clip-path: polygon(0 98%, 9% 78%, 20% 55%, 32% 33%, 45% 17%, 57% 12%, 69% 16%, 81% 28%, 92% 41%, 100% 59%,
+    92% 51%, 81% 47%, 69% 47%, 57% 48%, 45% 50%, 32% 59%, 20% 70%, 9% 86%);
 }
-.vampiro-rasgos i:nth-child(2) { margin-left: 12%; }
-.vampiro-rasgos i:nth-child(3) { margin-left: 23%; }
+.vampiro-rasgos i:first-child { width: 100%; transform: translateX(6%); }
+.vampiro-rasgos i:last-child { width: 98%; transform: translateX(-8%); }
 @keyframes vampiro-escurece { from { opacity: 0; } to { opacity: 1; } }
 @keyframes vampiro-clareia { from { opacity: 1; } to { opacity: 0; } }
 @keyframes vampiro-golpe {
-  0% { opacity: 0; clip-path: inset(0 100% 0 0); }
-  30% { opacity: 0.9; clip-path: inset(0); }
-  80% { opacity: 0.58; clip-path: inset(0); }
+  0% { opacity: 0; clip-path: inset(0 0 0 100%); }
+  24% { opacity: 0.94; clip-path: inset(0); }
+  68% { opacity: 0.67; clip-path: inset(0); }
   100% { opacity: 0; clip-path: inset(0); }
 }

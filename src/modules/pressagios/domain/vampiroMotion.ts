@@ -13,7 +13,7 @@ export const VAMPIRO_MS: Record<TipoVampiro, number> = {
 export const VAMPIRO = {
   par: { pega: 1500, junta: 2300, prepara: 3000, arremesso: 3400, impacto: 3750, sai: 3800, assenta: 4300 },
   critico: { sobe: 1000, pega: 1500, entrega: 2200, revela: 2800, sai: 3200 },
-  falha: { surge: 1500, destapa: 1700, espera: 2700, ataque: 3500, contato: 3590, foge: 3900, revela: 4300, some: 5000 },
+  falha: { surge: 1500, destapa: 1700, espera: 2700, ataque: 3500, contato: 3590, rasante: 3800, foge: 3900, revela: 4300, some: 5000 },
 };
 
 type Fase = 'entra' | 'pega' | 'junta' | 'prepara' | 'arremesso' | 'assenta' | 'sai'
@@ -25,7 +25,6 @@ interface Corpo {
   lean: number;
   crouch: number;
   step: number; // signed swing of a step
-  cabeca: boolean;
   visivel: boolean;
 }
 
@@ -45,54 +44,52 @@ const mix = (a: Vec3, b: Vec3, u: number): Vec3 => [
   a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u, a[2] + (b[2] - a[2]) * u,
 ];
 const offset = (p: Vec3, x: number, y: number, z: number): Vec3 => [p[0] + x, p[1] + y, p[2] + z];
-const local = ({ p, yaw, crouch }: Corpo, x: number, y: number, z: number) =>
-  offset(p, x * Math.cos(yaw) + z * Math.sin(yaw), y - crouch, z * Math.cos(yaw) - x * Math.sin(yaw));
-const borda = TRAY.halfWidth + TRAY.wallThickness;
+const borda = TRAY.halfWidth + TRAY.wallThickness, fundo = -TRAY.halfDepth - TRAY.wallThickness;
 const CAMERA_PADRAO: Vec3 = [0, 14, 10];
-const segundoDado = (palma: Vec3) => offset(palma, -0.78, 0.74, 0.14);
+const olhar = new Vector3(...CAMERA_PADRAO).normalize();
+const segundoDado = (palma: Vec3) => offset(palma, -1.08, 0.6, 0.22);
 const fit = (value: number, limit: number) => Math.max(-limit, Math.min(limit, value));
 
 // The hand travels down to the resting die, meets it, then rises to the carry point.
 const contact = (start: number, stop: number) => start + (stop - start) * 0.25;
-const pickupHand = (t: number, start: number, stop: number, idle: Vec3, die: Vec3, hold: Vec3): Vec3 => {
+const pickupHand = (t: number, start: number, stop: number, idle: Vec3, die: Vec3, hold: Vec3, reachForward = 0.95): Vec3 => {
   const reach = contact(start, stop);
-  return t < reach ? mix(idle, die, smooth(t, start, reach)) : pickupDie(t, start, stop, die, hold);
+  return t < reach ? mix(idle, die, smooth(t, start, reach)) : pickupDie(t, start, stop, die, hold, reachForward);
 };
-const pickupDie = (t: number, start: number, stop: number, die: Vec3, hold: Vec3): Vec3 => {
+const pickupDie = (t: number, start: number, stop: number, die: Vec3, hold: Vec3, reachForward = 0.95): Vec3 => {
   const u = smooth(t, contact(start, stop), stop), lift = Math.sin(Math.PI * u);
-  return offset(mix(die, hold, u), 0, 0.25 * lift, 0.95 * lift);
+  return offset(mix(die, hold, u), 0, 0.25 * lift, reachForward * lift);
 };
+const ENTREGA_A_FRENTE = 2.95;
 
 function parAt(t: number, [a, b]: readonly Vec3[]): Quadro {
   const m = VAMPIRO.par;
   const enter = smooth(t, 0, m.pega), exit = smooth(t, m.sai, VAMPIRO_MS['par-de-criticos']);
-  const step = Math.sin(t / 76) * (Math.sin(Math.PI * enter) + Math.sin(Math.PI * exit));
-  const stance: Vec3 = [2.1, -0.75, 0.2];
-  const pair = a && b ? mix(a, b, 0.5) : a ?? b;
-  const beside: Vec3 = pair ? [fit(pair[0] + 0.36, 5.9), -0.75, fit(pair[2] - 0.75, 3.65)] : stance;
-  const approach = mix([borda + 3.5, -0.75, 1.6], beside, enter);
-  const returnToStance = smooth(t, m.pega + 260, m.junta);
-  const walking = t < m.sai ? mix(approach, stance, returnToStance) : mix(stance, [borda + 3.1, -0.75, 0.6], exit);
+  const step = Math.sin(t / 98) * (Math.sin(Math.PI * enter) + Math.sin(Math.PI * exit));
+  const stance: Vec3 = [borda + 1.85, -3.35, -2.25];
+  const walking = t < m.sai ? mix([borda + 7.1, -3.35, -1.85], stance, enter)
+    : mix(stance, [borda + 5.9, -3.35, -1.55], exit);
   const ready = smooth(t, m.prepara, m.arremesso), cast = smooth(t, m.arremesso, m.impacto);
-  const reach = Math.sin(Math.PI * span(t, m.pega, m.junta));
+  const reach = smooth(t, 1070, 1700) * (1 - 0.85 * smooth(t, 1770, m.junta));
   const corpo: Corpo = {
-    p: offset(walking, 0, 0.14 * Math.abs(step) - 0.24 * reach, 0),
-    yaw: -1.15 * (1 - enter) + 1.5 * smooth(t, m.sai, m.sai + 450) - 0.38 * ready * (1 - cast),
-    lean: 0.34 * reach + 0.32 * cast * (1 - smooth(t, m.impacto, m.assenta)),
-    crouch: reach * 0.65, step, cabeca: false, visivel: t < VAMPIRO_MS['par-de-criticos'],
+    p: offset(walking, 0, 0.20 * Math.abs(step), 0),
+    yaw: -1.24 + 2.55 * smooth(t, m.sai, m.sai + 510) + 0.28 * ready * (1 - cast),
+    lean: 0.29 + 0.52 * reach + 0.2 * cast * (1 - smooth(t, m.impacto, m.assenta)),
+    crouch: reach * 0.18, step, visivel: t < VAMPIRO_MS['par-de-criticos'],
   };
-  const leftIdle = local(corpo, -0.9, 2.25, 0.58 + 0.45 * step);
-  const rightIdle = local(corpo, 0.9, 2.25, 0.58 - 0.45 * step);
-  const reachFrom = { ...corpo, p: beside, yaw: 0, crouch: 0 };
-  const leftHold: Vec3 = [1.03, 2.78, 1.2], rightHold: Vec3 = [2.85, 2.72, 1.2];
-  const wind = mix(rightHold, [4.4, 3.35, 0.17], ready);
-  const throwTo = mix(wind, [1.0, 3.65, 3.2], cast);
+  const leftStart: Vec3 = [6.5, 2.75, -2.2], rightStart: Vec3 = [7.1, 3.15, 1.1];
+  const shift = walking[0] - stance[0];
+  const leftIdle = offset(leftStart, shift, 0.27 * step, 0.5 * step);
+  const rightIdle = offset(rightStart, shift, -0.27 * step, -0.52 * step);
+  const leftHold: Vec3 = [4.0, 3.25, -0.8], rightHold: Vec3 = [5.9, 3.8, 0.8];
+  const wind = mix(rightHold, [6.5, 5.1, -0.25], ready);
+  const throwTo = mix(wind, [2.0, 5.35, 3.8], cast);
   const direita = t < m.pega ? rightIdle : t < m.junta
-    ? pickupHand(t, m.pega, m.junta, local(reachFrom, 0.9, 2.25, 0.58), b ?? rightHold, rightHold)
+    ? pickupHand(t, m.pega, m.junta, rightStart, b ?? rightHold, rightHold)
     : mix(throwTo, rightIdle, smooth(t, m.impacto, m.assenta));
   const transfer = mix(leftHold, segundoDado(rightHold), smooth(t, m.junta, m.prepara));
   const esquerda = t < m.pega ? leftIdle : t < m.junta
-    ? pickupHand(t, m.pega, m.junta, local(reachFrom, -0.9, 2.25, 0.58), a ?? leftHold, leftHold)
+    ? pickupHand(t, m.pega, m.junta, leftStart, a ?? leftHold, leftHold)
     : mix(transfer, leftIdle, smooth(t, m.prepara, m.arremesso));
   const fase = t < m.pega ? 'entra' : t < m.junta ? 'pega' : t < m.prepara ? 'junta'
     : t < m.arremesso ? 'prepara' : t < m.impacto ? 'arremesso' : t < m.sai ? 'assenta' : 'sai';
@@ -104,48 +101,55 @@ function criticoAt(t: number, die: Vec3 | undefined, carried: Vec3 | undefined):
   const emerge = smooth(t, 0, m.sobe), climb = smooth(t, m.sobe, m.pega);
   const deliver = smooth(t, m.entrega, m.sai);
   const leap = smooth(t, m.sai, 3900), sink = smooth(t, 3900, duration);
-  const edge: Vec3 = [borda + 0.75, -4.75 + 2.5 * emerge, -1.75];
-  const inside: Vec3 = die ? [fit(die[0] + 0.75, 5.9), -0.1, fit(die[2] - 0.65, 3.65)] : [3.8, -0.1, -0.8];
-  const afterPickup: Vec3 = [2.3, 0, 0.15];
-  const hop = offset(mix(edge, inside, climb), 0, 0.83 * Math.sin(Math.PI * climb), 0);
-  const approach = mix(hop, afterPickup, smooth(t, m.pega + 270, m.entrega));
-  const leave = mix([1.6, 1.05, 0.85], [borda + 1, -1.1, -2.45], leap);
-  const position = t < m.sai ? mix(approach, [1.6, 1.05, 0.85], deliver)
-    : offset(leave, 0, 1.25 * Math.sin(Math.PI * leap) - 4.8 * sink, 0);
+  const edge: Vec3 = [borda + 1.25, -13.8 + 5.18 * emerge, -1.5];
+  const inside: Vec3 = die ? [fit(die[0] * 0.59 + 4.0, 5.9), -3.9, fit(die[2] - 1.95, 4.4)] : [4.5, -3.9, -2];
+  const afterPickup: Vec3 = [3.2, -4, -2.0], forward: Vec3 = [2.2, -2.65, -1.0];
+  const hop = offset(mix(edge, inside, climb), 0, 0.6 * Math.sin(Math.PI * climb), 0);
+  const approach = mix(hop, afterPickup, smooth(t, m.pega + 360, m.entrega));
+  const leave = mix(forward, [borda + 1.48, -7.35, -1.6], leap);
+  const position = t < m.sai ? mix(approach, forward, deliver)
+    : offset(leave, 0, 1.18 * Math.sin(Math.PI * leap) - 7.2 * sink, 0);
   const corpo: Corpo = {
-    p: position, yaw: -0.62 * (1 - deliver) + 1.45 * leap,
-    lean: 0.32 * Math.sin(Math.PI * span(t, m.pega, m.entrega)) + 0.2 * deliver * (1 - leap),
-    crouch: 0.71 * Math.sin(Math.PI * climb) + 0.65 * Math.sin(Math.PI * span(t, m.pega, m.entrega)),
-    step: 0.65 * Math.sin(t / 77) * Math.sin(Math.PI * deliver), cabeca: true, visivel: t < duration,
+    p: position, yaw: -0.38 - 0.44 * climb * (1 - deliver) + 1.58 * leap,
+    lean: 0.20 + 0.55 * climb * (1 - leap) + 0.12 * Math.sin(Math.PI * span(t, m.pega, m.entrega)),
+    crouch: 0.68 * climb + 0.37 * Math.sin(Math.PI * span(t, m.pega, m.entrega)),
+    step: 0.5 * Math.sin(t / 92) * Math.sin(Math.PI * deliver), visivel: t < duration,
   };
-  const idle = local(corpo, 0.78, 2.25, 0.7), hold: Vec3 = [2.55, 2.38, 1.35];
-  const reachFrom = local({ ...corpo, p: inside, yaw: -0.62, crouch: 0 }, 0.78, 2.25, 0.7);
+  const reachFrom = offset(inside, 0.6, 6.18, 1.7);
+  const idle = t < m.pega ? mix(offset(edge, -0.6, 8.0, 0.35), reachFrom, climb)
+    : offset(position, 1.65, 6.2, 1.8);
+  const hold: Vec3 = [3.75, 3.25, 1.95];
   const direita = t < m.pega ? idle : t < m.entrega
-    ? pickupHand(t, m.pega, m.entrega, reachFrom, die ?? hold, hold)
+    ? pickupHand(t, m.pega, m.entrega, reachFrom, die ?? hold, hold, ENTREGA_A_FRENTE)
     : mix(carried ?? hold, idle, smooth(t, m.sai, m.sai + 380));
   const fase = t < m.sobe ? 'surge' : t < m.pega ? 'sobe' : t < m.entrega ? 'pega' : t < m.sai ? 'entrega' : 'sai';
-  return { fase, corpo, esquerda: local(corpo, -0.94, 2.45, 0.55), direita, cobertura: 0 };
+  return { fase, corpo, esquerda: offset(position, -2.7, 6.5, 1.2 + 1.9 * climb), direita, cobertura: 0 };
 }
 
 function falhaAt(t: number, die: Vec3 | undefined, carried: Vec3 | undefined): Quadro {
   const m = VAMPIRO.falha;
   const wait = smooth(t, m.espera, m.ataque), lunge = smooth(t, m.ataque, m.foge), flee = smooth(t, m.foge, m.some);
   const reach = Math.sin(Math.PI * span(t, m.ataque, m.foge));
-  const stride = mix([-0.2, -0.1, -3.45], [0, 3.1, 1.85], lunge);
-  const forward = die ? offset(stride, fit(die[0] * 0.41, 2.4) * reach, 0, fit(die[2] * 0.32, 1.2) * reach) : stride;
-  const exit = mix([0, 3.1, 1.85], [borda + 3.15, -1.3, -1.55], flee);
+  const back: Vec3 = [-0.28, -5.55, fundo - 1.35], ahead: Vec3 = [0.2, -1.9, 0.05];
+  const stride = mix(back, ahead, lunge);
+  const forward = die ? offset(stride, fit(die[0] * 0.34, 2.2) * reach, 0, fit(die[2] * 0.24, 1.0) * reach) : stride;
+  const exit = mix(ahead, [borda + 4.9, -6.2, -2.85], flee);
   const corpo: Corpo = {
     p: t < m.foge ? forward : offset(exit, 0, 1.15 * Math.sin(Math.PI * flee), 0),
-    yaw: 1.45 * flee, lean: 0.15 + 0.48 * wait * (1 - lunge) + 0.35 * lunge * (1 - flee),
-    crouch: 0.65 * wait * (1 - lunge),
-    step: Math.sin(t / 55) * Math.sin(Math.PI * flee), cabeca: true, visivel: t >= m.surge && t < m.some,
+    yaw: 1.42 * flee, lean: 0.66 + 0.14 * wait * (1 - lunge) + 0.10 * lunge - 0.44 * flee,
+    crouch: 0.54 + 0.23 * wait * (1 - lunge),
+    step: Math.sin(t / 61) * Math.sin(Math.PI * flee), visivel: t >= m.surge && t < m.some,
   };
-  const idle = local(corpo, 1.15 + 0.2 * wait, 2.95 - 0.45 * wait, 0.75 + 0.55 * wait);
+  const recoil = smooth(t, m.foge, m.foge + 370);
+  const idle = mix(offset(corpo.p, 2.4 + 0.36 * wait, 7.45 - 0.25 * wait, 5.1 + 0.36 * wait - 3.1 * lunge),
+    offset(corpo.p, 2.1, 4.6, 3.85), recoil);
+  const esquerda = mix(offset(corpo.p, -2.4 - 0.35 * wait, 7.35, 4.99 + 0.33 * wait - 2.9 * lunge),
+    offset(corpo.p, -2.75, 4.30, 3.8), recoil);
   const direita = t < m.contato ? mix(idle, die ?? idle, smooth(t, m.ataque, m.contato))
     : mix(carried ?? die ?? idle, idle, smooth(t, m.foge, m.foge + 360));
   const fase = t < m.destapa ? 'tampa' : t < m.espera ? 'destapa' : t < m.ataque ? 'espera' : t < m.foge ? 'ataque' : 'foge';
   return {
-    fase, corpo, direita, esquerda: local(corpo, -1.15 - 0.4 * wait, 2.6 - 0.3 * wait, 0.7 + 0.55 * wait),
+    fase, corpo, direita, esquerda,
     cobertura: smooth(t, 0, m.destapa) * (1 - smooth(t, m.destapa, m.espera)),
   };
 }
@@ -193,15 +197,17 @@ function bestialDieAt(tipo: 'critico-bestial' | 'falha-bestial', t: number, de: 
     if (t <= m.pega) return de;
     if (t >= m.sai) return para;
     const hold = criticoAt(m.entrega, undefined, undefined).direita;
-    const p = t < m.entrega ? pickupDie(t, m.pega, m.entrega, de.p, hold)
+    const p = t < m.entrega ? pickupDie(t, m.pega, m.entrega, de.p, hold, ENTREGA_A_FRENTE)
       : mix(hold, para.p, smooth(t, m.entrega, m.sai));
     return poseAt(de, para, p, smooth(t, contact(m.pega, m.entrega), m.sai));
   }
   const m = VAMPIRO.falha;
   if (t <= m.contato) return de;
   if (t >= m.foge) return para;
-  const u = smooth(t, m.contato, m.foge);
-  return poseAt(de, para, mix(de.p, para.p, u), u);
+  const close = offset(para.p, -0.55 * para.p[0], 2.65 * olhar.y, 2.65 * olhar.z);
+  const p = t < m.rasante ? mix(de.p, close, smooth(t, m.contato, m.rasante))
+    : mix(close, para.p, smooth(t, m.rasante, m.foge));
+  return poseAt(de, para, p, smooth(t, m.contato, m.rasante));
 }
 
 export function vampiroDieAt(tipo: TipoVampiro, slot: number, t: number, de: Pose, para: Pose, camera = CAMERA_PADRAO): MovimentoNoPresagio {

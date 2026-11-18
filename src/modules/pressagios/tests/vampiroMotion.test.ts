@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Vector3, Quaternion } from 'three';
+import { TRAY } from '../../arremesso/index.ts';
 import type { PresagioVampiro } from '../../regras/index.ts';
 import type { Pose, Vec3 } from '../../../shared/math.ts';
 import { indicesComPercurso, movimentoNoPresagio } from '../domain/percurso.ts';
@@ -48,11 +49,20 @@ describe('Vampire motion', () => {
     const v: PresagioVampiro = { tipo: 'falha-bestial', dados: [1] };
     expect(move(v, 3499).pose).toBe(de);
     expect(move(v, 3700).pose.p).not.toEqual(de.p);
+    expect(distance(move(v, 3800).pose.p, camera)).toBeLessThan(distance(para.p, camera) - 2);
     expect(move(v, 3900).pose).toBe(para);
     expect(move(v, 4100).revela).toBe(0.5);
     expect(vampiroAt(v.tipo, 0).cobertura).toBe(0);
     expect(vampiroAt(v.tipo, 1700)).toMatchObject({ fase: 'destapa', cobertura: 1, corpo: { visivel: true } });
     expect(vampiroAt(v.tipo, 2700)).toMatchObject({ fase: 'espera', cobertura: 0 });
     expect(vampiroAt(v.tipo, 5000).corpo.visivel).toBe(false);
+  });
+
+  it('keeps the pair beside the right wall and the waiting attacker behind the back wall', () => {
+    const origins: Vec3[] = [[-6, 0.7, -3.5], [3, 0.7, 3.5]];
+    for (const t of Object.values(VAMPIRO.par)) {
+      expect(vampiroAt('par-de-criticos', t, origins).corpo.p[0]).toBeGreaterThan(TRAY.halfWidth + TRAY.wallThickness);
+    }
+    expect(vampiroAt('falha-bestial', 3200, origins).corpo.p[2]).toBeLessThan(-TRAY.halfDepth - TRAY.wallThickness);
   });
 });
