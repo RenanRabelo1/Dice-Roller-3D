@@ -1,6 +1,6 @@
 # Visão geral
 
-Rolador de dados 3D no navegador. O jogador escolhe dados (botões ou chat com notação `2d10 + d100`), mira com o mouse/setas, segura para carregar a força e solta. A física (Rapier) decide o resultado; os dados voam até a câmera e mostram a face sorteada. Críticos/falhas de d20 e d100 disparam "presságios" (animações) antes do resultado. UI em pt-BR. O jogo roda sem rede; se o build tiver `VITE_API_URL`, cada resultado é enviado (sem esperar resposta) à API de histórico em `server/`.
+Rolador de dados 3D no navegador. O jogador escolhe dados (botões ou chat com notação `2d10 + d100`), mira com o mouse/setas, segura para carregar a força e solta. A física (Rapier) decide o resultado; os dados voam até a câmera e mostram a face sorteada. Críticos/falhas de d20 e d100 e os resultados de vampiro (par de críticos do d10 Vampiro, crítico e falha bestiais do d10 Fome) disparam "presságios" (animações) antes do resultado; o de d20/d100 tem prioridade. UI em pt-BR. O jogo roda sem rede; se o build tiver `VITE_API_URL`, cada resultado é enviado (sem esperar resposta) à API de histórico em `server/`.
 
 ## Stack
 
@@ -39,7 +39,7 @@ src/
   main.tsx, App.tsx        casca: <Painel/> + <Canvas><Cena/></Canvas> + <OverlayDoPresagio/> (de `pressagios`)
   shared/plataforma/       falha registrada (`registrarFalha`), `Guard`, `Failure`, sonda WebGL, renderizador por software, movimento reduzido (`movimentoReduzido`, evento de mudança)  → armadilhas.md
   app/                     casca: a cena, o window.__dice e o Painel (`app/Painel.tsx`: compõe as faixas, o livro e a roda. Faixa de cima com os botões dos capítulos; o livro com os painéis da mesa, de Meus dados, de Importar dado e o chat, um capítulo aberto por vez; faixa de baixo com o modo de rolagem, o resultado da vitrine, a dica, a barra de força e a roda de dados)
-    (HUD) a casca reage aos presságios só por CSS, lendo `data-omen`/`data-kraken`/`data-storm` e `data-presagio` (mapa-modulos.md); o número de luzes da cena é fixo (armadilhas.md); o livro não rola, vira a folha pela orelha (`app/Folheador.tsx`), e com ele aberto a cena principal congela (`frameloop` `never`) e a `.game-area` fica `inert`, pelo sinal de `app/livro.ts` (OS-0086), além do véu (`.livro-veu`); o perfil leve ou completo vem de `shared/plataforma` (ADR 0011); a página do jogo não tem zoom de pinça
+    (HUD) a casca reage aos presságios só por CSS, lendo `data-omen`/`data-kraken`/`data-storm`/`data-vampiro` e `data-presagio` (mapa-modulos.md); o número de luzes da cena é fixo (armadilhas.md); o livro não rola, vira a folha pela orelha (`app/Folheador.tsx`), e com ele aberto a cena principal congela (`frameloop` `never`) e a `.game-area` fica `inert`, pelo sinal de `app/livro.ts` (OS-0086), além do véu (`.livro-veu`); o perfil leve ou completo vem de `shared/plataforma` (ADR 0011); a página do jogo não tem zoom de pinça
     Cena.tsx                 raiz da cena (compõe os componentes dos módulos), câmera, DPR, test hook
     testHook.ts              window.__dice (só em mode=test)                        → testes.md
   modules/regras/          regras do jogo, puras, compartilhadas com server/        → modules/regras/CLAUDE.md
@@ -58,7 +58,7 @@ src/
     domain/presim.ts         simula o arremesso inteiro offline e grava os quadros (Rapier fora da cena)
     domain/presim.worker.ts  roda presim fora da thread de render
     domain/vies.ts           `plays`: se um resultado toca o presságio do botão de teste
-  modules/pressagios/      presságios: o estado (store vanilla, `presagio()`, `presagioTocando()`, decidido em `resultadoPublicado`), a duração (`domain/omen.ts`), os botões de teste (`domain/omenTest.ts`) e o movimento do kraken, da tempestade e do fogo (`domain/krakenMotion.ts`, `domain/fireMotion.ts`), que efeito em que dado (`domain/plano.ts`) e o percurso do d100 (`domain/percurso.ts`); `cena.ts` com `usePresagio`, `usePresagioTocando`, `PresagiosNaCena` e `QuebraDaMesa` (em `scene/`, com `Kraken.ts` e `Fire.ts`), `OverlayDoPresagio` (com `ui/presagios.css`) e `BotoesDeTeste` (em `ui/`); `inspecao` para o test hook  → src/modules/pressagios/CLAUDE.md
+  modules/pressagios/      presságios: o estado (store vanilla, `presagio()`, `presagioTocando()`, decidido em `resultadoPublicado`), a duração (`domain/omen.ts`), os botões de teste (`domain/omenTest.ts`) e o movimento do kraken, da tempestade e do fogo (`domain/krakenMotion.ts`, `domain/fireMotion.ts`), que efeito em que dado (`domain/plano.ts`) e o percurso do d100 (`domain/percurso.ts`); `cena.ts` com `usePresagio`, `usePresagioTocando`, `PresagiosNaCena` e `QuebraDaMesa` (em `scene/`, com `Kraken.ts`, `Fire.ts` e `Vampiro.ts`; a linha do tempo do vampiro em `domain/vampiroMotion.ts`), `OverlayDoPresagio` (com `ui/presagios.css`) e `BotoesDeTeste` (em `ui/`); `inspecao` para o test hook  → src/modules/pressagios/CLAUDE.md
   modules/vitrine/         vitrine: poses do voo (`domain/showcase.ts`), destaque (`domain/highlight.ts`), gravação acesa (`domain/inkGlow.ts`), texto do painel (`domain/painel.ts`, `resultText`), o estado `showcased` (store vanilla, `vitrine()`, `vitrineConcluida()`), `inspecao` para o test hook; `cena.ts` com `useVitrine`, `Vitrine` (a cena em `settled`: voo, números, gravação acesa; em `scene/`) e `PainelDoResultado`  → src/modules/vitrine/CLAUDE.md
 tests/                     Vitest (unidades puras + física Node); helpers/sim.ts
 server/                    API do histórico (Fastify + MongoDB; usa `src/modules/regras` pelo `index.ts`, roda em Node com TS nativo)
@@ -73,13 +73,13 @@ docs/performance-coins.md  diagnóstico de desempenho com várias moedas
 
 | Termo | Significado |
 |---|---|
-| `DieKind` | tipo escolhível: `BuiltinKind` (`d4 d6 d8 d10 d12 d20 d100 vtm hunger fire coin`) ou `custom:<uuid>` (dado importado) |
-| `Shape` | corpo físico real; `baseOf(kind)` mapeia kind → shape (`vtm`/`hunger` → d10, `fire` → d6, importado → a base reconhecida) |
+| `DieKind` | tipo escolhível: `BuiltinKind` (`d4 d6 d8 d10 d12 d20 d100 vtm hunger coin`) ou `custom:<uuid>` (dado importado) |
+| `Shape` | corpo físico real; `baseOf(kind)` mapeia kind → shape (`vtm`/`hunger` → d10, importado → a base reconhecida) |
 | fase | `hand → charging → rolling → settled → returning → hand` (`modules/arremesso/domain/gesture.ts`) |
 | `throwId` | contador que invalida tudo que é de um arremesso/seleção anterior |
 | `Launch` | snapshot imutável do arremesso (semente, alvo, força, pose/giro da mão) |
 | `raw` | valor físico da face de cima (dígito 0–9 do d10, vértice do d4, 1/2 da moeda) |
 | `results` | valor para o jogador (`toResults`: d10 0 → 10) |
-| presságio (`omen`) | animação de crítico/falha/dualidade antes do resultado aparecer |
+| presságio (`omen` ou `vampiro`) | animação antes do resultado aparecer: `omen` é crítico/falha/dualidade de d20 e d100; `vampiro` é par de críticos, crítico bestial ou falha bestial |
 | showcase | os dados voam até a frente da câmera mostrando a face sorteada |
 | Cara/Coroa | moeda: 1 = cara (tampa de cima), 2 = coroa |

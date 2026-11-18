@@ -7,7 +7,6 @@ describe('valoresValidos', () => {
     expect(valoresValidos({ kind: 'd10' })).toEqual([1, 10]);
     expect(valoresValidos({ kind: 'd100' })).toEqual([1, 100]);
     expect(valoresValidos({ kind: 'vtm' })).toEqual([1, 10]);
-    expect(valoresValidos({ kind: 'fire' })).toEqual([1, 6]);
     expect(valoresValidos({ kind: 'coin' })).toEqual([1, 2]);
   });
 

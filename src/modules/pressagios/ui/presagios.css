@@ -44,3 +44,36 @@
   36% { transform: translate(-7px, -4px) rotate(-0.3deg); } 50% { transform: translate(5px, 4px); }
   66% { transform: translate(-3px, 2px); } 82% { transform: translate(2px, -1px); } 100% { transform: none; }
 }
+
+.omen-vampiro, .vampiro-sombra, .vampiro-rasgos { position: absolute; inset: 0; }
+.game-area[data-vampiro="par-de-criticos"] canvas { animation: omen-shake 270ms linear var(--vampiro-impacto); }
+.game-area[data-vampiro="critico-bestial"] .omen-vampiro {
+  background: radial-gradient(ellipse at 50% 54%, transparent 35%, rgba(105, 8, 31, 0.28) 80%, rgba(52, 0, 13, 0.5));
+  animation: omen-in 650ms ease-out both;
+}
+.vampiro-sombra {
+  background: radial-gradient(ellipse at center, rgba(9, 1, 5, 0.42), rgba(8, 0, 4, 0.88));
+  animation: vampiro-escurece var(--fecha) cubic-bezier(.333, 0, .667, 1) both,
+    vampiro-clareia var(--abertura) cubic-bezier(.333, 0, .667, 1) var(--fecha) forwards;
+}
+.vampiro-rasgos {
+  display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 0.6vh;
+  transform: rotate(-29deg); opacity: 0; filter: drop-shadow(0 0 8px #44000c);
+  animation: vampiro-golpe var(--rasgos-ms) ease-out var(--rasgos-em) both;
+}
+.vampiro-rasgos i {
+  flex: 0 0 clamp(36px, 8.6vh, 96px); width: 104%; margin-block: -1.55vh;
+  background: radial-gradient(ellipse at 53% 39%, #ff4458 0%, #f9203d 25%, #af0926 48%, #510014 71%, #290009 100%);
+  clip-path: polygon(0 98%, 9% 78%, 20% 55%, 32% 33%, 45% 17%, 57% 12%, 69% 16%, 81% 28%, 92% 41%, 100% 59%,
+    92% 51%, 81% 47%, 69% 47%, 57% 48%, 45% 50%, 32% 59%, 20% 70%, 9% 86%);
+}
+.vampiro-rasgos i:first-child { width: 100%; transform: translateX(6%); }
+.vampiro-rasgos i:last-child { width: 98%; transform: translateX(-8%); }
+@keyframes vampiro-escurece { from { opacity: 0; } to { opacity: 1; } }
+@keyframes vampiro-clareia { from { opacity: 1; } to { opacity: 0; } }
+@keyframes vampiro-golpe {
+  0% { opacity: 0; clip-path: inset(0 0 0 100%); }
+  24% { opacity: 0.94; clip-path: inset(0); }
+  68% { opacity: 0.67; clip-path: inset(0); }
+  100% { opacity: 0; clip-path: inset(0); }
+}

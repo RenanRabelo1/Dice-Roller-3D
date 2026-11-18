@@ -45,4 +45,44 @@ describe('the omen state', () => {
     expect(presagioTocando()).toBe(false);
     expect(arremesso().results).toEqual([20]);
   });
+
+  it('publishes the Vampire omen in the same tick and ends it for the current throw', () => {
+    definir(['vtm', 'vtm']);
+    const throwId = roll(), during: unknown[] = [];
+    const off = resultadoPublicado.subscribe(() => during.push(presagio().vampiro));
+    publish(throwId, [10, 10]);
+    off();
+    expect(during).toEqual([{ throwId, tipo: 'par-de-criticos', dados: [0, 1] }]);
+    expect(presagio()).toMatchObject({ omen: null, omenAt: expect.any(Number) });
+    expect(presagio().omenAt).toBeGreaterThan(0);
+    expect(presagioTocando()).toBe(true);
+    store.getState().setOmenDone(throwId);
+    expect(presagioTocando()).toBe(false);
+  });
+
+  it('leaves only the d20 omen when both rolls would qualify', () => {
+    definir(['d20', 'hunger']);
+    publish(roll(), [20, 10]);
+    expect(presagio()).toMatchObject({ omen: { crits: [0] }, vampiro: null });
+  });
+
+  it('cancels Vampire omens on pickup, selection and reduced motion', () => {
+    definir(['hunger']);
+    publish(roll(), [10]);
+    expect(presagioTocando()).toBe(true);
+    input({ type: 'press', source: P, at: 1000, repeat: false });
+    expect(presagioTocando()).toBe(false);
+    definir(['hunger']);
+    publish(roll(), [1]);
+    expect(presagioTocando()).toBe(true);
+    definir(['hunger']);
+    expect(presagioTocando()).toBe(false);
+    publish(roll(), [1]);
+    definirMovimentoReduzido(true);
+    expect(presagio().vampiro).toBeNull();
+    expect(presagioTocando()).toBe(false);
+    definir(['hunger']);
+    publish(roll(), [10]);
+    expect(presagio()).toMatchObject({ vampiro: null, omenAt: 0 });
+  });
 });

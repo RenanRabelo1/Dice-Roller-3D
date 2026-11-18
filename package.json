@@ -10,7 +10,8 @@
     "dev:test": "vite --mode test --host 127.0.0.1 --port 5179 --strictPort",
     "test": "vitest run",
     "test:server": "npm --prefix server run typecheck && npm --prefix server test",
-    "e2e": "playwright test",
+    "e2e": "node e2e/run.mjs",
+    "e2e:rapido": "playwright test --grep @rapido",
     "preview": "vite preview"
   },
   "dependencies": {

@@ -1,9 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import type { PresagioVampiro } from '../../regras/index.ts';
 import type { PlanoDoPresagio } from '../contracts.ts';
-import { corDaDualidade, fonteDaLuz, luzDaDualidade, luzDaTempestade, luzDoKraken, TROVAO } from '../domain/luz.ts';
+import { COR_VAMPIRO, corDaDualidade, fonteDaLuz, luzDaDualidade, luzDaTempestade, luzDoKraken, luzDoVampiro, POS_VAMPIRO, TROVAO } from '../domain/luz.ts';
 
-const plano = (p: Partial<PlanoDoPresagio>): PlanoDoPresagio => ({ kind: null, raios: [], kraken: [], tempestade: [], fogo: [], ms: 0, ...p });
+const plano = (p: Partial<PlanoDoPresagio>): PlanoDoPresagio => ({ kind: null, raios: [], kraken: [], tempestade: [], fogo: [], vampiro: null, ms: 0, ...p });
 
 describe('curvas da luz', () => {
   it('kraken: sobe, pulsa e cai nos últimos 500 ms', () => {
@@ -38,6 +39,17 @@ describe('prioridade da luz', () => {
     expect(fonteDaLuz(plano({ kraken: [3] }))).toBe('kraken');
     expect(fonteDaLuz(plano({ kind: 'duality' }))).toBe('dualidade');
     expect(fonteDaLuz(plano({}))).toBeNull();
+  });
+
+  it('o vampiro usa a luz compartilhada com a prioridade mais baixa', () => {
+    const vampiro: PresagioVampiro = { tipo: 'falha-bestial', dados: [0] };
+    expect(fonteDaLuz(plano({ vampiro }))).toBe('vampiro');
+    expect(fonteDaLuz(plano({ vampiro, kind: 'duality' }))).toBe('dualidade');
+    expect(COR_VAMPIRO).toBe('#b3122a');
+    expect(POS_VAMPIRO[1]).toBeLessThan(1);
+    expect(luzDoVampiro(0, 5400)).toBe(0);
+    expect(luzDoVampiro(1500, 5400)).toBeGreaterThan(0);
+    expect(luzDoVampiro(5400, 5400)).toBe(0);
   });
 });
 

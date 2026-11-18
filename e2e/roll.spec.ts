@@ -16,7 +16,7 @@ const equivalent = (a: number[], b: number[]) => expect(Math.abs(a.reduce((dot, 
 
 test.beforeEach(async ({ page }) => { await page.goto('/'); await ready(page); });
 
-test('the face that lands on top is the published result, numbers visible the whole roll', async ({ page }) => {
+test('the face that lands on top is the published result, numbers visible the whole roll', { tag: '@rapido' }, async ({ page }) => {
   await page.evaluate(() => window.__dice.select(['d6'])); await ready(page, 1);
   await throwWithSpace(page);
   expect(await page.evaluate(() => window.__dice.numbersVisible(0))).toBe(true);
@@ -62,7 +62,7 @@ test('a mixed selection (d10 + 2d12 + d100) rolls together and each die shows it
   await expect(page.getByTestId('result')).toContainText(String(results.reduce((a, b) => a + b, 0)));
 });
 
-for (const kind of ['d4', 'd8', 'fire'] as const) {
+for (const kind of ['d4', 'd8', 'd6'] as const) {
   test(`${kind} × 3 rolls and each die shows its published result`, async ({ page }) => {
     await page.evaluate((kind) => window.__dice.select(Array(3).fill(kind)), kind); await ready(page, 3);
     await throwWithSpace(page); await settled(page);
@@ -73,7 +73,7 @@ for (const kind of ['d4', 'd8', 'fire'] as const) {
   });
 }
 
-test('repeating a throw with the same selection gets a new throwId', async ({ page }) => {
+test('repeating a throw with the same selection gets a new throwId', { tag: '@rapido' }, async ({ page }) => {
   await throwWithSpace(page); await settled(page);
   const first = await page.evaluate(() => window.__dice.state().throwId);
   const handles = await page.evaluate(() => window.__dice.bodies().map((b) => b.handle));
@@ -181,15 +181,19 @@ for (const width of [1440, 390]) {
 }
 
 test('roll mode, bottom left: static charge rises to the top and stays there until release; the choice is remembered', async ({ page }) => {
+  await page.clock.install();
+  await page.reload(); await ready(page);
   const mode = page.getByRole('radiogroup', { name: 'Rolagem' });
   await expect(mode.getByRole('radio', { name: 'Relativa' })).toBeChecked(); // the current behaviour stays the default
   const box = await mode.boundingBox(), view = page.viewportSize()!;
   expect(box!.x).toBeLessThan(view.width / 3); expect(box!.y).toBeGreaterThan(view.height * 0.75);
   const hold = async (ms: number) => {
     await page.locator('.game-area').focus();
-    await page.keyboard.down('Space'); await page.waitForTimeout(ms);
+    // Browser scheduling under load must not change the duration of a key press.
+    await page.clock.pauseAt(await page.evaluate(() => Date.now() + 5000));
+    await page.keyboard.down('Space'); await page.clock.fastForward(ms);
     const during = await page.evaluate(() => window.__dice.state().force);
-    await page.keyboard.up('Space'); await settled(page);
+    await page.keyboard.up('Space'); await page.clock.resume(); await settled(page);
     return { during, thrown: await page.evaluate(() => window.__dice.state().force) };
   };
   // Relative: held for one whole cycle the charge has come back down.
@@ -202,7 +206,7 @@ test('roll mode, bottom left: static charge rises to the top and stays there unt
   await expect(page.getByRole('radiogroup', { name: 'Rolagem' }).getByRole('radio', { name: 'Estática' })).toBeChecked();
 });
 
-test('a coin flips heads or tails: the panel names the face it shows', async ({ page }) => {
+test('a coin flips heads or tails: the panel names the face it shows', { tag: '@rapido' }, async ({ page }) => {
   await page.getByRole('button', { name: 'Adicionar Moeda' }).click();
   await page.getByRole('button', { name: 'Remover d20' }).click();
   expect(await page.evaluate(() => window.__dice.state().dice)).toEqual(['coin']);

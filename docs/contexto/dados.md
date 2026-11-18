@@ -6,13 +6,13 @@ Cobre o módulo `src/modules/dados/` (sólidos, catálogo, leitura, símbolos, t
 
 ```ts
 Shape       = 'd4'|'d6'|'d8'|'d10'|'d12'|'d20'|'d100'|'coin'|'livre'  // corpo físico ('livre' só existe em importados)
-BuiltinKind = Shape | 'vtm' | 'hunger' | 'fire'
+BuiltinKind = Shape | 'vtm' | 'hunger'
 DieKind     = BuiltinKind | `custom:${string}`                 // o que o jogador escolhe
 KINDS       = os embutidos em ordem canônica; allKinds() = KINDS + importados (ordem de criação)
-BASE        = só os embutidos (vtm, hunger → d10; fire → d6); use baseOf(kind), que também cobre importados
+BASE        = só os embutidos (vtm, hunger → d10); use baseOf(kind), que também cobre importados
 ```
 
-As regras de tipo (`KINDS`, `BASE`, `SIDES`, faces válidas, total, crítico/falha) moram no módulo `src/modules/regras/` (ver o `CLAUDE.md` dele), que a API (`server/`) importa pelo `index.ts`. Por isso o módulo importa com extensão `.ts` e não depende de `three` nem do registro de importados. Quem usa esses tipos, `MAX_DICE`, `Omen`, `OmenKind` ou `omenKind` importa direto de `modules/regras/index.ts`; `dados` e `omen.ts` não os reexportam. O `omenOf` de `regras` só reconhece o `'d20'` literal: quem chama normaliza antes (`omenKinds` em `omenTest.ts`).
+As regras de tipo (`KINDS`, `BASE`, `SIDES`, faces válidas, total, crítico/falha) moram no módulo `src/modules/regras/` (ver o `CLAUDE.md` dele), que a API (`server/`) importa pelo `index.ts`. Por isso o módulo importa com extensão `.ts` e não depende de `three` nem do registro de importados. Quem usa esses tipos, `MAX_DICE`, `Omen`, `OmenKind` ou `omenKind` importa direto de `modules/regras/index.ts`; `dados` e `omen.ts` não os reexportam. O `omenOf` de `regras` só reconhece o `'d20'` literal: quem chama normaliza antes (`omenKinds` em `arremesso/domain/vies.ts`). O `presagioVampiro` (presságios de vampiro, OS-0090) exige o `vtm`/`hunger` literal; dado importado nunca o dispara.
 
 Dado personalizado = mesmo corpo/numeração/leitura do `BASE`; muda só a aparência (cor, tinta, símbolos).
 
@@ -60,7 +60,7 @@ Face vazia ainda tem um `Label` (texto `''`) para o showcase achar a face sortea
 - `<RigidBody type="kinematicPosition" ccd>` + `ConvexHullCollider` (a cena nunca simula dinâmica; ver `src/modules/arremesso/CLAUDE.md`).
 - Nomes de objeto usados por outros módulos e testes: `die-${i}` (grupo), `gem-${i}` (malha; **grupo** num dado importado, então a sombra liga/desliga com `traverse`, ver `sombraNaGema`/`definirSombra` em `modules/dados/domain/objeto.ts`).
 - Aparência de gema (`scene/GemMaterial.tsx`) sem passe de refração: `meshPhysicalMaterial` com clearcoat, `ior`, opacidade 0,88. Moeda: metal dourado opaco.
-- Paletas (`domain/aparencia.ts`): `GEM` (cor por kind), `INK` (cor do numeral; gemas claras usam tinta escura), `FONT` (tamanho do numeral por shape), `SYMBOL` (altura do símbolo em tamanhos de fonte); `EMBER` (fogo brilha) fica em `scene/GemMaterial.tsx`.
+- Paletas (`domain/aparencia.ts`): `GEM` (cor por kind), `INK` (cor do numeral; gemas claras usam tinta escura), `FONT` (tamanho do numeral por shape), `SYMBOL` (altura do símbolo em tamanhos de fonte). O d6 Fogo saiu do jogo (OS-0090 a OS-0093).
 - **Um objeto por dado para todos os numerais**: `BatchedText` (troika) ou, em dado com símbolos, uma malha com os símbolos mesclados. Os membros ficam em `userData.labels` (testes leem dali, pela `inspecao` do módulo: `domain/inspecao.ts`).
 - `<AparenciaDoDado index kind />` não recebe registro nem cor: lê o registro do catálogo com `useSyncExternalStore(catalogoAlterado.subscribe, …)` e a cor com `gemColor(kind)`. `registerCustom` emite `registrado` (também no `atualizar` de `meus-dados`, que re-registra o mesmo `kind`: a cor, a tinta e o acabamento acompanham na hora) e `unregisterCustom` emite `removido`; `registerPoly` (worker) não emite. `modules/arremesso/scene/CorpoDoDado.tsx` não lê mais o store.
 

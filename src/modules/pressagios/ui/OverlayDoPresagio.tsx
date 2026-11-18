@@ -1,8 +1,8 @@
 import { useEffect, type CSSProperties, type RefObject } from 'react';
-import { omenKind, type OmenKind } from '../../regras/index.ts';
+import type { OmenKind, TipoVampiro } from '../../regras/index.ts';
 import { useArremesso } from '../../arremesso/cena.ts';
-import { omenMs } from '../domain/omen.ts';
 import { planoDoPresagio } from '../domain/plano.ts';
+import { VAMPIRO } from '../domain/vampiroMotion.ts';
 import { usePresagio, usePresagioTocando } from './usePresagio.tsx';
 import './presagios.css';
 
@@ -20,28 +20,53 @@ const RAIN = (() => {
   });
 })();
 const SAY: Record<OmenKind, string> = { crit: 'Crítico!', fumble: 'Falha crítica!', duality: 'Dualidade: crítico e falha!' };
+const SAY_VAMPIRO: Record<TipoVampiro, string> = {
+  'par-de-criticos': 'Crítico em par!', 'critico-bestial': 'Crítico bestial!', 'falha-bestial': 'Falha bestial!',
+};
+const { par, falha } = VAMPIRO;
+const FALHA_CSS = {
+  '--fecha': `${falha.destapa}ms`, '--abertura': `${falha.espera - falha.destapa}ms`,
+  '--rasgos-em': `${falha.ataque}ms`, '--rasgos-ms': `${falha.revela - falha.ataque}ms`,
+} as CSSProperties;
+
+function VampiroOverlay({ tipo }: { tipo: TipoVampiro }) {
+  return <div className="omen-vampiro" style={tipo === 'falha-bestial' ? FALHA_CSS : undefined}>
+    {tipo === 'falha-bestial' && <>
+      <div className="vampiro-sombra" />
+      <div className="vampiro-rasgos"><i /><i /><i /></div>
+    </>}
+  </div>;
+}
 
 export function OverlayDoPresagio({ gameArea }: { gameArea: RefObject<HTMLDivElement | null> }) {
-  const playing = usePresagioTocando(), omen = usePresagio((s) => s.omen), dice = useArremesso((s) => s.dice);
-  const live = playing ? omen : null;
-  const kind = live && omenKind(live);
+  const playing = usePresagioTocando(), omen = usePresagio((s) => s.omen), vampiro = usePresagio((s) => s.vampiro);
+  const dice = useArremesso((s) => s.dice), live = playing ? omen ?? vampiro : null;
   // Which effect on which die comes from the plan (the same for every omen as the old calculation: tests/plano.test.ts).
-  const plano = planoDoPresagio(live, dice), kraken = plano.kraken.length > 0, storm = plano.tempestade.length > 0;
+  const plano = planoDoPresagio(playing ? omen : null, dice, playing ? vampiro : null);
+  const { kind } = plano, tipo = plano.vampiro?.tipo;
+  const kraken = plano.kraken.length > 0, storm = plano.tempestade.length > 0;
   useEffect(() => {
     const area = gameArea.current;
     if (!area) return;
     if (kind) area.setAttribute('data-omen', kind); else area.removeAttribute('data-omen');
     area.toggleAttribute('data-kraken', kraken);
     area.toggleAttribute('data-storm', storm);
-    return () => { area.removeAttribute('data-omen'); area.removeAttribute('data-kraken'); area.removeAttribute('data-storm'); };
-  }, [gameArea, kind, kraken, storm]);
-  if (!live || !kind) return null;
+    if (tipo) area.setAttribute('data-vampiro', tipo); else area.removeAttribute('data-vampiro');
+    if (tipo === 'par-de-criticos') area.style.setProperty('--vampiro-impacto', `${par.impacto}ms`);
+    return () => {
+      area.removeAttribute('data-omen'); area.removeAttribute('data-kraken'); area.removeAttribute('data-storm');
+      area.removeAttribute('data-vampiro');
+      if (tipo === 'par-de-criticos') area.style.removeProperty('--vampiro-impacto');
+    };
+  }, [gameArea, kind, kraken, storm, tipo]);
+  if (!live) return null;
   return (
     <>
-      <div key={live.throwId} className="omen" style={{ '--ms': `${omenMs(live, dice)}ms` } as CSSProperties} aria-hidden="true">
+      <div key={live.throwId} className="omen" style={{ '--ms': `${plano.ms}ms` } as CSSProperties} aria-hidden="true">
         {plano.raios.length > 0 && <div className="omen-flash" />}
         {kraken && <div className="omen-deep" />}
         {plano.fogo.length > 0 && <div className="omen-heat" />}
+        {tipo && <VampiroOverlay tipo={tipo} />}
         {storm && <>
           <div className="omen-sea" />
           <div className="omen-rain">
@@ -51,7 +76,7 @@ export function OverlayDoPresagio({ gameArea }: { gameArea: RefObject<HTMLDivEle
           <div className="omen-thunder" />
         </>}
       </div>
-      <p className="sr-only" role="status">{SAY[kind]}</p>
+      <p className="sr-only" role="status">{tipo ? SAY_VAMPIRO[tipo] : kind && SAY[kind]}</p>
     </>
   );
 }

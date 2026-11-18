@@ -16,12 +16,12 @@ export { KRAKEN, krakenDieAt, STORM, stormAt, stormDieAt } from './domain/kraken
 // The omen as the test hook reads it (`omen`, `omenDone`, `omenTime`, `trayBroken` and `burning` of `window.__dice.state()`,
 // and `shards()`): its state, and the tray's floor, the fire and the kraken's first floor shard in the scene the shell gives.
 export function inspecao(cena: Object3D): PresagioInspecionado {
-  const { throwId } = arremesso(), { omen, omenDone, omenAt } = presagio();
+  const { throwId } = arremesso(), { omen, vampiro, omenDone, omenAt } = presagio();
   const piece = cena.getObjectByName('kraken-fragments')?.children[0] as Mesh | undefined;
   const c = (piece?.geometry as BufferGeometry | undefined)?.getAttribute('color');
   const hex = (i: number) => (c ? `#${new Color(c.getX(i), c.getY(i), c.getZ(i)).getHexString()}` : null);
   return {
-    omen: omen?.throwId === throwId ? omenKind(omen) : null, omenDone,
+    omen: omen?.throwId === throwId ? omenKind(omen) : null, vampiro: vampiro?.throwId === throwId ? vampiro.tipo : null, omenDone,
     omenTime: performance.now() - omenAt, trayBroken: cena.getObjectByName('tray-surface')?.visible === false,
     burning: cena.getObjectByName('fire')?.visible === true,
     shards: c ? { felt: hex(0)!, wood: hex(3)! } : null,

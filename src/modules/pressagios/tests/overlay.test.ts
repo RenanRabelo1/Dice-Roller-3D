@@ -35,6 +35,7 @@ const areaDeJogo = () => {
     setAttribute: (n: string, v: string) => { atributos[n] = String(v); },
     removeAttribute: (n: string) => { delete atributos[n]; },
     toggleAttribute: (n: string, ligado?: boolean) => { if (ligado) atributos[n] = ''; else delete atributos[n]; return !!ligado; },
+    style: { setProperty: () => {}, removeProperty: () => {} },
   };
   return { atributos, ref: { current: el as unknown as HTMLDivElement } };
 };
@@ -63,6 +64,9 @@ describe('OverlayDoPresagio: o mesmo DOM do OmenOverlay legado', () => {
     ['falha-d20-d100', ['d20', 'd100'], [1, 100]],
     ['sem-presagio', ['d20'], [10]],
     ['encerrado', ['d20'], [20], true],
+    ['par-de-criticos', ['vtm', 'vtm'], [10, 10]],
+    ['critico-bestial', ['hunger'], [10]],
+    ['falha-bestial', ['hunger'], [1]],
   ];
   for (const [nome, dice, results, encerrado] of casos)
     it(nome, () => {

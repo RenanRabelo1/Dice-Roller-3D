@@ -5,17 +5,18 @@ import {
   ExtrudeGeometry, Group, LineSegments, Mesh, MeshBasicMaterial, MeshStandardMaterial, Path, PointLight,
   Points, Shape, Sprite, SpriteMaterial, Vector3, type Camera, type Material, type PerspectiveCamera, type Scene, type WebGLRenderer,
 } from 'three';
-import { MAX_DICE } from '../../regras/index.ts';
+import { MAX_DICE, type PresagioVampiro } from '../../regras/index.ts';
 import { presagio, presagioTocando, setOmenDone } from '../store.ts';
 import { DUALITY_HIT } from '../domain/omen.ts';
 import { fireAt } from '../domain/fireMotion.ts';
-import { COR_KRAKEN, COR_TEMPESTADE, corDaDualidade, fonteDaLuz, luzDaDualidade, luzDaTempestade, luzDoKraken, POS_DUALIDADE, POS_KRAKEN, POS_TEMPESTADE, type FonteDaLuz } from '../domain/luz.ts';
+import { COR_KRAKEN, COR_TEMPESTADE, COR_VAMPIRO, corDaDualidade, fonteDaLuz, luzDaDualidade, luzDaTempestade, luzDoKraken, luzDoVampiro, POS_DUALIDADE, POS_KRAKEN, POS_TEMPESTADE, POS_VAMPIRO, type FonteDaLuz } from '../domain/luz.ts';
 import { planoDoPresagio } from '../domain/plano.ts';
 import { arremesso, registroDeCorpos } from '../../arremesso/index.ts';
-import { clamp01, span } from '../../../shared/math.ts';
+import { clamp01, span, type Vec3 } from '../../../shared/math.ts';
 import { Kraken } from './Kraken.ts';
 import { coresDaMesa } from '../../mesa/index.ts';
 import { Fire } from './Fire.ts';
+import { Vampiro } from './Vampiro.ts';
 
 // The 3D side of an omen, played after the dice settle and before the result shows: lightning on a d20 20,
 // the kraken grabbing a d100 1, fire on a d20 1, the kraken's storm on a d100 100, the yin-yang fish for
@@ -161,22 +162,25 @@ class TaiJi {
 
 // `frame` plays the current omen and reports when it is over. Fire outlives it: a die that rolled a 1 on a
 // d20 keeps burning at the front until it is picked up.
-class Show {
+// oxlint-disable-next-line react/only-export-components -- Scene tests exercise the shared compile and frame lifecycle.
+export class Show {
   readonly root = new Group();
   private map = glowTexture();
   private bolts = Array.from({ length: MAX_DICE }, () => new Bolt(this.map));
   private kraken = new Kraken();
   private fire = new Fire();
   private taiji = new TaiJi(this.map);
-  private light = new PointLight('#CFE6FF', 0, 10, 2); // the one omen light: fire, lightning, storm, kraken or duality, in that priority (domain/luz.ts)
-  private run: { throwId: number; at: number; ms: number; bolts: number; kraken: 'grab' | 'storm' | null; fire: number[]; duality: boolean; luz: FonteDaLuz | null; over: boolean } | null = null;
+  private vampiro = new Vampiro();
+  private light = new PointLight('#CFE6FF', 0, 10, 2); // shared by all omens, see domain/luz.ts
+  private run: { throwId: number; at: number; ms: number; bolts: number; kraken: 'grab' | 'storm' | null; fire: number[]; duality: boolean; vampiro: PresagioVampiro | null; origins: Vec3[]; luz: FonteDaLuz | null; over: boolean } | null = null;
   constructor() {
     for (const b of this.bolts) this.root.add(b.glow, b.core, b.flash);
     // Keep the light count constant: hiding an effect must not recompile every die's shader.
-    this.root.add(this.kraken.root, this.fire.root, this.taiji.group, this.light);
+    this.root.add(this.kraken.root, this.fire.root, this.taiji.group, this.vampiro.root, this.light);
   }
   // Compile every effect's shader up front, so the first omen does not stall a frame.
   compile(gl: WebGLRenderer, scene: Scene, camera: Camera, draw = false) {
+    this.vampiro.prepare(camera);
     if (draw) {
       const target = new Vector3(0, 1, 0), here = () => target;
       this.bolts.forEach((b) => { b.start(target); b.update(70, camera.position); });
@@ -191,15 +195,15 @@ class Show {
     // ANGLE finishes some pipelines on their first draw. Replace the warm-up before the browser paints.
     if (draw) gl.render(scene, camera);
   }
-  hide() { this.bolts.forEach((b) => b.hide()); this.kraken.hide(); this.fire.hide(); this.taiji.hide(); this.light.intensity = 0; this.run = null; }
+  hide() { this.bolts.forEach((b) => b.hide()); this.kraken.hide(); this.fire.hide(); this.taiji.hide(); this.vampiro.hide(); this.light.intensity = 0; this.run = null; }
   frame(now: number, camera: Camera, at: (i: number) => Vector3 | null, pixels: number): number | null {
-    const s = { ...arremesso(), ...presagio() }, o = s.omen;
+    const s = { ...arremesso(), ...presagio() }, current = s.omen ?? s.vampiro;
     // This throw's omen, while its dice lie settled (after the show only the fire is left).
-    if (!o || o.throwId !== s.throwId || s.gesture.phase !== 'settled') { if (this.run) this.hide(); return null; }
-    if (this.run?.throwId !== o.throwId) {
+    if (!current || current.throwId !== s.throwId || s.gesture.phase !== 'settled') { if (this.run) this.hide(); return null; }
+    if (this.run?.throwId !== current.throwId) {
       this.hide();
-      const plano = planoDoPresagio(o, s.dice), positions = (indices: number[]) => indices.map(at).filter((p): p is Vector3 => !!p);
-      const { raios: lit, kraken: grab, tempestade: storm, fogo: fire } = plano;
+      const plano = planoDoPresagio(s.omen, s.dice, s.vampiro), positions = (indices: number[]) => indices.map(at).filter((p): p is Vector3 => !!p);
+      const { raios: lit, kraken: grab, tempestade: storm, fogo: fire, vampiro } = plano;
       positions(lit).forEach((p, i) => this.bolts[i].start(p));
       if (grab.length) this.kraken.start('grab', positions(grab), grab[0], coresDaMesa());
       else if (storm.length) this.kraken.start('storm', [], storm[0]);
@@ -207,11 +211,14 @@ class Show {
       const first = positions(lit)[0] ?? positions(fire)[0];
       if (first) this.light.position.copy(first).y += 1.2;
       const luz = fonteDaLuz(plano);
-      this.light.color.set(luz === 'fogo' ? '#FF7A2A' : luz === 'tempestade' ? COR_TEMPESTADE : luz === 'kraken' ? COR_KRAKEN : '#CFE6FF');
+      this.light.color.set(luz === 'fogo' ? '#FF7A2A' : luz === 'tempestade' ? COR_TEMPESTADE : luz === 'kraken' ? COR_KRAKEN : luz === 'vampiro' ? COR_VAMPIRO : '#CFE6FF');
       if (luz === 'tempestade') this.light.position.set(...POS_TEMPESTADE);
       else if (luz === 'kraken') this.light.position.set(...POS_KRAKEN);
       else if (luz === 'dualidade') this.light.position.set(...POS_DUALIDADE);
-      this.run = { throwId: o.throwId, at: s.omenAt, ms: plano.ms, bolts: lit.length, kraken: grab.length ? 'grab' : storm.length ? 'storm' : null, fire, duality: plano.kind === 'duality', luz, over: false };
+      else if (luz === 'vampiro') this.light.position.set(...POS_VAMPIRO);
+      const origins = vampiro?.dados.map((i) => at(i)?.toArray() ?? [0, 0.8, 0] as Vec3) ?? [];
+      this.run = { throwId: current.throwId, at: s.omenAt, ms: plano.ms, bolts: lit.length, kraken: grab.length ? 'grab' : storm.length ? 'storm' : null,
+        fire, duality: plano.kind === 'duality', vampiro, origins, luz, over: false };
     }
     const r = this.run, t = now - r.at;
     if (r.fire.length) { // burns on after the show, on the dice now at the front
@@ -226,24 +233,37 @@ class Show {
     for (let i = 0; i < r.bolts; i++) striking = this.bolts[i].update(t, camera.position) || striking;
     if (r.kraken) this.kraken.update(t, camera, at);
     if (r.duality) this.taiji.update(t, camera);
+    if (r.vampiro) {
+      const vampiro = r.vampiro;
+      const otherDice: Vec3[] = [];
+      if (vampiro.tipo !== 'falha-bestial') s.dice.forEach((_, i) => {
+        if (vampiro.dados.includes(i)) return;
+        const pos = at(i);
+        if (pos) otherDice.push(pos.toArray());
+      });
+      this.vampiro.update(vampiro.tipo, t, camera, r.origins, at(vampiro.dados[0])?.toArray(), otherDice);
+    }
     if (r.bolts) this.light.intensity = (striking ? 30 : 0) + 10 * (1 - span(t, 0, 900));
     else if (r.luz === 'tempestade') this.light.intensity = luzDaTempestade(t);
     else if (r.luz === 'kraken') this.light.intensity = luzDoKraken(t, r.ms);
     else if (r.luz === 'dualidade') { this.light.intensity = luzDaDualidade(t, r.ms); this.light.color.set(corDaDualidade(t)); }
+    else if (r.luz === 'vampiro') this.light.intensity = luzDoVampiro(t, r.ms);
     if (t < r.ms) return null;
-    this.bolts.forEach((b) => b.hide()); this.kraken.hide(); this.taiji.hide();
+    this.bolts.forEach((b) => b.hide()); this.kraken.hide(); this.taiji.hide(); this.vampiro.hide();
     if (!r.fire.length) this.light.intensity = 0;
     r.over = true;
-    return o.throwId;
+    return current.throwId;
   }
   dispose() {
-    this.root.traverse((o) => {
+    this.vampiro.dispose();
+    const disposeObject = (o: Group['children'][number]) => {
       if (o instanceof Mesh || o instanceof Sprite || o instanceof LineSegments || o instanceof Points) {
         if ('dispose' in o && typeof o.dispose === 'function') o.dispose();
         o.geometry.dispose();
         for (const m of ([] as Material[]).concat(o.material)) m.dispose();
       }
-    });
+    };
+    for (const child of this.root.children) if (child !== this.vampiro.root) child.traverse(disposeObject);
     this.map.dispose();
   }
 }
@@ -255,7 +275,7 @@ export function PresagiosNaCena() {
   useEffect(() => { show.compile(gl, scene, camera); return () => show.dispose(); }, [camera, gl, scene, show]);
   useFrame(() => {
     // Environment builds its reflection texture after mount; warm the final shader variants as well.
-    if (!warmed.current && scene.environment && gl.info.render.frame > 5 && !presagio().omen) {
+    if (!warmed.current && scene.environment && gl.info.render.frame > 5 && !presagio().omen && !presagio().vampiro) {
       show.compile(gl, scene, camera, true); warmed.current = true;
     }
     const pixels = gl.domElement.height / (2 * Math.tan(((camera as PerspectiveCamera).fov * Math.PI) / 360));

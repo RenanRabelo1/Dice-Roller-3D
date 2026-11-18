@@ -3,7 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { Color, Group, PointLight, Matrix4, Mesh, MeshBasicMaterial, Quaternion, Vector3, type BufferGeometry, type Object3D, type PerspectiveCamera } from 'three';
 import { Text } from 'troika-three-text';
 import { customDie, dadoNaRaiz, FONT, FONT_URL, gemaNaRaiz, gemColor, inkColorOf, polyhedron, RADIUS, sombraNaGema, SYMBOL, symbolGeometry } from '../../dados/index.ts';
-import { isCustom, MAX_DICE } from '../../regras/index.ts';
+import { isCustom, MAX_DICE, type PresagioVampiro } from '../../regras/index.ts';
 import { clamp01, easeOut, type Pose, type Quat, type Vec3 } from '../../../shared/math.ts';
 import { movimentoReduzido, perfilLeve, renderizadorPorSoftware } from '../../../shared/plataforma/index.ts';
 import { arremesso, corposVivos, moverDado } from '../../arremesso/index.ts';
@@ -25,7 +25,7 @@ export function Vitrine() {
   // not mounted in the light profile (ADR 0011), where `destacar` exits early on the null ref.
   const luz = useRef<PointLight>(null);
   const luzAntes = useRef(0);
-  const showcase = useRef<{ at: number; throwId: number; from: Pose[]; to: Pose[]; kraken: number[]; storm: number[]; omenAt: number; gems: (Object3D | undefined)[]; marks: Mark[]; above: boolean[]; glows: (Mesh | null)[]; still?: boolean; landed?: boolean } | null>(null);
+  const showcase = useRef<{ at: number; throwId: number; from: Pose[]; to: Pose[]; kraken: number[]; storm: number[]; vampiro: PresagioVampiro | null; omenAt: number; gems: (Object3D | undefined)[]; marks: Mark[]; above: boolean[]; glows: (Mesh | null)[]; still?: boolean; landed?: boolean } | null>(null);
   // The rolled numbers that rise over the settled dice, ride to their faces and glow (one per die, drawn on top).
   const numbersGroup = useRef<Group>(null);
   const numbersRef = useRef<Text[]>([]);
@@ -107,9 +107,10 @@ export function Vitrine() {
         const gravadoPadrao = state.dice.map((k, i) => !still && isCustom(k) && !!customDie(k)?.printed && !polys[i].readsDown && polys[i].shape !== 'd4' && polys[i].shape !== 'coin');
         const to = still ? from : showcasePoses(polys, raw,
           { position: cam.position, quaternion: cam.quaternion, fov: cam.fov, aspect: cam.aspect }, above);
-        // A d100 1 is carried off and brought back by the kraken; a d100 100 drifts to you in the storm.
+        // The omen can carry dice to their result poses along its own path.
         const omenNow = state.omen?.throwId === state.throwId ? state.omen : null;
-        const { kraken, tempestade: storm } = indicesComPercurso(omenNow, state.dice);
+        const vampiroNow = state.vampiro?.throwId === state.throwId ? state.vampiro : null;
+        const { kraken, tempestade: storm, vampiro } = indicesComPercurso(omenNow, state.dice, vampiroNow);
         const marks = polys.map((poly, i) => {
           const label = poly.labelList.find((l) => l.value === raw[i])!;
           const normal = new Vector3(...label.normal), up = new Vector3(...label.up);
@@ -139,7 +140,7 @@ export function Vitrine() {
           else if (a) marks[i].scale = FONT.livre / HL_SIZE; // no engraving found: the number floats in front of the die
           return glow;
         });
-        showcase.current = { at: now, throwId: state.throwId, from, to, kraken, storm, omenAt: state.omenAt, marks, above, glows, still, gems };
+        showcase.current = { at: now, throwId: state.throwId, from, to, kraken, storm, vampiro, omenAt: state.omenAt, marks, above, glows, still, gems };
         if (still) setShowcased(state.throwId);
       }
     }
@@ -148,7 +149,7 @@ export function Vitrine() {
       // An omen plays first: the numbers wait, unrisen, and the dice stay where they landed until it is over.
       const waiting = presagioTocando();
       if (waiting) showcase.current.at = now;
-      const { at, from, to, throwId, gems, marks, above, glows, still, kraken, storm, omenAt } = showcase.current;
+      const { at, from, to, throwId, gems, marks, above, glows, still, kraken, storm, vampiro, omenAt } = showcase.current;
       const draw = (i: number, face: Vector3, q?: Quaternion, ride = 0, reveal?: number) => {
         const n = numbers[i], g = glyphs[i], m = marks[i];
         const h = still ? { p: m.start, opacity: Math.min(1, (now - at) / 150), glow: 0.6, scale: 1 } : highlightAt(now - at, i, m.start, face, m.scale);
@@ -171,8 +172,9 @@ export function Vitrine() {
       }
       let done = !waiting;
       const under = new Vector3(0, -1, 0).applyQuaternion(camera.quaternion); // straight down the screen
+      const viewer = vampiro?.tipo === 'par-de-criticos' ? camera.position.toArray() : undefined;
       current.forEach((_, i) => {
-        const ms = now - omenAt, movimento = movimentoNoPresagio(i, ms, from[i], to[i], kraken, storm);
+        const ms = now - omenAt, movimento = movimentoNoPresagio(i, ms, from[i], to[i], kraken, storm, vampiro, viewer);
         if (movimento) { // the omen moves this die, and leaves it at its result pose
           const p = new Vector3(...movimento.pose.p), q = new Quaternion(...movimento.pose.q);
           sombraNaGema(gems[i], ms <= movimento.sombra);

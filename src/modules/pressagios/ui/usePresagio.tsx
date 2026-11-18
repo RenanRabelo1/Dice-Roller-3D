@@ -12,6 +12,6 @@ export function usePresagio<T>(selector: (state: EstadoDoPresagio) => T): T {
 // presagioTocando() as a React hook: re-renders when the throw's phase or throwId, or the omen, change.
 export function usePresagioTocando(): boolean {
   const phase = useArremesso((a) => a.gesture.phase), throwId = useArremesso((a) => a.throwId);
-  const omen = usePresagio((p) => p.omen), omenDone = usePresagio((p) => p.omenDone);
-  return tocando(phase, throwId, omen, omenDone);
+  const show = usePresagio((p) => p.omen ?? p.vampiro), omenDone = usePresagio((p) => p.omenDone);
+  return tocando(phase, throwId, show, omenDone);
 }

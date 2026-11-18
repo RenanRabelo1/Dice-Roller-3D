@@ -7,20 +7,20 @@ O detalhe que não cabe no [CLAUDE.md](CLAUDE.md). Leia só quando a ordem manda
 | Arquivo | Papel |
 |---|---|
 | `index.ts`, `cena.ts` | as portas: `index.ts` puro (estado, regras, movimento, `inspecao`); `cena.ts` com os hooks, `PresagiosNaCena`, `QuebraDaMesa`, `OverlayDoPresagio`, `BotoesDeTeste` e os cacos (`shard`, `shardWood`) |
-| `store.ts` | store zustand vanilla: `omen`, `omenDone`, `omenAt`, `omenRig`, `omenTest`; decide o presságio em `resultadoPublicado` e o cancela em `aoMudarMovimentoReduzido` |
+| `store.ts` | store zustand vanilla: `omen`, `vampiro`, `omenDone`, `omenAt`, `omenRig`, `omenTest`. Decide o presságio em `resultadoPublicado` e o cancela em `aoMudarMovimentoReduzido` |
 | `domain/omen.ts` | `OMEN_MS`, `omenMs`, `DUALITY_HIT`, `isD20` |
-| `domain/plano.ts` | `planoDoPresagio(omen, dice)`: que efeito em que dado, e a duração |
-| `domain/percurso.ts` | `indicesComPercurso`, `movimentoNoPresagio` (o percurso do d100 que a vitrine pergunta) |
-| `domain/krakenMotion.ts`, `domain/fireMotion.ts` | o movimento do kraken, da tempestade e do fogo (puros, testados) |
+| `domain/plano.ts` | `planoDoPresagio(omen, dice, vampiro)` dá os efeitos, os índices dos dados e a duração |
+| `domain/percurso.ts` | `indicesComPercurso` e `movimentoNoPresagio` calculam os percursos que a vitrine usa |
+| `domain/krakenMotion.ts`, `domain/fireMotion.ts`, `domain/vampiroMotion.ts` | o movimento do kraken, da tempestade, do fogo e do vampiro (puros, testados) |
 | `domain/omenTest.ts` | `OMEN_TESTS` e `withDiceFor` (os botões de teste) |
-| `scene/PresagiosNaCena.tsx`, `Kraken.ts`, `Fire.ts`, `QuebraDaMesa.tsx` | o lado 3D e a quebra da mesa |
+| `scene/PresagiosNaCena.tsx`, `Kraken.ts`, `Fire.ts`, `Vampiro.ts`, `QuebraDaMesa.tsx` | o lado 3D e a quebra da mesa |
 | `ui/OverlayDoPresagio.tsx`, `ui/presagios.css` | o lado HTML (era `src/ui/OmenOverlay.tsx`; o CSS saiu de `src/index.css`) |
 | `ui/BotoesDeTeste.tsx` | os botões de teste (era `src/ui/OmenTests.tsx`) |
 | `ui/usePresagio.tsx` | `usePresagio(sel)` e `usePresagioTocando()` |
 
 ## Presságios (`domain/omen.ts`)
 
-Só d20 (embutido, ou importado de base d20 com `omens: true`: `isD20`) e d100 contam:
+O d20 (embutido ou importado de base d20 com `omens: true`) e o d100 geram os presságios abaixo.
 
 | | d20 | d100 |
 |---|---|---|
@@ -43,7 +43,7 @@ Só d20 (embutido, ou importado de base d20 com `omens: true`: `isD20`) e d100 c
 
 Que efeito em que dado é `planoDoPresagio(omen, dice)` (`domain/plano.ts`, testado): `raios` (d20 de crítico), `kraken`, `tempestade`, `fogo` e `ms`. O `PresagiosNaCena` e a camada HTML o leem.
 
-Classe `Show` montada uma vez: `Bolt` ×`MAX_DICE`, um `Kraken`, um `Fire`, um `TaiJi`, uma `PointLight` (dividida entre raio e fogo, que nunca tocam juntos). `frame()` a cada quadro decide se há presságio vivo, inicia na primeira vez (posição dos dados via `bodies`), anima por `t = now - omenAt` e devolve o `throwId` uma vez quando `t >= ms` → `setOmenDone`. O fogo continua depois disso, nos d20 já na frente, até a fase sair de `settled`.
+A classe `Show` monta `MAX_DICE` instâncias de `Bolt`, um `Kraken`, um `Fire`, um `TaiJi`, um `Vampiro` e uma `PointLight` compartilhada. No primeiro quadro de um presságio lê a posição de pouso dos dados. `frame()` anima por `t = now - omenAt` e devolve o `throwId` uma vez quando `t >= ms`, para `setOmenDone`. O fogo continua nos d20 já na frente até a fase sair de `settled`.
 
 Desempenho (não quebrar):
 - `compile()` compila os shaders de todos os efeitos no mount e de novo, com um desenho de aquecimento, quando o `Environment` fica pronto. Evita travada no primeiro presságio.
@@ -63,6 +63,16 @@ Desempenho (não quebrar):
 - `domain/fireMotion.ts` (puro, testado): `fireIndices` (d20 com falha, sem crítico), `fireReach` (raio até o canto mais distante), `fireAt(t, reach)` → `die/radius/tray`.
 - `scene/Fire.ts`: chamas como partículas na GPU (um `Points`, shader próprio em forma de língua de fogo) no feltro e em cada d20 aceso, e um plano de feltro queimado com linha de brasa. O objeto chama `fire`; o test hook expõe `burning`.
 
+## Vampiro
+
+- `presagioVampiro` de `regras` decide pelo primeiro 10 no d10 Fome (crítico bestial), pelos dois primeiros 10 no d10 Vampiro (par de críticos) ou pelo primeiro 1 no d10 Fome (falha bestial), nessa ordem. Um presságio de d20 ou d100 tem prioridade.
+- `domain/vampiroMotion.ts` usa o mesmo relógio de `omenAt` para o corpo, as duas mãos, a cobertura das mãos nos olhos e os dados carregados. `VAMPIRO_MS` dá 5.600 ms para o par, 4.600 ms para o crítico bestial e 5.400 ms para a falha bestial. O par chega perto da câmera aos 3.750 ms. A falha mantém o dado no lugar até o contato da mão no ataque.
+- `OverlayDoPresagio` anuncia a animação em `role="status"` e junta `.omen-vampiro` a `data-vampiro` em `.game-area`. O par treme no impacto, o crítico bestial tem vinheta vermelha e a falha escurece enquanto as mãos cobrem a visão e traça três rasgos durante o ataque.
+- Os botões Par de críticos, Crítico bestial e Falha bestial usam o mesmo viés dos outros testes e garantem dois d10 Vampiro ou um d10 Fome na mão. `window.__dice.state().vampiro` informa o tipo da jogada atual.
+- Os três usam a luz compartilhada na cor `#b3122a`, baixa sobre a mesa, na última prioridade. Recolher, trocar a mão ou ligar movimento reduzido encerra o efeito.
+- `scene/Vampiro.ts` gera a roupa, as mãos e o rosto com geometrias agrupadas por material em cada parte articulada. A capa preta tem forro vermelho e se deforma no mesmo buffer. Braços de dois segmentos ligam os ombros a cada ponto de apoio de `vampiroAt`. Na entrega e no ataque, a mão acompanha o dado que a vitrine move. O par exibe a roupa de peito para baixo; as duas variantes bestiais mostram o rosto e as presas. As mãos da falha seguem a câmera e usam a cobertura da linha do tempo.
+- `Show.compile` aquece o corpo e as mãos da câmera no mount e com o ambiente pronto, dentro da compilação dos outros presságios. `Vampiro.hide` esconde ambos e `dispose` libera cada geometria e material compartilhado uma vez.
+
 ## Lado HTML (`ui/OverlayDoPresagio.tsx`)
 
 Flash (crítico de d20, `raios` do plano), mar profundo (kraken), calor (fogo, `fogo` do plano), e na tempestade mar escuro, chuva com semente, trovão. Escreve `data-omen`, `data-kraken` e `data-storm` em `.game-area`; o CSS (`ui/presagios.css`, importado pelo próprio componente, que o Vite junta ao CSS da carga inicial depois de `src/index.css`) usa isso para tremer ou balançar o canvas. Anuncia "Crítico!" etc. em `.sr-only` (regra genérica, continua em `src/index.css`) com `role="status"`. O `tests/overlay.test.ts` compara o DOM e os atributos com a fixture capturada do antigo `OmenOverlay`; o `tests/plano.test.ts` prova que ler o plano dá o mesmo flash, calor, kraken e tempestade que o cálculo antigo.
@@ -73,7 +83,7 @@ Flash (crítico de d20, `raios` do plano), mar profundo (kraken), calor (fogo, `
 
 ## Botões de teste das animações (só em `npm run dev`)
 
-`ui/BotoesDeTeste.tsx`, no canto superior esquerdo da mesa (some no build de produção: o `App` o monta só com `import.meta.env.DEV`). Raio, Fogo, Kraken, Tempestade e Dualidade. O escolhido fica ligado (`presagio().omenTest`, gravado por `setOmenTest`) até ser clicado de novo e põe na mão os dados que precisa (`withDiceFor` em `domain/omenTest.ts`).
+`ui/BotoesDeTeste.tsx`, no canto superior esquerdo da mesa, só em desenvolvimento. Raio, Fogo, Kraken, Tempestade, Dualidade, Par de críticos, Crítico bestial e Falha bestial. O escolhido fica ligado (`presagio().omenTest`, gravado por `setOmenTest`) até outro clique e põe na mão os dados de que precisa (`withDiceFor`).
 
 Os próximos arremessos **caem de verdade** no resultado: o `RollRequest` leva `bias`, e `presimulateFor` (`modules/arremesso/domain/presim.ts`) tenta as sementes seguintes até a física real dar aquele presságio (`plays`). Só o giro sorteado muda; mira, força e mão são as do jogador. Cada tentativa custa ~3–8 ms; o worker tem 6 s e a thread principal 3 s (`BIAS_BUDGET`). Sem acerto, o arremesso sai comum e avisa no console. Diferente de `rigOmen` (test hook), que força o presságio sem mudar o resultado.
 

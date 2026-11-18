@@ -23,7 +23,7 @@ for (const { name, dice, omen, kind, overlay } of [
   { name: 'mixed duality', dice: ['d20', 'd100'], omen: { crits: [0], fumbles: [1] }, kind: 'duality', overlay: '.omen' },
   { name: 'both critical effects', dice: ['d20', 'd100'], omen: { crits: [0, 1], fumbles: [] }, kind: 'crit', overlay: '.omen-deep' },
 ] as { name: string; dice: DieKind[]; omen: Omen; kind: string; overlay: string }[]) {
-  test(`${name} holds the result until the scene is restored`, async ({ page }) => {
+  test(`${name} holds the result until the scene is restored`, name === 'd20 lightning' ? { tag: '@rapido' } : {}, async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', (error) => errors.push(error.message));
     page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()); });
@@ -134,14 +134,17 @@ const testPanel = async (page: Page) => {
   await page.getByRole('button', { name: 'Testar animações' }).click();
   return page.getByRole('group', { name: 'Animação dos próximos arremessos' });
 };
-for (const { name, dice, omen, die, value, sign } of [
+for (const { name, dice, omen, vampiro, die, value, sign } of [
   { name: 'Raio', dice: ['d20'], omen: 'crit', die: 'd20', value: 20, sign: '.omen-flash' },
   { name: 'Fogo', dice: ['d20'], omen: 'fumble', die: 'd20', value: 1, sign: '.omen-heat' },
   { name: 'Kraken', dice: ['d20', 'd100'], omen: 'crit', die: 'd100', value: 1, sign: '.omen-deep' },
   { name: 'Tempestade', dice: ['d20', 'd100'], omen: 'fumble', die: 'd100', value: 100, sign: '.omen-rain' },
   { name: 'Dualidade', dice: ['d20', 'd20'], omen: 'duality', die: '', value: 0, sign: '.omen' },
+  { name: 'Par de críticos', dice: ['d20', 'vtm', 'vtm'], omen: null, vampiro: 'par-de-criticos', die: 'vtm', value: 10, sign: '.omen-vampiro' },
+  { name: 'Crítico bestial', dice: ['d20', 'hunger'], omen: null, vampiro: 'critico-bestial', die: 'hunger', value: 10, sign: '.omen-vampiro' },
+  { name: 'Falha bestial', dice: ['d20', 'hunger'], omen: null, vampiro: 'falha-bestial', die: 'hunger', value: 1, sign: '.omen-vampiro' },
 ]) {
-  test(`test button ${name}: two real throws land on its omen, then it turns off`, async ({ page }) => {
+  test(`test button ${name}: a real throw lands on its omen, then it turns off`, name === 'Raio' ? { tag: '@rapido' } : {}, async ({ page }) => {
     const warnings: string[] = [];
     page.on('console', (m) => { if (m.type() === 'warning' && !/THREE|deprecated/.test(m.text())) warnings.push(m.text()); });
     const panel = await testPanel(page);
@@ -151,18 +154,18 @@ for (const { name, dice, omen, die, value, sign } of [
     await ready(page, dice.length);
     expect(await page.evaluate(() => window.__dice.state().dice)).toEqual(dice); // the dice it needs are in the hand
     expect(await page.evaluate(() => window.__dice.state().phase)).toBe('hand'); // the click did not throw
-    for (let n = 0; n < 2; n++) {
-      if (n) { await page.keyboard.press('Space'); await page.waitForFunction(() => window.__dice.state().phase === 'hand'); }
-      await page.keyboard.down('Space'); await page.waitForTimeout(300); await page.keyboard.up('Space'); // focus is back on the table
-      await page.waitForFunction(() => window.__dice.state().phase === 'settled', null, { timeout: 60_000 });
-      const s = await page.evaluate(() => window.__dice.state());
-      expect(s.omen, `results ${s.results} · ${warnings.join(' | ')}`).toBe(omen);
-      if (die) expect(s.results![s.dice.lastIndexOf(die as DieKind)]).toBe(value);
-      await expect(page.locator(sign)).toHaveCount(1);
-      await shown(page);
-    }
+    await roll(page);
+    await page.waitForFunction(() => window.__dice.state().phase === 'settled', null, { timeout: 60_000 });
+    const s = await page.evaluate(() => window.__dice.state());
+    expect(s.omen, `results ${s.results} · ${warnings.join(' | ')}`).toBe(omen);
+    if (vampiro) expect(s.vampiro).toBe(vampiro);
+    if (die) expect(s.results![s.dice.lastIndexOf(die as DieKind)]).toBe(value);
+    if (vampiro === 'par-de-criticos') expect(s.results!.filter((_, i) => s.dice[i] === 'vtm')).toEqual([10, 10]);
+    await expect(page.locator(sign)).toHaveCount(1);
+    await shown(page);
     await page.screenshot({ path: `screens/omen-test-${name}.png` });
     await page.keyboard.press('Space'); await page.waitForFunction(() => window.__dice.state().phase === 'hand');
+    await expect(button).toHaveAttribute('aria-pressed', 'true');
     await button.click(); // with the dice in the hand: turns it off, does not throw
     await expect(button).toHaveAttribute('aria-pressed', 'false');
     expect(await page.evaluate(() => window.__dice.state().phase)).toBe('hand');

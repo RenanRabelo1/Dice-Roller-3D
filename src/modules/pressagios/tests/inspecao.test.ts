@@ -43,4 +43,12 @@ describe('inspecao: the omen as the test hook reads it', () => {
     cena.add(nomeado(new Object3D(), 'tray-surface', false), nomeado(new Object3D(), 'fire'), cacos);
     expect(inspecao(cena)).toMatchObject({ trayBroken: true, burning: true, shards: { felt: '#ff0000', wood: '#0000ff' } });
   });
+  it('reports the Vampire type for the current throw', () => {
+    definir(['hunger']);
+    arremessar([10]);
+    const cena = new Object3D();
+    expect(inspecao(cena)).toMatchObject({ omen: null, vampiro: 'critico-bestial' });
+    reiniciar();
+    expect(inspecao(cena).vampiro).toBeNull();
+  });
 });

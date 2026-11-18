@@ -18,7 +18,6 @@ describe('nomeDoTipo', () => {
   it('names the special built-in kinds', () => {
     expect(nomeDoTipo('vtm')).toBe('d10 Vampiro');
     expect(nomeDoTipo('hunger')).toBe('d10 Fome');
-    expect(nomeDoTipo('fire')).toBe('d6 Fogo');
     expect(nomeDoTipo('coin')).toBe('Moeda');
     expect(nomeDoTipo('d20')).toBe('d20');
   });

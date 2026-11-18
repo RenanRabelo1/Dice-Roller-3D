@@ -11,7 +11,7 @@ Mostrar o resultado depois de `settled`. Os dados voam até a frente da câmera 
 - Linha do tempo (`SHOW`): o número sobe em 550 ms; o voo começa em 1.000 ms, dura 650 ms e é escalonado em 70 ms por dado; depois o número pulsa a 0,9 Hz e "gruda" na face cedo, para nunca aparecerem dois números. A sombra some na decolagem.
 - Moeda: voa como os dados e mostra o desenho; "Cara"/"Coroa" fica embaixo. Dado com símbolo (Vampiro): sobe o símbolo em vez do número.
 - Dado importado gravado (`printed`): a forma livre é vista de cima e acende a tinta voltada para cima; a forma padrão (não d4) acende só a tinta da face do resultado (`MESMA_FACE`). Com brilho, sem número solto. Sem gravação achada, a forma livre põe o número na frente do dado, no tamanho `FONT.livre`, e a padrão segue o caminho comum.
-- Os dados com percurso de presságio (`indicesComPercurso`) seguem `movimentoNoPresagio` e não fazem o voo comum.
+- O d100 do kraken ou da tempestade e os dados que o vampiro carrega seguem `movimentoNoPresagio` até a pose do resultado. Os outros dados fazem o voo comum.
 - A pose vai sempre por `moverDado` (de `arremesso`): em `settled`, só a vitrine move os dados. Ao pousar, fixa a pose a cada quadro e grava `showcased` (`vitrineConcluida`) um quadro depois de pousar.
 - Movimento reduzido: sem voo, e o número só aparece acima do dado. A vitrine conclui na hora.
 - Luz de destaque (`scene/Vitrine.tsx`, regra pura `intensidadeDoDestaque` em `domain/destaque.ts`): um `<pointLight>` `#ffe8c0` (distance 8, decay 2, sem sombra) montado sempre no perfil completo; não monta no leve (ADR 0011). Sobe de 0 a 5 ao longo do voo (`SHOW.duration`, contado do início do voo), fica no centro das poses de chegada + (0, 0.6, 1.2) no espaço da câmera, e fora do showcase cai a 0 em 200 ms. Software: sempre 0. Movimento reduzido: vai direto ao valor final.
@@ -26,7 +26,7 @@ Mostrar o resultado depois de `settled`. Os dados voam até a frente da câmera 
 
 ## Consome
 - `arremesso`: `arremesso()` (fase, `throwId`, `raw`, `ready`), `corposVivos()`, `moverDado`; no painel, `useArremesso` (`cena.ts`).
-- `pressagios`: `presagio()` (`omen`, `omenAt`), `presagioTocando()`, `indicesComPercurso`, `movimentoNoPresagio`; no painel, `usePresagioTocando` e `usePresagio` (`cena.ts`).
+- `pressagios`: `presagio()` (`omen`, `vampiro`, `omenAt`), `presagioTocando()`, `indicesComPercurso`, `movimentoNoPresagio`. O par de críticos recebe a posição da câmera para o arremesso. No painel, `usePresagioTocando` e `usePresagio` (`cena.ts`).
 - `dados`: `polyhedron`, `customDie`, `symbolGeometry`, `FONT`, `FONT_URL`, `SYMBOL`, `RADIUS`, `RAIO_MAXIMO`, `gemColor`, `inkColorOf`, `dadoNaRaiz`, `gemaNaRaiz`, `sombraNaGema`, `allKinds`, `nomeDoTipo`.
 - `regras`: `total`, `isCustom`, `MAX_DICE`, `omenKind`.
 - `src/shared`: `plataforma` (`movimentoReduzido`, `perfilLeve`, `renderizadorPorSoftware`), `math` (`Pose`, `easeOut`, `clamp01`).

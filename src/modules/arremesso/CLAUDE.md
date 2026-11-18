@@ -16,6 +16,7 @@ Do gesto ao resultado: a mira, a carga da força e o redemoinho dos dados na mã
 - Replay: um quadro por passo físico, corpos sempre cinemáticos e sem CCD (armadilhas.md); fixa a pose final antes de `publish`.
 - Retorno: 400 ms (150 ms com movimento reduzido), fixa a pose exata antes de `returned`.
 - A pré-simulação é determinística: as mesmas entradas dão a mesma gravação.
+- O viés dos botões de teste também procura o par de críticos, o crítico bestial e a falha bestial. `plays` usa a regra de resultado de `regras` para respeitar as prioridades.
 - Luz da carga (OS-0057): um `<pointLight>` dentro da `MaoDoArremesso`, montada sempre no perfil completo; não monta no leve (`perfilLeve()`, ADR 0011), e como o perfil é fixo o número de luzes nunca muda durante o uso (armadilhas.md). Sem sombra, `intensity={0}` por padrão. No `useFrame` (só se a luz existir) recebe `intensidadeDaCarga(fase, força, renderizadorPorSoftware())` (regra pura em `domain/luz.ts`: 0 fora de `charging` e no software; `base + ganho × força`) e fica sobre a mira. Não pisca nem treme, então não trata movimento reduzido; o worker não a importa.
 - A dica (`DicaDaFase`) tem `key={texto}`: o `<p>` remonta a cada troca de texto e o CSS da casca (`footer.status > p`, animação `dica`) faz o fade.
 - O DOM do rodapé (`ModoDeRolagem`, `BarraDeForca`, `DicaDaFase`) é contrato dos E2E e do CSS; `tests/componentes.test.ts` o compara com o rodapé de antes da extração (fixture).
@@ -28,7 +29,7 @@ Do gesto ao resultado: a mira, a carga da força e o redemoinho dos dados na mã
 ## Consome
 - `selecao`: `selecao`, `selecaoAlterada`.
 - `dados`: `polyhedron`, `readUp`, `toResults`, `customsOf`, `registerPoly`, `paraRegras`, `RAIO_MAXIMO`, `definirOpacidade`, `definirSombra` (a `MaoDoArremesso` não procura `die-i`/`gem-i` pelo nome), `<AparenciaDoDado/>`.
-- `regras`: `MAX_DICE`, `omenKind`, `omenOf` e os tipos de dado.
+- `regras`: `MAX_DICE`, `omenKind`, `omenOf`, `presagioVampiro` e os tipos de dado e presságio.
 - `src/shared`: `events` (`createSignal`), `math`, `plataforma` (`movimentoReduzido`, `registrarFalha`, `useFalha`).
 - `pressagios`, por prop-função da casca (inversão de dependência): `omenTest`, o botão de teste de presságio, que mora em `pressagios`. Como `pressagios` depende de `arremesso`, importá-lo daqui criaria um ciclo; a casca passa `() => presagio().omenTest` ao `<LoopDoArremesso/>`.
 

@@ -13,13 +13,13 @@ Quais dados estão na mão do jogador e como ele os escolhe: os botões de cada 
 - Quando um tipo sai do catálogo (`catalogoAlterado` com `removido`), ele sai da mão e o módulo sempre emite, mesmo sem o tipo na mão. Se a mão esvaziar, volta a `['d20']`.
 - A cópia `dice` no store do `arremesso` (`arremesso().dice`, `useArremesso`) é a dos dados do arremesso, alinhada com `results`, e não a mão: ela chega por `selecaoAlterada`. Para a mão, use `selecao()` ou `useSelecao()`.
 - Notação (`parseDice`): ignora espaços, `+` e caixa. Aceita `2d10 + d100` e a forma compacta `2d10d100d4`.
-  - Sufixos depois do `d`, do mais longo ao mais curto: `10vampiro`, `10fome`, `6fogo`, `10v`, `100`, `20`, `12`, `10`, `8`, `6`, `4` e cada `<faces><apelido>` importado (`20caveira`).
+  - Sufixos depois do `d`, do mais longo ao mais curto: `10vampiro`, `10fome`, `10v`, `100`, `20`, `12`, `10`, `8`, `6`, `4` e cada `<faces><apelido>` importado (`20caveira`).
   - Dado de forma livre é escrito só com o apelido (`caveira`, `2caveira`), lido antes do `d`.
-  - `boladefogo` = 8 × `fire`; `moeda` / `N moedas`.
+  - `moeda` / `N moedas`.
   - Ambiguidade (`2d102d4`) se resolve por backtracking, preferindo a leitura em que todos os dados existem.
   - Mais de `MAX_DICE` dá erro. As mensagens de erro são em pt-BR.
 - `formatDice(dice)` → `"2d10 + 1d10 Vampiro + 2 moedas"`.
-- Apelido (`slugProblem`): `^[a-z][a-z0-9]{0,15}$`, não começa com `d` + dígito, não é palavra do chat (`v vampiro fome fogo moeda moedas boladefogo`) e é único. `slugOf(nome)` sugere um, sem acento e em minúsculas.
+- Apelido (`slugProblem`): `^[a-z][a-z0-9]{0,15}$`, não começa com `d` + dígito, não é palavra do chat (`v vampiro fome moeda moedas`) e é único. `slugOf(nome)` sugere um, sem acento e em minúsculas.
 - Chat: é controlado pela casca (`Chat({ aberto, onAlternar, onFechar })`), que guarda o capítulo aberto do livro e tem o botão "Chat" (`.chat-toggle`). A tecla `C` (ignorada enquanto se digita ou com Ctrl/Meta/Alt/repeat) chama `onAlternar`; `Esc` e o × chamam `onFechar` (a casca devolve o foco ao botão). Enter/Aplicar só chama `definir` se a notação é válida. Mostra no máximo 20 linhas.
 - Janela do chat (`ui/JanelaDosDados.tsx`, OS-0083): com o chat aberto, um `<Canvas>` próprio na página direita mostra os dados da notação digitada, girando (fileiras de até 5, `OrbitControls` sem zoom e pan). Lê o texto com `parseDice` 150 ms depois da última tecla; campo vazio ou notação inválida deixam a janela vazia com "Digite os dados para vê-los aqui." (o erro continua só no log, ao enviar). Montada só com o chat aberto. Sem giro automático em movimento reduzido ou perfil leve (`frameloop="demand"`). Depende visualmente de `dados/cena.ts` (`AparenciaDoDado`) e de `RAIO_MAXIMO`.
 - Roda de dados (`RodaDeDados`): os dados embutidos num anel acima do botão da mão (`ResumoDaMao` + `D`). Começa aberta; a tecla `D` alterna (mesmos filtros do `C`); `Esc` não mexe nela; não lembra entre sessões.
