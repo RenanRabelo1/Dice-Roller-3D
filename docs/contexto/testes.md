@@ -68,7 +68,7 @@ Regra 2 do guia (ADR 0006 parte B; ADR 0003 pontos 2 e 5). Varre só produção:
 |---|---|
 | `table()` | mesa ativa lida da cena: id, nome, fundo (incl. `panorama`), cores do feltro/madeira, textura, se há modelo, caixa da guia, nº de mesas salvas, `reflect` (fundo 360°) e `programs` (nº de programas de shader, para checar recompilação). Com o livro aberto a cena está congelada, então a leitura desenha um quadro antes (OS-0086); o `throwWithSpace` fecha o livro antes de jogar |
 | `shards()` | cores (feltro/madeira) do primeiro caco do kraken |
-| `state()` | dice, phase, throwId, results, ready, error, aim, showcased, omen, omenDone, reducedMotion, omenTime, trayBroken, burning (fogo do d20 visível), force (carga agora ou do último arremesso) |
+| `state()` | dice, phase, throwId, results, ready, error, aim, showcased, omen, vampiro (tipo de vampiro do arremesso atual ou null), omenDone, reducedMotion, omenTime, trayBroken, burning (fogo do d20 visível), force (carga agora ou do último arremesso) |
 | `select(dice)` | troca a seleção sem clicar |
 | `rigOmen(omen \| null)` | força o presságio dos próximos arremessos (a física e o resultado continuam reais) |
 | `bodies()` / `meshes()` | poses dos corpos Rapier / quaternions das malhas `gem-i` |
@@ -89,13 +89,13 @@ Padrão dos specs: esperar `state().ready`, interagir pelo teclado/ponteiro na `
 | Spec | Foco |
 |---|---|
 | `smoke` | contexto WebGL, canvas pinta, toda seleção cria corpos e numerais |
-| `roll` | face de cima = resultado publicado, Espaço, d100×10, seleção mista, d4/d8/d6 Fogo ×3 (o d4 lê o numeral mais alto), captura de ponteiro, blur, reduced motion, moeda, modo de rolagem Relativa/Estática (carga e escolha lembrada) |
+| `roll` | face de cima = resultado publicado, Espaço, d100×10, seleção mista, d4/d8/d6 ×3 (o d4 lê o numeral mais alto), captura de ponteiro, blur, reduced motion, moeda, modo de rolagem Relativa/Estática (carga e escolha lembrada) |
 | `controls` | limites da mão (com 1 dado o "−" desabilitado; com 10, todos os "Adicionar …" do grupo Dados), `M` abre "Personalizar mesa" e `Esc` fecha (foco volta ao botão Mesa), `m`/`M` digitados no chat não abrem o painel |
-| `chat` | tecla C, notação, Vampiro, bola de fogo, erro, moedas |
+| `chat` | tecla C, notação, Vampiro, erro, moedas |
 | `failure` | sem WebGL, falha do renderer e física que não carrega (simuladas por `addInitScript`): mensagem em pt-BR, sem canvas |
 | `table` | fundo (tema/foto/cor), cores no pixel, ida-e-volta exportar→importar (M13), arquivo com escala/Z para cima/moldura invadindo, recusas, upgrade do IndexedDB v1→v2 |
 | `table-kraken` | cacos com a cor do feltro da mesa; modelo sem piso some inteiro na quebra |
-| `omen` / `kraken` | presságios forçados (raio, kraken que arremessa e busca o d100, fogo do d20, tempestade do d100), reduced motion, recolher durante presságio, bandeja quebrada/restaurada; os 5 botões de teste (dois arremessos reais caindo no presságio, e desligar com os dados na mão; **sensíveis à carga da máquina**: a busca por semente tem orçamento de tempo, `BIAS_BUDGET` 6000 ms no worker, e com a CPU ocupada por outros processos o arremesso sai comum e o caso falha com "nenhum arremesso com … em 6000 ms") |
+| `omen` / `kraken` | presságios forçados (raio, kraken que arremessa e busca o d100, fogo do d20, tempestade do d100), reduced motion, recolher durante presságio, bandeja quebrada/restaurada; os 8 botões de teste (os três de vampiro conferem `state().vampiro` e `.omen-vampiro`; dois arremessos reais caindo no presságio, e desligar com os dados na mão; **sensíveis à carga da máquina**: a busca por semente tem orçamento de tempo, `BIAS_BUDGET` 6000 ms no worker, e com a CPU ocupada por outros processos o arremesso sai comum e o caso falha com "nenhum arremesso com … em 6000 ms") |
 | `import` | importar STL/GLB (gerados por `tests/helpers/models.ts` a partir dos nossos sólidos), calibrar, rolar, recarregar, excluir, recusas, 10 dados de ~48 mil triângulos |
 | `coin` | repetição de jogadas da moeda, mobile; a moeda sobe e "Cara"/"Coroa" fica embaixo |
 | `coin-performance` / `coin-software` | orçamento de quadros com 10 moedas, worker atrasado/falho, DPR no SwiftShader |

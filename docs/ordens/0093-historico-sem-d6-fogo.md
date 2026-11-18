@@ -4,6 +4,7 @@ Ordem: OS-0093 (consumidor da OS-0090; fecha o grupo OS-0090 a OS-0093)
 Módulo: `historico` (cliente `src/modules/historico/` e servidor `server/src/modules/historico/`)
 Escopo de escrita:
 - `src/modules/historico/**`, `server/src/modules/historico/**`
+- `tests/custom.test.ts` (ampliação autorizada pelo orquestrador durante a execução): só a troca dos apelidos reservados obsoletos `fogo`/`boladefogo` (linhas 33 e 124) por palavras que continuam reservadas, porque o gate do grupo precisa disso
 
 Objetivo:
 - A API e o cliente do histórico seguem corretos sem o `fire`.
