@@ -57,7 +57,16 @@ Regra 2 do guia (ADR 0006 parte B; ADR 0003 pontos 2 e 5). Varre só produção:
 
 ## E2E — Playwright (`npm run e2e`)
 
-- `playwright.config.ts`: Chrome instalado (`channel: 'chrome'`), WebGL por software (`--use-gl=angle --use-angle=swiftshader`), 1440×900, `workers: 1`, timeout 120 s.
+- `npm run e2e` (`e2e/run.mjs`, OS-0098) roda dois projetos, sempre os dois, e falha se qualquer um falhar:
+  - `paralelo`, com 3 workers;
+  - depois `sequencial`, com 1 worker, para os sensíveis a tempo ou pesados: `omen`, `kraken`, `table-kraken`, `coin-performance`, `coin-software` e `hud`.
+  - Com 4 workers fica mais lento: o SwiftShader é limitado pela CPU. Leva ~29 min (antes, ~44).
+- `npm run e2e:rapido`: os 10 casos `@rapido`, um por área (abrir, face = resultado, recolher, chat, presságio forçado, um botão de teste, moeda, tema da mesa, importar STL, falha do renderizador). Leva ~3 min.
+- **Quando rodar:**
+  - no meio do trabalho: unitários e o spec afetado (`npx playwright test e2e/<spec>.ts`), ou o `e2e:rapido`;
+  - a suíte completa uma vez por marco (fim de um grupo de ordens, antes do PR, depois de um merge). Uma falha suspeita se reroda isolada, não a suíte.
+  - Os vermelhos herdados estão no `docs/backlog.md` §10.
+- `playwright.config.ts`: Chrome instalado (`channel: 'chrome'`), WebGL por software (`--use-gl=angle --use-angle=swiftshader`), 1440×900, timeout 120 s.
 - Sobe `npm run dev:test` (Vite em `--mode test`, 127.0.0.1:5179, porta fixa). Não reusa servidor existente (nem o stub abaixo).
 - Sobe também `node e2e/api-stub.mjs` (127.0.0.1:5180): um stub da API do histórico que responde 204 a tudo, com CORS e preflight `OPTIONS`. O Vite de teste recebe `VITE_API_URL=http://127.0.0.1:5180`, então o build de teste envia o histórico (`src/modules/historico/`) e um POST que nenhum teste intercepta não gera erro de console (um 404 ou um endereço morto gerariam, e vários specs exigem console limpo). `history.spec` intercepta `http://127.0.0.1:5180/rolls` com `page.route`.
 - Em `mode === 'test'` o canvas usa `preserveDrawingBuffer` e o app expõe `window.__dice` (tipo em `src/app/testHook.ts`, instalado em `app/Cena.tsx`). `labels`, `numbersVisible` e `gemLook` chamam a `inspecao` de `dados` (`rotulos`, `numeraisVisiveis`, `aparenciaDaGema`, em `src/modules/dados/domain/inspecao.ts`). `bodies` e `launches` vêm de `inspecao().corpos()` e `.lancamentos()` do `arremesso`, e `ready` e `previewSurface` leem o `registroDeCorpos` dele.
@@ -95,7 +104,7 @@ Padrão dos specs: esperar `state().ready`, interagir pelo teclado/ponteiro na `
 | `failure` | sem WebGL, falha do renderer e física que não carrega (simuladas por `addInitScript`): mensagem em pt-BR, sem canvas |
 | `table` | fundo (tema/foto/cor), cores no pixel, ida-e-volta exportar→importar (M13), arquivo com escala/Z para cima/moldura invadindo, recusas, upgrade do IndexedDB v1→v2 |
 | `table-kraken` | cacos com a cor do feltro da mesa; modelo sem piso some inteiro na quebra |
-| `omen` / `kraken` | presságios forçados (raio, kraken que arremessa e busca o d100, fogo do d20, tempestade do d100), reduced motion, recolher durante presságio, bandeja quebrada/restaurada; os 8 botões de teste (os três de vampiro conferem `state().vampiro` e `.omen-vampiro`; dois arremessos reais caindo no presságio, e desligar com os dados na mão; **sensíveis à carga da máquina**: a busca por semente tem orçamento de tempo, `BIAS_BUDGET` 6000 ms no worker, e com a CPU ocupada por outros processos o arremesso sai comum e o caso falha com "nenhum arremesso com … em 6000 ms") |
+| `omen` / `kraken` | presságios forçados (raio, kraken que arremessa e busca o d100, fogo do d20, tempestade do d100), reduced motion, recolher durante presságio, bandeja quebrada/restaurada; os 8 botões de teste (os três de vampiro conferem `state().vampiro` e `.omen-vampiro`; um arremesso real caindo no presságio, o botão continua ligado depois de recolher, e desligar com os dados na mão; **sensíveis à carga da máquina**: a busca por semente tem orçamento de tempo, `BIAS_BUDGET` 6000 ms no worker, e com a CPU ocupada por outros processos o arremesso sai comum e o caso falha com "nenhum arremesso com … em 6000 ms") |
 | `import` | importar STL/GLB (gerados por `tests/helpers/models.ts` a partir dos nossos sólidos), calibrar, rolar, recarregar, excluir, recusas, 10 dados de ~48 mil triângulos |
 | `coin` | repetição de jogadas da moeda, mobile; a moeda sobe e "Cara"/"Coroa" fica embaixo |
 | `coin-performance` / `coin-software` | orçamento de quadros com 10 moedas, worker atrasado/falho, DPR no SwiftShader |

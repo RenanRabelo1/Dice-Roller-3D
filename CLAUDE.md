@@ -49,7 +49,7 @@ O contexto de cada módulo fica no `CLAUDE.md` dele (e o detalhe, no `NOTAS.md`)
 | Demanda nova: a que módulo pertence | [mapa-modulos.md](docs/mapa-modulos.md) e seção 8 do [guia](docs/guia-orquestrador.md) |
 | Próximas features combinadas, ainda sem spec | [backlog.md](docs/backlog.md) |
 
-Gate: `npm run build && npm run lint && npm test && npm run test:server && npm run e2e`. Rode os E2E um por vez, com a máquina livre, porque os botões de presságio têm orçamento de tempo. `docs/superpowers/` é histórico e diverge do código (ver armadilhas.md).
+Gate: `npm run build && npm run lint && npm test && npm run test:server && npm run e2e`. O `npm run e2e` completo (~29 min: paralelo com 3 workers e, depois, os sensíveis a tempo em série) roda só nos marcos: fim de um grupo de ordens, antes do PR e depois de um merge. No meio do trabalho, use o spec afetado ou o `npm run e2e:rapido` (~3 min). Rode-os com a máquina livre, porque os botões de presságio têm orçamento de tempo (ver [testes.md](docs/contexto/testes.md)). `docs/superpowers/` é histórico e diverge do código (ver armadilhas.md).
 
 # Referências Three.js
 
