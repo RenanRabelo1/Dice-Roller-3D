@@ -14,20 +14,21 @@ describe('parseDice', () => {
     ['2d10v', ['vtm', 'vtm']],
     ['2d10vampiro', ['vtm', 'vtm']],
     ['2d10fome', ['hunger', 'hunger']],
-    ['8d6fogo', Array(8).fill('fire')],
     ['2d10v1d10fome', ['vtm', 'vtm', 'hunger']], // compact
     ['2d10 Vampiro + 1d10 Fome + d10', ['d10', 'vtm', 'vtm', 'hunger']], // what formatDice writes reads back
-    ['bola de fogo', Array(8).fill('fire')],
-    ['Bola de Fogo + d20', ['d20', ...Array(8).fill('fire')]],
     ['moeda', ['coin']],
     ['2 moedas + d20', ['d20', 'coin', 'coin']],
     ['d20moeda', ['d20', 'coin']], // compact
     ['1d20 + 2 moedas', ['d20', 'coin', 'coin']], // what formatDice writes reads back
   ])('%s', (text, dice) => expect(parseDice(text)).toEqual({ dice }));
 
-  it.each(['', '   ', '2d7', 'abc', '0d6', 'd', '2d', '10', '2d8v', 'd20fogo', 'bola', '0moedas', 'moed'])('rejects "%s" with a message', (text) => {
+  it.each(['', '   ', '2d7', 'abc', '0d6', 'd', '2d', '10', '2d8v', 'bola', '0moedas', 'moed'])('rejects "%s" with a message', (text) => {
     const r = parseDice(text);
     expect('error' in r && r.error.length > 0).toBe(true);
+  });
+
+  it.each(['6fogo', '8d6fogo', 'bola de fogo', 'Bola de Fogo + d20'])('rejects the retired notation "%s"', (text) => {
+    expect(parseDice(text)).toEqual({ error: expect.stringMatching(/^Não entendi/) });
   });
 
   it('caps a throw at 10 dice', () => {
@@ -40,7 +41,7 @@ describe('parseDice', () => {
   });
 
   it('formatDice names the custom dice', () => {
-    expect(formatDice(['vtm', 'vtm', 'hunger', 'fire'])).toBe('2d10 Vampiro + 1d10 Fome + 1d6 Fogo');
+    expect(formatDice(['vtm', 'vtm', 'hunger'])).toBe('2d10 Vampiro + 1d10 Fome');
   });
 
   it('formatDice names coins in words', () => {

@@ -64,20 +64,6 @@ test('Vampire dice from the chat: symbols on the faces, and the panel value is t
   await expect(page.getByTestId('result')).toContainText(`d10 Vampiro: ${results[0]} + ${results[1]} · d10 Fome: ${results[2]}`);
 });
 
-test('"bola de fogo" puts 8 fire d6 in the hand, and the d6 Fogo button adds one more', async ({ page }) => {
-  await page.keyboard.press('c');
-  await page.getByRole('textbox', { name: /Dados/ }).fill('bola de fogo');
-  await page.keyboard.press('Enter');
-  expect(await dice(page)).toEqual(Array(8).fill('fire'));
-  await expect(page.getByRole('complementary', { name: 'Chat de dados' })).toContainText('Na mão: 8d6 Fogo');
-  await page.keyboard.press('Escape');
-  await page.getByRole('button', { name: 'Adicionar d6 Fogo' }).click();
-  expect(await dice(page)).toEqual(Array(9).fill('fire'));
-  await expect(page.getByRole('button', { name: 'Adicionar d6 Fogo' })).toHaveText('9d6 Fogo');
-  await page.waitForFunction(() => window.__dice.state().ready && window.__dice.bodies().length === 9);
-  expect(await page.evaluate(() => window.__dice.labels(0).map((l) => l.text).sort())).toEqual(['1', '2', '3', '4', '5', '6']);
-});
-
 test('bad notation answers with an error and keeps the dice', async ({ page }) => {
   await page.keyboard.press('c');
   const input = page.getByRole('textbox', { name: /Dados/ });

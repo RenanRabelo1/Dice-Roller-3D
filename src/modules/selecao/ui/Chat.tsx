@@ -45,7 +45,7 @@ export function Chat({ aberto, onAlternar, onFechar }: { aberto: boolean; onAlte
         <button aria-label="Fechar chat" onClick={onFechar}>×</button>
       </header>
       <ol className="chat-log" aria-live="polite">
-        {lines.length === 0 && <li className="hint">Escreva os dados e aperte Enter. Ex.: <code>2d10 + d100</code> ou <code>2d10d100d4</code>. Dados especiais: <code>2d10v + 1d10fome</code> (Vampiro), <code>bola de fogo</code> (8d6 de fogo) e os seus dados importados (ex.: <code>2d20caveira</code>).</li>}
+        {lines.length === 0 && <li className="hint">Escreva os dados e aperte Enter. Ex.: <code>2d10 + d100</code> ou <code>2d10d100d4</code>. Dados especiais: <code>2d10v + 1d10fome</code> (Vampiro), <code>moeda</code> e os seus dados importados (ex.: <code>2d20caveira</code>).</li>}
         {lines.map((l) => <li key={l.id} className={`msg-${l.from}`} data-error={l.error || undefined}>{l.text}</li>)}
       </ol>
       {aberto && <JanelaDosDados texto={text} />}
