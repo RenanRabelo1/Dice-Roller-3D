@@ -6,7 +6,7 @@ test.beforeEach(async ({ page }) => {
   await page.waitForFunction(() => window.__dice?.state().ready === true);
 });
 
-test('C opens the chat; compact notation + Enter puts those dice in the hand', async ({ page }) => {
+test('C opens the chat; compact notation + Enter puts those dice in the hand', { tag: '@rapido' }, async ({ page }) => {
   const chat = page.getByRole('complementary', { name: 'Chat de dados' });
   await expect(chat).toBeHidden();
   await page.keyboard.press('c');

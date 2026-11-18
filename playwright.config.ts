@@ -1,8 +1,15 @@
 import { defineConfig } from '@playwright/test'
 
+const timedSpecs = /(?:^|[\\/])(?:omen|coin-performance|coin-software|hud)\.spec\.ts$/
+
 export default defineConfig({
   testDir: 'e2e',
+  // The full run raises the worker limit for the parallel project only.
   workers: 1,
+  projects: [
+    { name: 'paralelo', testIgnore: timedSpecs, fullyParallel: true, outputDir: 'test-results/paralelo' },
+    { name: 'sequencial', testMatch: timedSpecs, workers: 1, outputDir: 'test-results/sequencial' },
+  ],
   timeout: 120_000,
   expect: { timeout: 30_000 },
   use: {

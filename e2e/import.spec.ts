@@ -43,7 +43,7 @@ const rollAndCheck = async (p: Page) => {
 
 test.beforeEach(async ({ page }) => { await page.goto('/'); await ready(page); });
 
-test('import a plain d20 STL → roll → top face is the result → reload keeps it → delete', async ({ page }) => {
+test('import a plain d20 STL → roll → top face is the result → reload keeps it → delete', { tag: '@rapido' }, async ({ page }) => {
   await open(page, d20());
   await expect(page.getByTestId('import-shape')).toContainText('d20');
   await page.getByRole('button', { name: 'Continuar' }).click();

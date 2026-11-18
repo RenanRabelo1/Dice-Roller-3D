@@ -16,7 +16,7 @@ test('without WebGL: says so and shows no canvas', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Rolador de dados' })).toBeVisible(); // the page is still there
 });
 
-test('when the renderer fails to start: says the 3D failed', async ({ page }) => {
+test('when the renderer fails to start: says the 3D failed', { tag: '@rapido' }, async ({ page }) => {
   await page.addInitScript(() => {
     // The first WebGL context (the app's own probe) works; the renderer's own request fails.
     const original = HTMLCanvasElement.prototype.getContext;

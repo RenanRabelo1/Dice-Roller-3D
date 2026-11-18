@@ -1,11 +1,12 @@
 import { test, expect } from '@playwright/test';
+import { ready } from './esperas';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
   await page.waitForFunction(() => window.__dice?.state().ready === true);
 });
 
-test('WebGL context exists and the renderer is reported', async ({ page }, info) => {
+test('WebGL context exists and the renderer is reported', { tag: '@rapido' }, async ({ page }, info) => {
   const renderer = await page.evaluate(() => {
     const gl = document.querySelector('canvas')!.getContext('webgl2');
     const ext = gl?.getExtension('WEBGL_debug_renderer_info');
@@ -76,6 +77,7 @@ test('surface preview: rotated Text anchors and gem share the physical transform
   await page.goto('/?surface-preview');
   await page.waitForFunction(() => window.__dice?.state().ready === true);
   await page.evaluate(() => window.__dice.select(['d6']));
+  await ready(page, 1);
   await expect.poll(() => page.evaluate(() => window.__dice.labels(0).length)).toBe(6);
   await page.evaluate(() => window.__dice.previewSurface(0, [0, 2, 0], [0, 0, 0, 1]));
   await expect.poll(() => page.evaluate(() => window.__dice.labels(0).reduce((sum, label) => sum + label.position[1], 0) / 6)).toBeCloseTo(2, 5);
