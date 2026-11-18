@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { omenKind, omenOf, tipoParaPresagio, type DieKind } from '../index.ts';
+import { omenKind, omenOf, presagioVampiro, tipoParaPresagio, type DieKind, type PresagioVampiro } from '../index.ts';
 
 const d20 = (n: number) => Array<DieKind>(n).fill('d20');
 
@@ -20,7 +20,7 @@ describe('omenOf', () => {
   });
 
   it('only d20 and d100 count: other dice, Vampire d10s and coins never trigger one', () => {
-    expect(omenOf(['d4', 'd6', 'd10', 'd12', 'vtm', 'hunger', 'fire', 'coin'], [1, 1, 10, 12, 10, 1, 6, 1])).toBeNull();
+    expect(omenOf(['d4', 'd6', 'd10', 'd12', 'vtm', 'hunger', 'coin'], [1, 1, 10, 12, 10, 1, 1])).toBeNull();
     expect(omenOf(d20(3), [2, 19, 10])).toBeNull();
     expect(omenOf(['d100'], [50])).toBeNull();
   });
@@ -65,5 +65,21 @@ describe('omenKind', () => {
     expect(omenKind(omenOf(['d20', 'd20'], [20, 1])!)).toBe('duality');
     expect(omenKind(omenOf(['d100', 'd100'], [1, 100])!)).toBe('duality');
     expect(omenKind(omenOf(['d20', 'd100', 'd20'], [20, 100, 20])!)).toBe('duality');
+  });
+});
+
+describe('presagioVampiro', () => {
+  it.each<[string, DieKind[], number[], PresagioVampiro | null]>([
+    ['a pair of Vampiro tens', ['vtm', 'vtm'], [10, 10], { tipo: 'par-de-criticos', dados: [0, 1] }],
+    ['the first Fome ten', ['d10', 'hunger', 'hunger'], [10, 10, 10], { tipo: 'critico-bestial', dados: [1] }],
+    ['the first Fome one', ['hunger', 'hunger', 'hunger'], [2, 1, 1], { tipo: 'falha-bestial', dados: [1] }],
+    ['a lone Vampiro ten', ['vtm'], [10], null],
+    ['the first two Vampiro tens', ['vtm', 'd10', 'vtm', 'vtm'], [10, 10, 10, 10], { tipo: 'par-de-criticos', dados: [0, 2] }],
+    ['a Fome ten takes priority over the pair', ['vtm', 'vtm', 'hunger'], [10, 10, 10], { tipo: 'critico-bestial', dados: [2] }],
+    ['the pair takes priority over a Fome one', ['hunger', 'vtm', 'vtm'], [1, 10, 10], { tipo: 'par-de-criticos', dados: [1, 2] }],
+    ['a d20 critical takes priority', ['hunger', 'd20'], [10, 20], null],
+    ['imported dice cannot complete a pair or trigger a Fome omen', ['vtm', 'custom:a', 'custom:b'], [10, 10, 1], null],
+  ])('%s', (_, kinds, results, expected) => {
+    expect(presagioVampiro(kinds, results)).toEqual(expected);
   });
 });

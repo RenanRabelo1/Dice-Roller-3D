@@ -3,11 +3,11 @@ import { BASE, CUSTOM_BASES, FREE_VALUES, isCustom, KINDS, MAX_DICE, SIDES } fro
 
 describe('catalog', () => {
   it('lists the built-in kinds in UI order', () => {
-    expect(KINDS).toEqual(['d4', 'd6', 'd8', 'd10', 'd12', 'd20', 'd100', 'vtm', 'hunger', 'fire', 'coin']);
+    expect(KINDS).toEqual(['d4', 'd6', 'd8', 'd10', 'd12', 'd20', 'd100', 'vtm', 'hunger', 'coin']);
   });
 
   it('maps each built-in kind to its physical die', () => {
-    expect([BASE.vtm, BASE.hunger, BASE.fire, BASE.d100, BASE.coin]).toEqual(['d10', 'd10', 'd6', 'd100', 'coin']);
+    expect([BASE.vtm, BASE.hunger, BASE.d100, BASE.coin]).toEqual(['d10', 'd10', 'd100', 'coin']);
   });
 
   it('never imports a d100 or a coin', () => {
