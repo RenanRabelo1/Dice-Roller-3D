@@ -112,3 +112,11 @@ O João pediu para deixar para depois:
 - **Fundo padrão da mesa:** feito na OS-0087. O João escolheu um panorama pronto; o padrão é a floresta, com mais três prontos, 8K no perfil completo e `.exr`.
 - **O `typing` repetido entre `mesa` e `selecao`:** levar para `shared/plataforma`, o que exige ADR (auditoria, seção 3).
 - **Pausar a cena com o livro aberto:** feito na OS-0086. A cena principal congela e a área de jogo fica `inert` enquanto o livro está aberto.
+
+## 10. E2E vermelhos herdados da `main` (achado de 2026-11-18)
+
+Ao fechar as OS-0090 a OS-0097, o `npm run e2e` completo deu 102 aprovados e 14 falhas. As mesmas suítes também falham na `main` (`e286a8c`), rodadas sozinhas: foram 12 falhas, então o vermelho não vem dos presságios de vampiro.
+
+- **`e2e/screens.spec.ts`, todos os 10 casos:** a margem esquerda da cena no canvas é 0 (`pixels.left * pixels.css > 4`). Suspeita: o fundo padrão 360° (OS-0087) pinta até a borda e o teste conta o fundo como cena. Ajustar a medição ou o teste: é de `mesa` com a casca.
+- **`e2e/table.spec.ts`:** casos diferentes falham a cada rodada (o fundo depois do reload, o `blur` do fundo exportado e o 360° no export/import). Instável. É de `mesa`.
+- **`e2e/hud.spec.ts`, "the light count never changes":** a contagem de programas sobe 1 depois do kraken. Na `main`, falhou 3 de 4 vezes; na branch, 2 de 4. É instável e anterior à branch. Suspeita: um programa do fundo 360° compilado tarde. É da casca com `mesa`.
