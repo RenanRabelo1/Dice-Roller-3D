@@ -1,6 +1,6 @@
 import { defineConfig } from '@playwright/test'
 
-const timedSpecs = /(?:^|[\\/])(?:omen|coin-performance|coin-software|hud)\.spec\.ts$/
+const timedSpecs = /(?:^|[\\/])(?:omen|coin-performance|coin-software|hud|kraken|table-kraken)\.spec\.ts$/
 
 export default defineConfig({
   testDir: 'e2e',
