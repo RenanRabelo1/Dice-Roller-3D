@@ -1,7 +1,7 @@
 // Types of `arremesso`: the gesture's phases and events, the charge, the launch and the pre-simulation's request
 // and recording, and the omen a dev test throw looks for.
 import type { Pose, Vec3 } from '../../shared/math.ts';
-import type { CustomKind, DieKind } from '../regras/index.ts';
+import type { CustomKind, DieKind, TipoVampiro } from '../regras/index.ts';
 import type { Polyhedron } from '../dados/index.ts';
 
 export type Phase = 'hand' | 'charging' | 'rolling' | 'settled' | 'returning';
@@ -24,7 +24,7 @@ export type ChargeMode = 'relative' | 'static';
 export interface Launch { throwId: number; seed: number; target: Vec3; force: number; handCenter: Vec3; handOmega: Vec3 }
 
 // Test buttons (dev only): the next throws land on faces that call the chosen omen (see presimulateFor).
-export type OmenTest = 'lightning' | 'fire' | 'kraken' | 'storm' | 'duality';
+export type OmenTest = 'lightning' | 'fire' | 'kraken' | 'storm' | 'duality' | TipoVampiro;
 
 export interface Recording { frames: Pose[][]; raw: number[]; results: number[]; timedOut: boolean; escaped: boolean; recovered: boolean }
 // `customs`: the imported dice of the selection, because the worker has no registry of its own.

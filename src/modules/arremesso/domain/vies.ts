@@ -1,4 +1,4 @@
-import { omenKind, omenOf, type DieKind } from '../../regras/index.ts';
+import { omenKind, omenOf, presagioVampiro, type DieKind } from '../../regras/index.ts';
 import { paraRegras } from '../../dados/index.ts';
 import type { OmenTest } from '../contracts.ts';
 
@@ -9,6 +9,9 @@ export const omenKinds = (dice: DieKind[]): DieKind[] => dice.map((k) => (paraRe
 // Whether a throw with these results plays that omen (with `kinds` from omenKinds). The biased pre-simulation of
 // the dev test buttons keeps looking until it does (see presimulateFor).
 export function plays(test: OmenTest, kinds: DieKind[], results: number[]): boolean {
+  if (test === 'par-de-criticos' || test === 'critico-bestial' || test === 'falha-bestial') {
+    return presagioVampiro(kinds, results)?.tipo === test;
+  }
   const o = omenOf(kinds, results);
   if (!o) return false;
   const kind = omenKind(o), has = (list: number[], die: DieKind) => list.some((i) => kinds[i] === die);
