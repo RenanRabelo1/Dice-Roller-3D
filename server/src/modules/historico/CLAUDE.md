@@ -13,6 +13,7 @@ Guarda cada arremesso publicado num histórico no MongoDB, ligado a um jogador a
 - O servidor recusa com 400 e a mensagem "O dado X não tem a face Y." uma face fora de `regras.valoresValidos`. Também recusa com 400 o que o esquema rejeita: de 1 a 10 dados, `playerId` UUID minúsculo, `kind` conhecido ou `custom:<id>`.
 - Um `total` enviado pelo cliente é descartado: o servidor calcula total e presságio com `regras`.
 - O histórico de um jogador sai do mais novo para o mais antigo, paginado por `_id` (`limit` de 1 a 100, padrão 20; `next` é o `before` da próxima página).
+- `POST /rolls` recusa o antigo d6 Fogo pelo catálogo atual. `GET /rolls` devolve os dados como foram gravados, inclusive em jogadas antigas com esse dado.
 - O módulo é dono da coleção `rolls`, com o índice `player_history { playerId: 1, _id: -1 }` e um validador `$jsonSchema`, atualizado com `collMod` na subida. Se o `collMod` falhar, só avisa no log (`console.warn`).
 - Onde fica cada coisa:
   - `routes.ts` só valida (esquema), chama o `service.ts` e o `repository.ts` e traduz o `{ error }` em 400; nenhuma regra fica nele;

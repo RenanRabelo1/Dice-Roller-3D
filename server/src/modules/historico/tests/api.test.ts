@@ -34,7 +34,7 @@ describe('roll history API', () => {
   it('works out duality and the Cthulhu d100 the same way the table does', async () => {
     expect((await post({ playerId: bia, dice: [{ kind: 'd20', value: 20 }, { kind: 'd100', value: 100 }] })).json()).toMatchObject({ omen: 'duality', total: 120, force: null });
     expect((await post({ playerId: bia, dice: [{ kind: 'd100', value: 1 }] })).json().omen).toBe('crit');
-    expect((await post({ playerId: bia, dice: [{ kind: 'vtm', value: 10 }, { kind: 'fire', value: 6 }] })).json()).toMatchObject({ omen: null, total: 16 });
+    expect((await post({ playerId: bia, dice: [{ kind: 'vtm', value: 10 }, { kind: 'd6', value: 6 }] })).json()).toMatchObject({ omen: null, total: 16 });
   });
 
   it('keeps an imported die with its solid, and counts it as a d20 for omens only when the player asked', async () => {
@@ -66,6 +66,7 @@ describe('roll history API', () => {
     ['a face the die does not have', { playerId: ana, dice: [{ kind: 'd6', value: 7 }] }],
     ['a coin side that does not exist', { playerId: ana, dice: [{ kind: 'coin', value: 3 }] }],
     ['an unknown die', { playerId: ana, dice: [{ kind: 'd7', value: 1 }] }],
+    ['a retired Fire die', { playerId: ana, dice: [{ kind: 'fire', value: 6 }] }],
     ['more than ten dice', { playerId: ana, dice: Array(11).fill({ kind: 'd6', value: 1 }) }],
     ['no dice', { playerId: ana, dice: [] }],
     ['a player id that is not one', { playerId: 'ana', dice: [{ kind: 'd6', value: 1 }] }],
@@ -96,6 +97,19 @@ describe('roll history API', () => {
     await expect(db.collection('rolls').insertOne({ playerId: ana, createdAt: new Date(), dice: [{ kind: 'custom:x', value: 1, base: 'd7' }], total: 1, omen: null, force: null })).rejects.toThrow(/validation/i);
     const plan = await db.collection('rolls').find({ playerId: ana }).sort({ _id: -1 }).explain('queryPlanner');
     expect(JSON.stringify(plan.queryPlanner.winningPlan)).toContain('player_history');
+  });
+
+  it('returns a saved throw with a retired die', async () => {
+    const playerId = '12345678-1234-4234-8234-123456789abc';
+    const dice = [{ kind: 'fire', value: 6 }];
+    const { insertedId } = await db.collection('rolls').insertOne(
+      { playerId, createdAt: new Date(), dice, total: 6, omen: null, force: null },
+      { bypassDocumentValidation: true },
+    );
+
+    const res = await page(`playerId=${playerId}`);
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({ rolls: [{ id: insertedId.toHexString(), dice, total: 6 }], next: null });
   });
 
   it('brings the validator of an older collection up to date', async () => {

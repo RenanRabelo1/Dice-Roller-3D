@@ -30,7 +30,7 @@ describe('imported dice in the chat', () => {
   });
   it('refuses nicknames that clash with the chat', () => {
     skull();
-    for (const s of ['v', 'fogo', 'moeda', 'd20', 'caveira', '1x', 'Ab', 'a b']) expect(slugProblem(s)).toBeTruthy();
+    for (const s of ['v', 'vampiro', 'moeda', 'd20', 'caveira', '1x', 'Ab', 'a b']) expect(slugProblem(s)).toBeTruthy();
     expect(slugProblem('osso')).toBeNull();
     expect(slugOf('Caveira Rúnica 2')).toBe('caveirarunica2');
     expect(slugOf('123')).toBe('');
@@ -121,6 +121,6 @@ describe('a free-form die in the chat', () => {
     expect(isD20(cav())).toBe(false);
   });
   it('refuses the words the chat already reads as a nickname', () => {
-    for (const s of ['moeda', 'boladefogo']) expect(slugProblem(s)).toBeTruthy();
+    for (const s of ['moeda', 'moedas']) expect(slugProblem(s)).toBeTruthy();
   });
 });
