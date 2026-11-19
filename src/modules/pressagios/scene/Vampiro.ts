@@ -56,7 +56,7 @@ function gola() {
     const d = Math.hypot(thickness * Math.cos(section), width * Math.sin(section));
     const rise = width ** 2 * Math.sin(section) / d;
     const r = 0.36 + 0.35 * rise + thickness ** 2 * Math.cos(section) / d;
-    const y = 1.69 + 0.16 * Math.sin(a) ** 2 + rise;
+    const y = 1.69 + 0.16 * Math.sin(a) ** 2 + rise - 0.22 * ends;
     return [Math.sin(a) * r, y, -Math.cos(a) * r - 0.07];
   });
 }
