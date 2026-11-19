@@ -29,7 +29,7 @@ Decidir se um resultado publicado tem presságio e mostrá-lo antes do resultado
 
 ## Vampiro
 
-`scene/Vampiro.ts` monta um personagem procedural reaproveitado pelos três presságios e um par de mãos que acompanha a câmera na falha bestial. `Show.compile` aquece a figura com os outros efeitos, usando a mesma luz. `vampiroMotion` fornece o corpo e os pontos de apoio dos dados. No par, a cabeça fica oculta, e nas variantes bestiais ela aparece. Recolher, mudar a mão ou ativar movimento reduzido esconde a figura e as mãos da câmera.
+`scene/Vampiro.ts` monta a figura procedural comum aos três presságios. No par, `presencaAt` ergue a figura atrás da parede traseira. O tronco se inclina sobre a borda, com palmas e garras erguidas ao lado dos ombros. Para ajustar a pose, preserve a câmera da casca e use o teste de projeção e folga em `tests/vampiroCena.test.ts`. Consulte [NOTAS.md](NOTAS.md#vampiro) para a malha, as curvas da animação e o aquecimento em `Show.compile`.
 
 ## Consome
 - `arremesso`: `arremesso()`, `useArremesso`, `resultadoPublicado`, `registroDeCorpos` (os corpos dos dados), `omenKinds`, `TRAY`, o tipo `OmenTest`. O `LoopDoArremesso` lê o botão de teste escolhido pela casca (`presagio().omenTest`).

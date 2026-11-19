@@ -46,7 +46,6 @@
 }
 
 .omen-vampiro, .vampiro-sombra, .vampiro-rasgos { position: absolute; inset: 0; }
-.game-area[data-vampiro="par-de-criticos"] canvas { animation: omen-shake 270ms linear var(--vampiro-impacto); }
 .game-area[data-vampiro="critico-bestial"] .omen-vampiro {
   background: radial-gradient(ellipse at 50% 54%, transparent 35%, rgba(105, 8, 31, 0.28) 80%, rgba(52, 0, 13, 0.5));
   animation: omen-in 650ms ease-out both;

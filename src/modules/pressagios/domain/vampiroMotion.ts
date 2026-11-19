@@ -1,22 +1,27 @@
-import { Quaternion, Vector3 } from 'three';
+import { MathUtils, Quaternion, Vector3 } from 'three';
 import { TRAY } from '../../arremesso/index.ts';
 import type { TipoVampiro } from '../../regras/index.ts';
-import { easeOut, span, type Pose, type Vec3 } from '../../../shared/math.ts';
+import { span, type Pose, type Vec3 } from '../../../shared/math.ts';
 import type { MovimentoNoPresagio } from '../contracts.ts';
 
+export const PAR = {
+  surge: 700, revoada: 1000, cobre: 1760, descobre: 2140, sangue: 2900,
+  revela: 3280, mostrado: 3800, sai: 4800, duration: 5600,
+};
+const VOO_DO_PAR = 3000;
+
 export const VAMPIRO_MS: Record<TipoVampiro, number> = {
-  'par-de-criticos': 5600,
+  'par-de-criticos': PAR.duration,
   'critico-bestial': 4600,
   'falha-bestial': 5400,
 };
 
 export const VAMPIRO = {
-  par: { pega: 1500, junta: 2300, prepara: 3000, arremesso: 3400, impacto: 3750, sai: 3800, assenta: 4300 },
   critico: { sobe: 1000, pega: 1500, entrega: 2200, revela: 2800, sai: 3200 },
   falha: { surge: 1500, destapa: 1700, espera: 2700, ataque: 3500, contato: 3590, rasante: 3800, foge: 3900, revela: 4300, some: 5000 },
 };
 
-type Fase = 'entra' | 'pega' | 'junta' | 'prepara' | 'arremesso' | 'assenta' | 'sai'
+type Fase = 'presenca' | 'pega' | 'sai'
   | 'surge' | 'sobe' | 'entrega' | 'tampa' | 'destapa' | 'espera' | 'ataque' | 'foge';
 
 interface Corpo {
@@ -47,7 +52,6 @@ const offset = (p: Vec3, x: number, y: number, z: number): Vec3 => [p[0] + x, p[
 const borda = TRAY.halfWidth + TRAY.wallThickness, fundo = -TRAY.halfDepth - TRAY.wallThickness;
 const CAMERA_PADRAO: Vec3 = [0, 14, 10];
 const olhar = new Vector3(...CAMERA_PADRAO).normalize();
-const segundoDado = (palma: Vec3) => offset(palma, -1.08, 0.6, 0.22);
 const fit = (value: number, limit: number) => Math.max(-limit, Math.min(limit, value));
 
 // The hand travels down to the resting die, meets it, then rises to the carry point.
@@ -61,29 +65,86 @@ const pickupDie = (t: number, start: number, stop: number, die: Vec3, hold: Vec3
   return offset(mix(die, hold, u), x * lift, y * lift, z * lift);
 };
 const ENTREGA_A_FRENTE: Vec3 = [0, 0.25, 2.95];
-const pair = {
-  starts: [VAMPIRO.par.pega, VAMPIRO.par.pega + 125],
-  // Separate the grips in depth and clear the dice still on the felt.
-  arcs: [[0.35, 1.10, -2.35], [1.45, 0.68, 2.25]] satisfies Vec3[],
-  releases: 2860,
-};
-const leftHold: Vec3 = [4.0, 3.25, -0.8], rightHold: Vec3 = [5.9, 3.8, 0.8];
+export function parAt(t: number) {
+  const sai = 1 - MathUtils.smootherstep(t, PAR.sai, PAR.duration);
+  const escorre = 1 - (1 - span(t, PAR.sangue, PAR.sai)) ** 2.25;
+  return {
+    aparece: MathUtils.smootherstep(t, 0, PAR.surge) * sai,
+    revoada: span(t, PAR.revoada, PAR.sangue),
+    sangue: escorre * sai,
+    revela: MathUtils.smootherstep(t, PAR.revela, PAR.mostrado),
+    voo: MathUtils.smootherstep(t, VOO_DO_PAR, PAR.mostrado),
+  };
+}
 
-function transferencia(t: number) {
-  const u = smooth(t, VAMPIRO.par.junta, VAMPIRO.par.prepara);
-  const gap = Math.sin(Math.PI * u);
-  return offset(mix(leftHold, segundoDado(rightHold), u), -2.05 * gap, 0.25 * gap, -0.75 * gap);
+const HORIZONTAL = new Vector3(1, 0, 0);
+const VERTICAL = new Vector3(0, 10, -14).normalize();
+const NORMAL = new Vector3(...CAMERA_PADRAO).normalize();
+const DORSO = new Vector3(0, 1, 0), EIXO_LONGITUDINAL = new Vector3(0, 0, 1);
+const CAMADAS = [
+  { colunas: 20, linhas: 13, profundidade: 0.375, escala: 0.91, varEscala: 0.055 },
+  { colunas: 9, linhas: 9, profundidade: 0.53, escala: 0.79, varEscala: 0.075 },
+  { colunas: 6, linhas: 5, profundidade: 0.842, escala: 0.755, varEscala: 0.024 },
+];
+const BATEDORES = 6, ACIMA_DO_BANDO = 6;
+export const NUMERO_DE_MORCEGOS = CAMADAS.reduce((n, { colunas, linhas }) => n + colunas * linhas + BATEDORES, ACIMA_DO_BANDO);
+export const ENVERGADURA = 1.46;
+export const AMPLITUDE_DA_ASA = MathUtils.degToRad(53);
+const MEIA_ALTURA = Math.tan(MathUtils.degToRad(20)), MEIA_LARGURA = MEIA_ALTURA * 1.6;
+const variacao = (seed: number) => {
+  const value = Math.sin(seed * 17.117 + 21.14) * 43758.5453;
+  return value - Math.floor(value);
+};
+
+const bandos = CAMADAS.flatMap((layer, camada) => {
+  const { colunas, linhas } = layer;
+  return Array.from({ length: colunas * linhas + BATEDORES + (camada === 1 ? ACIMA_DO_BANDO : 0) }, (_, slot) => {
+    const seed = 283 * camada + slot * 2.399963;
+    const scout = slot >= colunas * linhas;
+    const alto = slot - colunas * linhas - BATEDORES;
+    const column = slot % colunas, row = Math.floor(slot / colunas);
+    const dx = 2.13 / colunas, dy = 1.53 / linhas;
+    const borda = 0.095 * Math.sin(row * 1.91 + camada * 1.31);
+    const x = alto >= 0 ? (alto - 2.5) * 0.385 + (variacao(seed) - 0.5) * 0.15 : scout
+      ? (slot % 2 === 0 ? 1 : -1) * (1.31 + 0.24 * variacao(seed + 4))
+      : -1.065 + dx * (column + 0.5 + 1.04 * (variacao(seed) - 0.5)) + borda;
+    const y = alto >= 0 ? 0.67 + (variacao(seed + 19) - 0.5) * 0.11 : scout ? (variacao(seed + 19) - 0.5) * 1.65
+      : -0.765 + dy * (row + 0.5 + 1.04 * (variacao(seed + 25) - 0.5));
+    return {
+      camada, x, y, seed,
+      velocidade: 0.75 + 0.50 * variacao(seed + 11),
+      profundidade: layer.profundidade + (variacao(seed + 8) - 0.5) * 0.018,
+      escala: layer.escala + layer.varEscala * variacao(seed + 7),
+    };
+  });
+});
+
+export function revoadaAt(t: number, camera: Vec3 = CAMERA_PADRAO) {
+  const { revoada: u } = parAt(t);
+  if (u === 0 || u === 1) return [];
+  const sweep = 6.5 * (u - 0.5) - 0.98 * Math.sin((u - 0.5) * 2 * Math.PI);
+  const eye = new Vector3(...camera);
+  const distance = eye.length();
+  return bandos.map((bat) => {
+    const { camada, x, y, seed, escala, velocidade } = bat;
+    const profundidade = bat.profundidade * distance + 0.075 * Math.sin(t * 0.005 + seed);
+    const frequencia = 7.3 + Math.cos(seed) * 0.85;
+    const fase = t / 1000 * frequencia * 2 * Math.PI + seed;
+    const passage = x + sweep * velocidade + 0.034 * Math.sin(t * 0.003 + seed);
+    const altura = y + 0.055 * Math.sin(t * 0.0057 + seed);
+    const p = eye.clone().addScaledVector(NORMAL, -profundidade)
+      .addScaledVector(HORIZONTAL, passage * profundidade * MEIA_LARGURA)
+      .addScaledVector(VERTICAL, altura * profundidade * MEIA_ALTURA);
+    const rumo = -0.19 + MathUtils.degToRad(20) * Math.sin(t * 0.003 + seed);
+    const dorsal = eye.clone().sub(p).normalize();
+    const orientacao = new Quaternion().setFromUnitVectors(DORSO, dorsal)
+      .multiply(new Quaternion().setFromAxisAngle(DORSO, rumo))
+      .multiply(new Quaternion().setFromAxisAngle(EIXO_LONGITUDINAL, 0.20 * Math.cos(t * 0.008 + seed)));
+    return { p, rumo, fase, escala, orientacao, frequencia, velocidade, camada, batida: AMPLITUDE_DA_ASA * Math.sin(fase) ** 3 };
+  });
 }
 
 export function fechamentoDaPegada(tipo: TipoVampiro, t: number): readonly [number, number] {
-  if (tipo === 'par-de-criticos') {
-    const closes = (slot: number) => {
-      const reach = contact(pair.starts[slot], VAMPIRO.par.junta);
-      return smooth(t, reach - 45, reach + 92);
-    };
-    return [closes(0) * (1 - smooth(t, pair.releases - 55, pair.releases + 50)),
-      closes(1) * (1 - smooth(t, VAMPIRO.par.arremesso - 75, VAMPIRO.par.arremesso + 28))];
-  }
   if (tipo === 'critico-bestial') {
     const { pega, entrega, sai } = VAMPIRO.critico, reach = contact(pega, entrega);
     return [0, smooth(t, reach - 40, reach + 110) * (1 - smooth(t, sai - 120, sai))];
@@ -91,36 +152,20 @@ export function fechamentoDaPegada(tipo: TipoVampiro, t: number): readonly [numb
   return [0, 0];
 }
 
-function parAt(t: number, [a, b]: readonly Vec3[]): Quadro {
-  const m = VAMPIRO.par;
-  const enter = smooth(t, 0, m.pega), exit = smooth(t, m.sai, VAMPIRO_MS['par-de-criticos']);
-  const step = Math.sin(t / 98) * (Math.sin(Math.PI * enter) + Math.sin(Math.PI * exit));
-  const stance: Vec3 = [borda + 1.85, -3.35, -2.25];
-  const walking = t < m.sai ? mix([borda + 7.1, -3.35, -1.85], stance, enter)
-    : mix(stance, [borda + 5.9, -3.35, -1.55], exit);
-  const ready = smooth(t, m.prepara, m.arremesso), cast = smooth(t, m.arremesso, m.impacto);
-  const reach = smooth(t, 1070, 1700) * (1 - 0.85 * smooth(t, 1770, m.junta));
-  const corpo: Corpo = {
-    p: offset(walking, 0, 0.20 * Math.abs(step), 0),
-    yaw: -1.24 + 2.55 * smooth(t, m.sai, m.sai + 510) + 0.28 * ready * (1 - cast),
-    lean: 0.29 + 0.52 * reach + 0.2 * cast * (1 - smooth(t, m.impacto, m.assenta)),
-    crouch: reach * 0.18, step, visivel: t < VAMPIRO_MS['par-de-criticos'],
+function presencaAt(t: number): Quadro {
+  const { aparece } = parAt(t);
+  // The torso leans over the lip while the hands rise to either side of it.
+  const avanco = MathUtils.smoothstep(aparece, 0.70, 1);
+  const ergue = MathUtils.smoothstep(aparece, 0.1, 1);
+  const altura = -10.25 + ergue * (8.38 + 0.014 * Math.sin(t / 450));
+  const p: Vec3 = [0, altura, fundo - 5.00 + 3.463 * avanco];
+  const mao = (side: number): Vec3 => [side * (1.45 + 0.39 * avanco),
+    altura + 5.94 + 0.020 * Math.sin(t / 530 + side * 0.4), p[2] + 2.50 + 1.83 * avanco];
+  return {
+    fase: 'presenca', cobertura: 0,
+    corpo: { p, yaw: 0, lean: 1.105 + 0.006 * Math.sin(t / 550), crouch: 0, step: 0, visivel: aparece > 0 },
+    esquerda: mao(-1), direita: mao(1),
   };
-  const leftStart: Vec3 = [6.5, 2.75, -2.2], rightStart: Vec3 = [7.1, 3.15, 1.1];
-  const shift = walking[0] - stance[0];
-  const leftIdle = offset(leftStart, shift, 0.27 * step, 0.5 * step);
-  const rightIdle = offset(rightStart, shift, -0.27 * step, -0.52 * step);
-  const wind = mix(rightHold, [6.5, 5.1, -0.25], ready);
-  const throwTo = mix(wind, [2.0, 5.35, 3.8], cast);
-  const direita = t < m.pega ? rightIdle : t < m.junta
-    ? pickupHand(t, pair.starts[1], m.junta, rightStart, b ?? rightHold, rightHold, pair.arcs[1])
-    : mix(throwTo, rightIdle, smooth(t, m.impacto, m.assenta));
-  const esquerda = t < m.pega ? leftIdle : t < m.junta
-    ? pickupHand(t, pair.starts[0], m.junta, leftStart, a ?? leftHold, leftHold, pair.arcs[0])
-    : mix(transferencia(Math.min(t, pair.releases)), leftIdle, smooth(t, pair.releases, m.arremesso));
-  const fase = t < m.pega ? 'entra' : t < m.junta ? 'pega' : t < m.prepara ? 'junta'
-    : t < m.arremesso ? 'prepara' : t < m.impacto ? 'arremesso' : t < m.sai ? 'assenta' : 'sai';
-  return { fase, corpo, esquerda, direita, cobertura: 0 };
 }
 
 function criticoAt(t: number, die: Vec3 | undefined, carried: Vec3 | undefined): Quadro {
@@ -184,7 +229,7 @@ function falhaAt(t: number, die: Vec3 | undefined, carried: Vec3 | undefined): Q
 // World-space grips. The renderer reads the live carried die only in the delivery and lunge.
 export function vampiroAt(tipo: TipoVampiro, t: number, origins: readonly Vec3[] = [], carried?: Vec3): Quadro {
   switch (tipo) {
-    case 'par-de-criticos': return parAt(t, origins);
+    case 'par-de-criticos': return presencaAt(t);
     case 'critico-bestial': return criticoAt(t, origins[0], carried);
     case 'falha-bestial': return falhaAt(t, origins[0], carried);
   }
@@ -192,30 +237,6 @@ export function vampiroAt(tipo: TipoVampiro, t: number, origins: readonly Vec3[]
 
 function poseAt(de: Pose, para: Pose, p: Vec3, u: number): Pose {
   return { p, q: new Quaternion(...de.q).slerp(new Quaternion(...para.q), u).toArray() };
-}
-
-function parDieAt(t: number, slot: number, de: Pose, para: Pose, camera: Vec3): Pose {
-  const m = VAMPIRO.par;
-  if (t < m.pega) return de;
-  if (t >= m.assenta) return para;
-  const grip = (ms: number) => {
-    const { direita } = vampiroAt('par-de-criticos', ms);
-    // The two dice occupy separate positions once they share the right palm.
-    return slot === 0 ? (ms < m.prepara ? transferencia(ms) : segundoDado(direita)) : direita;
-  };
-  const hold = grip(m.junta);
-  const eye = new Vector3(...camera), axis = eye.clone().normalize();
-  const relativeWidth = Math.min(1, Math.hypot(14, 10) / eye.length()), side = slot === 0 ? -1 : 1;
-  const near = eye.addScaledVector(axis, -2.5);
-  near.x += side * 0.67 * relativeWidth;
-  near.addScaledVector(new Vector3(0, axis.z, -axis.y), side * (1 - relativeWidth) * 0.86);
-  const impact = near.toArray();
-  let p: Vec3;
-  if (t < m.junta) p = pickupDie(t, pair.starts[slot], m.junta, de.p, hold, pair.arcs[slot]);
-  else if (t < m.arremesso) p = grip(t);
-  else if (t < m.impacto) p = mix(grip(m.arremesso), impact, easeOut(span(t, m.arremesso, m.impacto)));
-  else p = mix(impact, para.p, smooth(t, m.impacto, m.assenta));
-  return poseAt(de, para, p, smooth(t, m.pega + 280, m.impacto));
 }
 
 function bestialDieAt(tipo: 'critico-bestial' | 'falha-bestial', t: number, de: Pose, para: Pose): Pose {
@@ -237,12 +258,15 @@ function bestialDieAt(tipo: 'critico-bestial' | 'falha-bestial', t: number, de: 
   return poseAt(de, para, p, smooth(t, m.contato, m.rasante));
 }
 
-export function vampiroDieAt(tipo: TipoVampiro, slot: number, t: number, de: Pose, para: Pose, camera = CAMERA_PADRAO): MovimentoNoPresagio {
-  const { par, critico, falha } = VAMPIRO;
+export function vampiroDieAt(tipo: TipoVampiro, t: number, de: Pose, para: Pose): MovimentoNoPresagio {
+  const { critico, falha } = VAMPIRO;
   const fim = VAMPIRO_MS[tipo];
   switch (tipo) {
-    case 'par-de-criticos':
-      return { pose: parDieAt(t, slot, de, para, camera), revela: span(t, par.impacto, par.assenta), sombra: par.pega, fim };
+    case 'par-de-criticos': {
+      const { revela, voo } = parAt(t);
+      const pose = voo === 0 ? de : voo === 1 ? para : poseAt(de, para, mix(de.p, para.p, voo), voo);
+      return { pose, revela, sombra: VOO_DO_PAR, fim };
+    }
     case 'critico-bestial':
       return { pose: bestialDieAt(tipo, t, de, para), revela: span(t, critico.revela, critico.sai), sombra: critico.pega, fim };
     case 'falha-bestial':

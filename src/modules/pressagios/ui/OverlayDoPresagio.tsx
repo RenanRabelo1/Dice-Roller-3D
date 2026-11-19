@@ -23,7 +23,7 @@ const SAY: Record<OmenKind, string> = { crit: 'Crítico!', fumble: 'Falha críti
 const SAY_VAMPIRO: Record<TipoVampiro, string> = {
   'par-de-criticos': 'Crítico em par!', 'critico-bestial': 'Crítico bestial!', 'falha-bestial': 'Falha bestial!',
 };
-const { par, falha } = VAMPIRO;
+const { falha } = VAMPIRO;
 const FALHA_CSS = {
   '--fecha': `${falha.destapa}ms`, '--abertura': `${falha.espera - falha.destapa}ms`,
   '--rasgos-em': `${falha.ataque}ms`, '--rasgos-ms': `${falha.revela - falha.ataque}ms`,
@@ -52,11 +52,9 @@ export function OverlayDoPresagio({ gameArea }: { gameArea: RefObject<HTMLDivEle
     area.toggleAttribute('data-kraken', kraken);
     area.toggleAttribute('data-storm', storm);
     if (tipo) area.setAttribute('data-vampiro', tipo); else area.removeAttribute('data-vampiro');
-    if (tipo === 'par-de-criticos') area.style.setProperty('--vampiro-impacto', `${par.impacto}ms`);
     return () => {
       area.removeAttribute('data-omen'); area.removeAttribute('data-kraken'); area.removeAttribute('data-storm');
       area.removeAttribute('data-vampiro');
-      if (tipo === 'par-de-criticos') area.style.removeProperty('--vampiro-impacto');
     };
   }, [gameArea, kind, kraken, storm, tipo]);
   if (!live) return null;
