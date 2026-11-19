@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { AnimationClip, BoxGeometry, Group, Mesh, MeshStandardMaterial, PerspectiveCamera, Scene, Vector3, VectorKeyframeTrack, type WebGLRenderer } from 'three';
+import { AnimationClip, BoxGeometry, Group, Mesh, Object3D, MeshStandardMaterial, PerspectiveCamera, Scene, Vector3, VectorKeyframeTrack, type WebGLRenderer } from 'three';
 import { arremesso, input, publish } from '../../arremesso/index.ts';
 import { definir } from '../../selecao/index.ts';
 import { definirMovimentoReduzido } from '../../../shared/plataforma/index.ts';
+import type { Vec3 } from '../../../shared/math.ts';
 import { presagio, reiniciarPresagio } from '../index.ts';
 import { PAR } from '../domain/vampiroMotion.ts';
 import { Show } from '../scene/PresagiosNaCena.tsx';
@@ -145,5 +146,88 @@ describe('Show com o vampiro em GLB', () => {
     em(PAR.cobre + 1);
     expect(glb.visible).toBe(false);
     show.dispose();
+  });
+});
+
+// A fake skeleton with the sanitized names the GLTFLoader gives: the arm bones lie along world x (the local +Y of each
+// bone, turned by the rest rotation), each child 1 unit down the parent's +Y, so with the 7.5 scale l1 = l2 = 7.5.
+function esqueleto() {
+  const objeto = new Group(), peito = new Object3D();
+  peito.name = 'peito';
+  objeto.add(peito);
+  const osso = (nome: string, pai: Object3D, p: [number, number, number], giro = 0) => {
+    const o = new Object3D();
+    o.name = nome; o.position.set(...p); o.rotation.z = giro;
+    pai.add(o);
+    return o;
+  };
+  const bracos = { L: [0.2, 1.5, 0, -Math.PI / 2], R: [-0.2, 1.5, 0, Math.PI / 2] } as const;
+  const ossos: Record<string, Object3D> = {};
+  for (const c of ['L', 'R'] as const) {
+    const [x, y, z, giro] = bracos[c];
+    const braco = osso('braco' + c, peito, [x, y, z], giro), ante = osso('antebraco' + c, braco, [0, 1, 0]), mao = osso('mao' + c, ante, [0, 1, 0]);
+    Object.assign(ossos, { ['braco' + c]: braco, ['antebraco' + c]: ante, ['mao' + c]: mao });
+  }
+  ossos.cabeca = osso('cabeca', peito, [0, 1.7, 0.08]);
+  return { objeto, ossos };
+}
+const mundo = (o: Object3D) => o.getWorldPosition(new Vector3());
+
+
+describe('VampiroGlb, o bote nos dados reais', () => {
+  const preparar = () => {
+    const glb = new VampiroGlb(), { objeto, ossos } = esqueleto();
+    glb.anexar(objeto);
+    glb.update(1000);
+    return { glb, ossos };
+  };
+  const ombro = (ossos: Record<string, Object3D>) => mundo(ossos.bracoL);
+
+  it('puts the left wrist on the die offset when it is within reach, without touching bone lengths', () => {
+    const { glb, ossos } = preparar();
+    const rest = Object.fromEntries(Object.entries(ossos).map(([n, o]) => [n, [o.position.toArray(), o.scale.toArray()]]));
+    const S = ombro(ossos), alvoPunho = S.clone().add(new Vector3(3, -4, 5));
+    const dado = alvoPunho.clone().sub(new Vector3(0, 0.62, -0.55));
+    glb.update(3450, { dado: dado.toArray(), dados: [dado.toArray()] });
+    expect(mundo(ossos.maoL).distanceTo(alvoPunho)).toBeLessThan(1e-4);
+    for (const [n, o] of Object.entries(ossos)) expect([n, o.position.toArray(), o.scale.toArray()]).toEqual([n, ...rest[n]]);
+  });
+
+  it('stretches to 0.999 of the reach and stops, toward a die that is too far', () => {
+    const { glb, ossos } = preparar();
+    const S = ombro(ossos), dado = S.clone().add(new Vector3(0, -2, 40));
+    glb.update(3450, { dado: dado.toArray(), dados: [dado.toArray()] });
+    expect(mundo(ossos.maoL).distanceTo(S)).toBeCloseTo(0.999 * 15, 3);
+    expect(mundo(ossos.antebracoL).distanceTo(S)).toBeCloseTo(7.5, 4);
+  });
+
+  it('keeps the clip rotations outside the lunge window', () => {
+    const { glb, ossos } = preparar();
+    const antes = Object.fromEntries(Object.entries(ossos).map(([n, o]) => [n, o.quaternion.toArray()]));
+    const dado: Vec3 = [0, 0.8, 0];
+    for (const t of [500, 2900, 3900, 5000]) {
+      glb.update(t, { dado, dados: [dado] });
+      for (const [n, o] of Object.entries(ossos)) expect([t, n, o.quaternion.toArray()]).toEqual([t, n, antes[n]]);
+    }
+  });
+
+  it('does nothing without a die, or when the model lacks the arm bones', () => {
+    const { glb, ossos } = preparar();
+    const antes = ossos.bracoL.quaternion.toArray();
+    glb.update(3450, { dado: null, dados: [] });
+    expect(ossos.bracoL.quaternion.toArray()).toEqual(antes);
+    const sem = new VampiroGlb();
+    sem.anexar(falso().objeto);
+    expect(() => sem.update(3450, { dado: [0, 0, 0], dados: [[0, 0, 0]] })).not.toThrow();
+  });
+
+  it('moves the right wrist off any die closer than 1.3 units, within x -5.5..-2', () => {
+    const { glb, ossos } = preparar();
+    const mao = mundo(ossos.maoR), dado: Vec3 = [mao.x, 0.8, mao.z];
+    glb.update(3450, { dado: null, dados: [dado] });
+    const depois = mundo(ossos.maoR);
+    expect(depois.x).toBeGreaterThanOrEqual(-5.5 - 1e-3);
+    expect(depois.x).toBeLessThanOrEqual(-2 + 1e-3);
+    expect(Math.hypot(depois.x - dado[0], depois.z - dado[2])).toBeGreaterThanOrEqual(1.3 - 1e-3);
   });
 });

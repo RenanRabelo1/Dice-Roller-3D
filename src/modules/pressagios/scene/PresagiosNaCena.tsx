@@ -265,7 +265,12 @@ export class Show {
           if (pos) otherDice.push(pos.toArray());
         });
       }
-      if (vampiro.tipo === 'par-de-criticos' && this.vampiroGlb.pronto) { this.vampiro.hide(); this.vampiroGlb.update(t); }
+      if (vampiro.tipo === 'par-de-criticos' && this.vampiroGlb.pronto) {
+        const dados: Vec3[] = [];
+        s.dice.forEach((_, i) => { const pos = at(i); if (pos) dados.push(pos.toArray()); });
+        this.vampiro.hide();
+        this.vampiroGlb.update(t, { dado: this.vampiroGlb.maisPertoDoOmbro(r.origins), dados }); // the lunge aims at the real die
+      }
       else this.vampiro.update(vampiro.tipo, t, camera, r.origins, at(vampiro.dados[0])?.toArray(), otherDice);
       if (vampiro.tipo === 'par-de-criticos') {
         this.morcegos.update(t, camera);
