@@ -19,7 +19,7 @@ import { coresDaMesa } from '../../mesa/index.ts';
 import { Fire } from './Fire.ts';
 import { Vampiro } from './Vampiro.ts';
 import { VampiroGlb } from './VampiroGlb.ts';
-import { parseGlb } from '../../../shared/modelos3d/ler.ts';
+import { parseGlb } from '../../../shared/modelos3d/index.ts';
 import { Morcegos } from './Morcegos.ts';
 import { Sangue } from './Sangue.ts';
 
@@ -30,7 +30,7 @@ import { Sangue } from './Sangue.ts';
 // ends it marks the omen done, and the result goes on.
 
 const ARQUIVO_DO_VAMPIRO = `${import.meta.env.BASE_URL}modelos/vampiro.glb`;
-const easeOutCubica =(t: number) => 1 - (1 - clamp01(t)) ** 3;
+const easeOutCubica = (t: number) => 1 - (1 - clamp01(t)) ** 3;
 const easeIn = (t: number) => clamp01(t) ** 3;
 
 function glowTexture(): CanvasTexture {

@@ -112,3 +112,18 @@ Commits pequenos no padrão `feat(pressagios): … [OS-0101]`, no branch da sua 
 - o resultado do gate.
 
 Deixe o `npm run dev:test` no ar no fim, para o usuário conferir o visual.
+
+## Resultado
+
+Integrada em dois ciclos. No primeiro, o dev entregou o código (T1 a T4 e T6) e parou na T5: com o tronco a 32°, só o busto passava da parede de trás, cerca de 11% da viewport. O orquestrador refez a pose no Blender, com uns 60° de inclinação e as garras para a frente (`5deb7f4`), e o dev recalibrou.
+
+- **Calibração:** `ESCALA_DO_GLB = 7,5` e `DESLOCAMENTO_DO_GLB = [0, -6.8, 0.5]`. As capturas `screens/os0101-par-<ms>.png` ficam fora do git.
+- **Revisão do orquestrador:**
+  - o `parseGlb` passou a vir da porta `shared/modelos3d/index.ts`;
+  - `modelos3d` entrou no "Consome" do `CLAUDE.md` do módulo.
+- **Verificação:** `npm run build`, `npm run lint` e `npm test` passam, com 682 testes em 86 arquivos. Sem E2E.
+- **Para a versão final (H3.1), no Blender:**
+  - a cabeça olha para baixo em vez de encarar a câmera;
+  - a garra esquerda passa por cima de um dado perto da parede de trás;
+  - os ombros incham na deformação;
+  - a roupa fica acinzentada com a luz da cena.

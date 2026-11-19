@@ -34,7 +34,7 @@ Decidir se um resultado publicado tem presságio e mostrá-lo antes do resultado
 ## Consome
 - `arremesso`: `arremesso()`, `useArremesso`, `resultadoPublicado`, `registroDeCorpos` (os corpos dos dados), `omenKinds`, `TRAY`, o tipo `OmenTest`. O `LoopDoArremesso` lê o botão de teste escolhido pela casca (`presagio().omenTest`).
 - `mesa`: `ocultarPiso`, `coresDaMesa`. `dados`: `paraRegras`, `sortDice`. `regras`: `omenOf`, `omenKind`, `presagioVampiro`, `MAX_DICE`. `selecao`: `selecao()`, `definir`.
-- `src/shared`: `plataforma` (`movimentoReduzido`, `aoMudarMovimentoReduzido`), `math` (`Pose`, `easeOut`, `span`, `clamp01`).
+- `src/shared`: `plataforma` (`movimentoReduzido`, `aoMudarMovimentoReduzido`), `math` (`Pose`, `easeOut`, `span`, `clamp01`), `modelos3d` (`parseGlb`, para o vampiro do par).
 
 ## Fora do escopo
 - O voo comum, os números em destaque e o painel do resultado: `vitrine` (ver `src/modules/vitrine/CLAUDE.md`).
