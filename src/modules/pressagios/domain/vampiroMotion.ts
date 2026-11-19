@@ -152,7 +152,20 @@ export function fechamentoDaPegada(tipo: TipoVampiro, t: number): readonly [numb
   return [0, 0];
 }
 
-function presencaAt(t: number): Quadro {
+// Each lane contains both the raised hand and the forearm at full extension.
+// The three last lanes are spaced so that one die can block at most one of them.
+export const BRACOS_DO_PAR = { x: 0.83, z: 0.82, folga: 1.5 };
+const FAIXAS_DO_PAR = [[2.28, -2.0], [3.30, -2.0], [2.28, -0.75], [4.45, -2.0], [3.35, 0.45],
+  [2.03, -2.0], [6.79, -2.0], [4.40, 2.92]] as const;
+
+function faixaDasMaos(origins: readonly Vec3[]) {
+  const { x, z, folga } = BRACOS_DO_PAR;
+  return FAIXAS_DO_PAR.find(([width, depth]) => origins.every(([dieX, , dieZ]) =>
+    Math.hypot(Math.max(0, Math.abs(Math.abs(dieX) - width) - x), Math.max(0, Math.abs(dieZ - depth) - z)) >= folga))
+    ?? FAIXAS_DO_PAR[0];
+}
+
+function presencaAt(t: number, origins: readonly Vec3[]): Quadro {
   const { aparece } = parAt(t);
   // The torso leans over the lip while the hands rise to either side of it.
   const avanco = MathUtils.smoothstep(aparece, 0.89, 1);
@@ -161,8 +174,11 @@ function presencaAt(t: number): Quadro {
   const recuo = 0.79 * MathUtils.smoothstep(aparece, 0.65, 0.86) * (1 - MathUtils.smoothstep(aparece, 0.90, 0.99));
   const altura = -8.8 + impulso + ergue * (6.99 + 0.018 * Math.sin(t / 450));
   const p: Vec3 = [0, altura - recuo, fundo - 2.75 + 0.81 * avanco];
-  const mao = (side: number): Vec3 => [side * (1.02 + 1.02 * avanco),
-    altura + 3.04 + 1.40 * avanco + 0.025 * Math.sin(t / 530 + side * 0.4), p[2] + 1.10 + 0.59 * avanco];
+  const [width, depth] = faixaDasMaos(origins);
+  const levanta = MathUtils.smoothstep(aparece, 0.8, 0.96);
+  const mao = (side: number): Vec3 => [side * MathUtils.lerp(1.02, width, avanco),
+    altura + 3.04 + (1.97 + 0.94 * (depth + 2.0)) * levanta + 0.014 * Math.sin(t / 530 + side * 0.4),
+    MathUtils.lerp(p[2] + 1.10, depth, avanco)];
   return {
     fase: 'presenca', cobertura: 0,
     corpo: { p, yaw: 0, lean: 0.53 + 0.145 * avanco + 0.010 * Math.sin(t / 550), crouch: 0, step: 0, visivel: aparece > 0 },
@@ -231,7 +247,7 @@ function falhaAt(t: number, die: Vec3 | undefined, carried: Vec3 | undefined): Q
 // World-space grips. The renderer reads the live carried die only in the delivery and lunge.
 export function vampiroAt(tipo: TipoVampiro, t: number, origins: readonly Vec3[] = [], carried?: Vec3): Quadro {
   switch (tipo) {
-    case 'par-de-criticos': return presencaAt(t);
+    case 'par-de-criticos': return presencaAt(t, origins);
     case 'critico-bestial': return criticoAt(t, origins[0], carried);
     case 'falha-bestial': return falhaAt(t, origins[0], carried);
   }

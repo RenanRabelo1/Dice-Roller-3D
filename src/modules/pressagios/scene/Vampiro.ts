@@ -279,7 +279,7 @@ function bendArm(arm: Arm, root: Group, torso: Group, grip: Vec3, camera: Camera
   const bend = new Vector3(side * 0.78, -1, -0.26);
   bend.addScaledVector(direction, -bend.dot(direction)).normalize();
   const elbow = shoulder.clone().lerp(wrist, 0.47);
-  if (presenca) elbow.add(new Vector3(side * 0.27, 0.17, 0.10));
+  if (presenca) elbow.copy(wrist).add(new Vector3(side * 0.12, 0.26, -0.82).divideScalar(root.scale.x));
   else elbow.addScaledVector(bend, Math.sqrt(Math.max(0.025, 0.91 ** 2 - half ** 2)));
   const link = (o: Mesh | Group, a: Vector3, b: Vector3) => {
     const axis = b.clone().sub(a);

@@ -127,8 +127,8 @@ describe('Vampire motion', () => {
       expect(corpo.lean * 180 / Math.PI).toBeLessThanOrEqual(40);
       if (t >= PAR.surge && t <= PAR.sai) {
         for (const hand of [esquerda, direita]) {
-          expect(hand[2]).toBeLessThan(back);
-          expect(hand[1]).toBeGreaterThan(TRAY.wallHeight + 0.4);
+          expect(hand[1]).toBeGreaterThan(2.5);
+          for (const [x, , z] of origins) expect(Math.hypot(hand[0] - x, hand[2] - z)).toBeGreaterThanOrEqual(1.5);
         }
       }
       expect(fechamentoDaPegada(type, t)).toEqual([0, 0]);
