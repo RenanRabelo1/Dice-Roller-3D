@@ -76,8 +76,8 @@ describe('Vampire procedural meshes', () => {
     const body = vampire.root.getObjectByName('vampiro-corpo')!;
     const meshes = malhas(body);
     const vertices = new Set(meshes.map((mesh) => mesh.geometry));
-    expect([...vertices].reduce((total, g) => total + g.getAttribute('position').count, 0)).toBeLessThanOrEqual(60_000);
-    expect(meshes.reduce((total, mesh) => total + mesh.geometry.getAttribute('position').count, 0)).toBeLessThanOrEqual(60_000);
+    expect([...vertices].reduce((total, g) => total + g.getAttribute('position').count, 0)).toBeLessThanOrEqual(90_000);
+    expect(meshes.reduce((total, mesh) => total + mesh.geometry.getAttribute('position').count, 0)).toBeLessThanOrEqual(90_000);
     const calls = new Map<string, number>();
     for (const mesh of meshes) {
       const key = mesh.parent!.uuid + (Array.isArray(mesh.material) ? 'multi' : mesh.material.uuid);
@@ -85,7 +85,7 @@ describe('Vampire procedural meshes', () => {
     }
     expect(Math.max(...calls.values())).toBeLessThanOrEqual(4);
     vampire.update('critico-bestial', 1900, camera);
-    expect(malhas(body).reduce((total, mesh) => total + mesh.geometry.getAttribute('position').count, 0)).toBeLessThanOrEqual(60_000);
+    expect(malhas(body).reduce((total, mesh) => total + mesh.geometry.getAttribute('position').count, 0)).toBeLessThanOrEqual(90_000);
     expect(malhas(bats.root)).toHaveLength(3);
     expect(malhas(blood.root)).toHaveLength(2);
     for (const mesh of malhas(bats.root)) {

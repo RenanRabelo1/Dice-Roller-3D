@@ -115,7 +115,7 @@ describe('Vampire motion', () => {
     expect(vampiroAt(v.tipo, 5000).corpo.visivel).toBe(false);
   });
 
-  it('keeps the pair centered behind the back wall and the waiting attacker behind it', () => {
+  it('leans over the rear lip with open hands while its feet and the waiting attacker stay behind it', () => {
     const origins: Vec3[] = [[-6, 0.7, -3.5], [3, 0.7, 3.5]];
     const type = 'par-de-criticos';
     const back = -TRAY.halfDepth - TRAY.wallThickness;
@@ -123,8 +123,14 @@ describe('Vampire motion', () => {
       const { corpo, esquerda, direita } = vampiroAt(type, t, origins);
       expect(corpo.p[0]).toBe(0);
       expect(corpo.p[2]).toBeLessThan(back);
-      expect(esquerda[2]).toBeLessThan(back);
-      expect(direita[2]).toBeLessThan(back);
+      expect(corpo.lean * 180 / Math.PI).toBeGreaterThanOrEqual(25);
+      expect(corpo.lean * 180 / Math.PI).toBeLessThanOrEqual(40);
+      if (t >= PAR.surge && t <= PAR.sai) {
+        for (const hand of [esquerda, direita]) {
+          expect(hand[2]).toBeGreaterThan(-TRAY.halfDepth);
+          expect(hand[1]).toBeGreaterThan(TRAY.wallHeight + 0.15);
+        }
+      }
       expect(fechamentoDaPegada(type, t)).toEqual([0, 0]);
     }
     expect(vampiroAt(type, PAR.surge).corpo.p[1]).toBeGreaterThan(vampiroAt(type, 0).corpo.p[1]);

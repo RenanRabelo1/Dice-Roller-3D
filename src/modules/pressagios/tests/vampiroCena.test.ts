@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { Box3, InstancedMesh, Mesh, PerspectiveCamera, Scene, Vector3, type BufferGeometry, type Material, type Object3D, type WebGLRenderer } from 'three';
+import { Box3, InstancedMesh, Line3, Mesh, PerspectiveCamera, Ray, Scene, Triangle, Vector3, type BufferGeometry, type Material, type Object3D, type WebGLRenderer } from 'three';
 import { arremesso, input, publish, TRAY } from '../../arremesso/index.ts';
 import { definir } from '../../selecao/index.ts';
 import { definirMovimentoReduzido } from '../../../shared/plataforma/index.ts';
@@ -37,6 +37,72 @@ function showOfScene() {
 }
 
 const target = () => new Vector3(0, 0.7, 0);
+const { halfWidth: w, halfDepth: d, wallThickness: thick, wallHeight: h } = TRAY;
+const volume = (minX: number, minY: number, minZ: number, maxX: number, maxY: number, maxZ: number) =>
+  new Box3(new Vector3(minX, minY, minZ), new Vector3(maxX, maxY, maxZ));
+const tray = [
+  volume(-w - thick, 0, -d - thick, w + thick, h, -d),
+  volume(-w - thick, 0, d, w + thick, h, d + thick),
+  volume(-w - thick, 0, -d, -w, h, d), volume(w, 0, -d, w + thick, h, d),
+  volume(-w, -0.12, -d, w, 0, d),
+];
+const FOLGA = 0.15;
+const walls = tray.map((box) => {
+  const corners = Array.from({ length: 8 }, (_, i) => new Vector3(
+    (i & 1 ? box.max : box.min).x, (i & 2 ? box.max : box.min).y, (i & 4 ? box.max : box.min).z));
+  const edges = corners.flatMap((corner, i) => [1, 2, 4].filter((bit) => !(i & bit))
+    .map((bit) => new Line3(corner, corners[i ^ bit])));
+  return { box, expanded: box.clone().expandByScalar(FOLGA), corners, edges };
+});
+
+function triangleIsClear(triangle: Triangle, wall: (typeof walls)[number], point: Vector3) {
+  if (!wall.expanded.intersectsTriangle(triangle)) return true;
+  if (wall.box.intersectsTriangle(triangle)) return false;
+  const vertices = [triangle.a, triangle.b, triangle.c];
+  if (vertices.some((p) => wall.box.distanceToPoint(p) < FOLGA)) return false;
+  if (wall.corners.some((corner) => triangle.closestPointToPoint(corner, point).distanceToSquared(corner) < FOLGA ** 2)) return false;
+  // Disjoint convex surfaces approach at a vertex/face or along two edges.
+  return vertices.every((p, i) => {
+    const side = new Line3(p, vertices[(i + 1) % 3]);
+    return wall.edges.every((edge) => side.distanceSqToLine3(edge) >= FOLGA ** 2);
+  });
+}
+
+function projectVampire(body: Object3D, head: Object3D) {
+  const bounds = new Box3(), skull = new Box3();
+  const ray = new Ray(camera.position.clone());
+  const hit = new Vector3(), point = new Vector3(), triangle = new Triangle();
+  const clear = new Box3();
+  let collision = '';
+  body.updateWorldMatrix(true, true);
+  body.traverse((mesh) => {
+    if (!(mesh instanceof Mesh)) return;
+    const isHead = mesh.parent === head;
+    const { geometry, matrixWorld } = mesh;
+    const vertices = geometry.getAttribute('position');
+    const worldPoints = Array.from({ length: vertices.count }, (_, i) =>
+      new Vector3().fromBufferAttribute(vertices, i).applyMatrix4(matrixWorld));
+    for (const vertex of worldPoints) {
+      const distance = ray.direction.subVectors(vertex, ray.origin).length();
+      ray.direction.divideScalar(distance);
+      const hidden = tray.some((box) => ray.intersectBox(box, hit) && hit.distanceTo(ray.origin) < distance - 0.0001);
+      if (!hidden) bounds.expandByPoint(point.copy(vertex).project(camera));
+      if (isHead) skull.expandByPoint(point.copy(vertex).project(camera));
+    }
+    clear.setFromPoints(worldPoints);
+    const near = walls.filter(({ expanded }) => expanded.intersectsBox(clear));
+    if (!near.length) return;
+    const index = geometry.getIndex()!;
+    for (let i = 0; i < index.count; i += 3) {
+      triangle.set(worldPoints[index.getX(i)], worldPoints[index.getX(i + 1)], worldPoints[index.getX(i + 2)]);
+      if (near.some((wall) => !triangleIsClear(triangle, wall, point))) {
+        collision = mesh.name || (mesh.material as Material).name;
+        break;
+      }
+    }
+  });
+  return { bounds, skull, collision };
+}
 const roll = () => {
   const source = { kind: 'key' } as const;
   definir(['vtm', 'vtm']);
@@ -75,8 +141,8 @@ describe('Vampire scene', () => {
     const vampire = new Vampiro();
     const first = resources(vampire.root);
     expect(first.geometries.size).toBeGreaterThan(0);
-    expect(first.geometries.size).toBeLessThanOrEqual(32);
-    expect(first.materials.size).toBeLessThanOrEqual(12);
+    expect(first.geometries.size).toBeLessThanOrEqual(33);
+    expect(first.materials.size).toBeLessThanOrEqual(15);
     vampire.update('par-de-criticos', 1900, camera, [[1, 0.8, -1], [2, 0.8, 1]]);
     expect(vampire.root.getObjectByName('vampiro-cabeca')?.visible).toBe(true);
     vampire.update('critico-bestial', 1980, camera, [[1, 0.8, -1]]);
@@ -104,50 +170,42 @@ describe('Vampire scene', () => {
     for (const release of releases) expect(release).toHaveBeenCalledTimes(1);
   });
 
-  it('keeps the entire pair figure beyond the outer face of the back wall', () => {
-    const vampire = new Vampiro();
-    const body = vampire.root.getObjectByName('vampiro-corpo')!;
-    for (const t of [400, 900, PAR.cobre, PAR.sai, 5200]) {
-      vampire.update('par-de-criticos', t, camera);
-      expect(new Box3().setFromObject(body, true).max.z).toBeLessThan(-TRAY.halfDepth - TRAY.wallThickness);
-    }
-    vampire.dispose();
-  });
-
-  it('holds the pair figure above the wall at the waist during its presence', () => {
-    const vampire = new Vampiro();
-    const body = vampire.root.getObjectByName('vampiro-corpo')!;
-    for (const t of [900, 3100, 4300]) {
-      vampire.update('par-de-criticos', t, camera);
-      const waist = body.localToWorld(new Vector3(0, 1.45, 0));
-      expect(waist.y).toBeGreaterThan(TRAY.wallHeight);
-      expect(waist.z).toBeLessThan(-TRAY.halfDepth - TRAY.wallThickness);
-    }
-    vampire.dispose();
-  });
-
-  it('fills the space above the rear lip without cropping the pair figure', () => {
+  it('frames the leaning pair with its full head, centred over the rear lip and clear of the tray', () => {
     const vampire = new Vampiro();
     const body = vampire.root.getObjectByName('vampiro-corpo')!;
     const head = vampire.root.getObjectByName('vampiro-cabeca')!;
-    const lip = new Vector3(0, TRAY.wallHeight, -TRAY.halfDepth - TRAY.wallThickness).project(camera).y;
-    const point = new Vector3();
-    for (const t of [900, 3100, 3600, 4300]) {
+    const shoulders = vampire.root.getObjectByName('vampiro-ombros')!;
+    const marks = [PAR.surge, PAR.revoada, PAR.revela, PAR.mostrado];
+    for (const t of [400, 480, 520, 560, 600, 650, ...marks, 900, 1900, 3600, 4300, 4900, 4950, 5000, 5100, 5150, 5200]) {
       vampire.update('par-de-criticos', t, camera);
-      body.updateWorldMatrix(true, true);
-      let top = -Infinity;
-      head.traverse((mesh) => {
-        if (!(mesh instanceof Mesh)) return;
-        const vertices = mesh.geometry.getAttribute('position');
-        for (let i = 0; i < vertices.count; i++) {
-          top = Math.max(top, point.fromBufferAttribute(vertices, i).applyMatrix4(mesh.matrixWorld).project(camera).y);
-        }
-      });
-      expect((top - lip) / (1 - lip)).toBeGreaterThanOrEqual(0.85);
-      expect((1 - top) / 2).toBeGreaterThanOrEqual(0);
-      expect((1 - top) / 2).toBeLessThanOrEqual(0.015);
-      expect(body.position.x).toBe(0);
+      const { bounds, skull, collision } = projectVampire(body, head);
+      expect.soft(collision, `${t} ms`).toBe('');
+      if (!marks.includes(t)) continue;
+      const height = (bounds.max.y - bounds.min.y) / 2;
+      const bottom = (1 - bounds.min.y) / 2;
+      const center = Math.abs(bounds.max.x + bounds.min.x) / 4;
+      expect.soft(height, `${t} ms`).toBeGreaterThanOrEqual(0.24);
+      expect.soft(height, `${t} ms`).toBeLessThanOrEqual(0.32);
+      expect.soft(bottom, `${t} ms`).toBeLessThanOrEqual(0.38);
+      expect.soft(center, `${t} ms`).toBeLessThanOrEqual(0.03);
+      for (const part of [head, shoulders]) expect.soft(new Box3().setFromObject(part, true).max.z).toBeGreaterThan(-d - thick);
+      for (const limit of [skull.max.x, skull.max.y, -skull.min.x, -skull.min.y]) expect.soft(limit).toBeLessThanOrEqual(1);
     }
+    vampire.dispose();
+  });
+
+  it('keeps an adult head-to-body and head-to-shoulder ratio in the neutral sculpture', () => {
+    const vampire = new Vampiro();
+    vampire.root.updateMatrixWorld(true);
+    const bounds = (name: string) => new Box3().setFromObject(vampire.root.getObjectByName(name)!, true);
+    const head = bounds('vampiro-cabeca'), shoulders = bounds('vampiro-ombros');
+    const figureHeight = head.max.y - bounds('vampiro-perna-esquerda').min.y;
+    const headHeight = (head.max.y - head.min.y) / figureHeight;
+    const headWidth = (head.max.x - head.min.x) / (shoulders.max.x - shoulders.min.x);
+    expect(headHeight).toBeGreaterThanOrEqual(1 / 8);
+    expect(headHeight).toBeLessThanOrEqual(1 / 7);
+    expect(headWidth).toBeLessThanOrEqual(0.4);
+    expect(bounds('vampiro-pescoco').getSize(new Vector3()).y).toBeGreaterThan(0.23);
     vampire.dispose();
   });
 
