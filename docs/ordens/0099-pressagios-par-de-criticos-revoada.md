@@ -6,6 +6,7 @@ Executor: Codex `gpt-6.2-sol`, esforço alto. O revisor é a sessão principal, 
 Escopo de escrita:
 - `src/modules/pressagios/**`
 - `e2e/omen.spec.ts`: só se a linha "Par de críticos" precisar de ajuste. Nenhum spec novo.
+- `src/modules/vitrine/tests/vampiro.test.ts`: só o caso do par, que exigia o arremesso perto da câmera. O código da vitrine não muda. O dev perguntou, e o orquestrador autorizou em 2026-11-18.
 
 Objetivo:
 - O presságio **par de críticos** (dois 10 no d10 Vampiro, de Vampiro: A Máscara) ganha uma animação nova e mais simples, inteira em 3D. Ela segue as mesmas especificações do d100 do kraken.
@@ -115,3 +116,13 @@ Ao terminar, informe:
 - O botão de teste e a regra do par.
 
 Se precisar de algo fora disso, pare e reporte. Não implemente.
+
+## Resultado
+
+A animação foi aprovada no terceiro ciclo de revisão visual.
+
+- **Revoada.** 395 morcegos cruzam da esquerda para a direita em três alturas, com 1.006 vértices por morcego e teto de 397.370. A captura de 1.900 ms tem 380 instâncias e 382.280 vértices. A grade do feltro ficou coberta durante todo o pico medido.
+- **Malhas.** A figura e a capa somam até 59.831 vértices, contando o forro separadamente. Os maiores ângulos entre as normais de triângulos vizinhos foram 14,934° na figura, 13,961° no morcego detalhado e 11,250° no sangue, sem exceções para arestas.
+- **Sangue.** Aos 3.600 ms, os filetes cobrem 33,27% da face interna visível esquerda e 36,96% da direita. Aos 5.200 ms, têm metade do comprimento.
+- **Enquadramento.** Com a câmera padrão fixa, o vampiro ocupa de 94,49% a 97,06% da faixa livre acima do lábio traseiro, com a cabeça inteira na tela. A capa do crítico bestial tem sete dobras, barra ondulada e forro vermelho visível.
+- **Verificação.** `npm run build`, `npm run lint` e `npm test` passaram na revisão final, com 672 testes no último comando. `npm run test:server` passou na validação inicial, com 25 testes. Após a aprovação visual, `npx playwright test e2e/omen.spec.ts -g 'Par de críticos|Crítico bestial|Falha bestial'` rodou sozinho uma vez, com três cenários aprovados.
