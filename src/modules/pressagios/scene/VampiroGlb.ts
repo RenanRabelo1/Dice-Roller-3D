@@ -8,8 +8,8 @@ import { PAR, vampiroAt } from '../domain/vampiroMotion.ts';
 
 // Calibration, the one place to tune. The model is 1.8 tall with its feet at y = 0; the scale brings it to the
 // size of the procedural pair figure, and the offset is added to `corpo.p`.
-export const ESCALA_DO_GLB = 8.568 / 1.8; // initial: height of the procedural pair figure (8.568 world units, measured with a Box3) / 1.8
-export const DESLOCAMENTO_DO_GLB: Vec3 = [0, -3.5, 0];
+export const ESCALA_DO_GLB = 7.5; // recalibrated for the 60° bent pose (was 8.568 / 1.8, the procedural figure height)
+export const DESLOCAMENTO_DO_GLB: Vec3 = [0, -6.8, 0.5];
 
 export class VampiroGlb {
   readonly root = new Group();
