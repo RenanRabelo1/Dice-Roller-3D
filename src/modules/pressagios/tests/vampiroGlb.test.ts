@@ -4,9 +4,9 @@ import { arremesso, input, publish } from '../../arremesso/index.ts';
 import { definir } from '../../selecao/index.ts';
 import { definirMovimentoReduzido } from '../../../shared/plataforma/index.ts';
 import { presagio, reiniciarPresagio } from '../index.ts';
-import { PAR, vampiroAt } from '../domain/vampiroMotion.ts';
+import { PAR } from '../domain/vampiroMotion.ts';
 import { Show } from '../scene/PresagiosNaCena.tsx';
-import { DESLOCAMENTO_DO_GLB, VampiroGlb } from '../scene/VampiroGlb.ts';
+import { ANCORA_DO_GLB, ESCALA_DO_GLB, VampiroGlb } from '../scene/VampiroGlb.ts';
 
 // A fake model: a group with a child that the `par` clip moves 1 unit in x over the omen's 5.6 s.
 function falso() {
@@ -29,25 +29,25 @@ afterEach(() => {
 });
 
 describe('VampiroGlb', () => {
-  it('is only visible while the pair is present', () => {
+  it('is visible only for 0 < t < duration', () => {
     const glb = new VampiroGlb();
     glb.anexar(falso().objeto);
-    glb.update(PAR.surge - 700);
+    glb.update(0);
     expect(glb.root.visible).toBe(false);
-    for (const t of [PAR.surge, PAR.cobre, PAR.sai]) { glb.update(t); expect(glb.root.visible, `${t} ms`).toBe(true); }
+    for (const t of [1, PAR.surge, PAR.cobre, PAR.sai, PAR.duration - 1]) { glb.update(t); expect(glb.root.visible, `${t} ms`).toBe(true); }
     glb.update(PAR.duration);
     expect(glb.root.visible).toBe(false);
   });
 
-  it('follows the pair path and the clip follows the omen clock, stopping at the end', () => {
+  it('stays on the fixed anchor and the clip follows the omen clock, stopping at the end', () => {
     const glb = new VampiroGlb(), { objeto, filho } = falso();
     expect(glb.pronto).toBe(false);
     glb.anexar(objeto);
     expect(glb.pronto).toBe(true);
     for (const t of [PAR.surge, PAR.cobre, PAR.sai]) {
       glb.update(t);
-      const p = vampiroAt('par-de-criticos', t).corpo.p;
-      expect(glb.root.position.toArray()).toEqual([p[0] + DESLOCAMENTO_DO_GLB[0], p[1] + DESLOCAMENTO_DO_GLB[1], p[2] + DESLOCAMENTO_DO_GLB[2]]);
+      expect(glb.root.position.toArray()).toEqual(ANCORA_DO_GLB);
+      expect(glb.root.scale.x).toBe(ESCALA_DO_GLB);
       expect(filho.position.x).toBeCloseTo(t / 5600, 5);
     }
     glb.update(PAR.duration + 3000);

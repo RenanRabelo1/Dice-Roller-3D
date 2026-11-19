@@ -306,7 +306,7 @@ export function PresagiosNaCena() {
   useEffect(() => {
     let vivo = true;
     fetch(ARQUIVO_DO_VAMPIRO).then((r) => { if (!r.ok) throw new Error(String(r.status)); return r.arrayBuffer(); })
-      .then((bytes) => parseGlb(bytes, () => 1024))
+      .then((bytes) => parseGlb(bytes, () => 2048))
       .then((objeto) => { if (vivo) show.anexarGlb(objeto, gl, scene, camera); })
       .catch((e) => console.warn('Vampiro em GLB indisponível, usando a figura procedural.', e));
     return () => { vivo = false; };
