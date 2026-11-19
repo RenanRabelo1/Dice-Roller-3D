@@ -1,5 +1,5 @@
 import {
-  BackSide, Box3, BufferAttribute, BufferGeometry, CatmullRomCurve3, DoubleSide, DynamicDrawUsage, Euler, Group, LatheGeometry,
+  BackSide, Box3, BufferAttribute, BufferGeometry, CatmullRomCurve3, Color, DoubleSide, DynamicDrawUsage, Euler, Group, LatheGeometry,
   Mesh, MeshStandardMaterial, Quaternion, Vector2, Vector3, type Camera, type Material, type PerspectiveCamera,
 } from 'three';
 import type { TipoVampiro } from '../../regras/index.ts';
@@ -85,10 +85,83 @@ function batch(material: MeshStandardMaterial, pieces: BufferGeometry[]) {
   return new Mesh(soldar(pieces), material);
 }
 
+export const DOBRAS_CRITICO = 7;
+export const AMPLITUDE_DA_CAPA = 0.086;
+
+export function dobraDoCritico(u: number) {
+  return AMPLITUDE_DA_CAPA * Math.cos(u * DOBRAS_CRITICO * Math.PI * 2);
+}
+
+export const COLUNAS_CRITICO = 192;
+
+class CapaCritica {
+  readonly mesh: Mesh<BufferGeometry, MeshStandardMaterial>;
+  private readonly positions: BufferAttribute;
+  private readonly colors = new BufferAttribute(new Float32Array((COLUNAS_CRITICO + 1) * (ROWS + 1) * 3), 3);
+  private readonly velvet = new Color('#281d23');
+  private readonly edging = new Color('#811831');
+
+  constructor() {
+    const geometry = superficie(COLUNAS_CRITICO, ROWS, () => [0, 0, 0]).setAttribute('color', this.colors);
+    this.positions = geometry.getAttribute('position') as BufferAttribute;
+    this.positions.setUsage(DynamicDrawUsage);
+    const material = new MeshStandardMaterial({ vertexColors: true, side: DoubleSide, roughness: 0.76 });
+    const lining = new Color('#941c37');
+    // Both sides share the same folded surface and are drawn once.
+    material.onBeforeCompile = (shader) => {
+      shader.fragmentShader = shader.fragmentShader.replace('#include <color_fragment>', `
+        #include <color_fragment>
+        if (!gl_FrontFacing) {
+          vec3 lining = vec3(${lining.r}, ${lining.g}, ${lining.b});
+          diffuseColor.rgb = mix(lining * (0.79 + 3.4 * diffuseColor.g), diffuseColor.rgb, 0.13);
+        }
+      `);
+    };
+    material.customProgramCacheKey = () => 'critico-bestial-capa-bicolor';
+    this.mesh = new Mesh(geometry, material);
+    this.mesh.name = 'vampiro-capa-critica';
+    this.mesh.frustumCulled = false;
+    this.update();
+  }
+
+  update() {
+    const tint = new Color();
+    const period = Math.PI * 2 * DOBRAS_CRITICO;
+    for (let col = 0; col <= COLUNAS_CRITICO; col++) {
+      const base = col / COLUNAS_CRITICO;
+      const u = base - 0.22 / period * Math.sin(base * period * 2);
+      const angle = (u * 2 - 1) * CAPE_SWEEP;
+      const side = Math.sin(angle), back = -Math.cos(angle);
+      const edge = Math.abs(u * 2 - 1);
+      const fold = dobraDoCritico(u);
+      for (let row = 0; row <= ROWS; row++) {
+        const v = row / ROWS;
+        const rx = 0.92 + 0.65 * v, rz = 0.63 + 0.48 * v;
+        const ray = Math.hypot(side / rx, back / rz);
+        const hem = 0.16 * v ** 3 * Math.sin(5 * angle + 0.17);
+        const opening = edge ** 6 * v;
+        const index = row * (COLUNAS_CRITICO + 1) + col;
+        this.positions.setXYZ(index, side * rx + fold * side / (rx * ray),
+          1.68 - 2.28 * v + hem + 0.44 * opening,
+          back * rz + fold * back / (rz * ray) - 0.24 - 0.52 * v + 0.43 * opening);
+        const rim = Math.max(span(v, 0.90, 0.985), span(edge, 0.83, 1) * 0.84);
+        tint.copy(this.velvet).lerp(this.edging, rim).multiplyScalar(1 + 7.6 * fold);
+        this.colors.setXYZ(index, tint.r, tint.g, tint.b);
+      }
+    }
+    this.positions.needsUpdate = true;
+    this.colors.needsUpdate = true;
+    this.mesh.geometry.computeVertexNormals();
+  }
+}
+
 class Cape {
   readonly group = new Group();
   private geometry = new BufferGeometry();
   private hem: BufferGeometry;
+  private readonly critico = new CapaCritica();
+  private readonly comum: Mesh<BufferGeometry, MeshStandardMaterial>[];
+  private tecidoCritico = false;
   private pleatColors = new BufferAttribute(new Float32Array((COLUMNS + 1) * (ROWS + 1) * 3), 3);
   private positions = new BufferAttribute(new Float32Array((COLUMNS + 1) * (ROWS + 1) * 3), 3).setUsage(DynamicDrawUsage);
 
@@ -113,12 +186,18 @@ class Cape {
     const edge = new Mesh(this.hem, hemMaterial);
     edge.name = 'vampiro-barra-da-capa';
     edge.frustumCulled = false;
-    this.group.add(outside, lining, edge);
+    this.comum = [outside, lining, edge];
+    this.group.add(...this.comum);
     this.group.name = 'vampiro-capa';
     this.update(0, 0, 0);
   }
 
-  update(t: number, step: number, lean: number, opened = false) {
+  update(t: number, step: number, lean: number, opened = false, critico = false) {
+    if (critico !== this.tecidoCritico) {
+      this.group.clear().add(...(critico ? [this.critico.mesh] : this.comum));
+      this.tecidoCritico = critico;
+    }
+    if (critico) return;
     for (let row = 0; row <= ROWS; row++) {
       const v = row / ROWS;
       for (let col = 0; col <= COLUMNS; col++) {
@@ -133,7 +212,7 @@ class Cape {
         const z = -drape - 0.16 - v * (0.24 + 0.22 * Math.abs(step) + 0.42 * lean)
           - pleats * 0.72 * Math.abs(Math.sin(angle))
           + (opened ? 0 : wave * 0.50 * v ** 3);
-        this.positions.setXYZ(row * (COLUMNS + 1) + col, x, y, z);
+        this.positions.setXYZ(row * (COLUMNS + 1) + col, x * (opened ? 1.18 : 1), y, z);
       }
     }
     this.positions.needsUpdate = true;
@@ -159,6 +238,11 @@ class Cape {
     hem.needsUpdate = true;
     this.hem.computeVertexNormals();
   }
+  prepare() { this.group.add(this.critico.mesh); }
+  hide() { if (!this.tecidoCritico) this.group.remove(this.critico.mesh); }
+
+  assets() { return [...this.comum, this.critico.mesh]; }
+
 }
 
 interface Arm { sleeve: Mesh; cuff: Group; palm: Group; side: number }
@@ -316,6 +400,7 @@ export class Vampiro {
   // Poses both sets for the shared compile and the environment warm-up draw.
   prepare(camera: Camera) {
     this.update('falha-bestial', VAMPIRO.falha.destapa, camera);
+    this.cape.prepare();
   }
 
   update(tipo: TipoVampiro, t: number, camera: Camera, origins: readonly Vec3[] = [], carried?: Vec3, otherDice: readonly Vec3[] = []) {
@@ -327,6 +412,7 @@ export class Vampiro {
       this.body.position.set(...corpo.p);
       this.body.rotation.y = corpo.yaw;
       this.body.scale.setScalar(SCALE[tipo]);
+      if (tipo === 'par-de-criticos') this.body.scale.y = 0.625;
       this.torso.position.y = 1.45 - corpo.crouch * 0.55;
       this.torso.rotation.x = corpo.lean;
       this.head.rotation.x = tipo === 'par-de-criticos' ? -0.16 : -0.64 - 0.80 * corpo.lean;
@@ -334,7 +420,7 @@ export class Vampiro {
         leg.position.y = 1.45 - corpo.crouch * 0.27;
         leg.rotation.x = (i === 0 ? corpo.step : -corpo.step) * 0.67 - corpo.crouch * 0.23;
       });
-      this.cape.update(t, corpo.step, corpo.lean, tipo === 'par-de-criticos');
+      this.cape.update(t, corpo.step, corpo.lean, tipo === 'par-de-criticos', tipo === 'critico-bestial');
       this.body.updateWorldMatrix(true, true);
       const holding = fase === 'pega' || fase === 'entrega' || fase === 'ataque';
       const clawsForward = fase === 'espera' || fase === 'ataque';
@@ -363,7 +449,7 @@ export class Vampiro {
     }
   }
 
-  hide() { this.root.visible = false; this.body.visible = false; this.eyes.visible = false; }
+  hide() { this.root.visible = false; this.body.visible = false; this.eyes.visible = false; this.cape.hide(); }
 
   dispose() {
     const geometries = new Set<BufferGeometry>(), materials = new Set<Material>();
@@ -372,6 +458,10 @@ export class Vampiro {
       geometries.add(o.geometry);
       for (const material of ([] as Material[]).concat(o.material)) materials.add(material);
     });
+    for (const mesh of this.cape.assets()) {
+      geometries.add(mesh.geometry);
+      materials.add(mesh.material);
+    }
     geometries.forEach((g) => g.dispose());
     materials.forEach((m) => m.dispose());
   }

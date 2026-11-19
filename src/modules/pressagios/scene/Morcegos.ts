@@ -35,12 +35,13 @@ function tingir(geometry: BufferGeometry, r: number, g: number, b: number) {
   return geometry;
 }
 
-function asa(side: number) {
-  const vincos = Array.from({ length: 4 }, (_, i) => superficie(8, 12, (u, v) => {
+function asa(side: number, detalhe: boolean) {
+  const aneis = detalhe ? 12 : 4;
+  const vincos = Array.from({ length: 4 }, (_, i) => superficie(detalhe ? 8 : 6, aneis, (u, v) => {
     const { x, y, z } = painelDaAsa(i, u, v);
     return [side * x, y, z];
   }));
-  const liga = (a: readonly [number, number], b: readonly [number, number]) => superficie(5, 12, (u, v) => {
+  const liga = (a: readonly [number, number], b: readonly [number, number]) => superficie(detalhe ? 5 : 2, aneis, (u, v) => {
     const x = PULSO_DA_ASA.x + (a[0] + (b[0] - a[0]) * u - PULSO_DA_ASA.x) * v;
     const z = PULSO_DA_ASA.z + (a[1] + (b[1] - a[1]) * u - PULSO_DA_ASA.z) * v;
     return [side * x, membrana(x, z), z];
@@ -52,7 +53,7 @@ function asa(side: number) {
   const osso = (x: number, z: number, inicio: number, ponta: number) => {
     const dx = x - PULSO_DA_ASA.x, dz = z - PULSO_DA_ASA.z;
     const lateral = new Vector3(-dz, 0, dx).normalize();
-    return superficie(27, 7, (u, v) => {
+    return superficie(detalhe ? 27 : 8, detalhe ? 7 : 3, (u, v) => {
       const d = Math.hypot(dx, dz) * v, angle = u * 2 * Math.PI;
       const a = Math.atan(-2 * CAMBRA * d);
       const radius = inicio + (ponta - inicio) * v;
@@ -86,21 +87,21 @@ function oval(p: Vec3, s: Vec3, detail = 5) {
   return welded.translate(...p);
 }
 
-function corpo() {
+function corpo(detalhe: boolean) {
   return soldar([
-    oval([0, 0.032, 0.039], [0.107, 0.097, 0.148]),
-    oval([0, 0.04, -0.118], [0.086, 0.077, 0.086], 4),
-    oval([0, 0.041, -0.192], [0.046, 0.040, 0.043], 4),
+    oval([0, 0.032, 0.039], [0.107, 0.097, 0.148], detalhe ? 5 : 2),
+    oval([0, 0.04, -0.118], [0.086, 0.077, 0.086], detalhe ? 4 : 1),
+    oval([0, 0.041, -0.192], [0.046, 0.040, 0.043], detalhe ? 4 : 1),
     ...[-1, 1].flatMap((side) => [
-      orelha(side),
-      oval([0, 0, 0], [0.024, 0.022, 0.041])
+      orelha(side, detalhe),
+      oval([0, 0, 0], [0.024, 0.022, 0.041], detalhe ? 5 : 1)
         .rotateY(side * 0.35).translate(side * 0.059, 0.024, 0.167),
     ]),
   ]);
 }
 
-function orelha(side: number) {
-  const g = oval([0, 0, 0], [0.043, 0.039, 0.068], 6);
+function orelha(side: number, detalhe: boolean) {
+  const g = oval([0, 0, 0], [0.043, 0.039, 0.068], detalhe ? 6 : 1);
   const p = g.getAttribute('position');
   for (let i = 0; i < p.count; i++) {
     const z = p.getZ(i);
@@ -112,14 +113,9 @@ function orelha(side: number) {
 
 export class Morcegos {
   readonly root = new Group();
-  private readonly body = new InstancedMesh(corpo(), new MeshStandardMaterial({
-    color: '#1d1519', roughness: 0.60, emissive: '#170b0e', emissiveIntensity: 0.23,
-  }), NUMERO_DE_MORCEGOS);
-  private readonly wings = [-1, 1].map((side) => new InstancedMesh(asa(side), new MeshStandardMaterial({
-    color: '#1a1217', roughness: 0.58, side: DoubleSide, vertexColors: true,
-    emissive: '#170a12', emissiveIntensity: 0.21,
-  }), NUMERO_DE_MORCEGOS));
-  private readonly parts = [this.body, ...this.wings];
+  private readonly body: InstancedMesh<BufferGeometry, MeshStandardMaterial>;
+  private readonly wings: InstancedMesh<BufferGeometry, MeshStandardMaterial>[];
+  private readonly parts: InstancedMesh<BufferGeometry, MeshStandardMaterial>[];
   private readonly transform = new Object3D();
   private readonly wing = new Matrix4();
   private readonly view = new Matrix4();
@@ -128,7 +124,16 @@ export class Morcegos {
   private readonly radius: number;
   private readonly colors: Color[];
 
-  constructor() {
+  constructor(detalhado = false) {
+    this.body = new InstancedMesh(corpo(detalhado), new MeshStandardMaterial({
+      color: '#1d1519', roughness: 0.60, emissive: '#170b0e', emissiveIntensity: 0.23,
+    }), NUMERO_DE_MORCEGOS);
+    this.wings = [-1, 1].map((side) => new InstancedMesh(asa(side, detalhado), new MeshStandardMaterial({
+      color: '#1a1217', roughness: 0.58, side: DoubleSide, vertexColors: true,
+      emissive: '#170a12', emissiveIntensity: 0.21,
+    }), NUMERO_DE_MORCEGOS));
+    this.parts = [this.body, ...this.wings];
+
     this.root.name = 'revoada';
     this.body.name = 'morcegos-corpos';
     this.wings[0].name = 'morcegos-asas-esquerdas';

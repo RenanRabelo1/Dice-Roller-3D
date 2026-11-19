@@ -81,40 +81,66 @@ const HORIZONTAL = new Vector3(1, 0, 0);
 const VERTICAL = new Vector3(0, 10, -14).normalize();
 const NORMAL = new Vector3(...CAMERA_PADRAO).normalize();
 const DORSO = new Vector3(0, 1, 0), EIXO_LONGITUDINAL = new Vector3(0, 0, 1);
-const COLUNAS = 33, FILEIRAS = 18, CAMADAS = 3;
-export const NUMERO_DE_MORCEGOS = COLUNAS * FILEIRAS * CAMADAS;
+const CAMADAS = [
+  { colunas: 20, linhas: 13, profundidade: 0.375, escala: 0.91, varEscala: 0.055 },
+  { colunas: 9, linhas: 9, profundidade: 0.53, escala: 0.79, varEscala: 0.075 },
+  { colunas: 6, linhas: 5, profundidade: 0.842, escala: 0.755, varEscala: 0.024 },
+];
+const BATEDORES = 6, ACIMA_DO_BANDO = 6;
+export const NUMERO_DE_MORCEGOS = CAMADAS.reduce((n, { colunas, linhas }) => n + colunas * linhas + BATEDORES, ACIMA_DO_BANDO);
 export const ENVERGADURA = 1.46;
 export const AMPLITUDE_DA_ASA = MathUtils.degToRad(53);
+const MEIA_ALTURA = Math.tan(MathUtils.degToRad(20)), MEIA_LARGURA = MEIA_ALTURA * 1.6;
+const variacao = (seed: number) => {
+  const value = Math.sin(seed * 17.117 + 21.14) * 43758.5453;
+  return value - Math.floor(value);
+};
 
-// Coordinates are registered to the same rays at three flight depths. The layers
-// stagger their wingbeats and centres so openings in one are filled by the others.
+const bandos = CAMADAS.flatMap((layer, camada) => {
+  const { colunas, linhas } = layer;
+  return Array.from({ length: colunas * linhas + BATEDORES + (camada === 1 ? ACIMA_DO_BANDO : 0) }, (_, slot) => {
+    const seed = 283 * camada + slot * 2.399963;
+    const scout = slot >= colunas * linhas;
+    const alto = slot - colunas * linhas - BATEDORES;
+    const column = slot % colunas, row = Math.floor(slot / colunas);
+    const dx = 2.13 / colunas, dy = 1.53 / linhas;
+    const borda = 0.095 * Math.sin(row * 1.91 + camada * 1.31);
+    const x = alto >= 0 ? (alto - 2.5) * 0.385 + (variacao(seed) - 0.5) * 0.15 : scout
+      ? (slot % 2 === 0 ? 1 : -1) * (1.31 + 0.24 * variacao(seed + 4))
+      : -1.065 + dx * (column + 0.5 + 1.04 * (variacao(seed) - 0.5)) + borda;
+    const y = alto >= 0 ? 0.67 + (variacao(seed + 19) - 0.5) * 0.11 : scout ? (variacao(seed + 19) - 0.5) * 1.65
+      : -0.765 + dy * (row + 0.5 + 1.04 * (variacao(seed + 25) - 0.5));
+    return {
+      camada, x, y, seed,
+      velocidade: 0.75 + 0.50 * variacao(seed + 11),
+      profundidade: layer.profundidade + (variacao(seed + 8) - 0.5) * 0.018,
+      escala: layer.escala + layer.varEscala * variacao(seed + 7),
+    };
+  });
+});
+
 export function revoadaAt(t: number, camera: Vec3 = CAMERA_PADRAO) {
   const { revoada: u } = parAt(t);
   if (u === 0 || u === 1) return [];
-  const sweep = 35 * (u - 0.5) - 4.34 * Math.sin((u - 0.5) * 2 * Math.PI);
+  const sweep = 6.5 * (u - 0.5) - 0.98 * Math.sin((u - 0.5) * 2 * Math.PI);
   const eye = new Vector3(...camera);
-  const reference = eye.length() * 0.73;
-  const ondaDaBorda = MathUtils.smootherstep(Math.abs(u - 0.5), 0.10, 0.30);
-  return Array.from({ length: NUMERO_DE_MORCEGOS }, (_, i) => {
-    const layer = Math.floor(i / (COLUNAS * FILEIRAS));
-    const row = Math.floor(i / COLUNAS) % FILEIRAS, col = i % COLUNAS;
-    const seed = i * 2.399963;
+  const distance = eye.length();
+  return bandos.map((bat) => {
+    const { camada, x, y, seed, escala, velocidade } = bat;
+    const profundidade = bat.profundidade * distance + 0.075 * Math.sin(t * 0.005 + seed);
     const frequencia = 7.3 + Math.cos(seed) * 0.85;
     const fase = t / 1000 * frequencia * 2 * Math.PI + seed;
-    const x = sweep + (col - (COLUNAS - 1) / 2) * 0.49 + (row % 2 - 0.5) * 0.24 + layer * 0.16;
-    const onda = ondaDaBorda * (0.76 * Math.sin(row * 0.46 + t * 0.004 + layer * 0.7) + 0.16 * Math.cos(seed));
-    const y = (row - (FILEIRAS - 1) / 2) * 0.47 + (layer - 1) * 0.14;
-    const depth = reference + (layer - 1) * 0.61 + 0.10 * Math.cos(seed * 2.217);
-    const p = eye.clone().addScaledVector(NORMAL, -depth)
-      .addScaledVector(HORIZONTAL, (x + onda + 0.105 * Math.sin(t * 0.004 + seed)) * depth / reference)
-      .addScaledVector(VERTICAL, (y + 0.082 * Math.sin(t * 0.006 + seed)) * depth / reference);
-    const rumo = -0.20 + 0.16 * Math.sin(t * 0.003 + seed);
+    const passage = x + sweep * velocidade + 0.034 * Math.sin(t * 0.003 + seed);
+    const altura = y + 0.055 * Math.sin(t * 0.0057 + seed);
+    const p = eye.clone().addScaledVector(NORMAL, -profundidade)
+      .addScaledVector(HORIZONTAL, passage * profundidade * MEIA_LARGURA)
+      .addScaledVector(VERTICAL, altura * profundidade * MEIA_ALTURA);
+    const rumo = -0.19 + MathUtils.degToRad(20) * Math.sin(t * 0.003 + seed);
     const dorsal = eye.clone().sub(p).normalize();
     const orientacao = new Quaternion().setFromUnitVectors(DORSO, dorsal)
       .multiply(new Quaternion().setFromAxisAngle(DORSO, rumo))
-      .multiply(new Quaternion().setFromAxisAngle(EIXO_LONGITUDINAL, 0.13 * Math.cos(t * 0.008 + seed)));
-    const escala = 0.815 + 0.097 * Math.cos(seed * 1.41) ** 2;
-    return { p, rumo, fase, escala, orientacao, frequencia, batida: AMPLITUDE_DA_ASA * Math.sin(fase) };
+      .multiply(new Quaternion().setFromAxisAngle(EIXO_LONGITUDINAL, 0.20 * Math.cos(t * 0.008 + seed)));
+    return { p, rumo, fase, escala, orientacao, frequencia, velocidade, camada, batida: AMPLITUDE_DA_ASA * Math.sin(fase) ** 3 };
   });
 }
 
@@ -128,7 +154,7 @@ export function fechamentoDaPegada(tipo: TipoVampiro, t: number): readonly [numb
 
 function presencaAt(t: number): Quadro {
   const { aparece } = parAt(t);
-  const p: Vec3 = [0, -5.6 + aparece * (6.20 + 0.018 * Math.sin(t / 450)), fundo - 0.56];
+  const p: Vec3 = [0, -5.6 + aparece * (6.251 + 0.018 * Math.sin(t / 450)), fundo - 0.36];
   return {
     fase: 'presenca', cobertura: 0,
     corpo: { p, yaw: 0, lean: 0.025 * Math.sin(t / 550), crouch: 0, step: 0, visivel: aparece > 0 },
