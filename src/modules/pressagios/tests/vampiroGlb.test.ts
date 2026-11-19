@@ -54,6 +54,14 @@ describe('VampiroGlb', () => {
     expect(filho.position.x).toBeCloseTo(1, 5);
   });
 
+  it('animates again on the second round after the clip ran to the end', () => {
+    const glb = new VampiroGlb(), { objeto, filho } = falso();
+    glb.anexar(objeto);
+    glb.update(PAR.duration);
+    glb.update(1000);
+    expect(filho.position.x).toBeCloseTo(1000 / PAR.duration, 5);
+  });
+
   it('hides on demand and releases each geometry, material and texture once', () => {
     const glb = new VampiroGlb(), { objeto, filho } = falso();
     glb.anexar(objeto);
