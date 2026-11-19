@@ -261,7 +261,7 @@ function bendArm(arm: Arm, root: Group, torso: Group, grip: Vec3, camera: Camera
   palm.quaternion.setFromEuler(new Euler(attack ? 0.62 : -0.36, side * 0.42, side * 0.24));
   if (presenca) {
     palm.quaternion.copy(cameraFacing);
-    palm.rotateZ(-side * 0.56);
+    palm.rotateZ(side * 0.52);
     palm.rotateY(side * 0.10);
   }
   if (holding) {
@@ -279,7 +279,7 @@ function bendArm(arm: Arm, root: Group, torso: Group, grip: Vec3, camera: Camera
   const bend = new Vector3(side * 0.78, -1, -0.26);
   bend.addScaledVector(direction, -bend.dot(direction)).normalize();
   const elbow = shoulder.clone().lerp(wrist, 0.47);
-  if (presenca) elbow.copy(wrist).add(new Vector3(side * 0.12, 0.26, -0.82).divideScalar(root.scale.x));
+  if (presenca) elbow.copy(wrist).add(new Vector3(-side * 0.79, 0.26, -0.77).divideScalar(root.scale.x));
   else elbow.addScaledVector(bend, Math.sqrt(Math.max(0.025, 0.91 ** 2 - half ** 2)));
   const link = (o: Mesh | Group, a: Vector3, b: Vector3) => {
     const axis = b.clone().sub(a);

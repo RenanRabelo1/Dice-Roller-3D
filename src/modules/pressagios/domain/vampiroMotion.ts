@@ -177,7 +177,7 @@ function presencaAt(t: number, origins: readonly Vec3[]): Quadro {
   const [width, depth] = faixaDasMaos(origins);
   const levanta = MathUtils.smoothstep(aparece, 0.8, 0.96);
   const mao = (side: number): Vec3 => [side * MathUtils.lerp(1.02, width, avanco),
-    altura + 3.04 + (1.97 + 0.94 * (depth + 2.0)) * levanta + 0.014 * Math.sin(t / 530 + side * 0.4),
+    altura + 3.04 + (1.995 + 0.94 * (depth + 2.0)) * levanta + 0.014 * Math.sin(t / 530 + side * 0.4),
     MathUtils.lerp(p[2] + 1.10, depth, avanco)];
   return {
     fase: 'presenca', cobertura: 0,
