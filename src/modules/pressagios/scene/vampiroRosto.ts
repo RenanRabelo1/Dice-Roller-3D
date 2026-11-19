@@ -11,6 +11,7 @@ const feature = (x: number, y: number, cx: number, cy: number, w: number, h: num
   gauss(x, cx, w) * gauss(y, cy, h);
 const paired = (x: number, y: number, cx: number, cy: number, w: number, h: number) =>
   feature(x, y, cx, cy, w, h) + feature(x, y, -cx, cy, w, h);
+const mouthLine = (x: number) => 0.123 - 0.010 * (x / 0.070) ** 2;
 
 // The cranium and mandible share one surface. Displacements use the anatomical
 // coordinates of the frontal half, fading to zero at the ears.
@@ -26,7 +27,6 @@ function sculptFace() {
     const y = 0.244 + 0.244 * p.y;
     const jaw = 1 - 0.22 * gauss(y, 0.059, 0.082) + 0.060 * gauss(y, 0.136, 0.057);
     const x = 0.162 * p.x * jaw;
-    const k = Math.abs(x);
     const u = span(p.z, 0.15, 0.75), front = u * u * (3 - 2 * u);
     const brow = 0.014 * paired(x, y, 0.063, 0.313, 0.050, 0.039);
     const socket = 0.028 * paired(x, y, EYE_X, EYE_Y, 0.046, 0.034);
@@ -38,11 +38,11 @@ function sculptFace() {
     const tip = 0.031 * feature(x, y, 0, 0.192, 0.045, 0.041);
     const wings = 0.010 * paired(x, y, 0.027, 0.171, 0.024, 0.025);
     const nostrils = 0.005 * paired(x, y, 0.024, 0.160, 0.022, 0.026);
-    const lipY = 0.117 + 0.016 * (k / 0.070) ** 2;
+    const lipY = mouthLine(x);
     const lips = 0.007 * feature(x, y, 0, lipY + 0.014, 0.057, 0.023)
       + 0.009 * feature(x, y, 0, lipY - 0.016, 0.054, 0.024)
       - 0.005 * feature(x, y, 0, lipY, 0.064, 0.017);
-    const corner = 0.008 * paired(x, y, 0.061, 0.127, 0.023, 0.027);
+    const corner = 0.008 * paired(x, y, 0.061, mouthLine(0.061), 0.023, 0.027);
     const chin = 0.030 * feature(x, y, 0, 0.055, 0.064, 0.046);
     const mandible = 0.014 * paired(x, y, 0.100, 0.093, 0.047, 0.041);
     const z = 0.169 * p.z - 0.009 + front *
@@ -74,7 +74,7 @@ function corDoRosto(x: number, y: number, z: number): Vec3 {
   const cold = near * (0.68 * feature(k, y, EYE_X, 0.247, 0.052, 0.030)
     + 0.58 * feature(k, y, 0.135, 0.306, 0.051, 0.071) + 0.30 * feature(k, y, 0.10, 0.158, 0.047, 0.038));
   const warm = near * (0.30 * cheeks + 0.34 * lid) + 0.51 * ears;
-  const ly = 0.117 + 0.016 * (k / 0.070) ** 2;
+  const ly = mouthLine(x);
   const lip = near * feature(x, y, 0, ly, 0.059, 0.022);
   const line = near * (0.90 * feature(x, y, 0, ly, 0.058, 0.0045) + 0.72 * feature(k, y, 0.022, 0.161, 0.010, 0.007));
   const brow = 0.68 * near * feature(k, y, EYE_X + 0.009, 0.309 + 0.11 * (k - EYE_X), 0.044, 0.008);
@@ -135,8 +135,8 @@ export function rostoDoVampiro(skin: MeshPhysicalMaterial, tooth: MeshStandardMa
     [0.040, 0.014, 0.019], -s * 0.055, 44, 29))),
     new MeshPhysicalMaterial({ name: 'esclera', color: '#b0a29c', roughness: 0.43, specularIntensity: 0.23 }));
   const disk = (r: number, z: number, material: MeshStandardMaterial) =>
-    new Mesh(soldar(sides.map((s) => new CircleGeometry(r, 48).translate(s * (EYE_X - 0.004), EYE_Y, z))), material);
-  const iris = disk(0.0095, 0.1431, new MeshStandardMaterial({
+    new Mesh(soldar(sides.map((s) => new CircleGeometry(r, 48).translate(s * (EYE_X + 0.009), EYE_Y, z))), material);
+  const iris = disk(0.0105, 0.1431, new MeshStandardMaterial({
     name: 'iris', color: '#5a111c', roughness: 0.58, emissive: '#511017', emissiveIntensity: 0.42,
   }));
   const pupil = disk(0.0036, 0.1434, new MeshStandardMaterial({ name: 'pupila', color: '#100b10', roughness: 0.60 }));

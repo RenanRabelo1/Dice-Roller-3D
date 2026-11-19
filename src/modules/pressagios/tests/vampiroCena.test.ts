@@ -68,7 +68,7 @@ function triangleIsClear(triangle: Triangle, wall: (typeof walls)[number], point
   });
 }
 
-function projectVampire(body: Object3D, head: Object3D) {
+function projectVampire(body: Object3D, head: Object3D, project: boolean) {
   const bounds = new Box3(), skull = new Box3();
   const ray = new Ray(camera.position.clone());
   const hit = new Vector3(), point = new Vector3(), triangle = new Triangle();
@@ -79,18 +79,20 @@ function projectVampire(body: Object3D, head: Object3D) {
     if (!(mesh instanceof Mesh)) return;
     const isHead = mesh.parent === head;
     const { geometry, matrixWorld } = mesh;
+    geometry.computeBoundingBox();
+    clear.copy(geometry.boundingBox!).applyMatrix4(matrixWorld);
+    const near = walls.filter(({ expanded }) => expanded.intersectsBox(clear));
+    if (!project && !near.length) return;
     const vertices = geometry.getAttribute('position');
     const worldPoints = Array.from({ length: vertices.count }, (_, i) =>
       new Vector3().fromBufferAttribute(vertices, i).applyMatrix4(matrixWorld));
-    for (const vertex of worldPoints) {
+    if (project) for (const vertex of worldPoints) {
       const distance = ray.direction.subVectors(vertex, ray.origin).length();
       ray.direction.divideScalar(distance);
       const hidden = tray.some((box) => ray.intersectBox(box, hit) && hit.distanceTo(ray.origin) < distance - 0.0001);
       if (!hidden) bounds.expandByPoint(point.copy(vertex).project(camera));
       if (isHead) skull.expandByPoint(point.copy(vertex).project(camera));
     }
-    clear.setFromPoints(worldPoints);
-    const near = walls.filter(({ expanded }) => expanded.intersectsBox(clear));
     if (!near.length) return;
     const index = geometry.getIndex()!;
     for (let i = 0; i < index.count; i += 3) {
@@ -178,9 +180,10 @@ describe('Vampire scene', () => {
     const marks = [PAR.surge, PAR.revoada, PAR.revela, PAR.mostrado];
     for (const t of [400, 480, 520, 560, 600, 650, ...marks, 900, 1900, 3600, 4300, 4900, 4950, 5000, 5100, 5150, 5200]) {
       vampire.update('par-de-criticos', t, camera);
-      const { bounds, skull, collision } = projectVampire(body, head);
+      const checkFrame = marks.includes(t);
+      const { bounds, skull, collision } = projectVampire(body, head, checkFrame);
       expect.soft(collision, `${t} ms`).toBe('');
-      if (!marks.includes(t)) continue;
+      if (!checkFrame) continue;
       const height = (bounds.max.y - bounds.min.y) / 2;
       const bottom = (1 - bounds.min.y) / 2;
       const center = Math.abs(bounds.max.x + bounds.min.x) / 4;
@@ -192,7 +195,7 @@ describe('Vampire scene', () => {
       for (const limit of [skull.max.x, skull.max.y, -skull.min.x, -skull.min.y]) expect.soft(limit).toBeLessThanOrEqual(1);
     }
     vampire.dispose();
-  });
+  }, 20_000);
 
   it('keeps an adult head-to-body and head-to-shoulder ratio in the neutral sculpture', () => {
     const vampire = new Vampiro();

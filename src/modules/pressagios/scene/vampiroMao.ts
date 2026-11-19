@@ -60,6 +60,12 @@ function garra(digit: CurvaDoDedo) {
   }, true);
 }
 
+function dorsalTendons(x: number, y: number, side: number) {
+  const spread = y * 1.4 + 0.64;
+  return Math.exp(-(((y - 0.020) / 0.23) ** 2)) * [-0.153, -0.05, 0.053, 0.147].reduce((sum, finger) =>
+    sum + Math.exp(-(((x - finger * spread + y * side * 0.06) / 0.027) ** 2)), 0);
+}
+
 function palma(side: number, camera: boolean) {
   const g = elipsoide([0, -0.055, -0.035], [camera ? 0.187 : 0.213, 0.382, 0.145], side * 0.09, 48, 30);
   const pos = g.getAttribute('position');
@@ -67,11 +73,8 @@ function palma(side: number, camera: boolean) {
     const y = pos.getY(i), z = pos.getZ(i), v = span(y, -0.39, 0.26);
     const x = pos.getX(i) * (0.82 + 0.38 * v * v * (3 - 2 * v));
     pos.setX(i, x);
-    const line = y * 1.4 + 0.64;
     const dorsum = Math.max(0, (-z - 0.035) / 0.145) ** 2;
-    const tendons = [-0.153, -0.05, 0.053, 0.147].reduce((sum, finger) =>
-      sum + Math.exp(-(((x - finger * line + y * side * 0.06) / 0.027) ** 2)), 0);
-    pos.setZ(i, z - tendons * dorsum * 0.0031 * Math.exp(-(((y - 0.020) / 0.23) ** 2)));
+    pos.setZ(i, z - dorsalTendons(x, y, side) * dorsum * 0.0031);
   }
   return g;
 }
@@ -114,7 +117,8 @@ export function maoDoVampiro(side: number, skin: MeshStandardMaterial, nail: Mes
   const geometry = modelarMao(side, false, camera);
   tingirPele(geometry[0], (x, y, z) => {
     const cold = 0.15 * Math.min(1, Math.hypot(x, Math.max(0, y - 0.12)) + Math.max(0, -z));
-    return [0.93 - cold, 0.82 - cold, 0.81 - 0.55 * cold];
+    const tendon = 0.065 * span(-z, 0.10, 0.17) * dorsalTendons(x, y, side);
+    return [0.93 - cold + tendon, 0.82 - cold + tendon, 0.81 - 0.55 * cold + tendon];
   });
   if (!camera) modelarMao(side, true, false).forEach((closed, i) => {
     geometry[i].morphAttributes.position = [closed.getAttribute('position')];
