@@ -1,4 +1,4 @@
-import { Group, Mesh, type BufferGeometry, type MeshStandardMaterial } from 'three';
+import { Group, MathUtils, Mesh, Vector3, type BufferGeometry, type MeshStandardMaterial } from 'three';
 import { span, type Vec3 } from '../../../shared/math.ts';
 import { elipsoide, soldar, superficie } from './malhaLisa.ts';
 import { tingirPele } from './vampiroRosto.ts';
@@ -31,8 +31,9 @@ function dedo({ p, comprimento, inicio, dobra, abertura, base, ponta, falanges =
     const taper = 0.5 - 0.5 * Math.cos(Math.PI * t);
     const knuckle = unha ? 0 : base * (falanges === 2 ? 0.13 * Math.exp(-(((t - 0.49) / 0.11) ** 2))
       : 0.108 * Math.exp(-(((t - 0.31) / 0.10) ** 2)) + 0.113 * Math.exp(-(((t - 0.65) / 0.095) ** 2)));
-    const thumbRoot = !unha && falanges === 2 ? 0.77 + 0.23 * Math.sin(span(t, 0, 0.27) * Math.PI / 2) ** 2 : 1;
-    const radius = (base + (ponta - base) * taper + knuckle) * thumbRoot * Math.cos(cap);
+    const rootWidth = falanges === 2 ? 0.77 : 0.69;
+    const root = unha ? 1 : MathUtils.lerp(rootWidth, 1, MathUtils.smoothstep(t, 0, 0.32));
+    const radius = (base + (ponta - base) * taper + knuckle) * root * Math.cos(cap);
     const length = ponta * Math.sin(cap);
     const x = radius * Math.cos(u * 2 * Math.PI);
     const cross = -radius * Math.sin(u * 2 * Math.PI) * (unha ? 0.77 : 0.94 + 0.06 * t);
@@ -72,7 +73,7 @@ const basesDosDedos = [-1.5, -0.5, 0.5, 1.5];
 const larguraEntreDedos = 0.103;
 
 function palma(side: number) {
-  const wristRows = 11, palmRows = 19, crownRows = 15, rows = wristRows + palmRows + crownRows;
+  const wristRows = 11, palmRows = 19, crownRows = 19, rows = wristRows + palmRows + crownRows;
   return superficie(38, rows, (u, v) => {
     const row = Math.round(v * rows), across = u * 2 * Math.PI;
     const rise = span(row, wristRows, wristRows + palmRows);
@@ -82,9 +83,9 @@ function palma(side: number) {
     const spread = rise * rise * (3 - 2 * rise);
     const radiusX = 0.111 + 0.122 * spread;
     const radiusZ = 0.052 + 0.011 * spread + 0.005 * Math.sin(Math.PI * rise) ** 2;
-    const y = -0.317 + 0.468 * rise + 0.074 * Math.sin(wrist) + 0.092 * Math.sin(crown);
     const horizontal = Math.sin(across), depth = Math.cos(across);
     const support = Math.hypot(radiusX * horizontal, radiusZ * depth);
+    const y = -0.317 + 0.468 * rise + 0.074 * Math.sin(wrist) + 0.072 * Math.sin(crown);
     const x = radiusX ** 2 * horizontal / support * rounding;
     const z = radiusZ ** 2 * depth / support * rounding;
     const dorsum = Math.max(0, -z / radiusZ) ** 2;
@@ -99,7 +100,7 @@ export function partesDaMao(side: number, fechada = false) {
   const fingers = lengths.map((length, i): CurvaDoDedo => {
     const x = basesDosDedos[i] * side;
     return {
-      p: [x * larguraEntreDedos, 0.113 - 0.012 * i, -0.019],
+      p: [x * larguraEntreDedos, 0.113 - 0.012 * i, -0.016],
       comprimento: length,
       inicio: fechada ? -0.30 : -0.12,
       dobra: fechada ? 2.50 : 0.69,
@@ -116,7 +117,22 @@ export function partesDaMao(side: number, fechada = false) {
 
 function modelarMao(side: number, fechada: boolean): [BufferGeometry, BufferGeometry] {
   const { palma, dedos, garras } = partesDaMao(side, fechada);
-  return [soldar([palma, ...dedos]), soldar(garras)];
+  const skin = soldar([palma, ...dedos]);
+  // The hidden roots widen into the first knuckles. Match the shading across
+  // that transition on both the open hand and the closed grip.
+  const position = skin.getAttribute('position'), normal = skin.getAttribute('normal');
+  const current = new Vector3(), tangent = new Vector3();
+  for (let i = 0; i < position.count; i++) {
+    const x = position.getX(i), y = position.getY(i), z = position.getZ(i) + 0.016;
+    const knuckles = MathUtils.smoothstep(y, 0.085, 0.14) * (1 - MathUtils.smoothstep(y, 0.19, 0.24));
+    const thumb = 0.65 * MathUtils.smoothstep(-side * x, 0.025, 0.105) * (1 - MathUtils.smoothstep(-side * x, 0.105, 0.21))
+      * MathUtils.smoothstep(y, -0.28, -0.22) * (1 - MathUtils.smoothstep(y, -0.18, -0.125));
+    const blend = 0.80 * Math.max(knuckles, thumb) * MathUtils.smoothstep(Math.abs(z), 0.025, 0.050);
+    if (blend === 0) continue;
+    current.fromBufferAttribute(normal, i).lerp(tangent.set(x * 1.2, 0.08, Math.sign(z)).normalize(), blend).normalize();
+    normal.setXYZ(i, current.x, current.y, current.z);
+  }
+  return [skin, soldar(garras)];
 }
 
 export function mangaDaCamera() {
