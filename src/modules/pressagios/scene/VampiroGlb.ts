@@ -1,15 +1,14 @@
 import { AnimationClip, AnimationMixer, Group, LoopOnce, Mesh, type BufferGeometry, type Material, type Object3D, type Texture } from 'three';
 import type { Vec3 } from '../../../shared/math.ts';
-import { PAR, vampiroAt } from '../domain/vampiroMotion.ts';
+import { PAR } from '../domain/vampiroMotion.ts';
 
-// The pair's vampire as a GLB (public/modelos/vampiro.glb, rigged in Blender). The code decides where (the root
-// follows `vampiroAt('par-de-criticos', t).corpo.p`) and the clip decides how: clip time = omen clock, `t` ms of the
-// pair is `t / 1000` s of the clip named `par`. The procedural `Vampiro` stays as the fallback.
+// The pair's vampire as a GLB (public/modelos/vampiro.glb, rigged in Blender). Clip time = omen clock: `t` ms of the pair
+// is `t / 1000` s of the clip named `par`. The procedural `Vampiro` stays as the fallback.
 
-// Calibration, the one place to tune. The model is 1.8 tall with its feet at y = 0; the scale brings it to the
-// size of the procedural pair figure, and the offset is added to `corpo.p`.
-export const ESCALA_DO_GLB = 7.5; // recalibrated for the 60° bent pose (was 8.568 / 1.8, the procedural figure height)
-export const DESLOCAMENTO_DO_GLB: Vec3 = [0, -6.8, 0.5];
+// Fixed anchor: the clip holds ALL the motion (rise, lunge, exit), so the root never moves and the hands stay on the
+// table edge. Do not retune: the hands, the die and the wall were placed in Blender from these values.
+export const ESCALA_DO_GLB = 7.5;
+export const ANCORA_DO_GLB: Vec3 = [0, -8.67, -6.037];
 
 export class VampiroGlb {
   readonly root = new Group();
@@ -32,11 +31,10 @@ export class VampiroGlb {
   }
 
   update(t: number) {
-    const { corpo } = vampiroAt('par-de-criticos', t);
     this.mixer?.setTime(Math.min(t, PAR.duration) / 1000);
-    this.root.visible = corpo.visivel;
-    if (!corpo.visivel) return;
-    this.root.position.set(corpo.p[0] + DESLOCAMENTO_DO_GLB[0], corpo.p[1] + DESLOCAMENTO_DO_GLB[1], corpo.p[2] + DESLOCAMENTO_DO_GLB[2]);
+    this.root.visible = t > 0 && t < PAR.duration;
+    if (!this.root.visible) return;
+    this.root.position.set(...ANCORA_DO_GLB);
     this.root.scale.setScalar(ESCALA_DO_GLB);
   }
 
