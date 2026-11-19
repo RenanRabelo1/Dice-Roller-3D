@@ -82,3 +82,14 @@ Pedido do usuário (2026-11-18), depois da OS-0099: "a animação tá legal, mas
 - As linhas do tempo do crítico bestial e da falha bestial.
 
 Se precisar de algo fora disso, pare e pergunte.
+
+## Resultado
+
+Aprovada após quatro ciclos. A entrega inicial remodelou a figura. A revisão 1 refinou o relevo do rosto e as mãos. A revisão 2 suavizou as emendas e recuperou a altura da silhueta. A revisão 3 avançou o tronco e pôs as palmas abertas ao lado do rosto.
+
+- **Enquadramento.** Nos quatro marcos, a silhueta ocupa 30,72% a 31,00% da altura da viewport, mesmo sem os braços, e termina a até 31,27% do topo, acima da fileira de resultados. A cabeça ocupa 11,31% a 11,33% e seu centro fica 4,524 a 4,555 unidades acima do feltro e 1,956 a 1,970 unidade à frente da face interna da parede traseira. Cada pulso fica 1,84 unidade ao lado da cabeça e acima do queixo.
+- **Proporções.** A cabeça mede 13,14% da altura da figura e 28,20% da largura dos ombros. O pescoço mede 46,62% da largura da cabeça.
+- **Rosto.** A esfera tem 144×100 amostras e o cabelo tem 42 sulcos. A variação de luminância entre vértices vizinhos é de até 0,182%. O nariz avança 24,16% da profundidade da cabeça em relação às maçãs, cada fenda ocular mede 21,14% da largura da cabeça e a íris mede 43,85% da altura da fenda.
+- **Mão.** A espessura da palma chega a 28,03% de sua largura. Seu comprimento mede 94,31% do dedo médio, e o punho mede 47,62% da largura da palma.
+- **Malha.** A figura com a capa comum soma 89.541 vértices. O maior ângulo medido entre normais de triângulos vizinhos da figura foi de 14,934°.
+- **Verificação.** `npm run build`, `npm run lint` e `npm test` passaram na revisão final, com 675 testes em 85 arquivos. Sem E2E.
