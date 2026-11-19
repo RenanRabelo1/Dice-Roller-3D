@@ -3,7 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import {
   AdditiveBlending, BufferAttribute, BufferGeometry, CanvasTexture, CylinderGeometry, DoubleSide,
   ExtrudeGeometry, Group, LineSegments, Mesh, MeshBasicMaterial, MeshStandardMaterial, Path, PointLight,
-  Points, Shape, Sprite, SpriteMaterial, Vector3, type Camera, type Material, type PerspectiveCamera, type Scene, type WebGLRenderer,
+  Points, Shape, Sprite, SpriteMaterial, Vector3, type Camera, type Material, type Object3D, type PerspectiveCamera, type Scene, type WebGLRenderer,
 } from 'three';
 import { MAX_DICE, type PresagioVampiro } from '../../regras/index.ts';
 import { presagio, presagioTocando, setOmenDone } from '../store.ts';
@@ -18,6 +18,8 @@ import { Kraken } from './Kraken.ts';
 import { coresDaMesa } from '../../mesa/index.ts';
 import { Fire } from './Fire.ts';
 import { Vampiro } from './Vampiro.ts';
+import { VampiroGlb } from './VampiroGlb.ts';
+import { parseGlb } from '../../../shared/modelos3d/ler.ts';
 import { Morcegos } from './Morcegos.ts';
 import { Sangue } from './Sangue.ts';
 
@@ -27,7 +29,8 @@ import { Sangue } from './Sangue.ts';
 // `planoDoPresagio`. Effect materials are compiled at mount and hidden (0 draw calls) outside an omen. When the show
 // ends it marks the omen done, and the result goes on.
 
-const easeOutCubica = (t: number) => 1 - (1 - clamp01(t)) ** 3;
+const ARQUIVO_DO_VAMPIRO = `${import.meta.env.BASE_URL}modelos/vampiro.glb`;
+const easeOutCubica =(t: number) => 1 - (1 - clamp01(t)) ** 3;
 const easeIn = (t: number) => clamp01(t) ** 3;
 
 function glowTexture(): CanvasTexture {
@@ -174,6 +177,7 @@ export class Show {
   private fire = new Fire();
   private taiji = new TaiJi(this.map);
   private vampiro = new Vampiro();
+  private vampiroGlb = new VampiroGlb();
   private morcegos = new Morcegos();
   private sangue = new Sangue();
   private light = new PointLight('#CFE6FF', 0, 10, 2); // shared by all omens, see domain/luz.ts
@@ -181,7 +185,7 @@ export class Show {
   constructor() {
     for (const b of this.bolts) this.root.add(b.glow, b.core, b.flash);
     // Keep the light count constant: hiding an effect must not recompile every die's shader.
-    this.root.add(this.kraken.root, this.fire.root, this.taiji.group, this.vampiro.root, this.morcegos.root, this.sangue.root, this.light);
+    this.root.add(this.kraken.root, this.fire.root, this.taiji.group, this.vampiro.root, this.vampiroGlb.root, this.morcegos.root, this.sangue.root, this.light);
   }
   // Compile every effect's shader up front, so the first omen does not stall a frame.
   compile(gl: WebGLRenderer, scene: Scene, camera: Camera, draw = false) {
@@ -202,7 +206,12 @@ export class Show {
     // ANGLE finishes some pipelines on their first draw. Replace the warm-up before the browser paints.
     if (draw) gl.render(scene, camera);
   }
-  private hideVampiro() { this.vampiro.hide(); this.morcegos.hide(); this.sangue.hide(); }
+  // The GLB arrives after mount: attach it and warm its shaders like the other effects.
+  anexarGlb(objeto: Object3D, gl: WebGLRenderer, scene: Scene, camera: Camera) {
+    this.vampiroGlb.anexar(objeto);
+    this.compile(gl, scene, camera, true);
+  }
+  private hideVampiro() { this.vampiro.hide(); this.vampiroGlb.hide(); this.morcegos.hide(); this.sangue.hide(); }
 
   hide() { this.bolts.forEach((b) => b.hide()); this.kraken.hide(); this.fire.hide(); this.taiji.hide(); this.hideVampiro(); this.light.intensity = 0; this.run = null; }
   frame(now: number, camera: Camera, at: (i: number) => Vector3 | null, pixels: number): number | null {
@@ -256,7 +265,8 @@ export class Show {
           if (pos) otherDice.push(pos.toArray());
         });
       }
-      this.vampiro.update(vampiro.tipo, t, camera, r.origins, at(vampiro.dados[0])?.toArray(), otherDice);
+      if (vampiro.tipo === 'par-de-criticos' && this.vampiroGlb.pronto) { this.vampiro.hide(); this.vampiroGlb.update(t); }
+      else this.vampiro.update(vampiro.tipo, t, camera, r.origins, at(vampiro.dados[0])?.toArray(), otherDice);
       if (vampiro.tipo === 'par-de-criticos') {
         this.morcegos.update(t, camera);
         this.sangue.update(t);
@@ -275,6 +285,7 @@ export class Show {
   }
   dispose() {
     this.vampiro.dispose();
+    this.vampiroGlb.dispose();
     const disposeObject = (o: Group['children'][number]) => {
       if (o instanceof Mesh || o instanceof Sprite || o instanceof LineSegments || o instanceof Points) {
         if ('dispose' in o && typeof o.dispose === 'function') o.dispose();
@@ -282,7 +293,7 @@ export class Show {
         for (const m of ([] as Material[]).concat(o.material)) m.dispose();
       }
     };
-    for (const child of this.root.children) if (child !== this.vampiro.root) child.traverse(disposeObject);
+    for (const child of this.root.children) if (child !== this.vampiro.root && child !== this.vampiroGlb.root) child.traverse(disposeObject);
     this.map.dispose();
   }
 }
@@ -292,6 +303,14 @@ export function PresagiosNaCena() {
   const show = useMemo(() => new Show(), []);
   const warmed = useRef(false);
   useEffect(() => { show.compile(gl, scene, camera); return () => show.dispose(); }, [camera, gl, scene, show]);
+  useEffect(() => {
+    let vivo = true;
+    fetch(ARQUIVO_DO_VAMPIRO).then((r) => { if (!r.ok) throw new Error(String(r.status)); return r.arrayBuffer(); })
+      .then((bytes) => parseGlb(bytes, () => 1024))
+      .then((objeto) => { if (vivo) show.anexarGlb(objeto, gl, scene, camera); })
+      .catch((e) => console.warn('Vampiro em GLB indisponível, usando a figura procedural.', e));
+    return () => { vivo = false; };
+  }, [camera, gl, scene, show]);
   useFrame(() => {
     // Environment builds its reflection texture after mount; warm the final shader variants as well.
     if (!warmed.current && scene.environment && gl.info.render.frame > 5 && !presagio().omen && !presagio().vampiro) {

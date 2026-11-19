@@ -29,7 +29,7 @@ Decidir se um resultado publicado tem presságio e mostrá-lo antes do resultado
 
 ## Vampiro
 
-`scene/Vampiro.ts` monta a figura procedural comum aos três presságios. No par, `presencaAt` ergue a figura atrás da parede traseira. O tronco se inclina sobre a borda, com palmas e garras erguidas ao lado dos ombros. Para ajustar a pose, preserve a câmera da casca e use o teste de projeção e folga em `tests/vampiroCena.test.ts`. Consulte [NOTAS.md](NOTAS.md#vampiro) para a malha, as curvas da animação e o aquecimento em `Show.compile`.
+`scene/Vampiro.ts` monta a figura procedural comum aos três presságios. No par, `presencaAt` ergue a figura atrás da parede traseira. O tronco se inclina sobre a borda, com palmas e garras erguidas ao lado dos ombros. Para ajustar a pose, preserve a câmera da casca e use o teste de projeção e folga em `tests/vampiroCena.test.ts`. No par, a figura é o GLB `public/modelos/vampiro.glb` (dono do asset: este módulo; ver `scene/VampiroGlb.ts`): a posição vem de `vampiroAt`, a pose vem do clipe `par`, e o tempo do clipe é o relógio do presságio. Enquanto o GLB não carregou, ou se falhar (`console.warn`), o par usa a figura procedural, que também segue nos bestiais. Consulte [NOTAS.md](NOTAS.md#vampiro) para a malha, as curvas da animação e o aquecimento em `Show.compile`.
 
 ## Consome
 - `arremesso`: `arremesso()`, `useArremesso`, `resultadoPublicado`, `registroDeCorpos` (os corpos dos dados), `omenKinds`, `TRAY`, o tipo `OmenTest`. O `LoopDoArremesso` lê o botão de teste escolhido pela casca (`presagio().omenTest`).
