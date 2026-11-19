@@ -1,4 +1,4 @@
-import { AnimationClip, AnimationMixer, Group, LoopOnce, Mesh, type BufferGeometry, type Material, type Object3D, type Texture } from 'three';
+import { AnimationAction, AnimationClip, AnimationMixer, Group, LoopOnce, Mesh, type BufferGeometry, type Material, type Object3D, type Texture } from 'three';
 import type { Vec3 } from '../../../shared/math.ts';
 import { PAR } from '../domain/vampiroMotion.ts';
 
@@ -13,6 +13,7 @@ export const ANCORA_DO_GLB: Vec3 = [0, -8.67, -6.037];
 export class VampiroGlb {
   readonly root = new Group();
   private mixer: AnimationMixer | null = null;
+  private action: AnimationAction | null = null;
   constructor() { this.root.name = 'vampiro-glb'; this.root.visible = false; }
 
   get pronto() { return this.mixer !== null; }
@@ -23,7 +24,7 @@ export class VampiroGlb {
     this.mixer = new AnimationMixer(objeto);
     const clip = AnimationClip.findByName(objeto.animations, 'par');
     if (clip) {
-      const action = this.mixer.clipAction(clip);
+      const action = this.action = this.mixer.clipAction(clip);
       action.setLoop(LoopOnce, 1);
       action.clampWhenFinished = true;
       action.play();
@@ -31,6 +32,8 @@ export class VampiroGlb {
   }
 
   update(t: number) {
+    // LoopOnce + clamp pauses the action at the end; wake it so the next round plays again
+    if (this.action) { this.action.paused = false; this.action.enabled = true; }
     this.mixer?.setTime(Math.min(t, PAR.duration) / 1000);
     this.root.visible = t > 0 && t < PAR.duration;
     if (!this.root.visible) return;
