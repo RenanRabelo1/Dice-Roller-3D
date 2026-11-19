@@ -6,7 +6,7 @@ import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
 import { TRAY } from '../../arremesso/index.ts';
 import { NUMERO_DE_MORCEGOS, PAR } from '../domain/vampiroMotion.ts';
 import { Morcegos, painelDaAsa, PONTAS_DA_ASA } from '../scene/Morcegos.ts';
-import { escoamentoAt, Sangue } from '../scene/Sangue.ts';
+import { ALTURA_POCA, escoamentoAt, LARGURA_LABIO, raioDoFilete, Sangue } from '../scene/Sangue.ts';
 import { Vampiro } from '../scene/Vampiro.ts';
 
 const camera = new PerspectiveCamera(40, 1.6);
@@ -57,14 +57,14 @@ function geometryLabel(mesh: Mesh) {
 
 describe('Vampire procedural meshes', () => {
   it('keeps adjacent triangles within 15 degrees on the curved surfaces', () => {
-    const vampire = new Vampiro(), bats = new Morcegos(), blood = new Sangue();
+    const vampire = new Vampiro(), bats = new Morcegos(true), blood = new Sangue();
     const figures = [...new Map([vampire.root, bats.root, blood.root].flatMap(malhas).map((m) => [m.geometry, m])).values()];
     const measured = figures.flatMap((m) => [0, ...(m.geometry.morphAttributes.position ? [1] : [])]
       .map((morph) => ({ name: geometryLabel(m), morph, angle: maxAngle(m.geometry, morph) })));
-    const cape = new Set(malhas(vampire.root.getObjectByName('vampiro-capa')!).map((mesh) => mesh.geometry));
+    const cape = vampire.root.getObjectByName('vampiro-capa')!;
     for (const [type, t] of [['par-de-criticos', 900], ['par-de-criticos', 4300], ['critico-bestial', 1900], ['falha-bestial', 3700]] as const) {
       vampire.update(type, t, camera);
-      for (const geometry of cape) measured.push({ name: `capa:${type}:${t}`, morph: 0, angle: maxAngle(geometry) });
+      for (const geometry of new Set(malhas(cape).map((mesh) => mesh.geometry))) measured.push({ name: `capa:${type}:${t}`, morph: 0, angle: maxAngle(geometry) });
     }
     // No intentional sharp-edge exceptions. The collar, nails and fangs are rounded too.
     expect(measured.filter(({ angle }) => angle > 15)).toEqual([]);
@@ -84,6 +84,8 @@ describe('Vampire procedural meshes', () => {
       calls.set(key, (calls.get(key) ?? 0) + (Array.isArray(mesh.material) ? mesh.geometry.groups.length : 1));
     }
     expect(Math.max(...calls.values())).toBeLessThanOrEqual(4);
+    vampire.update('critico-bestial', 1900, camera);
+    expect(malhas(body).reduce((total, mesh) => total + mesh.geometry.getAttribute('position').count, 0)).toBeLessThanOrEqual(60_000);
     expect(malhas(bats.root)).toHaveLength(3);
     expect(malhas(blood.root)).toHaveLength(2);
     for (const mesh of malhas(bats.root)) {
@@ -110,12 +112,13 @@ it('gives each wing five fingers with four inset scallops and curved panels', ()
   }
 });
 
-it('keeps the projected bats below twelve percent of the default viewport width', () => {
+it('keeps the projected bats in the projected size bands on the default viewport', () => {
   const bats = new Morcegos();
   const parts = malhas(bats.root) as InstancedMesh[];
   const matrix = new Matrix4(), clip = new Matrix4();
   const projection = new Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
-  let widest = 0;
+  let widest = 0, deepest = 0;
+  const forward = camera.getWorldDirection(new Vector3()), centre = new Vector3();
   for (const t of [1300, 1600, PAR.cobre, 1900, PAR.descobre, 2300, 2500]) {
     bats.update(t, camera);
     for (let i = 0; i < parts[0].count; i++) {
@@ -131,10 +134,19 @@ it('keeps the projected bats below twelve percent of the default viewport width'
           right = Math.max(right, screen);
         }
       }
-      widest = Math.max(widest, (Math.min(1, right) - Math.max(-1, left)) / 2);
+      const fraction = (Math.min(1, right) - Math.max(-1, left)) / 2;
+      parts[0].getMatrixAt(i, matrix);
+      const depth = centre.setFromMatrixPosition(matrix).sub(camera.position).dot(forward);
+      widest = Math.max(widest, fraction);
+      if (depth >= 11) deepest = Math.max(deepest, fraction);
     }
   }
-  expect(widest).toBeLessThanOrEqual(0.12);
+  expect(widest).toBeLessThanOrEqual(0.22);
+  expect(deepest).toBeGreaterThanOrEqual(0.05);
+  expect(deepest).toBeLessThanOrEqual(0.08);
+  expect(NUMERO_DE_MORCEGOS).toBeLessThanOrEqual(700);
+  const vertices = parts.reduce((sum, mesh) => sum + mesh.geometry.getAttribute('position').count, 0);
+  expect(vertices * NUMERO_DE_MORCEGOS).toBeLessThanOrEqual(400_000);
 });
 
 it('starts the blood on the lip, follows the inner walls and shrinks the length by 5200 ms', () => {
@@ -147,11 +159,11 @@ it('starts the blood on the lip, follows the inner walls and shrinks the length 
   expect(early.labio).toBeGreaterThan(0);
   for (const side of [-1, 1]) {
     const streams = peak.filetes.filter(({ x }) => x * side > 0);
-    expect(streams).toHaveLength(17);
+    expect(streams).toHaveLength(20);
     for (const { x, largura } of streams) {
       expect(TRAY.halfWidth - Math.abs(x)).toBeCloseTo(0.0065, 6);
-      expect(largura).toBeGreaterThanOrEqual(0.06);
-      expect(largura).toBeLessThanOrEqual(0.14);
+      expect(largura).toBeGreaterThanOrEqual(0.12);
+      expect(largura).toBeLessThanOrEqual(0.28);
     }
   }
   expect(peak.filetes.some(({ comprimento, poca }) => comprimento === TRAY.wallHeight && poca > 0)).toBe(true);
@@ -160,6 +172,43 @@ it('starts the blood on the lip, follows the inner walls and shrinks the length 
     expect(leaving.filetes[i].comprimento).toBeLessThanOrEqual(stream.comprimento * 0.60);
     expect(ended.filetes[i].comprimento).toBe(0);
     expect(ended.filetes[i].poca).toBe(0);
+  }
+  expect(ALTURA_POCA).toBeLessThanOrEqual(0.015);
+  expect(LARGURA_LABIO).toBeGreaterThanOrEqual(0.12);
+  expect(LARGURA_LABIO).toBeLessThanOrEqual(0.20);
+});
+
+it('covers at least thirty percent of both visible inner wall faces at 3600 ms', () => {
+  const { filetes } = escoamentoAt(3600);
+  const cellsY = 64, cellsZ = 240;
+  const { halfWidth, halfDepth, wallHeight } = TRAY;
+  for (const side of [-1, 1]) {
+    const streams = filetes.filter(({ x }) => x * side > 0);
+    const point = new Vector3();
+    const corner = (y: number, z: number) =>
+      point.set(side * halfWidth, y, z).project(camera).clone();
+    let wet = 0, total = 0;
+    for (let row = 0; row < cellsY; row++) for (let col = 0; col < cellsZ; col++) {
+      const dy = wallHeight / cellsY, dz = 2 * halfDepth / cellsZ;
+      const y = row * dy, z = -halfDepth + col * dz;
+      const midY = y + dy / 2, midZ = z + dz / 2;
+      const towardsFrontWall = (camera.position.z - halfDepth) / (camera.position.z - midZ);
+      if (camera.position.y + (midY - camera.position.y) * towardsFrontWall < wallHeight) continue;
+      const corners = [corner(y, z), corner(y + dy, z), corner(y + dy, z + dz), corner(y, z + dz)];
+      const area = Math.abs(corners.reduce((sum, a, i) => {
+        const b = corners[(i + 1) % corners.length];
+        return sum + a.x * b.y - a.y * b.x;
+      }, 0)) / 2;
+      total += area;
+      if (streams.some((stream) => {
+        const plane = Math.abs(stream.x) / halfWidth;
+        const surfaceY = camera.position.y + (midY - camera.position.y) * plane;
+        const surfaceZ = camera.position.z + (midZ - camera.position.z) * plane;
+        const fraction = (wallHeight + 0.006 - surfaceY) / (stream.comprimento + 0.006);
+        return Math.abs(stream.z - surfaceZ) <= stream.largura * raioDoFilete(fraction);
+      })) wet += area;
+    }
+    expect(wet / total).toBeGreaterThanOrEqual(0.30);
   }
 });
 

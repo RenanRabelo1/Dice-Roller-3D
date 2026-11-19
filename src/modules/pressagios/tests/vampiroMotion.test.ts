@@ -45,6 +45,8 @@ describe('Vampire motion', () => {
       expect(new Set(flock.map((bat) => bat.fase)).size).toBe(flock.length);
       expect(new Set(flock.map((bat) => Math.round(eye.clone().sub(bat.p).dot(eye.clone().normalize())))).size).toBeGreaterThanOrEqual(2);
       expect(next[0].p.x).toBeGreaterThan(flock[0].p.x);
+      expect(Math.min(...flock.map(({ velocidade }) => velocidade))).toBeGreaterThanOrEqual(0.75);
+      expect(Math.max(...flock.map(({ velocidade }) => velocidade))).toBeLessThanOrEqual(1.25);
     }
     expect(AMPLITUDE_DA_ASA * 180 / Math.PI).toBeGreaterThanOrEqual(50);
   });

@@ -6,7 +6,7 @@ import { definirMovimentoReduzido } from '../../../shared/plataforma/index.ts';
 import { presagio, reiniciarPresagio } from '../index.ts';
 import { PAR, VAMPIRO } from '../domain/vampiroMotion.ts';
 import { Show } from '../scene/PresagiosNaCena.tsx';
-import { Vampiro } from '../scene/Vampiro.ts';
+import { COLUNAS_CRITICO, dobraDoCritico, DOBRAS_CRITICO, Vampiro } from '../scene/Vampiro.ts';
 import { CENTRO_DA_PEGA } from '../scene/vampiroMao.ts';
 
 const camera = new PerspectiveCamera(40, 1.6);
@@ -59,6 +59,7 @@ describe('Vampire scene', () => {
       expect(vampire.visible).toBe(true);
       expect(vampire.getObjectByName('vampiro-cabeca')?.visible).toBe(true);
       expect(vampire.getObjectByName('vampiro-maos-da-camera')?.visible).toBe(true);
+      expect(vampire.getObjectByName('vampiro-capa-critica')?.visible).toBe(true);
       expect(bats.visible).toBe(true);
       expect(blood.visible).toBe(true);
     });
@@ -79,12 +80,14 @@ describe('Vampire scene', () => {
     vampire.update('par-de-criticos', 1900, camera, [[1, 0.8, -1], [2, 0.8, 1]]);
     expect(vampire.root.getObjectByName('vampiro-cabeca')?.visible).toBe(true);
     vampire.update('critico-bestial', 1980, camera, [[1, 0.8, -1]]);
+    const critical = vampire.root.getObjectByName('vampiro-capa-critica') as Mesh;
+    const releasesCritical = [vi.spyOn(critical.geometry, 'dispose'), vi.spyOn(critical.material as Material, 'dispose')];
     vampire.update('falha-bestial', 1600, camera);
     vampire.hide();
     expect(resources(vampire.root)).toEqual(first);
     const dispose = [...first.geometries, ...first.materials].map((asset) => vi.spyOn(asset, 'dispose'));
     vampire.dispose();
-    for (const released of dispose) expect(released).toHaveBeenCalledTimes(1);
+    for (const released of [...dispose, ...releasesCritical]) expect(released).toHaveBeenCalledTimes(1);
   });
 
   it('releases every bat and blood geometry, material and instance buffer once', () => {
@@ -120,6 +123,62 @@ describe('Vampire scene', () => {
       expect(waist.y).toBeGreaterThan(TRAY.wallHeight);
       expect(waist.z).toBeLessThan(-TRAY.halfDepth - TRAY.wallThickness);
     }
+    vampire.dispose();
+  });
+
+  it('fills the space above the rear lip without cropping the pair figure', () => {
+    const vampire = new Vampiro();
+    const body = vampire.root.getObjectByName('vampiro-corpo')!;
+    const head = vampire.root.getObjectByName('vampiro-cabeca')!;
+    const lip = new Vector3(0, TRAY.wallHeight, -TRAY.halfDepth - TRAY.wallThickness).project(camera).y;
+    const point = new Vector3();
+    for (const t of [900, 3100, 3600, 4300]) {
+      vampire.update('par-de-criticos', t, camera);
+      body.updateWorldMatrix(true, true);
+      let top = -Infinity;
+      head.traverse((mesh) => {
+        if (!(mesh instanceof Mesh)) return;
+        const vertices = mesh.geometry.getAttribute('position');
+        for (let i = 0; i < vertices.count; i++) {
+          top = Math.max(top, point.fromBufferAttribute(vertices, i).applyMatrix4(mesh.matrixWorld).project(camera).y);
+        }
+      });
+      expect((top - lip) / (1 - lip)).toBeGreaterThanOrEqual(0.85);
+      expect((1 - top) / 2).toBeGreaterThanOrEqual(0);
+      expect((1 - top) / 2).toBeLessThanOrEqual(0.015);
+      expect(body.position.x).toBe(0);
+    }
+    vampire.dispose();
+  });
+
+  it('runs seven full depth folds from collar to hem within a quarter of the viewport', () => {
+    const vampire = new Vampiro();
+    vampire.update('critico-bestial', 1900, camera, [[1, 0.8, -1]]);
+    const cape = vampire.root.getObjectByName('vampiro-capa-critica') as Mesh;
+    cape.updateWorldMatrix(true, false);
+    const vertices = cape.geometry.getAttribute('position');
+    const columns = COLUNAS_CRITICO + 1;
+    const tool = new Vector3();
+    let widest = 0;
+    expect(DOBRAS_CRITICO).toBe(7);
+    for (let fold = 0; fold < DOBRAS_CRITICO; fold++) {
+      expect(dobraDoCritico(fold / DOBRAS_CRITICO)).toBeGreaterThanOrEqual(0.08);
+      expect(dobraDoCritico((fold + 0.5) / DOBRAS_CRITICO)).toBeLessThanOrEqual(-0.08);
+    }
+    for (let start = 0; start < vertices.count; start += columns) {
+      let lo = 1, hi = -1;
+      const projected = (col: number) => Math.max(-1, Math.min(1,
+        tool.fromBufferAttribute(vertices, start + col).applyMatrix4(cape.matrixWorld).project(camera).x));
+      for (let col = 0; col < columns; col++) {
+        const x = projected(col);
+        lo = Math.min(lo, x);
+        hi = Math.max(hi, x);
+      }
+      const folds = Array.from({ length: DOBRAS_CRITICO }, (_, i) => projected(Math.round((i + 0.5) / DOBRAS_CRITICO * COLUNAS_CRITICO)));
+      const marks = [lo, ...folds, hi].sort((a, b) => a - b);
+      for (let i = 1; i < marks.length; i++) widest = Math.max(widest, (marks[i] - marks[i - 1]) / 2);
+    }
+    expect(widest).toBeLessThanOrEqual(0.25);
     vampire.dispose();
   });
 
