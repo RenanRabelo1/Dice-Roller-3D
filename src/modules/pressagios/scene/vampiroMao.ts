@@ -14,11 +14,12 @@ type CurvaDoDedo = {
   abertura: number;
   base: number;
   ponta: number;
+  falanges?: 2 | 3;
 };
 
 // The two knuckles separate three phalanges along the arc, with matching rings
 // in the open and closed hand so the grip can keep its existing morph.
-function dedo({ p, comprimento, inicio, dobra, abertura, base, ponta }: CurvaDoDedo, unha = false) {
+function dedo({ p, comprimento, inicio, dobra, abertura, base, ponta, falanges = 3 }: CurvaDoDedo, unha = false) {
   const segmentos = unha ? 18 : 30;
   const tampa = 10;
   return superficie(34, segmentos + tampa, (u, v) => {
@@ -28,8 +29,8 @@ function dedo({ p, comprimento, inicio, dobra, abertura, base, ponta }: CurvaDoD
     const ratio = comprimento / dobra;
     const cap = Math.max(0, ring - segmentos) / tampa * Math.PI / 2;
     const taper = 0.5 - 0.5 * Math.cos(Math.PI * t);
-    const knuckle = unha ? 0 : base * (0.108 * Math.exp(-(((t - 0.31) / 0.10) ** 2))
-      + 0.113 * Math.exp(-(((t - 0.65) / 0.095) ** 2)));
+    const knuckle = unha ? 0 : base * (falanges === 2 ? 0.13 * Math.exp(-(((t - 0.49) / 0.11) ** 2))
+      : 0.108 * Math.exp(-(((t - 0.31) / 0.10) ** 2)) + 0.113 * Math.exp(-(((t - 0.65) / 0.095) ** 2)));
     const radius = (base + (ponta - base) * taper + knuckle) * Math.cos(cap);
     const length = ponta * Math.sin(cap);
     const x = radius * Math.cos(u * 2 * Math.PI);
@@ -66,46 +67,55 @@ function dorsalTendons(x: number, y: number, side: number) {
     sum + Math.exp(-(((x - finger * spread + y * side * 0.06) / 0.027) ** 2)), 0);
 }
 
-function palma(side: number, camera: boolean) {
-  const g = elipsoide([0, -0.055, -0.035], [camera ? 0.187 : 0.213, 0.382, 0.145], side * 0.09, 48, 30);
-  const pos = g.getAttribute('position');
-  for (let i = 0; i < pos.count; i++) {
-    const y = pos.getY(i), z = pos.getZ(i), v = span(y, -0.39, 0.26);
-    const x = pos.getX(i) * (0.82 + 0.38 * v * v * (3 - 2 * v));
-    pos.setX(i, x);
-    const dorsum = Math.max(0, (-z - 0.035) / 0.145) ** 2;
-    pos.setZ(i, z - dorsalTendons(x, y, side) * dorsum * 0.0031);
-  }
-  return g;
+const basesDosDedos = [-1.5, -0.5, 0.5, 1.5];
+const larguraEntreDedos = 0.103;
+
+function palma(side: number) {
+  const wristRows = 11, palmRows = 19, crownRows = 15, rows = wristRows + palmRows + crownRows;
+  return superficie(38, rows, (u, v) => {
+    const row = Math.round(v * rows), across = u * 2 * Math.PI;
+    const rise = span(row, wristRows, wristRows + palmRows);
+    const wrist = -Math.PI / 2 * (1 - span(row, 0, wristRows));
+    const crown = Math.PI / 2 * span(row, wristRows + palmRows, rows);
+    const rounding = Math.cos(wrist + crown);
+    const spread = rise * rise * (3 - 2 * rise);
+    const radiusX = 0.111 + 0.122 * spread;
+    const radiusZ = 0.052 + 0.011 * spread + 0.005 * Math.sin(Math.PI * rise) ** 2;
+    const y = -0.317 + 0.468 * rise + 0.074 * Math.sin(wrist) + 0.092 * Math.sin(crown);
+    const horizontal = Math.sin(across), depth = Math.cos(across);
+    const support = Math.hypot(radiusX * horizontal, radiusZ * depth);
+    const x = radiusX ** 2 * horizontal / support * rounding;
+    const z = radiusZ ** 2 * depth / support * rounding;
+    const dorsum = Math.max(0, -z / radiusZ) ** 2;
+    const knuckles = basesDosDedos.reduce((sum, k, j) => sum + Math.exp(-(((x - k * side * larguraEntreDedos) / 0.042) ** 2)
+      - (((y - (0.125 - 0.009 * j)) / 0.061) ** 2)), 0);
+    return [x, y, z - 0.016 - dorsum * (0.0037 * dorsalTendons(x, y, side) + 0.0061 * knuckles)];
+  });
 }
 
-function modelarMao(side: number, fechada: boolean, camera: boolean): [BufferGeometry, BufferGeometry] {
-  const flesh: BufferGeometry[] = [palma(side, camera)];
-  const claws: BufferGeometry[] = [];
-  const lengths = camera ? [0.79, 0.87, 0.82, 0.70] : [0.52, 0.65, 0.59, 0.46];
-  for (const [i, length] of lengths.entries()) {
-    const x = (i - 1.5) * side;
-    const digit: CurvaDoDedo = {
-      p: [x * (camera ? 0.099 : 0.104), 0.149 - 0.018 * i, -0.047],
+export function partesDaMao(side: number, fechada = false) {
+  const lengths = [0.52, 0.65, 0.59, 0.46];
+  const fingers = lengths.map((length, i): CurvaDoDedo => {
+    const x = basesDosDedos[i] * side;
+    return {
+      p: [x * larguraEntreDedos, 0.113 - 0.012 * i, -0.019],
       comprimento: length,
       inicio: fechada ? -0.30 : -0.12,
-      dobra: fechada ? 2.50 : camera ? 0.38 : 0.90,
-      abertura: -x * (camera ? 0.060 : 0.10),
-      base: camera ? 0.041 : 0.060 - 0.004 * i,
-      ponta: camera ? 0.022 : 0.028 - 0.002 * i,
+      dobra: fechada ? 2.50 : 0.69,
+      abertura: -x * 0.105,
+      base: 0.060 - 0.004 * i,
+      ponta: 0.028 - 0.002 * i,
     };
-    flesh.push(dedo(digit));
-    claws.push(garra(digit));
-  }
-  const thumb: CurvaDoDedo = {
-    p: [-0.097 * side, -0.128, -0.017],
-    comprimento: camera ? 0.53 : 0.51,
-    inicio: 0.03, dobra: fechada ? 1.34 : camera ? 0.33 : 0.94,
-    abertura: side * (fechada ? 0.38 : 0.49), base: 0.066, ponta: 0.030,
-  };
-  flesh.push(dedo(thumb));
-  claws.push(garra(thumb));
-  return [soldar(flesh), soldar(claws)];
+  });
+  fingers.push({ p: [-0.126 * side, -0.245, -0.005], comprimento: 0.405,
+    inicio: 0.04, dobra: fechada ? 1.27 : 0.68,
+    abertura: side * (fechada ? 0.67 : 0.89), base: 0.065, ponta: 0.030, falanges: 2 });
+  return { palma: palma(side), dedos: fingers.map((finger) => dedo(finger)), garras: fingers.map(garra) };
+}
+
+function modelarMao(side: number, fechada: boolean): [BufferGeometry, BufferGeometry] {
+  const { palma, dedos, garras } = partesDaMao(side, fechada);
+  return [soldar([palma, ...dedos]), soldar(garras)];
 }
 
 export function mangaDaCamera() {
@@ -114,13 +124,13 @@ export function mangaDaCamera() {
 
 export function maoDoVampiro(side: number, skin: MeshStandardMaterial, nail: MeshStandardMaterial, camera = false): Group {
   const group = new Group();
-  const geometry = modelarMao(side, false, camera);
+  const geometry = modelarMao(side, false);
   tingirPele(geometry[0], (x, y, z) => {
     const cold = 0.15 * Math.min(1, Math.hypot(x, Math.max(0, y - 0.12)) + Math.max(0, -z));
-    const tendon = 0.065 * span(-z, 0.10, 0.17) * dorsalTendons(x, y, side);
+    const tendon = 0.065 * span(-z, 0.035, 0.075) * dorsalTendons(x, y, side);
     return [0.93 - cold + tendon, 0.82 - cold + tendon, 0.81 - 0.55 * cold + tendon];
   });
-  if (!camera) modelarMao(side, true, false).forEach((closed, i) => {
+  if (!camera) modelarMao(side, true).forEach((closed, i) => {
     geometry[i].morphAttributes.position = [closed.getAttribute('position')];
     geometry[i].morphAttributes.normal = [closed.getAttribute('normal')];
     closed.dispose();
