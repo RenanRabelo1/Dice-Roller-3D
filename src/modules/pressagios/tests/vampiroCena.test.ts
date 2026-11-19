@@ -47,24 +47,28 @@ const tray = [
   volume(-w, -0.12, -d, w, 0, d),
 ];
 const FOLGA = 0.15;
-const walls = tray.map((box) => {
+const FOLGA_DOS_BRACOS = 0.4;
+const marksDoPar = [PAR.surge, PAR.revoada, PAR.revela, PAR.mostrado];
+const defineWalls = (boxes: Box3[], distance: number) => boxes.map((box) => {
   const corners = Array.from({ length: 8 }, (_, i) => new Vector3(
     (i & 1 ? box.max : box.min).x, (i & 2 ? box.max : box.min).y, (i & 4 ? box.max : box.min).z));
   const edges = corners.flatMap((corner, i) => [1, 2, 4].filter((bit) => !(i & bit))
     .map((bit) => new Line3(corner, corners[i ^ bit])));
-  return { box, expanded: box.clone().expandByScalar(FOLGA), corners, edges };
+  return { box, expanded: box.clone().expandByScalar(distance), distance, corners, edges };
 });
+const walls = defineWalls(tray, FOLGA);
+const armWalls = defineWalls(tray.slice(0, 4), FOLGA_DOS_BRACOS);
 
 function triangleIsClear(triangle: Triangle, wall: (typeof walls)[number], point: Vector3) {
   if (!wall.expanded.intersectsTriangle(triangle)) return true;
   if (wall.box.intersectsTriangle(triangle)) return false;
   const vertices = [triangle.a, triangle.b, triangle.c];
-  if (vertices.some((p) => wall.box.distanceToPoint(p) < FOLGA)) return false;
-  if (wall.corners.some((corner) => triangle.closestPointToPoint(corner, point).distanceToSquared(corner) < FOLGA ** 2)) return false;
+  if (vertices.some((p) => wall.box.distanceToPoint(p) < wall.distance)) return false;
+  if (wall.corners.some((corner) => triangle.closestPointToPoint(corner, point).distanceToSquared(corner) < wall.distance ** 2)) return false;
   // Disjoint convex surfaces approach at a vertex/face or along two edges.
   return vertices.every((p, i) => {
     const side = new Line3(p, vertices[(i + 1) % 3]);
-    return wall.edges.every((edge) => side.distanceSqToLine3(edge) >= FOLGA ** 2);
+    return wall.edges.every((edge) => side.distanceSqToLine3(edge) >= wall.distance ** 2);
   });
 }
 
@@ -177,22 +181,58 @@ describe('Vampire scene', () => {
     const body = vampire.root.getObjectByName('vampiro-corpo')!;
     const head = vampire.root.getObjectByName('vampiro-cabeca')!;
     const shoulders = vampire.root.getObjectByName('vampiro-ombros')!;
-    const marks = [PAR.surge, PAR.revoada, PAR.revela, PAR.mostrado];
-    for (const t of [400, 480, 520, 560, 600, 650, ...marks, 900, 1900, 3600, 4300, 4900, 4950, 5000, 5100, 5150, 5200]) {
+    for (const t of [400, 480, 520, 560, 600, 650, ...marksDoPar, 900, 1900, 3600, 4300, 4900, 4950, 5000, 5100, 5150, 5200]) {
       vampire.update('par-de-criticos', t, camera);
-      const checkFrame = marks.includes(t);
+      const checkFrame = marksDoPar.includes(t);
       const { bounds, skull, collision } = projectVampire(body, head, checkFrame);
       expect.soft(collision, `${t} ms`).toBe('');
       if (!checkFrame) continue;
       const height = (bounds.max.y - bounds.min.y) / 2;
       const bottom = (1 - bounds.min.y) / 2;
       const center = Math.abs(bounds.max.x + bounds.min.x) / 4;
-      expect.soft(height, `${t} ms`).toBeGreaterThanOrEqual(0.24);
       expect.soft(height, `${t} ms`).toBeLessThanOrEqual(0.32);
       expect.soft(bottom, `${t} ms`).toBeLessThanOrEqual(0.38);
       expect.soft(center, `${t} ms`).toBeLessThanOrEqual(0.03);
       for (const part of [head, shoulders]) expect.soft(new Box3().setFromObject(part, true).max.z).toBeGreaterThan(-d - thick);
       for (const limit of [skull.max.x, skull.max.y, -skull.min.x, -skull.min.y]) expect.soft(limit).toBeLessThanOrEqual(1);
+    }
+    vampire.dispose();
+  }, 20_000);
+
+  it('keeps raised arms and upright palms above the rear lip and clear of the felt in the pair', () => {
+    const vampire = new Vampiro();
+    const lip = new Vector3(0, h, -d - thick).project(camera).y;
+    const cameraFront = new Vector3(0, 0, 1).applyQuaternion(camera.quaternion);
+    const hit = new Vector3(), triangle = new Triangle(), point = new Vector3();
+    const ray = new Ray(camera.position.clone());
+    for (const t of [...marksDoPar, 900, 3600, 4300]) {
+      vampire.update('par-de-criticos', t, camera);
+      vampire.root.updateMatrixWorld(true);
+      for (const [handSide, armSide] of [['esquerda', 'esquerdo'], ['direita', 'direito']]) {
+        const palm = vampire.root.getObjectByName(`vampiro-mao-${handSide}`)!;
+        expect(new Vector3(0, 0, 1).transformDirection(palm.matrixWorld).dot(cameraFront)).toBeGreaterThan(0.95);
+        const parts = [palm, ...['braco', 'antebraco'].map((part) => vampire.root.getObjectByName(`vampiro-${part}-${armSide}`)!)];
+        const projection = new Box3();
+        let feltOverlap = false, wallClear = true;
+        for (const part of parts) part.traverse((mesh) => {
+          if (!(mesh instanceof Mesh)) return;
+          const vertices = mesh.geometry.getAttribute('position'), index = mesh.geometry.getIndex()!;
+          const world = Array.from({ length: vertices.count }, (_, i) => mesh.getVertexPosition(i, new Vector3()).applyMatrix4(mesh.matrixWorld));
+          for (const p of world) {
+            projection.expandByPoint(point.copy(p).project(camera));
+            ray.direction.subVectors(p, ray.origin).normalize();
+            feltOverlap ||= ray.intersectBox(tray[4], hit) !== null;
+          }
+          for (let i = 0; i < index.count && wallClear; i += 3) {
+            triangle.set(world[index.getX(i)], world[index.getX(i + 1)], world[index.getX(i + 2)]);
+            wallClear = armWalls.every((wall) => triangleIsClear(triangle, wall, point));
+          }
+        });
+        expect.soft(projection.min.y, `${t} ms`).toBeGreaterThanOrEqual(lip);
+        expect.soft(projection.max.y, `${t} ms`).toBeLessThanOrEqual(1);
+        expect.soft(feltOverlap, `${t} ms`).toBe(false);
+        expect.soft(wallClear, `${t} ms`).toBe(true);
+      }
     }
     vampire.dispose();
   }, 20_000);

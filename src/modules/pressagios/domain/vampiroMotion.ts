@@ -154,15 +154,15 @@ export function fechamentoDaPegada(tipo: TipoVampiro, t: number): readonly [numb
 
 function presencaAt(t: number): Quadro {
   const { aparece } = parAt(t);
-  // Rise behind the wall first. Only reach over the lip once the elbows clear it.
+  // The torso leans over the lip while the hands rise to either side of it.
   const avanco = MathUtils.smoothstep(aparece, 0.89, 1);
   const ergue = MathUtils.smoothstep(aparece, 0.20, 0.97);
   const impulso = 0.58 * Math.sin(Math.PI * MathUtils.smoothstep(aparece, 0.2, 0.82));
   const recuo = 0.79 * MathUtils.smoothstep(aparece, 0.65, 0.86) * (1 - MathUtils.smoothstep(aparece, 0.90, 0.99));
   const altura = -8.8 + impulso + ergue * (6.99 + 0.018 * Math.sin(t / 450));
   const p: Vec3 = [0, altura - recuo, fundo - 2.75 + 0.81 * avanco];
-  const mao = (side: number): Vec3 => [side * (1.02 + 1.16 * avanco),
-    altura + 3.11 + 1.42 * avanco + 0.045 * Math.sin(t / 530 + side * 0.4), p[2] + 1.45 + 3.42 * avanco];
+  const mao = (side: number): Vec3 => [side * (1.02 + 1.02 * avanco),
+    altura + 3.04 + 1.40 * avanco + 0.025 * Math.sin(t / 530 + side * 0.4), p[2] + 1.10 + 0.59 * avanco];
   return {
     fase: 'presenca', cobertura: 0,
     corpo: { p, yaw: 0, lean: 0.53 + 0.145 * avanco + 0.010 * Math.sin(t / 550), crouch: 0, step: 0, visivel: aparece > 0 },

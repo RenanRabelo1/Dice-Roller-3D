@@ -258,8 +258,12 @@ function bendArm(arm: Arm, root: Group, torso: Group, grip: Vec3, camera: Camera
   const point = root.worldToLocal(new Vector3(...grip));
   const cameraRotation = camera.getWorldQuaternion(new Quaternion());
   const cameraFacing = root.getWorldQuaternion(new Quaternion()).invert().multiply(cameraRotation);
-  palm.quaternion.setFromEuler(presenca ? new Euler(1.89, side * 0.20, -side * 0.29)
-    : new Euler(attack ? 0.62 : -0.36, side * 0.42, side * 0.24));
+  palm.quaternion.setFromEuler(new Euler(attack ? 0.62 : -0.36, side * 0.42, side * 0.24));
+  if (presenca) {
+    palm.quaternion.copy(cameraFacing);
+    palm.rotateZ(-side * 0.56);
+    palm.rotateY(side * 0.10);
+  }
   if (holding) {
     palm.quaternion.copy(cameraFacing);
     const rest = side * (attack ? -0.58 : -0.30);
@@ -272,9 +276,11 @@ function bendArm(arm: Arm, root: Group, torso: Group, grip: Vec3, camera: Camera
   const wrist = new Vector3(0, -0.31, -0.035).multiply(palm.scale).applyQuaternion(palm.quaternion).add(palm.position);
   const direction = wrist.clone().sub(shoulder), half = direction.length() / 2;
   direction.normalize();
-  const bend = presenca ? new Vector3(side * 0.96, -0.28, -0.32) : new Vector3(side * 0.78, -1, -0.26);
+  const bend = new Vector3(side * 0.78, -1, -0.26);
   bend.addScaledVector(direction, -bend.dot(direction)).normalize();
-  const elbow = shoulder.clone().lerp(wrist, 0.47).addScaledVector(bend, Math.sqrt(Math.max(0.025, 0.91 ** 2 - half ** 2)));
+  const elbow = shoulder.clone().lerp(wrist, 0.47);
+  if (presenca) elbow.add(new Vector3(side * 0.32, 0.20, -0.36));
+  else elbow.addScaledVector(bend, Math.sqrt(Math.max(0.025, 0.91 ** 2 - half ** 2)));
   const link = (o: Mesh | Group, a: Vector3, b: Vector3) => {
     const axis = b.clone().sub(a);
     o.position.copy(a);
@@ -341,6 +347,8 @@ export class Vampiro {
     this.arms = sides.map((side) => {
       const sleeve = batch(coat, [taper([0, -0.05, 0], [0, 1, 0], 0.19, 0.10, 0.075)]);
       const cuff = new Group();
+      sleeve.name = side < 0 ? 'vampiro-braco-esquerdo' : 'vampiro-braco-direito';
+      cuff.name = side < 0 ? 'vampiro-antebraco-esquerdo' : 'vampiro-antebraco-direito';
       cuff.add(batch(coat, [taper([0, -0.06, 0], [0, 1, 0], 0.116, 0.076, 0.045)]),
         batch(velvet, [taper([0, 0.76, 0], [0, 0.95, 0], 0.105, 0.087)]));
       const palm = maoDoVampiro(side, skin, nail);
