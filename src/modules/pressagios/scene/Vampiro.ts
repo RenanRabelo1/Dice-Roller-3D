@@ -7,7 +7,7 @@ import { span, type Vec3 } from '../../../shared/math.ts';
 import { fechamentoDaPegada, VAMPIRO, vampiroAt } from '../domain/vampiroMotion.ts';
 import { CENTRO_DA_PEGA, mangaDaCamera, maoDoVampiro } from './vampiroMao.ts';
 import { elipsoide as sphere, soldar, superficie } from './malhaLisa.ts';
-import { peleDoVampiro, rostoDoVampiro, tingirPele } from './vampiroRosto.ts';
+import { peleDoVampiro, pescocoDoVampiro, rostoDoVampiro } from './vampiroRosto.ts';
 
 const UP = new Vector3(0, 1, 0);
 const COLUMNS = 82, ROWS = 32, HEM_ROWS = 22, CAPE_SWEEP = 1.94;
@@ -279,7 +279,7 @@ function bendArm(arm: Arm, root: Group, torso: Group, grip: Vec3, camera: Camera
   const bend = new Vector3(side * 0.78, -1, -0.26);
   bend.addScaledVector(direction, -bend.dot(direction)).normalize();
   const elbow = shoulder.clone().lerp(wrist, 0.47);
-  if (presenca) elbow.add(new Vector3(side * 0.32, 0.20, -0.36));
+  if (presenca) elbow.add(new Vector3(side * 0.27, 0.17, 0.10));
   else elbow.addScaledVector(bend, Math.sqrt(Math.max(0.025, 0.91 ** 2 - half ** 2)));
   const link = (o: Mesh | Group, a: Vector3, b: Vector3) => {
     const axis = b.clone().sub(a);
@@ -328,9 +328,7 @@ export class Vampiro {
     const sides = [-1, 1];
     const shoulders = batch(coat, [profile([[0, -0.5], [0.47, -0.35], [0.49, 0.55], [0.65, 1.35], [0.5, 1.6], [0, 1.72]], 0.50)]);
     shoulders.name = 'vampiro-ombros';
-    const neck = new Mesh(tingirPele(soldar([taper([0, 1.57, -0.023], [0, 1.82, 0.028], 0.112, 0.093)]),
-      () => [0.91, 0.85, 0.83]), skin);
-    neck.name = 'vampiro-pescoco';
+    const neck = pescocoDoVampiro(skin, taper);
     this.torso.add(
       this.cape.group,
       batch(velvet, [vest]),

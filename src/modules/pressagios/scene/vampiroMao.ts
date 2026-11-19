@@ -31,7 +31,8 @@ function dedo({ p, comprimento, inicio, dobra, abertura, base, ponta, falanges =
     const taper = 0.5 - 0.5 * Math.cos(Math.PI * t);
     const knuckle = unha ? 0 : base * (falanges === 2 ? 0.13 * Math.exp(-(((t - 0.49) / 0.11) ** 2))
       : 0.108 * Math.exp(-(((t - 0.31) / 0.10) ** 2)) + 0.113 * Math.exp(-(((t - 0.65) / 0.095) ** 2)));
-    const radius = (base + (ponta - base) * taper + knuckle) * Math.cos(cap);
+    const thumbRoot = !unha && falanges === 2 ? 0.77 + 0.23 * Math.sin(span(t, 0, 0.27) * Math.PI / 2) ** 2 : 1;
+    const radius = (base + (ponta - base) * taper + knuckle) * thumbRoot * Math.cos(cap);
     const length = ponta * Math.sin(cap);
     const x = radius * Math.cos(u * 2 * Math.PI);
     const cross = -radius * Math.sin(u * 2 * Math.PI) * (unha ? 0.77 : 0.94 + 0.06 * t);
@@ -107,7 +108,7 @@ export function partesDaMao(side: number, fechada = false) {
       ponta: 0.028 - 0.002 * i,
     };
   });
-  fingers.push({ p: [-0.126 * side, -0.245, -0.005], comprimento: 0.405,
+  fingers.push({ p: [-0.076 * side, -0.230, -0.005], comprimento: 0.405,
     inicio: 0.04, dobra: fechada ? 1.27 : 0.68,
     abertura: side * (fechada ? 0.67 : 0.89), base: 0.065, ponta: 0.030, falanges: 2 });
   return { palma: palma(side), dedos: fingers.map((finger) => dedo(finger)), garras: fingers.map(garra) };

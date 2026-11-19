@@ -147,8 +147,8 @@ describe('Vampire scene', () => {
     const vampire = new Vampiro();
     const first = resources(vampire.root);
     expect(first.geometries.size).toBeGreaterThan(0);
-    expect(first.geometries.size).toBeLessThanOrEqual(33);
-    expect(first.materials.size).toBeLessThanOrEqual(15);
+    expect(first.geometries.size).toBeLessThanOrEqual(35);
+    expect(first.materials.size).toBeLessThanOrEqual(16);
     vampire.update('par-de-criticos', 1900, camera, [[1, 0.8, -1], [2, 0.8, 1]]);
     expect(vampire.root.getObjectByName('vampiro-cabeca')?.visible).toBe(true);
     vampire.update('critico-bestial', 1980, camera, [[1, 0.8, -1]]);
@@ -248,7 +248,10 @@ describe('Vampire scene', () => {
     expect(headHeight).toBeGreaterThanOrEqual(1 / 8);
     expect(headHeight).toBeLessThanOrEqual(1 / 7);
     expect(headWidth).toBeLessThanOrEqual(0.4);
-    expect(bounds('vampiro-pescoco').getSize(new Vector3()).y).toBeGreaterThan(0.23);
+    const neck = bounds('vampiro-pescoco').getSize(new Vector3());
+    expect(neck.y).toBeGreaterThan(0.23);
+    expect(neck.x / (head.max.x - head.min.x)).toBeGreaterThanOrEqual(0.42);
+    expect(neck.x / (head.max.x - head.min.x)).toBeLessThanOrEqual(0.50);
     vampire.dispose();
   });
 

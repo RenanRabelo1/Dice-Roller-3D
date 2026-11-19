@@ -56,6 +56,47 @@ function geometryLabel(mesh: Mesh) {
 }
 
 describe('Vampire procedural meshes', () => {
+  it('defines the nose, eye apertures and iris with geometry and keeps the skin tint gradual', () => {
+    const vampire = new Vampiro();
+    const head = vampire.root.getObjectByName('vampiro-cabeca')!;
+    const face = head.getObjectByName('vampiro-rosto-esculpido') as Mesh;
+    const geometry = face.geometry;
+    const pos = geometry.getAttribute('position'), color = geometry.getAttribute('color');
+    const index = geometry.getIndex()!;
+    const luminance = (i: number) => 0.2126 * color.getX(i) + 0.7152 * color.getY(i) + 0.0722 * color.getZ(i);
+    let contrast = 0, tip = -Infinity, cheek = -Infinity;
+    for (let i = 0; i < pos.count; i++) {
+      const x = Math.abs(pos.getX(i)), y = pos.getY(i), z = pos.getZ(i);
+      if (x <= 0.018 && y > 0.16 && y < 0.23) tip = Math.max(tip, z);
+      if (x > 0.095 && x < 0.114 && y > 0.195 && y < 0.24) cheek = Math.max(cheek, z);
+    }
+    for (let i = 0; i < index.count; i += 3) {
+      const shades = [luminance(index.getX(i)), luminance(index.getX(i + 1)), luminance(index.getX(i + 2))];
+      contrast = Math.max(contrast, (Math.max(...shades) - Math.min(...shades)) / Math.min(...shades));
+    }
+    geometry.computeBoundingBox();
+    const size = geometry.boundingBox!.getSize(new Vector3());
+    const rightEye = (name: string) => {
+      const pos = (head.getObjectByName(name) as Mesh).geometry.getAttribute('position');
+      const min = new Vector3(Infinity, Infinity, Infinity), max = new Vector3(-Infinity, -Infinity, -Infinity);
+      const point = new Vector3();
+      for (let i = 0; i < pos.count; i++) {
+        point.fromBufferAttribute(pos, i);
+        if (point.x <= 0) continue;
+        min.min(point);
+        max.max(point);
+      }
+      return max.sub(min);
+    };
+    const aperture = rightEye('vampiro-fendas'), iris = rightEye('vampiro-irises');
+    expect(contrast).toBeLessThanOrEqual(0.04);
+    expect((tip - cheek) / size.z).toBeGreaterThanOrEqual(0.12);
+    expect(aperture.x / size.x).toBeGreaterThanOrEqual(0.18);
+    expect(iris.y / aperture.y).toBeGreaterThanOrEqual(0.4);
+    expect(iris.y / aperture.y).toBeLessThanOrEqual(0.5);
+    vampire.dispose();
+  });
+
   it('keeps adjacent triangles within 15 degrees on the curved surfaces', () => {
     const vampire = new Vampiro(), bats = new Morcegos(true), blood = new Sangue();
     const figures = [...new Map([vampire.root, bats.root, blood.root].flatMap(malhas).map((m) => [m.geometry, m])).values()];
