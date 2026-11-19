@@ -4,7 +4,7 @@ import {
 } from 'three';
 import type { TipoVampiro } from '../../regras/index.ts';
 import { span, type Vec3 } from '../../../shared/math.ts';
-import { fechamentoDaPegada, VAMPIRO, vampiroAt } from '../domain/vampiroMotion.ts';
+import { fechamentoDaPegada, parAt, VAMPIRO, vampiroAt } from '../domain/vampiroMotion.ts';
 import { CENTRO_DA_PEGA, mangaDaCamera, maoDoVampiro } from './vampiroMao.ts';
 import { elipsoide as sphere, soldar, superficie } from './malhaLisa.ts';
 import { peleDoVampiro, pescocoDoVampiro, rostoDoVampiro } from './vampiroRosto.ts';
@@ -12,7 +12,7 @@ import { peleDoVampiro, pescocoDoVampiro, rostoDoVampiro } from './vampiroRosto.
 const UP = new Vector3(0, 1, 0);
 const COLUMNS = 82, ROWS = 32, HEM_ROWS = 22, CAPE_SWEEP = 1.94;
 const SHOULDERS = 1.68;
-const SCALE: Record<TipoVampiro, number> = { 'par-de-criticos': 1.51, 'critico-bestial': 3.35, 'falha-bestial': 3.95 };
+const SCALE: Record<TipoVampiro, number> = { 'par-de-criticos': 2.40, 'critico-bestial': 3.35, 'falha-bestial': 3.95 };
 
 function taper(a: Vec3, b: Vec3, r0: number, r1: number, fullness = 0): BufferGeometry {
   const start = new Vector3(...a), end = new Vector3(...b), axis = end.clone().sub(start);
@@ -188,21 +188,34 @@ class Cape {
       this.tecidoCritico = critico;
     }
     if (critico) return;
+    const sinLean = Math.sin(lean), cosLean = Math.cos(lean);
+    const quedaDoTecido = opened ? 0.37 + 0.63 * span(parAt(t).aparece, 0.88, 1) : 1;
     for (let row = 0; row <= ROWS; row++) {
       const v = row / ROWS;
       for (let col = 0; col <= COLUMNS; col++) {
         const angle = (col / COLUMNS * 2 - 1) * (opened ? 2.12 : CAPE_SWEEP);
         const pleats = v * (0.032 * Math.cos(angle * 4.5) + 0.023 * Math.sin(t * 0.005 + angle * 3.2 - v * 3));
+        if (opened) {
+          const across = Math.sin(angle), back = Math.cos(angle), edge = (angle / 2.12) ** 2;
+          const collarY = 1.40 + 0.10 * (1 - back), collarZ = -0.11 - 0.16 * back;
+          const hem = v ** 3 * (0.069 * Math.cos(angle * 3.4) + 0.012 * Math.sin(t * 0.004 + angle * 5.1));
+          // Gravity still pulls the cloth down when the torso is almost horizontal.
+          const y = collarY * cosLean - collarZ * sinLean - 0.082 * (1 - v) - 0.774 * v * quedaDoTecido + hem;
+          const z = collarY * sinLean + collarZ * cosLean - 0.70 * v + 1.33 * edge * v * quedaDoTecido + pleats;
+          const x = across * (0.70 + 0.92 * v + pleats);
+          this.positions.setXYZ(row * (COLUMNS + 1) + col, x, y * cosLean + z * sinLean, z * cosLean - y * sinLean);
+          continue;
+        }
         const shoulder = 0.18 * Math.sin(Math.PI * v) * (1 - v);
-        const radius = 0.70 + shoulder + v * (opened ? 1.51 : 0.59);
+        const radius = 0.70 + shoulder + v * 0.59;
         const x = Math.sin(angle) * (radius + pleats) + 0.15 * step * v * v;
         const wave = 0.098 * Math.cos(angle * 3.4) + 0.014 * Math.cos(angle * 6.1 + t * 0.004);
-        const y = 1.68 - v * (opened ? 2.88 : 2.18) + v ** 3 * wave + 0.13 * v ** 2 * Math.abs(step);
+        const y = 1.68 - v * 2.18 + v ** 3 * wave + 0.13 * v ** 2 * Math.abs(step);
         const drape = Math.cos(angle) * (0.39 + 0.35 * v + pleats);
         const z = -drape - 0.16 - v * (0.24 + 0.22 * Math.abs(step) + 0.42 * lean)
           - pleats * 0.72 * Math.abs(Math.sin(angle))
-          + (opened ? 0.11 + 0.41 * v ** 2 : wave * 0.50 * v ** 3);
-        this.positions.setXYZ(row * (COLUMNS + 1) + col, x * (opened ? 1.18 : 1), y, z);
+          + wave * 0.50 * v ** 3;
+        this.positions.setXYZ(row * (COLUMNS + 1) + col, x, y, z);
       }
     }
     this.positions.needsUpdate = true;
@@ -236,6 +249,7 @@ class Cape {
 }
 
 interface Arm { sleeve: Mesh; cuff: Group; palm: Group; side: number }
+export const PUNHO_DO_VAMPIRO: Vec3 = [0, -0.31, -0.035];
 
 // Keep the wrist and the bulk of the palm on the clear side of a neighbouring die.
 function gripRoll(grip: Vec3, rest: number, cameraRotation: Quaternion, obstacles: readonly Vec3[]) {
@@ -251,7 +265,7 @@ function gripRoll(grip: Vec3, rest: number, cameraRotation: Quaternion, obstacle
   return rest + Math.atan2(Math.sin(turn), Math.cos(turn)) * (1 - span(best, 1.25, 2.8));
 }
 
-// The world-space grip point is the centre of the die. Sleeves aim at an elbow and the wrist; the palm sits beneath it.
+// The landmark is the raised wrist in the pair and the centre of the die during a grip.
 function bendArm(arm: Arm, root: Group, torso: Group, grip: Vec3, camera: Camera, holding: boolean, attack: boolean, closure: number, obstacles: readonly Vec3[], presenca: boolean) {
   const { side, sleeve, cuff, palm } = arm;
   const shoulder = root.worldToLocal(torso.localToWorld(new Vector3(side * 0.59, SHOULDERS - 0.13, -0.015)));
@@ -261,7 +275,7 @@ function bendArm(arm: Arm, root: Group, torso: Group, grip: Vec3, camera: Camera
   palm.quaternion.setFromEuler(new Euler(attack ? 0.62 : -0.36, side * 0.42, side * 0.24));
   if (presenca) {
     palm.quaternion.copy(cameraFacing);
-    palm.rotateZ(side * 0.52);
+    palm.rotateZ(-side * 0.97);
     palm.rotateY(side * 0.10);
   }
   if (holding) {
@@ -271,15 +285,16 @@ function bendArm(arm: Arm, root: Group, torso: Group, grip: Vec3, camera: Camera
     palm.rotateX(attack ? -0.13 : -0.20);
   }
   for (const mesh of palm.children as Mesh[]) mesh.morphTargetInfluences![0] = closure;
-  palm.scale.setScalar(presenca ? 0.87 : 1);
-  palm.position.copy(point).sub(new Vector3(...CENTRO_DA_PEGA).multiply(palm.scale).applyQuaternion(palm.quaternion));
-  const wrist = new Vector3(0, -0.31, -0.035).multiply(palm.scale).applyQuaternion(palm.quaternion).add(palm.position);
+  palm.scale.setScalar(presenca ? 0.48 : 1);
+  const reference = presenca ? PUNHO_DO_VAMPIRO : CENTRO_DA_PEGA;
+  palm.position.copy(point).sub(new Vector3(...reference).multiply(palm.scale).applyQuaternion(palm.quaternion));
+  const wrist = new Vector3(...PUNHO_DO_VAMPIRO).multiply(palm.scale).applyQuaternion(palm.quaternion).add(palm.position);
   const direction = wrist.clone().sub(shoulder), half = direction.length() / 2;
   direction.normalize();
   const bend = new Vector3(side * 0.78, -1, -0.26);
   bend.addScaledVector(direction, -bend.dot(direction)).normalize();
   const elbow = shoulder.clone().lerp(wrist, 0.47);
-  if (presenca) elbow.copy(wrist).add(new Vector3(-side * 0.79, 0.26, -0.77).divideScalar(root.scale.x));
+  if (presenca) elbow.copy(wrist).add(new Vector3(side * 0.52, -0.27, 0.32).divideScalar(root.scale.x));
   else elbow.addScaledVector(bend, Math.sqrt(Math.max(0.025, 0.91 ** 2 - half ** 2)));
   const link = (o: Mesh | Group, a: Vector3, b: Vector3) => {
     const axis = b.clone().sub(a);
@@ -296,6 +311,7 @@ export class Vampiro {
   private body = new Group();
   private torso = new Group();
   private head: Group;
+  private readonly headRest: Vector3;
   private eyes = new Group(); // the pair of hands in camera space
   private arms: Arm[];
   private legs: Group[];
@@ -319,19 +335,22 @@ export class Vampiro {
     this.root.name = 'vampiro';
     this.body.name = 'vampiro-corpo';
     this.head = rostoDoVampiro(skin, bone, taper);
+    this.headRest = this.head.position.clone();
     this.eyes.name = 'vampiro-maos-da-camera';
     this.torso.name = 'vampiro-tronco';
     this.torso.position.y = 1.45;
 
     this.cape = new Cape(black, lining, red);
     const vest = profile([[0.0, -0.19], [0.4, -0.10], [0.46, 0.25], [0.52, 0.75], [0.64, 1.31], [0.57, 1.52], [0.16, 1.67], [0, 1.69]], 0.64);
+    const chest = batch(velvet, [vest]);
+    chest.name = 'vampiro-peito';
     const sides = [-1, 1];
     const shoulders = batch(coat, [profile([[0, -0.5], [0.47, -0.35], [0.49, 0.55], [0.65, 1.35], [0.5, 1.6], [0, 1.72]], 0.50)]);
     shoulders.name = 'vampiro-ombros';
     const neck = pescocoDoVampiro(skin, taper);
     this.torso.add(
       this.cape.group,
-      batch(velvet, [vest]),
+      chest,
       shoulders,
       batch(red, [gola().scale(0.88, 0.80, 0.89).translate(0, 0.30, 0),
         ...sides.map((s) => sphere([s * 0.36, 1.33, 0.244], [0.110, 0.285, 0.085], -s * 0.36))]),
@@ -399,9 +418,13 @@ export class Vampiro {
       this.body.rotation.y = corpo.yaw;
       this.body.scale.setScalar(SCALE[tipo]);
       const pair = tipo === 'par-de-criticos';
-      const reach = pair ? span(corpo.lean, 0.58, 0.665) : 0;
-      this.torso.position.set(0, 1.45 - corpo.crouch * 0.55 + 0.155 * reach, 0.138 * reach);
+      this.torso.position.set(0, 1.45 - corpo.crouch * 0.55 + (pair ? 0.155 : 0), pair ? 0.138 : 0);
       this.torso.rotation.x = corpo.lean;
+      this.head.position.copy(this.headRest);
+      if (pair) {
+        this.head.position.y += 0.057 * Math.cos(corpo.lean);
+        this.head.position.z -= 0.057 * Math.sin(corpo.lean);
+      }
       this.head.rotation.x = pair ? -corpo.lean - 0.42 : -0.64 - 0.80 * corpo.lean;
       this.legs.forEach((leg, i) => {
         leg.position.y = 1.45 - corpo.crouch * 0.27;

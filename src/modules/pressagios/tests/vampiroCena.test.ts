@@ -1,13 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Box3, InstancedMesh, Line3, Mesh, PerspectiveCamera, Ray, Scene, Triangle, Vector3, type BufferGeometry, type Material, type Object3D, type WebGLRenderer } from 'three';
 import { arremesso, input, publish, TRAY } from '../../arremesso/index.ts';
+import { RADIUS } from '../../dados/index.ts';
 import { definir } from '../../selecao/index.ts';
 import { definirMovimentoReduzido } from '../../../shared/plataforma/index.ts';
 import { presagio, reiniciarPresagio } from '../index.ts';
-import { BRACOS_DO_PAR, PAR, VAMPIRO, vampiroAt } from '../domain/vampiroMotion.ts';
-import type { Vec3 } from '../../../shared/math.ts';
+import { PAR, VAMPIRO } from '../domain/vampiroMotion.ts';
 import { Show } from '../scene/PresagiosNaCena.tsx';
-import { COLUNAS_CRITICO, dobraDoCritico, DOBRAS_CRITICO, Vampiro } from '../scene/Vampiro.ts';
+import { COLUNAS_CRITICO, dobraDoCritico, DOBRAS_CRITICO, PUNHO_DO_VAMPIRO, Vampiro } from '../scene/Vampiro.ts';
 import { CENTRO_DA_PEGA } from '../scene/vampiroMao.ts';
 
 const camera = new PerspectiveCamera(40, 1.6);
@@ -49,6 +49,8 @@ const tray = [
 ];
 const FOLGA = 0.15;
 const marksDoPar = [PAR.surge, PAR.revoada, PAR.revela, PAR.mostrado];
+// At the default camera, the single result row for a pair is centred six units from the eye.
+const resultTop = RADIUS.d10 / (Math.sqrt(6 ** 2 - RADIUS.d10 ** 2) * Math.tan(camera.fov * Math.PI / 360));
 const defineWalls = (boxes: Box3[], distance: number) => boxes.map((box) => {
   const corners = Array.from({ length: 8 }, (_, i) => new Vector3(
     (i & 1 ? box.max : box.min).x, (i & 2 ? box.max : box.min).y, (i & 4 ? box.max : box.min).z));
@@ -73,6 +75,9 @@ function triangleIsClear(triangle: Triangle, wall: (typeof walls)[number], point
 
 function projectVampire(body: Object3D, head: Object3D, project: boolean) {
   const bounds = new Box3(), skull = new Box3();
+  const peito = new Box3(), ombros = new Box3(), core = new Box3();
+  const coreParts = new Set<Object3D>();
+  if (project) body.getObjectByName('vampiro-tronco')!.traverse((part) => coreParts.add(part));
   const ray = new Ray(camera.position.clone());
   const hit = new Vector3(), point = new Vector3(), triangle = new Triangle();
   const clear = new Box3();
@@ -93,7 +98,13 @@ function projectVampire(body: Object3D, head: Object3D, project: boolean) {
       const distance = ray.direction.subVectors(vertex, ray.origin).length();
       ray.direction.divideScalar(distance);
       const hidden = tray.some((box) => ray.intersectBox(box, hit) && hit.distanceTo(ray.origin) < distance - 0.0001);
-      if (!hidden) bounds.expandByPoint(point.copy(vertex).project(camera));
+      if (!hidden) {
+        point.copy(vertex).project(camera);
+        bounds.expandByPoint(point);
+        if (coreParts.has(mesh)) core.expandByPoint(point);
+        if (mesh.name === 'vampiro-peito') peito.expandByPoint(point);
+        if (mesh.name === 'vampiro-ombros') ombros.expandByPoint(point);
+      }
       if (isHead) skull.expandByPoint(point.copy(vertex).project(camera));
     }
     if (!near.length) return;
@@ -106,7 +117,7 @@ function projectVampire(body: Object3D, head: Object3D, project: boolean) {
       }
     }
   });
-  return { bounds, skull, collision };
+  return { bounds, skull, peito, ombros, core, collision };
 }
 const roll = () => {
   const source = { kind: 'key' } as const;
@@ -179,72 +190,59 @@ describe('Vampire scene', () => {
     const vampire = new Vampiro();
     const body = vampire.root.getObjectByName('vampiro-corpo')!;
     const head = vampire.root.getObjectByName('vampiro-cabeca')!;
-    const shoulders = vampire.root.getObjectByName('vampiro-ombros')!;
-    for (const t of [400, 480, 520, 560, 600, 650, ...marksDoPar, 900, 1900, 3600, 4300, 4900, 4950, 5000, 5100, 5150, 5200]) {
+    const transitions = Array.from({ length: 24 }, (_, i) => [(i + 1) * 29, PAR.sai + i * 33]).flat();
+    for (const t of [...transitions, ...marksDoPar, 900, 1900, 3600, 4300]) {
       vampire.update('par-de-criticos', t, camera);
       const checkFrame = marksDoPar.includes(t);
-      const { bounds, skull, collision } = projectVampire(body, head, checkFrame);
+      const { bounds, skull, peito, ombros, core, collision } = projectVampire(body, head, checkFrame);
       expect.soft(collision, `${t} ms`).toBe('');
       if (!checkFrame) continue;
       const height = (bounds.max.y - bounds.min.y) / 2;
       const bottom = (1 - bounds.min.y) / 2;
       const center = Math.abs(bounds.max.x + bounds.min.x) / 4;
+      const headBox = new Box3().setFromObject(head, true), face = headBox.getCenter(new Vector3());
       expect.soft(height, `${t} ms`).toBeGreaterThanOrEqual(0.24);
+      expect.soft((core.max.y - core.min.y) / 2, `${t} ms sem os braços`).toBeGreaterThanOrEqual(0.24);
       expect.soft(height, `${t} ms`).toBeLessThanOrEqual(0.32);
-      expect.soft(bottom, `${t} ms`).toBeLessThanOrEqual(0.38);
+      expect.soft(bottom, `${t} ms`).toBeLessThanOrEqual(0.42);
+      expect.soft(bounds.max.y, `${t} ms`).toBeLessThanOrEqual(1);
+      expect.soft(bounds.min.y, `${t} ms`).toBeGreaterThan(resultTop);
       expect.soft(center, `${t} ms`).toBeLessThanOrEqual(0.03);
-      for (const part of [head, shoulders]) expect.soft(new Box3().setFromObject(part, true).max.z).toBeGreaterThan(-d - thick);
+      expect.soft(face.y, `${t} ms`).toBeGreaterThanOrEqual(4.5);
+      expect.soft(face.z, `${t} ms`).toBeGreaterThanOrEqual(-d);
+      expect.soft(face.z, `${t} ms`).toBeLessThanOrEqual(-d + 2);
+      expect.soft((skull.max.y - skull.min.y) / 2, `${t} ms`).toBeGreaterThanOrEqual(0.065);
+      expect.soft(peito.min.y).toBeLessThan(skull.min.y);
+      expect.soft(ombros.min.y).toBeLessThan(skull.min.y);
       for (const limit of [skull.max.x, skull.max.y, -skull.min.x, -skull.min.y]) expect.soft(limit).toBeLessThanOrEqual(1);
     }
     vampire.dispose();
   }, 20_000);
 
-  it('frames open palms and keeps the hands and forearms above the felt and away from both resting dice', () => {
+  it('frames the face with open palms and keeps the arms well above the felt', () => {
     const vampire = new Vampiro();
-    const body = vampire.root.getObjectByName('vampiro-corpo')!;
     const head = vampire.root.getObjectByName('vampiro-cabeca')!;
     const cameraFront = new Vector3(0, 0, 1).applyQuaternion(camera.quaternion);
-    const scenarios: Vec3[][] = [
-      [[0, 0.65, 1], [-0.8, 0.7, -4.45]],
-      [[0.25, 0.7, -4.25], [-0.25, 0.7, -3.25]],
-      [[0.25, 0.7, -4.25], [-1.25, 0.7, -3.25]],
-      [[0.25, 0.7, -4.25], [1.25, 0.7, -2.75]],
-      [[0.25, 0.7, -4.25], [2.25, 0.7, -2.75]],
-      [[0.25, 0.7, -4.25], [4.25, 0.7, -0.25]],
-      [[0.25, 0.7, -4.25], [-2.25, 0.7, -1.75]],
-      [[0.25, 0.7, -2.25], [4.75, 0.7, -1.75]],
-    ];
-    const envelope = new Box3(), point = new Vector3();
-    const lanes = new Set<string>();
-    for (const origins of scenarios) for (const t of marksDoPar) {
-      vampire.update('par-de-criticos', t, camera, origins);
-      const { esquerda, direita } = vampiroAt('par-de-criticos', t, origins);
-      lanes.add(`${direita[0]}/${direita[2]}`);
-      const { bounds, skull, collision } = projectVampire(body, head, true);
-      const height = (bounds.max.y - bounds.min.y) / 2;
-      expect.soft(collision, `${t} ms`).toBe('');
-      expect.soft(height, `${t} ms`).toBeGreaterThanOrEqual(0.24);
-      expect.soft(height, `${t} ms`).toBeLessThanOrEqual(0.32);
-      expect.soft((1 - bounds.min.y) / 2, `${t} ms`).toBeLessThanOrEqual(0.38);
-      expect.soft(Math.abs(bounds.max.x + bounds.min.x) / 4, `${t} ms`).toBeLessThanOrEqual(0.03);
-      expect.soft(skull.max.y, `${t} ms`).toBeLessThanOrEqual(1);
-      for (const [handSide, armSide, anchor] of [['esquerda', 'esquerdo', esquerda], ['direita', 'direito', direita]] as const) {
+    for (const t of marksDoPar) {
+      vampire.update('par-de-criticos', t, camera);
+      vampire.root.updateMatrixWorld(true);
+      const skull = new Box3().setFromObject(head, true), center = skull.getCenter(new Vector3());
+      for (const [handSide, armSide] of [['esquerda', 'esquerdo'], ['direita', 'direito']]) {
         const palm = vampire.root.getObjectByName(`vampiro-mao-${handSide}`)!;
-        const forearm = vampire.root.getObjectByName(`vampiro-antebraco-${armSide}`)!;
+        const wrist = palm.localToWorld(new Vector3(...PUNHO_DO_VAMPIRO));
+        const distance = Math.abs(wrist.x - center.x);
+        const arm = ['braco', 'antebraco'].map((part) => vampire.root.getObjectByName(`vampiro-${part}-${armSide}`)!);
+        for (const part of [palm, ...arm]) expect.soft(new Box3().setFromObject(part, true).min.y).toBeGreaterThanOrEqual(2.5);
+        expect.soft(wrist.y).toBeGreaterThan(skull.min.y);
+        expect.soft(distance).toBeGreaterThanOrEqual(1.0);
+        expect.soft(distance).toBeLessThanOrEqual(2.2);
+        const elbowY = arm[1].getWorldPosition(new Vector3()).y;
+        expect.soft(wrist.y).toBeGreaterThan(elbowY);
+        expect.soft(elbowY).toBeGreaterThanOrEqual(arm[0].getWorldPosition(new Vector3()).y);
         expect(new Vector3(0, 0, 1).transformDirection(palm.matrixWorld).dot(cameraFront)).toBeGreaterThan(0.95);
-        envelope.setFromObject(palm, true).union(new Box3().setFromObject(forearm, true));
-        expect.soft(envelope.min.y, `${t} ms, ${handSide}`).toBeGreaterThanOrEqual(2.5);
-        for (const corner of [envelope.min, envelope.max]) {
-          expect.soft(Math.abs(corner.x - anchor[0])).toBeLessThanOrEqual(BRACOS_DO_PAR.x);
-          expect.soft(Math.abs(corner.z - anchor[2])).toBeLessThanOrEqual(BRACOS_DO_PAR.z);
-        }
-        envelope.min.y = envelope.max.y = 0;
-        for (const [x, , z] of origins) {
-          expect.soft(envelope.distanceToPoint(point.set(x, 0, z)), `${t} ms, ${handSide}, dado ${x}/${z}`).toBeGreaterThanOrEqual(1.5);
-        }
+        palm.traverse((part) => { if (part instanceof Mesh) expect(part.morphTargetInfluences).toEqual([0]); });
       }
     }
-    expect(lanes.size).toBe(8);
     vampire.dispose();
   }, 20_000);
 
