@@ -31,8 +31,21 @@ corpo.data.transform(Matrix.Translation(Vector(off)))
 corpo.data.transform(Matrix.Scale(s, 4))
 for o in [o for o in bpy.context.scene.objects if o.type == 'EMPTY']:
     bpy.data.objects.remove(o)
+
+# Solda os vértices duplicados nas costuras de UV (o UV fica nos cantos das faces, não se perde). Vem antes das
+# medidas: os dedos são achados pela conectividade da malha, e uma costura aberta partiria um dedo em dois.
+bpy.context.view_layer.objects.active = corpo
+bpy.ops.object.mode_set(mode='EDIT')
+bpy.ops.mesh.select_all(action='SELECT')
+bpy.ops.mesh.remove_doubles(threshold=0.0005 * H)
+bpy.ops.object.mode_set(mode='OBJECT')
+print('VERTICES_SOLDADOS', len(corpo.data.vertices))
+co = np.empty((len(corpo.data.vertices), 3))
 corpo.data.vertices.foreach_get('co', co.reshape(-1))
 x, y, z = co[:, 0], co[:, 1], co[:, 2]
+arestas = np.empty(len(corpo.data.edges) * 2, dtype=np.int64)
+corpo.data.edges.foreach_get('vertices', arestas)
+arestas = arestas.reshape(-1, 2)
 
 # Marcos medidos na malha.
 braco = np.abs(x) > 0.30 * H
@@ -45,6 +58,14 @@ x_perna = float(np.median(x[pe])) if pe.any() else 0.06 * H
 y_pe = float(np.median(y[pe])) if pe.any() else 0.0
 tronco = (np.abs(x) < 0.08 * H) & (z > 0.5 * H) & (z < z_ombro)
 y_meio = float(np.median(y[tronco]))
+# A coreografia do animar.py foi medida com o tronco em y = Y_TRONCO. Centrar pela caixa envolvente põe o tronco onde a
+# roupa mandar (a aba do sobretudo do H3.1 o levou 9,6 cm para a frente, e o peito atravessava a parede da bandeja).
+Y_TRONCO = -0.08
+corpo.data.transform(Matrix.Translation(Vector((0, Y_TRONCO - y_meio, 0))))
+corpo.data.vertices.foreach_get('co', co.reshape(-1))
+print('TRONCO_MOVIDO', round(Y_TRONCO - y_meio, 3))
+y_pe += Y_TRONCO - y_meio
+y_meio = Y_TRONCO
 print('MARCOS', dict(z_ombro=round(z_ombro, 3), x_ponta=round(x_ponta, 3), x_pulso=round(x_pulso, 3),
                      x_perna=round(x_perna, 3), y_meio=round(y_meio, 3)))
 
@@ -69,8 +90,17 @@ z_pescoco, z_cabeca = z_ombro + 0.035 * H, z_ombro + 0.075 * H
 osso('quadril', (0, Y, z_quadril), (0, Y, z_quadril + 0.06 * H))
 osso('coluna', (0, Y, z_quadril + 0.06 * H), (0, Y, z_quadril + 0.14 * H), 'quadril', True)
 osso('peito', (0, Y, z_quadril + 0.14 * H), (0, Y, z_pescoco), 'coluna', True)
-osso('pescoco', (0, Y, z_pescoco), (0, Y, z_cabeca), 'peito', True)
-osso('cabeca', (0, Y, z_cabeca), (0, Y, H), 'pescoco', True)
+# Pescoço e cabeça no centro do crânio, não no eixo do tronco: no H3.1 o eixo do tronco passa na ponta do nariz, e a
+# cabeça girava em torno do rosto (a nuca varria 20 cm e entrava na gola alta).
+_fatia = (np.abs(x) < 0.015) & (np.abs(z - (H - 0.08)) < 0.01)
+Y_CAB = float((y[_fatia].min() + y[_fatia].max()) / 2) if _fatia.sum() > 3 else Y
+print('Y_CABECA', round(Y_CAB, 3))
+osso('pescoco', (0, Y_CAB, z_pescoco), (0, Y_CAB, z_cabeca), 'peito', False)
+osso('cabeca', (0, Y_CAB, z_cabeca), (0, Y_CAB, H), 'pescoco', True)
+# A gola alta tem osso próprio, com pivô na base: o animar.py a dobra para trás da cabeça quando ele se debruça
+# (presa ao peito, ela apontava para a câmera e as abas ficavam na frente do rosto).
+Z_GOLA = z_pescoco - 0.03
+osso('gola', (0, Y_CAB, Z_GOLA), (0, Y_CAB, H - 0.1), 'peito')
 def eixo_do_braco(xc, sx):
     """Centro (y, z) da seção da manga em x = sx*xc: as juntas ficam no eixo real do braço, não no do tronco
     (fora do eixo, o pivô fica deslocado e o cotovelo dobra torto)."""
@@ -78,22 +108,73 @@ def eixo_do_braco(xc, sx):
     return (float(np.mean(y[sel])), float(np.mean(z[sel]))) if sel.sum() > 20 else (Y, z_ombro)
 x_cotovelo = (x_ombro + x_pulso) / 2
 
-def dedos_da_mao(lado, sx):
-    """4 dedos de 3 falanges + polegar de 2, medidos na malha. Os dedos vêm fundidos do Tripo: a largura medida
-    da mão é dividida em 4 faixas, e cada falange segue a linha central (curva real) da sua faixa."""
+def componentes(mascara):
+    """Pedaços conexos da malha entre os vértices da máscara (índices), do maior para o menor."""
+    viz = {int(i): [] for i in np.where(mascara)[0]}
+    for a, b in arestas[mascara[arestas[:, 0]] & mascara[arestas[:, 1]]]:
+        viz[int(a)].append(int(b)); viz[int(b)].append(int(a))
+    vistos, saida = set(), []
+    for i in viz:
+        if i in vistos: continue
+        pilha, comp = [i], []
+        vistos.add(i)
+        while pilha:
+            k = pilha.pop(); comp.append(k)
+            for j in viz[k]:
+                if j not in vistos: vistos.add(j); pilha.append(j)
+        saida.append(np.array(comp))
+    return sorted(saida, key=len, reverse=True)
+
+def linha_central(idx, base):
+    """Linha central de um dedo: distância pela superfície (Dijkstra nas arestas) a partir dos vértices da base,
+    em fatias de mesma distância. Segue a curva real, inclusive a garra que desce."""
+    import heapq
+    dentro = set(int(i) for i in idx)
+    viz = {i: [] for i in dentro}
+    for a, b in arestas:
+        a, b = int(a), int(b)
+        if a in dentro and b in dentro:
+            d = float(np.linalg.norm(co[a] - co[b])); viz[a].append((b, d)); viz[b].append((a, d))
+    dist = {int(i): 0.0 for i in base}
+    fila = [(0.0, int(i)) for i in base]
+    while fila:
+        d, k = heapq.heappop(fila)
+        if d > dist.get(k, 1e9): continue
+        for j, w in viz[k]:
+            if d + w < dist.get(j, 1e9): dist[j] = d + w; heapq.heappush(fila, (d + w, j))
+    ks = np.array(list(dist)); ds = np.array([dist[k] for k in ks])
+    fatias = np.linspace(0, ds.max(), 11)
+    caminho = [Vector(co[ks[(ds >= a) & (ds <= b)]].mean(0)) for a, b in zip(fatias, fatias[1:]) if ((ds >= a) & (ds <= b)).any()]
+    caminho.append(Vector(co[ks[np.argmax(ds)]]))  # a ponta da garra
+    return caminho
+
+def dedos_da_mao(lado, sx, yp, zp):
+    """4 dedos de 3 falanges + polegar de 2, achados pela separação real da malha (Tripo H3.1, dedos separados).
+    Varre x a partir do pulso: o primeiro pedaço que se solta pela frente (-y) é o polegar; o primeiro corte em que
+    sobram 4 pedaços compridos são os 4 dedos (1 = indicador, -y ... 4 = mínimo, +y)."""
     xs = sx * x
-    mao_sel = (xs > 0.62) & (np.abs(y) < 0.13) & (z > 1.25)
-    no = 0.765  # os nós dos dedos (x medido no histograma das fatias)
-    faixa = mao_sel & (xs > 0.78) & (xs < 0.80) & (y > -0.075)
-    y0, y1 = float(y[faixa].min()), float(y[faixa].max())
-    larg = (y1 - y0) / 4
-    for i in range(4):  # 1 = indicador (frente, -y) ... 4 = mínimo (trás, +y)
-        yc = y0 + (i + 0.5) * larg
-        caminho = []
-        for xc in np.arange(no, 0.86, 0.008):
-            sel = mao_sel & (np.abs(xs - xc) < 0.006) & (np.abs(y - yc) < larg / 2)
-            if sel.sum() > 4: caminho.append(Vector((sx * xc, float(np.mean(y[sel])), float(np.mean(z[sel])))))
-        if len(caminho) < 4: continue
+    mao = (xs > x_pulso) & (np.abs(y - yp) < 0.12) & (np.abs(z - zp) < 0.12)
+    polegar, dedos, t_dedos = None, None, None
+    for t in np.arange(x_pulso, x_ponta, 0.0025):
+        pedacos = [c for c in componentes(mao & (xs > t)) if len(c) >= 8]
+        if polegar is None and len(pedacos) >= 2:
+            soltos = sorted(pedacos[1:], key=lambda c: y[c].mean())
+            if y[soltos[0]].mean() < y[pedacos[0]].mean() - 0.03: polegar = soltos[0]
+        compridos = [c for c in pedacos if xs[c].max() > t + 0.02]
+        if len(compridos) == 4:
+            dedos, t_dedos = sorted(compridos, key=lambda c: y[c].mean()), t
+            break
+    if dedos is None:
+        print('DEDOS_NAO_ACHADOS', lado); return
+    ycs = [float(y[c].mean()) for c in dedos]
+    meia = min(b - a for a, b in zip(ycs, ycs[1:])) / 2
+    no = t_dedos - 0.035  # os nós dos dedos: a raiz fica ~3,5 cm antes da membrana entre eles
+    for i, (c, yc) in enumerate(zip(dedos, ycs)):
+        palma = np.where(mao & (xs > no) & (xs <= t_dedos) & (np.abs(y - yc) < meia))[0]
+        idx = np.concatenate([c, palma])
+        base = idx[sx * x[idx] < no + 0.004]
+        if len(base) < 3: base = idx[np.argsort(sx * x[idx])[:5]]
+        caminho = linha_central(idx, base)
         comp = [0.0]
         for a, b in zip(caminho, caminho[1:]): comp.append(comp[-1] + (b - a).length)
         def ponto(f):
@@ -107,13 +188,13 @@ def dedos_da_mao(lado, sx):
         for k in range(3):
             osso(f'dedo{i + 1}.{k + 1}.{lado}', juntas[k], juntas[k + 1],
                  f'mao.{lado}' if k == 0 else f'dedo{i + 1}.{k}.{lado}', k > 0)
-        print('DEDO', lado, i + 1, 'pontos', len(caminho), 'comprimento', round(comp[-1], 3))
-    pol = mao_sel & (xs > 0.67) & (xs < 0.77) & (y < -0.06)
-    if pol.sum() > 20:
-        ys = y[pol]
-        base_sel, ponta_sel = pol & (y > np.percentile(ys, 75)), pol & (y < np.percentile(ys, 15))
-        base = Vector((float(np.mean(x[base_sel])), float(np.mean(y[base_sel])), float(np.mean(z[base_sel]))))
-        ponta = Vector((float(np.mean(x[ponta_sel])), float(np.mean(y[ponta_sel])), float(np.mean(z[ponta_sel]))))
+        print('DEDO', lado, i + 1, 'y', round(yc, 3), 'comprimento', round(comp[-1], 3))
+    if polegar is not None:
+        # raiz do polegar: a borda da frente da palma logo depois do pulso; ponta: o vértice do pedaço mais longe dela
+        perto = mao & (xs > x_pulso + 0.005) & (xs < x_pulso + 0.035)
+        raiz = perto & (y < y[perto].min() + 0.02)
+        base = Vector(co[raiz].mean(0))
+        ponta = Vector(co[polegar[np.argmax(np.linalg.norm(co[polegar] - np.array(base), axis=1))]])
         meio = base.lerp(ponta, 0.5)
         osso(f'polegar.1.{lado}', base, meio, f'mao.{lado}')
         osso(f'polegar.2.{lado}', meio, ponta, f'polegar.1.{lado}', True)
@@ -128,20 +209,12 @@ for lado, sx in (('L', 1), ('R', -1)):
     osso(f'braco.{lado}', (sx * x_ombro, yo, zo), (sx * x_cotovelo, yc, zc), f'clavicula.{lado}', True)
     osso(f'antebraco.{lado}', (sx * x_cotovelo, yc, zc), (sx * x_pulso, yp, zp), f'braco.{lado}', True)
     osso(f'mao.{lado}', (sx * x_pulso, yp, zp), (sx * x_ponta, yp, zp), f'antebraco.{lado}', True)
-    dedos_da_mao(lado, sx)
+    dedos_da_mao(lado, sx, yp, zp)
     xp = sx * x_perna
     osso(f'coxa.{lado}', (xp, Y, z_quadril), (xp, Y, z_joelho), 'quadril')
     osso(f'canela.{lado}', (xp, Y, z_joelho), (xp, Y, z_tornozelo), f'coxa.{lado}', True)
     osso(f'pe.{lado}', (xp, Y, z_tornozelo), (xp, y_pe - 0.08 * H, 0.01 * H), f'canela.{lado}', True)
 bpy.ops.object.mode_set(mode='OBJECT')
-
-# Solda os vértices duplicados nas costuras de UV (o UV fica nos cantos das faces, não se perde).
-bpy.context.view_layer.objects.active = corpo
-bpy.ops.object.mode_set(mode='EDIT')
-bpy.ops.mesh.select_all(action='SELECT')
-bpy.ops.mesh.remove_doubles(threshold=0.0005 * H)
-bpy.ops.object.mode_set(mode='OBJECT')
-print('VERTICES_SOLDADOS', len(corpo.data.vertices))
 
 def pesos_automaticos(alvo):
     bpy.ops.object.select_all(action='DESELECT')
@@ -178,6 +251,45 @@ if pesos_automaticos(corpo) < 0.9 * len(corpo.data.vertices):
     bpy.ops.object.modifier_move_to_index(modifier='pesos', index=0)
     bpy.ops.object.modifier_apply(modifier='pesos')
     bpy.data.objects.remove(proxy)
+
+# Gola alta: o calor do bone heat a dava à cabeça, e ela girava junto com o crânio (rasgando na base e cortando o rosto).
+# O que fica fora do crânio (elipse horizontal em volta do centro da cabeça) passa a seguir o peito e o pescoço.
+_gk, _gc, _gp = (corpo.vertex_groups[n] for n in ('cabeca', 'pescoco', 'peito'))
+_gola = 0
+for v in corpo.data.vertices:
+    if v.co.z < z_pescoco - 0.06:
+        continue
+    e = math.hypot(v.co.x / 0.10, (v.co.y - Y_CAB) / 0.125)
+    if e <= 1.0:
+        continue
+    wk = next((g.weight for g in v.groups if g.group == _gk.index), 0.0)
+    if wk <= 0:
+        continue
+    f = min(1.0, (e - 1.0) / 0.2)
+    f = f * f * (3 - 2 * f)
+    _gk.add([v.index], wk * (1 - f), 'REPLACE')
+    _gc.add([v.index], next((g.weight for g in v.groups if g.group == _gc.index), 0.0) + wk * f * 0.4, 'REPLACE')
+    _gp.add([v.index], next((g.weight for g in v.groups if g.group == _gp.index), 0.0) + wk * f * 0.6, 'REPLACE')
+    _gola += 1
+print('GOLA_REPONDERADA', _gola)
+# Osso da gola: cresce da base (0) ao alto (1) e de junto do crânio (0) para fora (1); o resto divide o que sobra.
+def _suave(u):
+    u = min(1.0, max(0.0, u))
+    return u * u * (3 - 2 * u)
+_gg = corpo.vertex_groups.new(name='gola')
+_n = 0
+for v in corpo.data.vertices:
+    if v.co.z < Z_GOLA or abs(v.co.x) > 0.25:
+        continue
+    e = math.hypot(v.co.x / 0.10, (v.co.y - Y_CAB) / 0.125)
+    w = _suave((v.co.z - Z_GOLA) / 0.08) * _suave((e - 1.05) / 0.15)
+    if w <= 0:
+        continue
+    for g in v.groups:
+        g.weight *= 1 - w
+    _gg.add([v.index], w, 'REPLACE')
+    _n += 1
+print('GOLA_NO_OSSO', _n)
 
 pesos = {g.name: 0 for g in corpo.vertex_groups}
 sem = 0
@@ -253,9 +365,10 @@ for quadro in (1, fim):
         b.keyframe_insert('location', frame=quadro)
 scene.frame_start, scene.frame_end = 1, fim
 
-for img in bpy.data.images:  # o site usa no máximo 1024 px no vampiro
+for img in bpy.data.images:  # o site usa no máximo 1024 px no vampiro (o leitor recusa acima de 2048)
     if img.size[0] > 1024:
         img.scale(1024, 1024)
+        img.pack()  # sem reempacotar, a exportação reaproveita os bytes originais embutidos (a textura de 4K ia inteira)
 bpy.ops.wm.save_as_mainfile(filepath=os.path.splitext(saida)[0] + '.blend')
 bpy.ops.export_scene.gltf(filepath=saida, export_format='GLB', export_skins=True, export_animations=True,
                           export_animation_mode='ACTIONS', export_image_format='WEBP')

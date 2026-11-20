@@ -5,7 +5,8 @@
 # Coreografia (pedida pelo João), presa aos marcos de PAR (vampiroMotion.ts):
 #   0–320     as mãos surgem por trás da parede e se agarram na borda (primeiro só as mãos)
 #   320–1000  ele faz força nelas e sobe: preparação (afunda um pouco), depois o empurrão pesado
-#   1000–1300 a cabeça se ergue e encara o jogador; fica encarando, respirando (a revoada passa)
+#   1000–1300 escala: o peito passa do topo e se debruça por cima da parede (a barriga fica de pé atrás dela);
+#             a cabeça se ergue e encara o jogador; fica encarando, respirando (a revoada passa)
 #   2900–3600 a mão esquerda solta a borda e vai pegar o dado (o olhar vai junto)
 #   3600–4250 desiste: recua a mão como quem se queimou, volta a encarar e se agarra de novo
 #   4800–5350 afunda atrás da parede, com as mãos ainda na borda
@@ -85,17 +86,25 @@ POLO_E = [(0, POLO_AGARRA, None), (2950, POLO_AGARRA, None), (3300, POLO_ALCANCE
 # (Y) depois que a cabeça passou da borda; na saída, recua antes de afundar.
 # O corpo nunca desce além do alcance dos braços enquanto as mãos estão na borda (senão elas afundam na madeira):
 # a preparação é o encolher dos ombros (OMBRO), e ele só afunda de vez depois que as mãos soltam (~5.400 ms).
-# Auge em -0,10: a cabeça fica abaixo da barra do topo do site (~7% da tela) na câmera do jogo.
-SOBE = [(0, -0.33, None), (450, -0.33, None), (950, -0.10, e_pesado), (2900, -0.10, None), (3400, -0.12, e_out),
-        (3900, -0.08, e_out), (4800, -0.10, e_inout), (5000, -0.08, e_out), (5300, -0.33, e_in), (5470, -0.40, e_in),
-        (5600, -1.1, e_in)]
-AVANCA = [(0, 0.20, None), (750, 0.20, None), (1100, -0.04, e_out), (2900, -0.04, None), (3400, -0.10, e_out),
-          (3900, -0.03, e_out), (4800, -0.04, None), (5150, 0.20, e_inout)]
-# Pendurado na borda: tronco quase reto (inclinar para trás afasta os ombros e as mãos não alcançam a borda);
-# a cabeça se esconde afundando entre os ombros (QUEIXO no peito + OMBRO encolhido).
-INCL = [(0, 4, None), (450, 6, e_inout), (1000, 34, e_pesado), (2900, 34, None), (3050, 29, e_inout),
-        (3400, 38, e_out), (3600, 37, None), (3850, 30, e_out), (4250, 34, e_inout), (4800, 34, None),
-        (5350, 16, e_in), (5600, 10, e_in)]
+# Escalando a parede (pedido do usuário, 20/11/2026): antes o peito ficava na altura da parede, inclinado contra ela,
+# e atravessava a madeira o clipe inteiro. Agora o corpo sobe até a junta do peito (a dobra, z = 1,188 em repouso)
+# passar do topo (z = 1,356 no modelo); a barriga fica de pé atrás da parede e só o peito se debruça por cima.
+# As mãos ficam na borda: o corpo sobe ~0,55 m em relação a elas (barra e depois apoio por cima do muro).
+# A conferência do corpo (mais abaixo) recua o quadril o que faltar para nada entrar na madeira.
+# Enquadramento (câmera do jogo): o topo da parede fica a ~16% da tela; acima dele há uma faixa de uma cabeça só.
+# Para o rosto aparecer inteiro, a cabeça vai à frente da quina interna (~20 cm sobre a bandeja) e baixa, logo acima
+# do topo: o peito debruça ~60° com a dobra (junta do peito) logo acima do topo e atrás da face de trás da parede.
+SOBE = [(0, -0.33, None), (450, -0.36, None), (1000, 0.10, e_pesado), (1300, 0.23, e_out), (2900, 0.23, None),
+        (3400, 0.23, e_out), (3900, 0.23, e_out), (4800, 0.23, e_inout), (5050, 0.06, e_inout), (5300, -0.33, e_in),
+        (5470, -0.40, e_in), (5600, -1.1, e_in)]
+AVANCA = [(0, 0.20, None), (750, 0.20, None), (1300, 0.0, e_out), (2900, 0.0, None), (3400, -0.02, e_out),
+          (3900, 0.0, e_out), (4800, 0.0, None), (5150, 0.20, e_inout)]
+# A dobra: quase toda no peito (por cima do topo); a coluna (a barriga, atrás da parede) fica quase reta.
+INCL_PEITO = [(0, 2, None), (450, 3, e_inout), (1000, 12, e_pesado), (1300, 82, e_out), (2900, 82, None),
+              (3050, 78, e_inout), (3400, 84, e_out), (3600, 83, None), (3850, 76, e_out), (4250, 82, e_inout),
+              (4800, 82, None), (5100, 12, e_in), (5600, 4, e_in)]
+INCL_COLUNA = [(0, 2, None), (1000, 4, e_pesado), (1300, 9, e_out), (2900, 9, None), (3400, 10, e_out),
+               (3850, 7, e_out), (4250, 9, e_inout), (4800, 9, None), (5100, 3, e_in)]
 OMBRO = [(0, 12, None), (380, 14, e_inout), (800, 16, e_pesado), (1100, 3, e_out), (3850, 9, e_out), (4250, 2, e_inout)]
 OLHAR = [(0, 0, None), (1000, 0, None), (1300, 1, e_out), (4800, 1, None), (5150, 0, e_in)]
 NO_DADO = [(0, 0, None), (2950, 0, None), (3250, 0.85, e_inout), (3650, 0.85, None), (3800, 0, e_out)]
@@ -114,9 +123,10 @@ def proj(p, a, b):  # (distância ao segmento, posição ao longo dele em unidad
     ab = b - a; k = max(0.0, min(1.0, (p - a).dot(ab) / ab.length_squared))
     return (p - (a + ab * k)).length, k * ab.length
 DEDOS = [f'dedo{i}' for i in range(1, 5)]
-# Dedos fundidos na malha (Tripo H2.5) não aguentam articulação: a pele entre eles estica e embola. Desligado, a mão
-# é rígida e mantém a curva de garra da própria malha; os ossos dos dedos continuam no esqueleto, sem pesos.
-DEDOS_ARTICULADOS = False
+# Dedos fundidos na malha (Tripo H2.5) não aguentam articulação: a pele entre eles estica e embola. Com dedos
+# separados (Tripo H3.1 + Retopo), cada falange leva a sua parte. Desligado, a mão é rígida e mantém a curva de
+# garra da própria malha; os ossos dos dedos continuam no esqueleto, sem pesos.
+DEDOS_ARTICULADOS = True
 for s in ('L', 'R'):
     # Cadeia do braço e da mão: (osso, pai, filho único ou None). As falanges têm faixa menor (juntas curtas).
     cadeia = [(f'clavicula.{s}', None, f'braco.{s}'), (f'braco.{s}', f'clavicula.{s}', f'antebraco.{s}'),
@@ -152,6 +162,8 @@ for s in ('L', 'R'):
             f = 0.5 * (1 - (comp[i] - ao_longo) / faixa[i]); ws[pos[filho]], ws[i] = f, 1 - f
         for g, w in zip(grupos, ws): g.add([v.index], total * w, 'REPLACE')
         for g in sobras: g.remove([v.index])
+
+# A gola alta é ponderada no esqueleto.py (segue peito e pescoço; o pivô da cabeça fica no centro do crânio).
 
 bpy.context.view_layer.objects.active = arm
 bpy.ops.object.mode_set(mode='POSE')
@@ -303,22 +315,49 @@ def penetracao(lado=None):  # a pior entrada de um osso da mão numa superfície
             if f < pior: pior, quem = f, b.name
     return (round(pior, 3), quem)
 
+def entrada_da_palma(s):
+    """Com os dedos articulados, o pulso só desvia da palma (do pulso até os nós dos dedos): os dedos se resolvem
+    depois, falange por falange, no contato. Testar os dedos em repouso erguia a mão inteira pelas garras curvas
+    da malha, e ela pairava sobre a borda."""
+    if not DEDOS_ARTICULADOS or f'dedo2.1.{s}' not in pb: return penetracao(s)[0]
+    b = pb[f'mao.{s}']
+    return round(min(0.0, folga(b.head, pb[f'dedo2.1.{s}'].head)), 3)
+
 # Parte do olhar feita pelo peito: com tudo no pescoço e na cabeça, a cabeça dobrava para trás e a gola alta
 # (que segue o peito) cortava o rosto.
-PEITO_NO_OLHAR = 0.4
+PEITO_NO_OLHAR = 0.1  # debruçado: se o peito seguisse o olhar (câmera alta), ele se endireitava e o rosto saía do quadro
+# Pescoço e cabeça juntos estendem no máximo isto; com o peito a ~60°, olhar direto para a câmera alta pediria >100°.
+OLHAR_MAX = 65.0
+def para_o_alvo(alvo, peso):  # rotação (fração `peso`) que leva o rosto ao alvo, limitada a OLHAR_MAX no total
+    q = rosto().rotation_difference(alvo)
+    return Quaternion().slerp(q, peso * min(1.0, math.radians(OLHAR_MAX) / max(q.angle, 1e-6)))
 
-def posar(t):
+GOLA_EXT_DEITADA = 50.0  # com a cabeça estendida isso sobre o peito, a gola já deita de vez nas costas (90°)
+GOLA_ENCOLHE = 0.5
+def dobrar_gola(encarando):
+    """Deita a gola nas costas enquanto ele encara a câmera com a cabeça estendida (presa ao peito, ela cortava o rosto).
+    Olhando o dado (bote), a cabeça baixa e a gola fica no lugar: deitada, aparecia como um leque por cima da cabeça."""
+    p, c = pb['peito'], pb['cabeca']
+    d = p.matrix.to_3x3().inverted() @ (c.tail - c.head).normalized()  # eixo da cabeça no espaço do peito (Z local = frente)
+    ext = math.degrees(math.atan2(-d.z, d.y))  # > 0: a cabeça está estendida para trás
+    u = min(1.0, max(0.0, ext / GOLA_EXT_DEITADA)) * encarando
+    if u > 0:
+        k = u * u * (3 - 2 * u)
+        girar('gola', 'X', -90.0 * k)
+        # deitada, a gola encurta (dobrada rente à de baixo): inteira, sobrava uma faixa larga nas costas
+        pb['gola'].scale = (1.0, 1.0 - GOLA_ENCOLHE * k, 1.0); atualizar()
+def posar(t, recuo=0.0, ergue=0.0):
+    """recuo (+Y, para longe da bandeja) e ergue (+Z) somam-se ao quadril: é a correção que tira o corpo da madeira."""
     for b in pb: b.matrix_basis = Matrix.Identity(4)
     atualizar()
     resp = math.sin(2 * math.pi * t / 1400)
     balanco = math.sin(2 * math.pi * t / 2600 + 0.7)
     q = pb['quadril']
-    q.matrix = Matrix.Translation(V((0, curva(t, AVANCA), curva(t, SOBE) + 0.004 * resp))) @ q.matrix
+    q.matrix = Matrix.Translation(V((0, curva(t, AVANCA) + recuo, curva(t, SOBE) + ergue + 0.004 * resp))) @ q.matrix
     atualizar()
-    incl = curva(t, INCL)
-    girar('coluna', 'X', incl * 0.45)
+    girar('coluna', 'X', curva(t, INCL_COLUNA))
     girar('coluna', 'Z', 2.0 * balanco)
-    girar('peito', 'X', incl * 0.55 + 1.5 * resp)
+    girar('peito', 'X', curva(t, INCL_PEITO) + 1.5 * resp)
     w = curva(t, OLHAR)
     alvo_olhar = m(CAMERA).lerp(m(DADO), curva(t, NO_DADO))
     olho = lambda: pb['cabeca'].head + (pb['cabeca'].tail - pb['cabeca'].head) * 0.45
@@ -338,18 +377,20 @@ def posar(t):
             ik(s, sx, m(alvo), V((sx * polo.x, polo.y, polo.z)))
             apontar(f'mao.{s}', dedos)
             torcer(f'mao.{s}', V((0, 0, -1)), palma)
-            entra = penetracao(s)[0]
+            entra = entrada_da_palma(s)
             if entra >= -0.005: break
             alvo.y += -entra + 0.02
+        desviar_cotovelo(s, dedos, palma)
         if DEDOS_ARTICULADOS: posar_dedos(s, sx, t)
     queixo = curva(t, QUEIXO)
     girar('pescoco', 'X', queixo * 0.4)
     girar('cabeca', 'X', queixo * 0.6)
-    if w > 0:  # encara o jogador; na tentativa, olha para o dado. O que sobrar: 35% no pescoço, o resto na cabeça
-        aplicar_q('pescoco', Quaternion().slerp(rosto().rotation_difference((alvo_olhar - olho()).normalized()), 0.35 * w))
-        aplicar_q('cabeca', Quaternion().slerp(rosto().rotation_difference((alvo_olhar - olho()).normalized()), w))
+    if w > 0:  # encara o jogador; na tentativa, olha para o dado. 60% no pescoço (a gola segue), o resto na cabeça
+        aplicar_q('pescoco', para_o_alvo((alvo_olhar - olho()).normalized(), 0.6 * w))  # o pescoço leva a gola junto
+        aplicar_q('cabeca', para_o_alvo((alvo_olhar - olho()).normalized(), w))
     rolo = curva(t, ROLO)
     if rolo: aplicar_q('cabeca', Quaternion(rosto(), math.radians(rolo)))
+    dobrar_gola(w * (1 - curva(t, NO_DADO)))
 
 # --- Grava o clipe (tempo do clipe = quadro / FPS = relógio do presságio)
 scene = bpy.context.scene
@@ -358,13 +399,125 @@ fim = round(DUR / 1000 * FPS)
 scene.frame_start, scene.frame_end = 0, fim
 arm.animation_data_create()
 arm.animation_data.action = bpy.data.actions.new('par')
+# --- O corpo não atravessa a bandeja. A coreografia põe o peito na altura da parede, inclinado sobre ela; sem
+# conferência, o tronco entrava na madeira o clipe inteiro (o H2.5 com ~6.000 vértices, o H3.1 com ~1.300).
+# A cada quadro, a malha deformada do corpo (sem as mãos, que têm contato próprio) é medida contra a parede de trás e
+# o feltro; se entra, o quadril recua (+Y) ou sobe (+Z), o que for mais curto, e a pose é refeita (os braços refazem
+# o IK até a borda). Depois as correções são suavizadas no tempo: máximo numa janela e média, nunca abaixo do preciso.
+import numpy as np
+BANDEJA = {'fundo': ((0, WH / 2, -HD - WT / 2), (HW + WT, WH / 2, WT / 2)), 'frente': ((0, WH / 2, HD + WT / 2), (HW + WT, WH / 2, WT / 2)),
+           'esq': ((-HW - WT / 2, WH / 2, 0), (WT / 2, WH / 2, HD)), 'dir': ((HW + WT / 2, WH / 2, 0), (WT / 2, WH / 2, HD)),
+           'feltro': ((0, -0.5, 0), (HW, 0.5, HD))}
+# Só o tronco e a cabeça movem o quadril. Os braços ficam de fora: recuar o corpo estica o braço que passa por cima
+# da parede, ele cruza mais a madeira e a correção dispara (chegou a 0,6 m e as mãos não alcançavam mais a borda).
+MAOS = ('mao', 'dedo1', 'dedo2', 'dedo3', 'dedo4', 'polegar', 'braco', 'antebraco')
+_nomes = {g.index: g.name for g in corpo.vertex_groups}
+DO_CORPO = np.array([not (v.groups and _nomes[max(v.groups, key=lambda g: g.weight).group].split('.')[0] in MAOS)
+                     for v in corpo.data.vertices])
+def malha_no_three(mascara=None):
+    atualizar()
+    ev = corpo.evaluated_get(bpy.context.evaluated_depsgraph_get()); me = ev.to_mesh()
+    pc = np.empty(len(me.vertices) * 3); me.vertices.foreach_get('co', pc); ev.to_mesh_clear()
+    pc = pc.reshape(-1, 3) if mascara is None else pc.reshape(-1, 3)[mascara]
+    mw = np.array(corpo.matrix_world); pc = pc @ mw[:3, :3].T + mw[:3, 3]
+    return np.stack([pc[:, 0] * ESCALA, pc[:, 2] * ESCALA + ANCORA.y, -pc[:, 1] * ESCALA + ANCORA.z], 1)
+BRACO_DE = {s: np.array([bool(v.groups) and _nomes[max(v.groups, key=lambda g: g.weight).group] in (f'braco.{s}', f'antebraco.{s}')
+                         for v in corpo.data.vertices]) for s in ('L', 'R')}
+def entrada_do_braco(s):  # o quanto o braço (sem a mão) está dentro da parede de trás, em unidades do three
+    p = malha_no_three(BRACO_DE[s])
+    c, h = np.array(BANDEJA['fundo'][0]), np.array(BANDEJA['fundo'][1])
+    q = np.abs(p - c) - h
+    d = np.all(q < -0.002, 1)
+    return float((-q[d].max(1)).max()) if d.any() else 0.0
+def desviar_cotovelo(s, dedos, palma):
+    """Braço que passa da parede para o feltro ou para o dado: com o cotovelo atrás e abaixo do topo, o antebraço
+    atravessava a madeira. Gira o braço em volta do eixo ombro–pulso (a mão fica no alvo e o cotovelo sobe por cima
+    da parede), no menor ângulo que tira o braço da madeira. Se nenhum tira, fica o de menor entrada."""
+    if entrada_do_braco(s) < 0.005: return
+    nomes = (f'braco.{s}', f'antebraco.{s}', f'mao.{s}')
+    salvo = [pb[n].matrix.copy() for n in nomes]
+    ombro, pulso = pb[nomes[0]].head.copy(), pb[nomes[1]].tail.copy()
+    eixo = (pulso - ombro).normalized()
+    def tentar(g):
+        for n, mt in zip(nomes, salvo): pb[n].matrix = mt; atualizar()
+        if g: aplicar_q(nomes[0], Quaternion(eixo, math.radians(g)), pivo=ombro)
+        apontar(nomes[2], dedos)
+        torcer(nomes[2], V((0, 0, -1)), palma)
+        return entrada_do_braco(s)
+    melhor = (1e9, 0)
+    for g in (15, -15, 30, -30, 45, -45, 60, -60, 75, -75, 90, -90, 110, -110):
+        e = tentar(g)
+        if e < melhor[0]: melhor = (e, g)
+        if e < 0.005: return
+    tentar(melhor[1])
+
+def necessidade_do_corpo():
+    """(recuo, ergue) em unidades do modelo que tiram da madeira todo vértice do corpo que entrou."""
+    p = malha_no_three(DO_CORPO)
+    recua = sobe = 0.0
+    for nome in ('fundo', 'feltro'):
+        c, h = np.array(BANDEJA[nome][0]), np.array(BANDEJA[nome][1])
+        d = np.all(np.abs(p - c) - h < -0.002, 1)
+        if d.any():
+            sobe = max(sobe, float(((c[1] + h[1]) - p[d, 1]).max()))     # até sair pelo topo
+            recua = max(recua, float((p[d, 2] - (c[2] - h[2])).max()))  # até sair pela face de trás
+    return recua / ESCALA, sobe / ESCALA
+
+TOPO_CURTO = 0.04  # o peito debruçado que mal toca o topo sobe um pouco (até 4 cm); o resto recua
+SAIDA_PELO_TOPO = False  # por cima não serve: com o tronco inclinado sempre sobra sobretudo na altura da parede (subiu 1,1 m)
+_f = (ALVO - CAMERA).normalized(); _r = _f.cross(V((0, 1, 0))).normalized(); _u = _r.cross(_f)
+def na_tela(p_modelo):  # % da altura da tela, a partir do topo (negativo = fora do quadro)
+    d = mundo(p_modelo) - CAMERA
+    return round(50 * (1 - (d.dot(_u) / d.dot(_f)) / math.tan(math.radians(FOV / 2))), 1)
+correcao = []
 for f in range(0, fim + 1):
-    posar(f * 1000 / FPS)
-    if f % 5 == 0: print('QUADRO', f * 40, {k: round(v, 2) for k, v in cotovelos.items()}, 'penetra', penetracao())
+    r = e = 0.0
+    for _ in range(10):
+        posar(f * 1000 / FPS, r, e)
+        nr, ne = necessidade_do_corpo()
+        if max(nr, ne) < 0.001:
+            # o braço que o cotovelo não conseguiu tirar (a manga junto do ombro quase não se move no giro): sobe o corpo
+            nb = max(entrada_do_braco('L'), entrada_do_braco('R')) / ESCALA
+            if nb < 0.0007: break
+            e += nb + 0.002
+            continue
+        # sempre por cima: recuar tira o rosto do quadro (quem está mais atrás sobe na tela) e o alcance do bote
+        if SAIDA_PELO_TOPO or ne < min(nr, TOPO_CURTO): e += ne + 0.002
+        else: r += nr + 0.002
+    correcao.append((r, e))
+def suave(vals, janela=4, media=3):
+    mx = [max(vals[max(0, i - janela):i + janela + 1]) for i in range(len(vals))]
+    return [sum(mx[max(0, i - media):i + media + 1]) / len(mx[max(0, i - media):i + media + 1]) for i in range(len(mx))]
+recuos, ergues = suave([c[0] for c in correcao]), suave([c[1] for c in correcao])
+print('CORRECAO_MAX recuo', round(max(recuos), 3), 'ergue', round(max(ergues), 3), '(m na figura de 1,8)')
+
+for f in range(0, fim + 1):
+    posar(f * 1000 / FPS, recuos[f], ergues[f])
+    if f % 5 == 0: print('QUADRO', f * 40, {k: round(v, 2) for k, v in cotovelos.items()}, 'penetra', penetracao(),
+                         'recuo', round(recuos[f], 3), 'ergue', round(ergues[f], 3),
+                         'cabeca_topo%', na_tela(pb['cabeca'].tail), 'queixo%', na_tela(pb['cabeca'].head))
     for b in pb:
         b.keyframe_insert('rotation_quaternion', frame=f)
         b.keyframe_insert('location', frame=f)
+        if b.name == 'gola': b.keyframe_insert('scale', frame=f)
 bpy.ops.object.mode_set(mode='OBJECT')
+
+# --- Conferência do corpo inteiro (com as mãos): a malha deformada contra as paredes e o feltro, quadro a quadro.
+pior_corpo = (0.0, 0, '')
+for f in range(0, fim + 1, 2):
+    scene.frame_set(f)
+    ev = corpo.evaluated_get(bpy.context.evaluated_depsgraph_get()); me = ev.to_mesh()
+    pc = np.empty(len(me.vertices) * 3); me.vertices.foreach_get('co', pc); ev.to_mesh_clear()
+    mw = np.array(corpo.matrix_world); pc = pc.reshape(-1, 3) @ mw[:3, :3].T + mw[:3, 3]
+    pc = np.stack([pc[:, 0] * ESCALA, pc[:, 2] * ESCALA + ANCORA.y, -pc[:, 1] * ESCALA + ANCORA.z], 1)
+    for nome, (c, h) in BANDEJA.items():
+        q = np.abs(pc - np.array(c)) - np.array(h)
+        dentro = np.all(q < 0, 1)
+        if dentro.any():
+            fundo = float((-q[dentro].max(1)).max())
+            if fundo > pior_corpo[0]: pior_corpo = (fundo, f * 1000 // FPS, nome)
+            if fundo > 0.02: print('CORPO_ENTRA', f * 1000 // FPS, 'ms', nome, int(dentro.sum()), 'vértices, fundo', round(fundo, 3))
+print('CORPO_PIOR', round(pior_corpo[0], 3), 'em', pior_corpo[1], 'ms', pior_corpo[2])
 
 bpy.ops.object.select_all(action='DESELECT')
 arm.select_set(True); corpo.select_set(True)
