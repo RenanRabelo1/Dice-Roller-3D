@@ -1,5 +1,6 @@
 import { span } from '../../../shared/math.ts';
 import type { PlanoDoPresagio } from '../contracts.ts';
+import { parAt } from './vampiroMotion.ts';
 
 // The omen's one light (the Show's PointLight), as pure curves. `t` is ms since the show began; the result is the
 // intensity. Lightning and fire keep their own curves in the Show.
@@ -29,7 +30,9 @@ export const POS_KRAKEN: [number, number, number] = [0, 0.3, 0]; // low, "from b
 export const POS_TEMPESTADE: [number, number, number] = [0, 9, -3];
 export const POS_DUALIDADE: [number, number, number] = [0, 2, 1.5]; // under the taiji (it floats at y 4)
 export const POS_VAMPIRO: [number, number, number] = [4, 0.85, 1.4];
+export const POS_LUZ_DO_PAR: [number, number, number] = [0, 5.2, -5.1];
 export const luzDoVampiro = (t: number, ms: number) => 6 * span(t, 0, 450) * (1 - span(t, ms - 500, ms));
+export const luzDoPar = (t: number) => 14 * parAt(t).aparece;
 
 export const luzDoKraken = (t: number, ms: number) =>
   (t < 600 ? 8 * (t / 600) : 8 + 2 * Math.sin(t / 400)) * (1 - span(t, ms - 500, ms));

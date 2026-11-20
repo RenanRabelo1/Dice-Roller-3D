@@ -48,6 +48,7 @@ export async function parseGlb(bytes: ArrayBuffer, textureMax: (mesh: Mesh) => n
       }
     }
   })
+  gltf.scene.animations = gltf.animations // the clips travel with the object
   return gltf.scene
 }
 

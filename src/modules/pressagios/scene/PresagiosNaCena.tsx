@@ -3,13 +3,14 @@ import { useFrame, useThree } from '@react-three/fiber';
 import {
   AdditiveBlending, BufferAttribute, BufferGeometry, CanvasTexture, CylinderGeometry, DoubleSide,
   ExtrudeGeometry, Group, LineSegments, Mesh, MeshBasicMaterial, MeshStandardMaterial, Path, PointLight,
-  Points, Shape, Sprite, SpriteMaterial, Vector3, type Camera, type Material, type PerspectiveCamera, type Scene, type WebGLRenderer,
+  Points, Shape, Sprite, SpriteMaterial, Vector3, type Camera, type Material, type Object3D, type PerspectiveCamera, type Scene, type WebGLRenderer,
 } from 'three';
 import { MAX_DICE, type PresagioVampiro } from '../../regras/index.ts';
 import { presagio, presagioTocando, setOmenDone } from '../store.ts';
 import { DUALITY_HIT } from '../domain/omen.ts';
 import { fireAt } from '../domain/fireMotion.ts';
-import { COR_KRAKEN, COR_TEMPESTADE, COR_VAMPIRO, corDaDualidade, fonteDaLuz, luzDaDualidade, luzDaTempestade, luzDoKraken, luzDoVampiro, POS_DUALIDADE, POS_KRAKEN, POS_TEMPESTADE, POS_VAMPIRO, type FonteDaLuz } from '../domain/luz.ts';
+import { COR_KRAKEN, COR_TEMPESTADE, COR_VAMPIRO, corDaDualidade, fonteDaLuz, luzDaDualidade, luzDaTempestade, luzDoKraken, luzDoPar, luzDoVampiro, POS_DUALIDADE, POS_KRAKEN, POS_LUZ_DO_PAR, POS_TEMPESTADE, POS_VAMPIRO, type FonteDaLuz } from '../domain/luz.ts';
+import { PAR } from '../domain/vampiroMotion.ts';
 import { planoDoPresagio } from '../domain/plano.ts';
 import { arremesso, registroDeCorpos } from '../../arremesso/index.ts';
 import { clamp01, span, type Vec3 } from '../../../shared/math.ts';
@@ -17,6 +18,10 @@ import { Kraken } from './Kraken.ts';
 import { coresDaMesa } from '../../mesa/index.ts';
 import { Fire } from './Fire.ts';
 import { Vampiro } from './Vampiro.ts';
+import { VampiroGlb } from './VampiroGlb.ts';
+import { parseGlb } from '../../../shared/modelos3d/index.ts';
+import { Morcegos } from './Morcegos.ts';
+import { Sangue } from './Sangue.ts';
 
 // The 3D side of an omen, played after the dice settle and before the result shows: lightning on a d20 20,
 // the kraken grabbing a d100 1, fire on a d20 1, the kraken's storm on a d100 100, the yin-yang fish for
@@ -24,6 +29,7 @@ import { Vampiro } from './Vampiro.ts';
 // `planoDoPresagio`. Effect materials are compiled at mount and hidden (0 draw calls) outside an omen. When the show
 // ends it marks the omen done, and the result goes on.
 
+const ARQUIVO_DO_VAMPIRO = `${import.meta.env.BASE_URL}modelos/vampiro.glb`;
 const easeOutCubica = (t: number) => 1 - (1 - clamp01(t)) ** 3;
 const easeIn = (t: number) => clamp01(t) ** 3;
 
@@ -171,16 +177,21 @@ export class Show {
   private fire = new Fire();
   private taiji = new TaiJi(this.map);
   private vampiro = new Vampiro();
+  private vampiroGlb = new VampiroGlb();
+  private morcegos = new Morcegos();
+  private sangue = new Sangue();
   private light = new PointLight('#CFE6FF', 0, 10, 2); // shared by all omens, see domain/luz.ts
   private run: { throwId: number; at: number; ms: number; bolts: number; kraken: 'grab' | 'storm' | null; fire: number[]; duality: boolean; vampiro: PresagioVampiro | null; origins: Vec3[]; luz: FonteDaLuz | null; over: boolean } | null = null;
   constructor() {
     for (const b of this.bolts) this.root.add(b.glow, b.core, b.flash);
     // Keep the light count constant: hiding an effect must not recompile every die's shader.
-    this.root.add(this.kraken.root, this.fire.root, this.taiji.group, this.vampiro.root, this.light);
+    this.root.add(this.kraken.root, this.fire.root, this.taiji.group, this.vampiro.root, this.vampiroGlb.root, this.morcegos.root, this.sangue.root, this.light);
   }
   // Compile every effect's shader up front, so the first omen does not stall a frame.
   compile(gl: WebGLRenderer, scene: Scene, camera: Camera, draw = false) {
     this.vampiro.prepare(camera);
+    this.morcegos.prepare(camera);
+    this.sangue.update(PAR.sai);
     if (draw) {
       const target = new Vector3(0, 1, 0), here = () => target;
       this.bolts.forEach((b) => { b.start(target); b.update(70, camera.position); });
@@ -195,7 +206,14 @@ export class Show {
     // ANGLE finishes some pipelines on their first draw. Replace the warm-up before the browser paints.
     if (draw) gl.render(scene, camera);
   }
-  hide() { this.bolts.forEach((b) => b.hide()); this.kraken.hide(); this.fire.hide(); this.taiji.hide(); this.vampiro.hide(); this.light.intensity = 0; this.run = null; }
+  // The GLB arrives after mount: attach it and warm its shaders like the other effects.
+  anexarGlb(objeto: Object3D, gl: WebGLRenderer, scene: Scene, camera: Camera) {
+    this.vampiroGlb.anexar(objeto);
+    this.compile(gl, scene, camera, true);
+  }
+  private hideVampiro() { this.vampiro.hide(); this.vampiroGlb.hide(); this.morcegos.hide(); this.sangue.hide(); }
+
+  hide() { this.bolts.forEach((b) => b.hide()); this.kraken.hide(); this.fire.hide(); this.taiji.hide(); this.hideVampiro(); this.light.intensity = 0; this.run = null; }
   frame(now: number, camera: Camera, at: (i: number) => Vector3 | null, pixels: number): number | null {
     const s = { ...arremesso(), ...presagio() }, current = s.omen ?? s.vampiro;
     // This throw's omen, while its dice lie settled (after the show only the fire is left).
@@ -215,7 +233,7 @@ export class Show {
       if (luz === 'tempestade') this.light.position.set(...POS_TEMPESTADE);
       else if (luz === 'kraken') this.light.position.set(...POS_KRAKEN);
       else if (luz === 'dualidade') this.light.position.set(...POS_DUALIDADE);
-      else if (luz === 'vampiro') this.light.position.set(...POS_VAMPIRO);
+      else if (luz === 'vampiro') this.light.position.set(...(vampiro?.tipo === 'par-de-criticos' ? POS_LUZ_DO_PAR : POS_VAMPIRO));
       const origins = vampiro?.dados.map((i) => at(i)?.toArray() ?? [0, 0.8, 0] as Vec3) ?? [];
       this.run = { throwId: current.throwId, at: s.omenAt, ms: plano.ms, bolts: lit.length, kraken: grab.length ? 'grab' : storm.length ? 'storm' : null,
         fire, duality: plano.kind === 'duality', vampiro, origins, luz, over: false };
@@ -228,7 +246,11 @@ export class Show {
       const flicker = 0.75 + 0.25 * Math.sin(t / 45) * Math.sin(t / 73);
       this.light.intensity = (6 + 18 * fireAt(t, 1).tray) * fireAt(t, 1).die * flicker;
     }
-    if (r.over || !presagioTocando()) return null;
+    if (r.over) return null;
+    if (!presagioTocando()) {
+      if (r.vampiro) { this.hideVampiro(); this.light.intensity = 0; }
+      return null;
+    }
     let striking = false;
     for (let i = 0; i < r.bolts; i++) striking = this.bolts[i].update(t, camera.position) || striking;
     if (r.kraken) this.kraken.update(t, camera, at);
@@ -236,26 +258,39 @@ export class Show {
     if (r.vampiro) {
       const vampiro = r.vampiro;
       const otherDice: Vec3[] = [];
-      if (vampiro.tipo !== 'falha-bestial') s.dice.forEach((_, i) => {
-        if (vampiro.dados.includes(i)) return;
-        const pos = at(i);
-        if (pos) otherDice.push(pos.toArray());
-      });
-      this.vampiro.update(vampiro.tipo, t, camera, r.origins, at(vampiro.dados[0])?.toArray(), otherDice);
+      if (vampiro.tipo === 'critico-bestial') {
+        s.dice.forEach((_, i) => {
+          if (vampiro.dados.includes(i)) return;
+          const pos = at(i);
+          if (pos) otherDice.push(pos.toArray());
+        });
+      }
+      if (vampiro.tipo === 'par-de-criticos' && this.vampiroGlb.pronto) {
+        const dados: Vec3[] = [];
+        s.dice.forEach((_, i) => { const pos = at(i); if (pos) dados.push(pos.toArray()); });
+        this.vampiro.hide();
+        this.vampiroGlb.update(t, { dado: this.vampiroGlb.maisPertoDoOmbro(r.origins), dados }); // the lunge aims at the real die
+      }
+      else this.vampiro.update(vampiro.tipo, t, camera, r.origins, at(vampiro.dados[0])?.toArray(), otherDice);
+      if (vampiro.tipo === 'par-de-criticos') {
+        this.morcegos.update(t, camera);
+        this.sangue.update(t);
+      }
     }
     if (r.bolts) this.light.intensity = (striking ? 30 : 0) + 10 * (1 - span(t, 0, 900));
     else if (r.luz === 'tempestade') this.light.intensity = luzDaTempestade(t);
     else if (r.luz === 'kraken') this.light.intensity = luzDoKraken(t, r.ms);
     else if (r.luz === 'dualidade') { this.light.intensity = luzDaDualidade(t, r.ms); this.light.color.set(corDaDualidade(t)); }
-    else if (r.luz === 'vampiro') this.light.intensity = luzDoVampiro(t, r.ms);
+    else if (r.luz === 'vampiro') this.light.intensity = r.vampiro?.tipo === 'par-de-criticos' ? luzDoPar(t) : luzDoVampiro(t, r.ms);
     if (t < r.ms) return null;
-    this.bolts.forEach((b) => b.hide()); this.kraken.hide(); this.taiji.hide(); this.vampiro.hide();
+    this.bolts.forEach((b) => b.hide()); this.kraken.hide(); this.taiji.hide(); this.hideVampiro();
     if (!r.fire.length) this.light.intensity = 0;
     r.over = true;
     return current.throwId;
   }
   dispose() {
     this.vampiro.dispose();
+    this.vampiroGlb.dispose();
     const disposeObject = (o: Group['children'][number]) => {
       if (o instanceof Mesh || o instanceof Sprite || o instanceof LineSegments || o instanceof Points) {
         if ('dispose' in o && typeof o.dispose === 'function') o.dispose();
@@ -263,7 +298,7 @@ export class Show {
         for (const m of ([] as Material[]).concat(o.material)) m.dispose();
       }
     };
-    for (const child of this.root.children) if (child !== this.vampiro.root) child.traverse(disposeObject);
+    for (const child of this.root.children) if (child !== this.vampiro.root && child !== this.vampiroGlb.root) child.traverse(disposeObject);
     this.map.dispose();
   }
 }
@@ -273,6 +308,14 @@ export function PresagiosNaCena() {
   const show = useMemo(() => new Show(), []);
   const warmed = useRef(false);
   useEffect(() => { show.compile(gl, scene, camera); return () => show.dispose(); }, [camera, gl, scene, show]);
+  useEffect(() => {
+    let vivo = true;
+    fetch(ARQUIVO_DO_VAMPIRO).then((r) => { if (!r.ok) throw new Error(String(r.status)); return r.arrayBuffer(); })
+      .then((bytes) => parseGlb(bytes, () => 2048))
+      .then((objeto) => { if (vivo) show.anexarGlb(objeto, gl, scene, camera); })
+      .catch((e) => console.warn('Vampiro em GLB indisponível, usando a figura procedural.', e));
+    return () => { vivo = false; };
+  }, [camera, gl, scene, show]);
   useFrame(() => {
     // Environment builds its reflection texture after mount; warm the final shader variants as well.
     if (!warmed.current && scene.environment && gl.info.render.frame > 5 && !presagio().omen && !presagio().vampiro) {

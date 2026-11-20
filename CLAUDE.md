@@ -46,6 +46,7 @@ O contexto de cada módulo fica no `CLAUDE.md` dele (e o detalhe, no `NOTAS.md`)
 | Vitest, Playwright, `window.__dice`, testes de arquitetura, gate | [testes.md](docs/contexto/testes.md) |
 | Fundo, mesa (cores, textura), exportar e importar mesa `.glb`, kraken nos cacos | [src/modules/mesa/CLAUDE.md](src/modules/mesa/CLAUDE.md) |
 | Antes de mexer em física, cena ou desempenho; specs antigas × código | [armadilhas.md](docs/contexto/armadilhas.md) |
+| Modelo 3D gerado por IA, esqueleto, animação no Blender por script, contato com o cenário, integração do GLB | [modelos-animados.md](docs/contexto/modelos-animados.md) |
 | Demanda nova: a que módulo pertence | [mapa-modulos.md](docs/mapa-modulos.md) e seção 8 do [guia](docs/guia-orquestrador.md) |
 | Próximas features combinadas, ainda sem spec | [backlog.md](docs/backlog.md) |
 

@@ -29,12 +29,12 @@ Decidir se um resultado publicado tem presságio e mostrá-lo antes do resultado
 
 ## Vampiro
 
-`scene/Vampiro.ts` monta um personagem procedural reaproveitado pelos três presságios e um par de mãos que acompanha a câmera na falha bestial. `Show.compile` aquece a figura com os outros efeitos, usando a mesma luz. `vampiroMotion` fornece o corpo e os pontos de apoio dos dados. No par, a cabeça fica oculta, e nas variantes bestiais ela aparece. Recolher, mudar a mão ou ativar movimento reduzido esconde a figura e as mãos da câmera.
+`scene/Vampiro.ts` monta a figura procedural comum aos três presságios. No par, `presencaAt` ergue a figura atrás da parede traseira. O tronco se inclina sobre a borda, com palmas e garras erguidas ao lado dos ombros. Para ajustar a pose, preserve a câmera da casca e use o teste de projeção e folga em `tests/vampiroCena.test.ts`. No par, a figura é o GLB `public/modelos/vampiro.glb` (dono do asset: este módulo; ver `scene/VampiroGlb.ts`): a raiz fica numa âncora fixa (`ANCORA_DO_GLB`), toda a movimentação vem do clipe `par`, e o tempo do clipe é o relógio do presságio. No bote (≈3.000 a 3.800 ms) um IK sobre o clipe, só com rotação e sem esticar o osso, leva a mão esquerda ao d10 crítico real e desvia a direita dos dados (ossos com nomes sem ponto: `bracoL`, `antebracoL`, `maoL`…). Enquanto o GLB não carregou, ou se falhar (`console.warn`), o par usa a figura procedural, que também segue nos bestiais. Consulte [NOTAS.md](NOTAS.md#vampiro) para a malha, as curvas da animação e o aquecimento em `Show.compile`.
 
 ## Consome
 - `arremesso`: `arremesso()`, `useArremesso`, `resultadoPublicado`, `registroDeCorpos` (os corpos dos dados), `omenKinds`, `TRAY`, o tipo `OmenTest`. O `LoopDoArremesso` lê o botão de teste escolhido pela casca (`presagio().omenTest`).
 - `mesa`: `ocultarPiso`, `coresDaMesa`. `dados`: `paraRegras`, `sortDice`. `regras`: `omenOf`, `omenKind`, `presagioVampiro`, `MAX_DICE`. `selecao`: `selecao()`, `definir`.
-- `src/shared`: `plataforma` (`movimentoReduzido`, `aoMudarMovimentoReduzido`), `math` (`Pose`, `easeOut`, `span`, `clamp01`).
+- `src/shared`: `plataforma` (`movimentoReduzido`, `aoMudarMovimentoReduzido`), `math` (`Pose`, `easeOut`, `span`, `clamp01`), `modelos3d` (`parseGlb`, para o vampiro do par).
 
 ## Fora do escopo
 - O voo comum, os números em destaque e o painel do resultado: `vitrine` (ver `src/modules/vitrine/CLAUDE.md`).

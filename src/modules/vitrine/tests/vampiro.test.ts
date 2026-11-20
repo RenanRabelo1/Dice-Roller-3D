@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { PerspectiveCamera, Vector3 } from 'three';
+import { PerspectiveCamera } from 'three';
 import { polyhedron } from '../../dados/index.ts';
 import { indicesComPercurso, movimentoNoPresagio } from '../../pressagios/index.ts';
 import { presagioVampiro, type DieKind } from '../../regras/index.ts';
@@ -18,8 +18,7 @@ it('routes the Vampire pair to its showcase poses and leaves the d20 for ordinar
 
   expect(at(0, 3750)).toBeNull();
   for (const i of [1, 2]) {
-    const launched = new Vector3(...at(i, 3750)!.pose.p);
-    expect(camera.position.distanceTo(launched)).toBeLessThan(3);
-    expect(at(i, 5600)?.pose).toEqual(final[i]);
+    expect(at(i, 2140)?.pose).toBe(landed); // descobre
+    expect(at(i, 5600)).toMatchObject({ pose: final[i], revela: 1 });
   }
 });
