@@ -51,4 +51,4 @@ Integrada (`a2c6db6`), com âncora fixa `[0, -8.67, -6.037]` e escala 7,5, sem r
 - **A figura congelava na segunda rodada.** A ação `LoopOnce` + `clampWhenFinished` ficava pausada no fim da primeira. Agora o `VampiroGlb` faz `paused = false; enabled = true` antes de cada `setTime`, com um teste de duas rodadas seguidas (`4a14e65`).
 - **A gola cortava o rosto ao encarar o jogador.** No Blender, o peito passou a fazer 40% do olhar, exceto no bote (`5c8bc25`).
 
-O clipe final tem a mão rígida em garra: os dedos fundidos do H2.5 não aguentam articulação (ver o apêndice de `docs/contexto/modelos-animados.md`). Gate de unidade verde; o E2E completo rodou no fechamento do grupo OS-0101 a OS-0103.
+O clipe final tem a mão rígida em garra: os dedos fundidos do H2.5 não aguentam articulação (ver o apêndice de `docs/contexto/modelos-animados.md`). No fechamento do grupo OS-0101 a OS-0103, passaram build, lint, `npm test` (692) e `test:server` (25). O E2E foi dispensado pelo usuário; o visual foi conferido por ele no `dev:test`.
