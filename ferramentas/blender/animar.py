@@ -102,13 +102,14 @@ AVANCA = [(0, 0.20, None), (750, 0.20, None), (1300, 0.0, e_out), (2900, 0.0, No
 # A dobra: quase toda no peito (por cima do topo); a coluna (a barriga, atrás da parede) fica quase reta.
 INCL_PEITO = [(0, 2, None), (450, 3, e_inout), (1000, 12, e_pesado), (1300, 82, e_out), (2900, 82, None),
               (3050, 78, e_inout), (3400, 84, e_out), (3600, 83, None), (3850, 76, e_out), (4250, 82, e_inout),
-              (4800, 82, None), (5100, 12, e_in), (5600, 4, e_in)]
+              (4800, 82, None), (5300, 60, e_in), (5600, 10, e_in)]  # sai debruçado: endireitar encarando subia a cabeça para fora da tela
 INCL_COLUNA = [(0, 2, None), (1000, 4, e_pesado), (1300, 9, e_out), (2900, 9, None), (3400, 10, e_out),
-               (3850, 7, e_out), (4250, 9, e_inout), (4800, 9, None), (5100, 3, e_in)]
+               (3850, 7, e_out), (4250, 9, e_inout), (4800, 9, None), (5400, 3, e_in)]
 OMBRO = [(0, 12, None), (380, 14, e_inout), (800, 16, e_pesado), (1100, 3, e_out), (3850, 9, e_out), (4250, 2, e_inout)]
-OLHAR = [(0, 0, None), (1000, 0, None), (1300, 1, e_out), (4800, 1, None), (5150, 0, e_in)]
+# Encara o jogador da escalada até sumir atrás da parede (antes o olhar soltava aos 4.800 ms e ele saía olhando para a frente).
+OLHAR = [(0, 0, None), (1000, 0, None), (1300, 1, e_out), (5600, 1, None)]
 NO_DADO = [(0, 0, None), (2950, 0, None), (3250, 0.85, e_inout), (3650, 0.85, None), (3800, 0, e_out)]
-QUEIXO = [(0, 62, None), (450, 62, None), (1000, 30, e_inout), (1300, 0, e_out), (4800, 0, None), (5300, 30, e_in)]  # cabeça baixa = escondida
+QUEIXO = [(0, 62, None), (450, 62, None), (1000, 30, e_inout), (1300, 0, e_out), (5600, 0, None)]  # cabeça baixa = escondida (só na chegada)
 ROLO = [(0, 0, None), (1500, 0, None), (1900, 9, e_inout), (2600, 0, e_inout), (4250, 0, None), (4500, -7, e_inout), (4800, 0, e_inout)]
 
 # --- Esqueleto e malha
@@ -180,9 +181,13 @@ def girar(nome, eixo, graus):
 def apontar(nome, direcao):
     b = pb[nome]
     aplicar_q(nome, (b.tail - b.head).normalized().rotation_difference(direcao.normalized()))
-def rosto():  # para onde o rosto aponta (-Y em repouso)
+# Os olhos da textura são pesados e olham um pouco para baixo: com o rosto apontado exatamente para a câmera, ele
+# parecia olhar para a frente. O "olhar" é a frente do rosto inclinada isto para baixo, e é ele que mira o alvo.
+OLHOS_ABAIXO = 18.0
+def rosto():  # para onde o olhar aponta (-Y em repouso, inclinado OLHOS_ABAIXO para baixo)
     b = pb['cabeca']
-    return (b.matrix.to_3x3() @ b.bone.matrix_local.to_3x3().inverted() @ V((0, -1, 0))).normalized()
+    a = math.radians(OLHOS_ABAIXO)
+    return (b.matrix.to_3x3() @ b.bone.matrix_local.to_3x3().inverted() @ V((0, -math.cos(a), -math.sin(a)))).normalized()
 def torcer(nome, eixo_repouso, desejado):
     """Gira o osso no próprio eixo até `eixo_repouso` (no repouso) apontar para `desejado` (controle de torção)."""
     b = pb[nome]
@@ -326,8 +331,9 @@ def entrada_da_palma(s):
 # Parte do olhar feita pelo peito: com tudo no pescoço e na cabeça, a cabeça dobrava para trás e a gola alta
 # (que segue o peito) cortava o rosto.
 PEITO_NO_OLHAR = 0.1  # debruçado: se o peito seguisse o olhar (câmera alta), ele se endireitava e o rosto saía do quadro
-# Pescoço e cabeça juntos estendem no máximo isto; com o peito a ~60°, olhar direto para a câmera alta pediria >100°.
-OLHAR_MAX = 65.0
+# Limite de cada giro de olhar (pescoço e depois cabeça). Com 65°, o rosto parava ~10° abaixo da câmera e ele parecia
+# olhar para a frente, não para o jogador; com o pivô no centro do crânio e a gola dobrando, 90° fecha o olhar.
+OLHAR_MAX = 90.0
 def para_o_alvo(alvo, peso):  # rotação (fração `peso`) que leva o rosto ao alvo, limitada a OLHAR_MAX no total
     q = rosto().rotation_difference(alvo)
     return Quaternion().slerp(q, peso * min(1.0, math.radians(OLHAR_MAX) / max(q.angle, 1e-6)))
@@ -340,7 +346,9 @@ def dobrar_gola(encarando):
     p, c = pb['peito'], pb['cabeca']
     d = p.matrix.to_3x3().inverted() @ (c.tail - c.head).normalized()  # eixo da cabeça no espaço do peito (Z local = frente)
     ext = math.degrees(math.atan2(-d.z, d.y))  # > 0: a cabeça está estendida para trás
-    u = min(1.0, max(0.0, ext / GOLA_EXT_DEITADA)) * encarando
+    # só debruçado: com o peito em pé (na saída), a gola deitada apontava para cima atrás da cabeça
+    debruce = math.degrees((p.tail - p.head).normalized().angle(V((0, 0, 1))))
+    u = min(1.0, max(0.0, ext / GOLA_EXT_DEITADA)) * encarando * min(1.0, max(0.0, (debruce - 35) / 30))
     if u > 0:
         k = u * u * (3 - 2 * u)
         girar('gola', 'X', -90.0 * k)

@@ -81,13 +81,13 @@ const HORIZONTAL = new Vector3(1, 0, 0);
 const VERTICAL = new Vector3(0, 10, -14).normalize();
 const NORMAL = new Vector3(...CAMERA_PADRAO).normalize();
 const DORSO = new Vector3(0, 1, 0), EIXO_LONGITUDINAL = new Vector3(0, 0, 1);
+// A few bats crossing the screen, not a wall: a loose group in three depths, each at its own height and drift.
 const CAMADAS = [
-  { colunas: 20, linhas: 13, profundidade: 0.375, escala: 0.91, varEscala: 0.055 },
-  { colunas: 9, linhas: 9, profundidade: 0.53, escala: 0.79, varEscala: 0.075 },
-  { colunas: 6, linhas: 5, profundidade: 0.842, escala: 0.755, varEscala: 0.024 },
+  { quantidade: 3, profundidade: 0.375, escala: 0.91, varEscala: 0.055 },
+  { quantidade: 6, profundidade: 0.53, escala: 0.79, varEscala: 0.075 },
+  { quantidade: 5, profundidade: 0.842, escala: 0.755, varEscala: 0.024 },
 ];
-const BATEDORES = 6, ACIMA_DO_BANDO = 6;
-export const NUMERO_DE_MORCEGOS = CAMADAS.reduce((n, { colunas, linhas }) => n + colunas * linhas + BATEDORES, ACIMA_DO_BANDO);
+export const NUMERO_DE_MORCEGOS = CAMADAS.reduce((n, { quantidade }) => n + quantidade, 0);
 export const ENVERGADURA = 1.46;
 export const AMPLITUDE_DA_ASA = MathUtils.degToRad(53);
 const MEIA_ALTURA = Math.tan(MathUtils.degToRad(20)), MEIA_LARGURA = MEIA_ALTURA * 1.6;
@@ -96,28 +96,20 @@ const variacao = (seed: number) => {
   return value - Math.floor(value);
 };
 
-const bandos = CAMADAS.flatMap((layer, camada) => {
-  const { colunas, linhas } = layer;
-  return Array.from({ length: colunas * linhas + BATEDORES + (camada === 1 ? ACIMA_DO_BANDO : 0) }, (_, slot) => {
+const bandos = CAMADAS.flatMap((layer, camada) =>
+  Array.from({ length: layer.quantidade }, (_, slot) => {
     const seed = 283 * camada + slot * 2.399963;
-    const scout = slot >= colunas * linhas;
-    const alto = slot - colunas * linhas - BATEDORES;
-    const column = slot % colunas, row = Math.floor(slot / colunas);
-    const dx = 2.13 / colunas, dy = 1.53 / linhas;
-    const borda = 0.095 * Math.sin(row * 1.91 + camada * 1.31);
-    const x = alto >= 0 ? (alto - 2.5) * 0.385 + (variacao(seed) - 0.5) * 0.15 : scout
-      ? (slot % 2 === 0 ? 1 : -1) * (1.31 + 0.24 * variacao(seed + 4))
-      : -1.065 + dx * (column + 0.5 + 1.04 * (variacao(seed) - 0.5)) + borda;
-    const y = alto >= 0 ? 0.67 + (variacao(seed + 19) - 0.5) * 0.11 : scout ? (variacao(seed + 19) - 0.5) * 1.65
-      : -0.765 + dy * (row + 0.5 + 1.04 * (variacao(seed + 25) - 0.5));
     return {
-      camada, x, y, seed,
+      camada, seed,
+      // the spread staggers the arrivals; within [-1.2, 1.1] even the slowest bat enters and leaves the screen
+      x: -1.2 + 2.3 * variacao(seed),
+      y: -0.7 + 1.45 * variacao(seed + 19),
+      deriva: 0.5 * (variacao(seed + 31) - 0.5),
       velocidade: 0.75 + 0.50 * variacao(seed + 11),
       profundidade: layer.profundidade + (variacao(seed + 8) - 0.5) * 0.018,
       escala: layer.escala + layer.varEscala * variacao(seed + 7),
     };
-  });
-});
+  }));
 
 export function revoadaAt(t: number, camera: Vec3 = CAMERA_PADRAO) {
   const { revoada: u } = parAt(t);
@@ -126,12 +118,12 @@ export function revoadaAt(t: number, camera: Vec3 = CAMERA_PADRAO) {
   const eye = new Vector3(...camera);
   const distance = eye.length();
   return bandos.map((bat) => {
-    const { camada, x, y, seed, escala, velocidade } = bat;
+    const { camada, x, y, seed, escala, velocidade, deriva } = bat;
     const profundidade = bat.profundidade * distance + 0.075 * Math.sin(t * 0.005 + seed);
     const frequencia = 7.3 + Math.cos(seed) * 0.85;
     const fase = t / 1000 * frequencia * 2 * Math.PI + seed;
     const passage = x + sweep * velocidade + 0.034 * Math.sin(t * 0.003 + seed);
-    const altura = y + 0.055 * Math.sin(t * 0.0057 + seed);
+    const altura = y + deriva * (u - 0.5) + 0.055 * Math.sin(t * 0.0057 + seed);
     const p = eye.clone().addScaledVector(NORMAL, -profundidade)
       .addScaledVector(HORIZONTAL, passage * profundidade * MEIA_LARGURA)
       .addScaledVector(VERTICAL, altura * profundidade * MEIA_ALTURA);

@@ -265,7 +265,8 @@ function triangleHits(ray: Ray, geometry: BufferGeometry) {
   return null;
 }
 
-it('occludes a 9 by 6 grid of felt from the default camera throughout the flock peak', () => {
+// A few bats pass by; they no longer wall off the screen (user, 2026-11-20: "só alguns, de forma natural").
+it('a few bats cross the view and never hide more than a fifth of the felt', () => {
   const bats = new Morcegos();
   const parts = (malhas(bats.root) as InstancedMesh[]).reverse();
   const radius = Math.max(...parts.map(({ geometry }) => {
@@ -283,7 +284,8 @@ it('occludes a 9 by 6 grid of felt from the default camera throughout the flock 
     return { ray: new Ray(camera.position.clone(), direction.clone().normalize()), lengthSq: direction.lengthSq(), point };
   }));
   const local = new Ray();
-  for (let t = PAR.cobre; t <= PAR.descobre; t++) {
+  let pior = 0, algum = 0;
+  for (let t = PAR.revoada; t <= PAR.sangue; t += 20) {
     bats.update(t, camera);
     const drawn = instances.slice(0, parts[0].count);
     drawn.forEach((instance, i) => {
@@ -295,7 +297,8 @@ it('occludes a 9 by 6 grid of felt from the default camera throughout the flock 
       instance.center.setFromMatrixPosition(world);
       instance.radiusSq = (radius * world.getMaxScaleOnAxis()) ** 2;
     });
-    for (const { ray, lengthSq, point } of rays) {
+    let cobertos = 0;
+    for (const { ray, lengthSq } of rays) {
       const covered = drawn.some(({ center, radiusSq, parts }) => {
         if (ray.distanceSqToPoint(center) > radiusSq) return false;
         return parts.some(({ mesh, world, local: inverse }) => {
@@ -305,7 +308,12 @@ it('occludes a 9 by 6 grid of felt from the default camera throughout the flock 
           return !!hit && hit.applyMatrix4(world).distanceToSquared(ray.origin) < lengthSq;
         });
       });
-      if (!covered) throw new Error(`Exposed felt at ${t} ms, point ${point.toArray()}`);
+      if (covered) cobertos++;
     }
+    pior = Math.max(pior, cobertos / rays.length);
+    algum += cobertos;
   }
+  expect(NUMERO_DE_MORCEGOS).toBeLessThanOrEqual(20);
+  expect(pior).toBeLessThanOrEqual(0.2);
+  expect(algum).toBeGreaterThan(0);
 }, 30_000);
