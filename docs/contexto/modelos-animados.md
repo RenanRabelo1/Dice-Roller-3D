@@ -149,7 +149,7 @@ O defeito que sobrar vai para a lista como defeito, nunca como "aceitável". **N
 
 ## 9. Exportar e integrar (three.js / R3F)
 
-- **Exporte só o personagem** (`use_selection`): esqueleto e malha, com `export_animation_mode='ACTIONS'` e `export_image_format='WEBP'`. Antes, reduza as imagens a 1024 com `img.scale`. Exemplo: o vampiro foi de 7,8 MB para 3,5 MB.
+- **Exporte só o personagem** (`use_selection`): esqueleto e malha, com `export_animation_mode='ACTIONS'` e `export_image_format='WEBP'`. Antes, reduza as imagens a 1024 com `img.scale` **seguido de `img.pack()`**: imagens que vieram embutidas no GLB guardam os bytes originais, e sem reempacotar a exportação os reaproveita (o H3.1 saiu com a cor de 4096 px, o leitor recusou acima de 2048 e o site caiu na figura procedural). Confira o tamanho das texturas no GLB exportado. Exemplo: o vampiro H3.1 ficou com 2,9 MB.
 - **Carregue com o leitor que o projeto já tem**, aqui o `parseGlb` de `shared/modelos3d`, que preserva `object.animations`. Não use loader novo.
 - **`AnimationMixer` + `clipAction(par)`**, com `LoopOnce` e `clampWhenFinished`, e `mixer.setTime(t / 1000)` a cada quadro. É determinístico e segue o relógio do efeito.
 - `frustumCulled = false` nos meshes com pele: os ossos levam a malha para fora da caixa de repouso.
@@ -211,6 +211,12 @@ O clipe é fixo, mas alguns alvos mudam a cada jogada (o dado cai num lugar dife
 | Réplica da prévia com enquadramento um pouco diferente do jogo | Margem do topo diferente no site | Confirmar na captura do jogo; ajustar no Blender, não na âncora |
 | Exportar do gerador no plano grátis | O botão Exportar pede assinatura | No Tripo, o grátis exporta só o H2.5 (15 por mês) |
 | Mão rígida com garra curva na malha | As pontas furam a superfície | Alvo do pulso empurrado para cima até não penetrar; nós dos dedos na quina |
+| Pivô do pescoço e da cabeça no eixo do tronco | A nuca varre e atravessa a gola alta ao erguer o rosto | Pescoço e cabeça no centro medido do crânio (no H3.1, 11 cm atrás do eixo do tronco) |
+| Gola alta pesada na cabeça pelo bone heat | A gola gira com o crânio e corta o rosto | Gola fora do crânio repesada no peito e no pescoço, com osso próprio (`gola`) que deita para trás ao encarar |
+| Gola deitada o tempo todo no debruçado | Faixa em pé nas costas, aparece por cima da cabeça baixa | Deitar só enquanto ele encara a câmera; no bote ela volta |
+| `img.scale` em imagem embutida, sem `img.pack()` | A textura sai no tamanho original e o leitor recusa o GLB | `img.pack()` depois do `scale`; conferir no GLB exportado |
+| Dois objetos `cam` no `.blend` (esqueleto e animação) | Prévia renderizada pela câmera errada | A do jogo é a de `sensor_fit` `VERTICAL` (`cam.001`) |
+| Caminho relativo para as prévias no `animar.py` | Os quadros não se atualizam | Passar caminho absoluto |
 | Entregar sem revisar em tamanho cheio | O usuário acha o defeito antes de você | Lista de defeitos da seção 8 antes de toda entrega |
 
 ---
@@ -229,9 +235,10 @@ ffmpeg -framerate 12.5 -i s_%04d.png -vf "scale=800:-1:flags=lanczos,split[a][b]
 ```powershell
 # O pipeline do vampiro, na ordem (os arquivos de trabalho ficam em temp/modelos/, fora do git)
 $b = "C:\Program Files\Blender Foundation\Blender 5.3\blender.exe"
-& $b --background --factory-startup --python ferramentas\blender\esqueleto.py -- temp\modelos\vampiro-h25.glb temp\modelos\vampiro-h25-rig.glb temp\modelos\prev
-& $b --background temp\modelos\vampiro-h25-rig.blend --python ferramentas\blender\animar.py -- temp\modelos\vampiro-anim.glb temp\modelos\prev\anim
-Copy-Item temp\modelos\vampiro-anim.glb public\modelos\vampiro.glb
+# Entrada: o GLB do Retopo do Tripo (H3.1). Prévias com caminho ABSOLUTO.
+& $b --background --factory-startup --python ferramentas\blender\esqueleto.py -- temp\modelos\vampiro-h31-retopo.glb temp\modelos\vampiro-h31-rig.glb temp\modelos\prev-h31
+& $b --background temp\modelos\vampiro-h31-rig.blend --python ferramentas\blender\animar.py -- $PWD\temp\modelos\vampiro-h31-anim.glb $PWD\temp\modelos\prev-h31\anim
+Copy-Item temp\modelos\vampiro-h31-anim.glb public\modelos\vampiro.glb
 ```
 
 ---
@@ -282,3 +289,11 @@ A sequência real, com cada dificuldade e como foi contornada. Os números de or
     - os braços compridos;
     - a capa sem ossos;
     - o topo da cabeça visível na chegada.
+12. **O modelo final, H3.1 (20/11/2026, OS-0104).**
+    - **Gerar:** Tripo Pro, HD Model H3.1 em T-pose, depois o **Retopo** do próprio Tripo (de 1,9 milhão para 60 mil triângulos, com as texturas assadas). Decimar no Blender rachava a textura do rosto.
+    - **Dedos separados:** o `esqueleto.py` acha os dedos pela conectividade da malha (varredura a partir do pulso; o polegar é o primeiro pedaço que se solta, os quatro dedos o primeiro corte com quatro pedaços longos) e as juntas pela distância geodésica. `DEDOS_ARTICULADOS = True`.
+    - **O corpo atravessava a bandeja** (o H2.5 também atravessava, ~6.000 vértices). **Contorno, a pedido do usuário:** ele **escala** a parede, com o peito debruçado por cima do topo (82°) e a barriga atrás dela. Uma correção por quadro mede a malha deformada contra as caixas da bandeja e recua ou ergue o quadril até sair (suavizada no tempo); o cotovelo desvia da madeira girando no eixo ombro–pulso. Pior caso: 1,2 cm.
+    - **A cabeça atravessava a gola alta ao encarar.** **Causa:** pescoço e cabeça no eixo do tronco, que no H3.1 passa na ponta do nariz; a cabeça girava em torno do rosto. **Contorno:** juntas no centro medido do crânio, gola repesada para fora da cabeça e osso `gola` que deita para trás (e encolhe 50%) só enquanto ele encara a câmera. Deitada o tempo todo, ela aparecia como um leque por cima da cabeça baixa no bote.
+    - **Enquadramento:** com o pivô certo a cabeça subiu e a testa saiu da tela; o peito ganhou 12° de inclinação na escalada.
+    - **No site caiu na figura procedural:** a textura de cor saiu com 4096 px (`img.scale` sem `img.pack()`). Corrigido no `esqueleto.py`.
+    - Limites que ficaram: o topo do cabelo encosta na borda da tela ao encarar (~3%) e as bordas da gola dobrada aparecem de perfil ao lado das bochechas.
