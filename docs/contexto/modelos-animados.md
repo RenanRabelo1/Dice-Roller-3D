@@ -214,6 +214,9 @@ O clipe é fixo, mas alguns alvos mudam a cada jogada (o dado cai num lugar dife
 | Pivô do pescoço e da cabeça no eixo do tronco | A nuca varre e atravessa a gola alta ao erguer o rosto | Pescoço e cabeça no centro medido do crânio (no H3.1, 11 cm atrás do eixo do tronco) |
 | Gola alta pesada na cabeça pelo bone heat | A gola gira com o crânio e corta o rosto | Gola fora do crânio repesada no peito e no pescoço, com osso próprio (`gola`) que deita para trás ao encarar |
 | Gola deitada o tempo todo no debruçado | Faixa em pé nas costas, aparece por cima da cabeça baixa | Deitar só enquanto ele encara a câmera; no bote ela volta |
+| Limite de giro do olhar baixo demais (`OLHAR_MAX` 65°) com o tronco debruçado | O rosto para ~10° abaixo da câmera e ele parece olhar para a frente, não para o jogador | Medir o ângulo entre o rosto e a câmera por quadro; 90° fecha o olhar (erro ~1°) |
+| Rosto apontado exatamente para a câmera, com olhos pintados olhando para baixo | Ele parece olhar para a frente, não para o jogador | Mirar com a frente do rosto inclinada para baixo (`OLHOS_ABAIXO` 18°): o rosto sobe acima da câmera e os olhos a encontram |
+| Endireitar o tronco enquanto encara uma câmera alta | A cabeça sobe e sai do quadro | Sair debruçado e endireitar só depois de afundar |
 | `img.scale` em imagem embutida, sem `img.pack()` | A textura sai no tamanho original e o leitor recusa o GLB | `img.pack()` depois do `scale`; conferir no GLB exportado |
 | Dois objetos `cam` no `.blend` (esqueleto e animação) | Prévia renderizada pela câmera errada | A do jogo é a de `sensor_fit` `VERTICAL` (`cam.001`) |
 | Caminho relativo para as prévias no `animar.py` | Os quadros não se atualizam | Passar caminho absoluto |
