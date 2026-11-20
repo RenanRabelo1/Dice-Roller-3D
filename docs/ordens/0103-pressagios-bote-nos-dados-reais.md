@@ -70,3 +70,17 @@ Pedido do usuário (2026-11-19): no bote, entre ~3.000 e ~3.800 ms, a mão esque
 O clipe e o modelo (são do orquestrador, no Blender), a câmera, os bestiais, os morcegos e o sangue. Não mexa em `ESCALA_DO_GLB` nem em `ANCORA_DO_GLB`.
 
 Commits: `feat(pressagios): … [OS-0103]`.
+
+## Resultado
+
+Integrada (`25a3119`).
+
+- **IK puro:** `domain/ikDoBraco.ts` (`dobrarBraco`, `pesoDoBote`), com testes de alcance, comprimentos preservados (1e-6), lado do polo e janela do peso.
+- **No `VampiroGlb`:**
+  - IK por cima do clipe, misturado por `slerp`, escrevendo só `quaternion`;
+  - dobradiça anatômica;
+  - mão apontando o dado;
+  - cabeça seguindo o dado com no máximo 40° de diferença;
+  - mão direita desviando de qualquer dado a menos de 1,3.
+- **No `Show`:** monta `{ dado, dados }` a partir de `r.origins` e `at(i)`, só no par.
+- **Verificação:** 692 testes em 87 arquivos. O usuário conferiu no `dev:test`.
